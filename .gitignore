@@ -12,7 +12,7 @@
 *.exe
 *.out
 *.app
-solver
+Application
 
 # Remove annoying IDE directories
 /.idea/*
