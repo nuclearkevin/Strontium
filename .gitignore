@@ -1,6 +1,7 @@
 *.pyc
 *.csv
 *.txt
+*.obj
 
 # Object files
 *.d
