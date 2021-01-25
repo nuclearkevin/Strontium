@@ -1,0 +1,21 @@
+*.pyc
+*.csv
+*.txt
+
+# Object files
+*.d
+*.o
+*.a
+*.gch
+
+# Executables
+*.exe
+*.out
+*.app
+solver
+
+# Remove annoying IDE directories
+/.idea/*
+
+# Allow the inputs directory for now.
+!**/inputs/*.txt
