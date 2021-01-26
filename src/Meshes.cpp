@@ -215,11 +215,13 @@ Mesh::computeNormals()
   glm::vec3              a, b, c, edgeOne, edgeTwo, cross;
   std::vector<glm::vec3> triangleNormals;
   std::vector<glm::vec3> vertexNormals;
+  std::vector<unsigned>  count;
 
   glm::vec3 zero(0.0f, 0.0f, 0.0f);
   for (unsigned i = 0; i < this->data.size(); i++)
   {
     vertexNormals.push_back(zero);
+    count.push_back(0);
   }
 
   // Compute the normals of each face.
@@ -228,6 +230,9 @@ Mesh::computeNormals()
     a = this->data[this->indices[i]].position;
     b = this->data[this->indices[i + 1]].position;
     c = this->data[this->indices[i + 2]].position;
+    count[this->indices[i]] += 1;
+    count[this->indices[i + 1]] += 1;
+    count[this->indices[i + 2]] += 1;
 
     // Compute triangle face normals.
     edgeOne = b - a;
@@ -244,6 +249,9 @@ Mesh::computeNormals()
   // Loop over the vertex normal array and normalize the vectors.
   for (unsigned i = 0; i < vertexNormals.size(); i++)
   {
+    vertexNormals[i][0] /= count[i];
+    vertexNormals[i][1] /= count[i];
+    vertexNormals[i][2] /= count[i];
     vertexNormals[i] = glm::normalize(vertexNormals[i]);
     this->data[i].normal = vertexNormals[i];
   }

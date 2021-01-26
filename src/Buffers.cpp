@@ -4,9 +4,11 @@
 // STL includes.
 #include <iostream>
 
+// Constructor and destructor.
 VertexBuffer::VertexBuffer(const void* bufferData, const unsigned &dataSize,
                            BufferType bufferType)
   : hasData(true)
+  , type(bufferType)
   , bufferData(bufferData)
   , dataSize(dataSize)
 {
@@ -20,21 +22,25 @@ VertexBuffer::~VertexBuffer()
   glDeleteBuffers(1, &this->bufferID);
 }
 
+// Bind the buffer.
 void
 VertexBuffer::bind()
 {
   glBindBuffer(GL_ARRAY_BUFFER, this->bufferID);
 }
 
+// Unbind the buffer.
 void
 VertexBuffer::unbind()
 {
   glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
+// Constructor and destructor.
 IndexBuffer::IndexBuffer(const GLuint* bufferData, unsigned numIndices,
                          BufferType bufferType)
   : hasData(true)
+  , type(bufferType)
   , bufferData(bufferData)
   , count(numIndices)
 {
@@ -48,23 +54,27 @@ IndexBuffer::~IndexBuffer()
   glDeleteBuffers(1, &this->bufferID);
 }
 
+// Bind the buffer.
 void
 IndexBuffer::bind()
 {
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, this->bufferID);
 }
 
+// Unbind the buffer.
 void
 IndexBuffer::unbind()
 {
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 }
 
+// Get the number of stored vertices.
 unsigned IndexBuffer::getCount()
 {
   return this->count;
 }
 
+// Build a vertex buffer with a vector of meshes.
 VertexBuffer*
 buildBatchVBuffer(const std::vector<Mesh*> &loadedMeshes,
                   BufferType bufferType)
@@ -79,11 +89,11 @@ buildBatchVBuffer(const std::vector<Mesh*> &loadedMeshes,
       batchData.push_back(vertex);
     }
   }
-
-  return new VertexBuffer(&batchData[0], batchData.size() * sizeof(Vertex),
+  return new VertexBuffer(&(batchData[0]), batchData.size() * sizeof(Vertex),
                           bufferType);
 }
 
+// Build an index buffer with a vector of meshes.
 IndexBuffer*
 buildBatchIBuffer(const std::vector<Mesh*> &loadedMeshes,
                   BufferType bufferType)
@@ -100,8 +110,7 @@ buildBatchIBuffer(const std::vector<Mesh*> &loadedMeshes,
     {
       batchIndices.push_back(index + offset);
     }
-    offset += mesh->getIndices().size();
+    offset += mesh->getData().size();
   }
-
-  return new IndexBuffer(&batchIndices[0], batchIndices.size(), bufferType);
+  return new IndexBuffer(&(batchIndices[0]), batchIndices.size(), bufferType);
 }

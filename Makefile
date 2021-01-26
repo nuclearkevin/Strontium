@@ -6,8 +6,8 @@ OGL_FLAGS   		= -lglfw -lGLEW -lGLU -lGL
 
 makebuild: make_dir app
 
-app: Application.o Shaders.o Meshs.o Buffers.o Camera.o
-	$(CXXFLAGS) -o ./Application $(OUTPUT_DIR)Application.o $(OUTPUT_DIR)Shaders.o $(OUTPUT_DIR)Meshs.o $(OUTPUT_DIR)Buffers.o $(OUTPUT_DIR)Camera.o $(OGL_FLAGS)
+app: Application.o Shaders.o VertexArray.o Buffers.o Meshs.o Camera.o
+	$(CXXFLAGS) -o ./Application $(OUTPUT_DIR)Application.o $(OUTPUT_DIR)Shaders.o $(OUTPUT_DIR)VertexArray.o $(OUTPUT_DIR)Buffers.o $(OUTPUT_DIR)Meshs.o $(OUTPUT_DIR)Camera.o $(OGL_FLAGS)
 
 Application.o:
 	$(COMPILE_FLAGS) -c ./src/Application.cpp $(OUTPUT_DIR_FLAG)Application.o
@@ -15,11 +15,14 @@ Application.o:
 Shaders.o:
 	$(COMPILE_FLAGS) -c ./src/Shaders.cpp $(OUTPUT_DIR_FLAG)Shaders.o
 
-Meshs.o:
-	$(COMPILE_FLAGS) -c ./src/Meshes.cpp $(OUTPUT_DIR_FLAG)Meshs.o
-
 Buffers.o:
 	$(COMPILE_FLAGS) -c ./src/Buffers.cpp $(OUTPUT_DIR_FLAG)Buffers.o
+
+VertexArray.o:
+	$(COMPILE_FLAGS) -c ./src/VertexArray.cpp $(OUTPUT_DIR_FLAG)VertexArray.o
+
+Meshs.o:
+	$(COMPILE_FLAGS) -c ./src/Meshes.cpp $(OUTPUT_DIR_FLAG)Meshs.o
 
 Camera.o:
 	$(COMPILE_FLAGS) -c ./src/Camera.cpp $(OUTPUT_DIR_FLAG)Camera.o

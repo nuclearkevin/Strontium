@@ -32,8 +32,12 @@ public:
 protected:
   // OpenGL buffer ID.
   GLuint      bufferID;
+
   // If the buffer has data or not.
   bool        hasData;
+
+  // Type of the buffer to prevent mismatching.
+  BufferType  type;
 
   // The data currently in the buffer.
   const void* bufferData;
@@ -61,8 +65,12 @@ public:
 protected:
   // OpenGL buffer ID.
   GLuint        bufferID;
+
   // If the buffer has data or not.
   bool          hasData;
+
+  // Type of the buffer to prevent mismatching.
+  BufferType    type;
 
   // The data currently in the buffer.
   const GLuint* bufferData;

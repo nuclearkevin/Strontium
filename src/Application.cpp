@@ -18,14 +18,11 @@
 #include "Shaders.h"
 #include "Meshes.h"
 #include "Buffers.h"
+#include "VertexArray.h"
 #include "Camera.h"
-
-// Shader ID, need to abstract shaders further.
-GLuint program;
 
 // Vertex array and index buffer, need to abstract.
 GLuint triangleVAO;
-GLuint ibuffer;
 
 // Window.
 GLFWwindow *window;
@@ -39,41 +36,33 @@ Camera* sceneCam = new Camera(512/2, 512/2, glm::vec3 {0.0f, 0.0f, 4.0f});
 // Mesh data.
 Mesh objModel1, objModel2;
 
-// Buffer objects.
-VertexBuffer* verBuff;
-IndexBuffer*  indBuff;
+// Vertex array, the data we want to render.
+VertexArray* vArray;
+
+// Shader.
+Shader* program;
 
 void init() {
-	// OpenGL program and buffer locations.
-	int vs;
-	int fs;
+	VertexBuffer* verBuff;
+	IndexBuffer*  indBuff;
 
 	// Load the obj file(s).
-	objModel2.loadOBJFile("teapot.obj");
+	objModel2.loadOBJFile("./models/teapot.obj");
 	objModel2.normalizeVertices();
-	objModel1.loadOBJFile("bunny.obj");
+	objModel1.loadOBJFile("./models/bunny.obj");
 	objModel1.normalizeVertices();
 
-	// Generate the vertex and index buffers.
+	// Generate the vertex and index buffers, assign them to a vertex array.
 	verBuff = buildBatchVBuffer(std::vector<Mesh*> { &objModel1, &objModel2 }, DYNAMIC);
 	indBuff = buildBatchIBuffer(std::vector<Mesh*> { &objModel1, &objModel2 }, DYNAMIC);
-
-	// Generate the vertex array object on the GPU.
-	glGenVertexArrays(1, &triangleVAO);
-	glBindVertexArray(triangleVAO);
-	verBuff->bind();
-	indBuff->bind();
+	vArray = new VertexArray(verBuff);
+	vArray->addIndexBuffer(indBuff);
 
 	// Link the vertex position and normal data to the variables in the NEW shader
-	// programs.
-	vs = buildShader(GL_VERTEX_SHADER, "test.vs");
-	fs = buildShader(GL_FRAGMENT_SHADER, "test.fs");
-	program = buildProgram(vs,fs,0);
-	glUseProgram(program);
-	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)0);
-	glEnableVertexAttribArray(1);
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(offsetof(Vertex, normal)));
+	// program.
+	program = new Shader("./res/shaders/test.vs", "./res/shaders/test.fs");
+	program->addAtribute("vPosition", VEC4, GL_FALSE, sizeof(Vertex), 0);
+	program->addAtribute("vNormal", VEC3, GL_FALSE, sizeof(Vertex), offsetof(Vertex, normal));
 }
 
 void framebufferSizeCallback(GLFWwindow *window, int w, int h) {
@@ -91,27 +80,18 @@ void framebufferSizeCallback(GLFWwindow *window, int w, int h) {
 
 // Display function, called for each frame.
 void display() {
-	int modelLoc;
-	int normalLoc;
-
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	glUseProgram(program);
 
-	glm::mat4 model = glm::rotate(glm::mat4(1.0), 0.0f, glm::vec3(0.0, 1.0, 0.0));
-
+	// Model, view and projection transforms.
+	glm::mat4 model = glm::mat4(1.0);
 	glm::mat3 normal = glm::transpose(glm::inverse(glm::mat3((*sceneCam->getViewMatrix()) * model)));
-
 	glm::mat4 modelViewPerspective = projection * (*sceneCam->getViewMatrix()) * model;
 
-	glUseProgram(program);
-	modelLoc = glGetUniformLocation(program,"model");
-	glUniformMatrix4fv(modelLoc, 1, 0, glm::value_ptr(modelViewPerspective));
-	normalLoc = glGetUniformLocation(program,"normalMat");
-	glUniformMatrix3fv(normalLoc, 1, 0, glm::value_ptr(normal));
+	program->addUniformMatrix("model", modelViewPerspective, GL_FALSE);
+	program->addUniformMatrix("normalMat", normal, GL_FALSE);
 
-	glBindVertexArray(triangleVAO);
-	indBuff->bind();
-	glDrawElements(GL_TRIANGLES, indBuff->getCount(), GL_UNSIGNED_INT, nullptr);
+	vArray->bind();
+	glDrawElements(GL_TRIANGLES, vArray->numToRender(), GL_UNSIGNED_INT, nullptr);
 }
 
 // Key callback, called each time a key is pressed.
@@ -133,9 +113,8 @@ int main(int argc, char **argv) {
 	glfwSetErrorCallback(error_callback);
 
 	// Initialize GLFW.
-	if (!glfwInit()) {
+	if (!glfwInit())
 		fprintf(stderr, "can't initialize GLFW\n");
-	}
 
 	// Open the window using GLFW.
 	window = glfwCreateWindow(512, 512, "OpenGL Tests!", NULL, NULL);
@@ -180,7 +159,8 @@ int main(int argc, char **argv) {
 		glfwPollEvents();
 	}
 
-	delete verBuff;
-	delete indBuff;
+	// Cleanup pointers.
+	delete vArray;
+	delete program;
 	glfwTerminate();
 }
