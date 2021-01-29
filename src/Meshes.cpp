@@ -1,9 +1,3 @@
-// STL includes.
-#include <fstream>
-#include <cmath>
-#include <iostream>
-#include <algorithm>
-
 //Header includes.
 #include "Meshes.h"
 

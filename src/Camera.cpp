@@ -1,13 +1,6 @@
 // Project includes.
 #include "Camera.h"
 
-// OpenGL includes.
-#include <glm/gtc/matrix_transform.hpp>
-
-// STL and standard includes.
-#include <math.h>
-#include <iostream>
-
 // Constructors.
 Camera::Camera(float xCenter, float yCenter)
   : position(glm::vec3 { 0.0f, 0.0f, 0.0f })
@@ -142,4 +135,18 @@ glm::mat4*
 Camera::getViewMatrix()
 {
   return &(this->view);
+}
+
+// Fetch the camera position (for shading).
+glm::vec4
+Camera::getCamPos()
+{
+  return glm::vec4(this->position[0], this->position[1], this->position[2], 1.0f);
+}
+
+// Fetch the camera front vector (for shading).
+glm::vec3
+Camera::getCamFront()
+{
+  return this->camFront;
 }

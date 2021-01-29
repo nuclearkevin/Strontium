@@ -1,14 +1,11 @@
 // Include guard.
 #pragma once
 
+// Macro include file.
+#include "SciRenderIncludes.h"
+
 // Project includes.
 #include "Meshes.h"
-
-// STL includes.
-#include <vector>
-
-// OpenGL includes.
-#include <GL/glew.h>
 
 // Draw types.
 enum BufferType {STATIC = GL_STATIC_DRAW, DYNAMIC = GL_DYNAMIC_DRAW};

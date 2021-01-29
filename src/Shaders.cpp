@@ -201,6 +201,7 @@ void
 Shader::addAtribute(const char* attribName, GLVectorType type,
 										GLboolean normalized, unsigned size, unsigned stride)
 {
+	this->bind();
 	GLuint attribPos = glGetAttribLocation(this->progID, attribName);
 	glVertexAttribPointer(attribPos, type, GL_FLOAT, normalized, size,
 												(void*)stride);

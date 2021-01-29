@@ -1,11 +1,11 @@
 // Include guard.
 #pragma once
 
+// Macro include file.
+#include "SciRenderIncludes.h"
+
 // Project includes.
 #include "WindowItem.h"
-
-// OpenGL includes.
-#include <glm/glm.hpp>
 
 class Camera : public WindowItem
 {
@@ -23,6 +23,11 @@ public:
 
   // Get the view matrix.
   glm::mat4* getViewMatrix();
+
+  // Get the camera position.
+  glm::vec4 getCamPos();
+
+  glm::vec3 getCamFront();
 
 protected:
   // Variables for camera position, front and top vectors.

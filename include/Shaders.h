@@ -4,9 +4,8 @@
 // Include guard.
 #pragma once
 
-// OpenGL includes.
-#include <GL/glew.h>
-#include <glm/glm.hpp>
+// Macro include file.
+#include "SciRenderIncludes.h"
 
 enum GLVectorType { VEC4 = 4, VEC3 = 3, VEC2 = 1};
 

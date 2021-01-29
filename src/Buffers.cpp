@@ -1,9 +1,6 @@
 // Project includes.
 #include "Buffers.h"
 
-// STL includes.
-#include <iostream>
-
 // Constructor and destructor.
 VertexBuffer::VertexBuffer(const void* bufferData, const unsigned &dataSize,
                            BufferType bufferType)

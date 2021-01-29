@@ -1,11 +1,8 @@
 // Include guard.
 #pragma once
 
-// STL and standard includes.
-#include <vector>
-
-// OpenGL includes.
-#include <GL/glew.h>
+// Macro include file.
+#include "SciRenderIncludes.h"
 
 // Project includes.
 #include "Buffers.h"

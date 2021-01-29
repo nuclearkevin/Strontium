@@ -1,9 +1,8 @@
 // Include guard.
 #pragma once
 
-// OpenGL includes.
-#include <GL/glew.h>
-#include <GLFW/glfw3.h>
+// Macro include file.
+#include "SciRenderIncludes.h"
 
 class WindowItem
 {

@@ -1,18 +1,5 @@
-#define GLFW_DLL
-#define GLFW_INCLUDE_NONE
-#define GLM_FORCE_RADIANS
-
-// STL and standard includes.
-#include <unistd.h>
-#include <stdlib.h>
-#include <iostream>
-
-// OpenGL includes.
-#include <GL/glew.h>
-#include <GLFW/glfw3.h>
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/type_ptr.hpp>
+// Include macro file.
+#include "SciRenderIncludes.h"
 
 // Project includes.
 #include "Shaders.h"
@@ -20,31 +7,27 @@
 #include "Buffers.h"
 #include "VertexArray.h"
 #include "Camera.h"
-
-// Vertex array and index buffer, need to abstract.
-GLuint triangleVAO;
-
-// Window.
-GLFWwindow *window;
+#include "Renderer.h"
 
 // Projection (perspective) matrix.
 glm::mat4 projection;
 
-// Camera.
+// Window objects.
 Camera* sceneCam = new Camera(512/2, 512/2, glm::vec3 {0.0f, 0.0f, 4.0f});
 
 // Mesh data.
 Mesh objModel1, objModel2;
 
-// Vertex array, the data we want to render.
+// Abstracted OpenGL objects.
+GLFWwindow *window;
 VertexArray* vArray;
-
-// Shader.
 Shader* program;
+Renderer* renderer = Renderer::getInstance();
 
-void init() {
-	VertexBuffer* verBuff;
-	IndexBuffer*  indBuff;
+void init()
+{
+	// Initialize the renderer.
+	renderer->init(GL_FILL);
 
 	// Load the obj file(s).
 	objModel2.loadOBJFile("./models/teapot.obj");
@@ -53,14 +36,30 @@ void init() {
 	objModel1.normalizeVertices();
 
 	// Generate the vertex and index buffers, assign them to a vertex array.
-	verBuff = buildBatchVBuffer(std::vector<Mesh*> { &objModel1, &objModel2 }, DYNAMIC);
-	indBuff = buildBatchIBuffer(std::vector<Mesh*> { &objModel1, &objModel2 }, DYNAMIC);
+	VertexBuffer* verBuff = buildBatchVBuffer(std::vector<Mesh*>
+																					  { &objModel1, &objModel2 }, DYNAMIC);
+	IndexBuffer* indBuff = buildBatchIBuffer(std::vector<Mesh*>
+																					 { &objModel1, &objModel2 }, DYNAMIC);
 	vArray = new VertexArray(verBuff);
 	vArray->addIndexBuffer(indBuff);
 
 	// Link the vertex position and normal data to the variables in the NEW shader
 	// program.
-	program = new Shader("./res/shaders/test.vs", "./res/shaders/test.fs");
+	program = new Shader("./res/shaders/default.vs", "./res/shaders/lighting.fs");
+
+	// Spotlight on top of the model.
+	program->addUniformVector("light.position", glm::vec4(0.0f, 2.0f, 0.0f, 1.0f));
+	program->addUniformVector("light.direction", glm::vec3(0.0f, 1.0f, 0.0f));
+	program->addUniformVector("light.colour", glm::vec3(1.0f, 1.0f, 1.0f));
+	program->addUniformFloat("light.intensity", 1.0f);
+	program->addUniformFloat("light.cosTheta", cos(glm::radians(45.0f)));
+
+	// Camera light properties.
+	program->addUniformVector("camera.colour", glm::vec3(1.0f, 1.0f, 1.0f));
+	program->addUniformFloat("camera.intensity", 1.0f);
+	program->addUniformFloat("camera.cosTheta", cos(glm::radians(12.0f)));
+
+	// Vertex attributes.
 	program->addAtribute("vPosition", VEC4, GL_FALSE, sizeof(Vertex), 0);
 	program->addAtribute("vNormal", VEC3, GL_FALSE, sizeof(Vertex), offsetof(Vertex, normal));
 }
@@ -79,19 +78,22 @@ void framebufferSizeCallback(GLFWwindow *window, int w, int h) {
 }
 
 // Display function, called for each frame.
-void display() {
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
+void display()
+{
 	// Model, view and projection transforms.
 	glm::mat4 model = glm::mat4(1.0);
-	glm::mat3 normal = glm::transpose(glm::inverse(glm::mat3((*sceneCam->getViewMatrix()) * model)));
+	glm::mat3 normal = glm::transpose(glm::inverse(glm::mat3(model)));
 	glm::mat4 modelViewPerspective = projection * (*sceneCam->getViewMatrix()) * model;
 
-	program->addUniformMatrix("model", modelViewPerspective, GL_FALSE);
+	program->addUniformMatrix("model", model, GL_FALSE);
+	program->addUniformMatrix("mVP", modelViewPerspective, GL_FALSE);
 	program->addUniformMatrix("normalMat", normal, GL_FALSE);
 
-	vArray->bind();
-	glDrawElements(GL_TRIANGLES, vArray->numToRender(), GL_UNSIGNED_INT, nullptr);
+	// Camera lighting uniforms.
+	program->addUniformVector("camera.position", sceneCam->getCamPos());
+	program->addUniformVector("camera.direction", sceneCam->getCamFront());
+
+	renderer->draw(window, vArray, program);
 }
 
 // Key callback, called each time a key is pressed.
@@ -114,10 +116,10 @@ int main(int argc, char **argv) {
 
 	// Initialize GLFW.
 	if (!glfwInit())
-		fprintf(stderr, "can't initialize GLFW\n");
+		fprintf(stderr, "Can't initialize GLFW\n");
 
 	// Open the window using GLFW.
-	window = glfwCreateWindow(512, 512, "OpenGL Tests!", NULL, NULL);
+	window = glfwCreateWindow(512, 512, "SciRender", NULL, NULL);
 	if (!window)
 	{
 		glfwTerminate();
@@ -139,8 +141,7 @@ int main(int argc, char **argv) {
 		exit(0);
 	}
 
-	glEnable(GL_DEPTH_TEST);
-	glClearColor(1.0, 1.0, 1.0, 1.0);
+	glClearColor(0.0, 0.0, 0.0, 1.0);
 	glViewport(0, 0, 512, 512);
 
 	projection = glm::perspective(0.7f, 1.0f, 1.0f, 100.0f);
@@ -155,12 +156,12 @@ int main(int argc, char **argv) {
 		sceneCam->mouseAction(window);
 		sceneCam->keyboardAction(window);
 		display();
-		glfwSwapBuffers(window);
 		glfwPollEvents();
 	}
 
 	// Cleanup pointers.
 	delete vArray;
 	delete program;
+	delete renderer;
 	glfwTerminate();
 }

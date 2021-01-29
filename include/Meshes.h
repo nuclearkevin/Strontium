@@ -1,19 +1,15 @@
 // Include guard.
 #pragma once
 
-// OpenGL includes.
-#include <GL/glew.h>
-#include <glm/glm.hpp>
-
-// STL includes.
-#include <vector>
-#include <string>
+// Macro include file.
+#include "SciRenderIncludes.h"
 
 // Vertex datatype to store vertex attributes.
 struct Vertex
 {
   glm::vec4 position;
   glm::vec3 normal;
+  glm::vec4 colour;
 };
 
 class Mesh
