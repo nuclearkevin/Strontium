@@ -27,6 +27,8 @@ public:
   // Draw the data given.
   void draw(GLFWwindow* window, VertexArray* data, Shader* program);
 
+  void swap(GLFWwindow* window);
+
 private:
   // Constructor.
   Renderer() = default;

@@ -9,11 +9,16 @@
 #include "Camera.h"
 #include "Renderer.h"
 
+// Dear Imgui includes.
+#include "imgui/imgui.h"
+#include "imgui/imgui_impl_glfw.h"
+#include "imgui/imgui_impl_opengl3.h"
+
 // Projection (perspective) matrix.
 glm::mat4 projection;
 
 // Window objects.
-Camera* sceneCam = new Camera(512/2, 512/2, glm::vec3 {0.0f, 0.0f, 4.0f});
+Camera* sceneCam = new Camera(1920/2, 1080/2, glm::vec3 {0.0f, 0.0f, 4.0f}, EDITOR);
 
 // Mesh data.
 Mesh objModel1, objModel2;
@@ -101,6 +106,13 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
 {
 	if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
 		glfwSetWindowShouldClose(window, GLFW_TRUE);
+	if (key == GLFW_KEY_P && action == GLFW_PRESS)
+		sceneCam->swap(window);
+}
+
+static void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
+{
+	sceneCam->scrollAction(xoffset, yoffset);
 }
 
 // Error callback, called when there is an error during program initialization
@@ -119,7 +131,7 @@ int main(int argc, char **argv) {
 		fprintf(stderr, "Can't initialize GLFW\n");
 
 	// Open the window using GLFW.
-	window = glfwCreateWindow(512, 512, "SciRender", NULL, NULL);
+	window = glfwCreateWindow(1920, 1080, "SciRender", NULL, NULL);
 	if (!window)
 	{
 		glfwTerminate();
@@ -129,9 +141,10 @@ int main(int argc, char **argv) {
 	// Set the remaining callbacks.
 	glfwSetFramebufferSizeCallback(window, framebufferSizeCallback);
 	glfwSetKeyCallback(window, key_callback);
+	glfwSetScrollCallback(window, scroll_callback);
 
-	// Capture the cursor.
-	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+	// Setup the camera.
+	sceneCam->init(window);
 
 	// Initialize GLEW.
 	glfwMakeContextCurrent(window);
@@ -141,7 +154,16 @@ int main(int argc, char **argv) {
 		exit(0);
 	}
 
-	glClearColor(0.0, 0.0, 0.0, 1.0);
+	// Dear Imgui init.
+	IMGUI_CHECKVERSION();
+	ImGui::CreateContext();
+  ImGuiIO& io = ImGui::GetIO(); (void)io;
+
+	ImGui::StyleColorsDark();
+	ImGui_ImplGlfw_InitForOpenGL(window, true);
+  ImGui_ImplOpenGL3_Init("#version 440");
+
+	ImVec4 clear_color = ImVec4(0.0f, 0.0f, 0.0f, 1.0f);
 	glViewport(0, 0, 512, 512);
 
 	projection = glm::perspective(0.7f, 1.0f, 1.0f, 100.0f);
@@ -153,11 +175,34 @@ int main(int argc, char **argv) {
 	// GLFW main loop, display model, swapbuffer and check for input.
 	while (!glfwWindowShouldClose(window))
 	{
+		glfwPollEvents();
 		sceneCam->mouseAction(window);
 		sceneCam->keyboardAction(window);
+
+		ImGui_ImplOpenGL3_NewFrame();
+    ImGui_ImplGlfw_NewFrame();
+    ImGui::NewFrame();
+
 		display();
-		glfwPollEvents();
+
+		ImGui::SetNextWindowSize(ImVec2(400, 200), ImGuiCond_Always);
+		ImGui::Begin("Performance");
+    ImGui::Text("Application averaging %.3f ms/frame (%.1f FPS)",
+								1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+		ImGui::Text("Press P to swap between freeform and editor.");
+    ImGui::End();
+
+		ImGui::Render();
+		glClearColor(clear_color.x, clear_color.y, clear_color.z, clear_color.w);
+
+    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
+		renderer->swap(window);
 	}
+
+	ImGui_ImplOpenGL3_Shutdown();
+  ImGui_ImplGlfw_Shutdown();
+	ImGui::DestroyContext();
 
 	// Cleanup pointers.
 	delete vArray;

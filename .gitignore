@@ -2,6 +2,9 @@
 *.csv
 *.txt
 *.obj
+*.png
+*.mtl
+*.jpg
 
 # Object files
 *.d
@@ -15,8 +18,9 @@
 *.app
 Application
 
-# Remove annoying IDE directories
+# Remove annoying directories
 /.idea/*
+/.models/*
 
 # Allow the inputs directory for now.
 !**/inputs/*.txt

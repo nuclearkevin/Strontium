@@ -1,4 +1,4 @@
-#version 330 core
+#version 440 core
 /*
  *  Vertex shader to experiment with structs.
  */

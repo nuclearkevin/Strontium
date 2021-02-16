@@ -1,4 +1,4 @@
-#version 330 core
+#version 440 core
 /*
  *  A very simple fragment shader which implements Phong shading.
  */

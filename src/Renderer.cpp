@@ -36,5 +36,10 @@ Renderer::draw(GLFWwindow* window, VertexArray* data, Shader* program)
 
   data->unbind();
   program->unbind();
+}
+
+void
+Renderer::swap(GLFWwindow* window)
+{
   glfwSwapBuffers(window);
 }
