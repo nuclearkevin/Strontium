@@ -8,28 +8,36 @@
 #include "VertexArray.h"
 #include "Shaders.h"
 
-// Singleton rendering class.
-class Renderer
+namespace SciRenderer
 {
-public:
-  // Renderer instance.
-  static Renderer* instance;
+  // Singleton rendering class.
+  class Renderer
+  {
+  public:
+    // Renderer instance.
+    static Renderer* instance;
 
-  // Destructor.
-  ~Renderer() = default;
+    // Destructor.
+    ~Renderer() = default;
 
-  // Get the renderer instance.
-  static Renderer* getInstance();
+    // Get the renderer instance.
+    static Renderer* getInstance();
 
-  // Init the renderer object for drawing.
-  void init(GLenum mode);
+    // Init the renderer object for drawing.
+    void init(GLenum mode);
 
-  // Draw the data given.
-  void draw(GLFWwindow* window, VertexArray* data, Shader* program);
+    // Draw the data given.
+    void draw(VertexArray* data, Shader* program);
+    void draw(Mesh* data, Shader* program);
 
-  void swap(GLFWwindow* window);
+    // Swap the buffers.
+    void swap(GLFWwindow* window);
 
-private:
-  // Constructor.
-  Renderer() = default;
-};
+    // Clear the depth and colour buffers.
+    void clear();
+
+  private:
+    // Constructor.
+    Renderer() = default;
+  };
+}

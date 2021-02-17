@@ -1,9 +1,12 @@
 // Project includes.
 #include "Buffers.h"
 
+using namespace SciRenderer;
+
 // Constructor and destructor.
-VertexBuffer::VertexBuffer(const void* bufferData, const unsigned &dataSize,
-                           BufferType bufferType)
+VertexBuffer::VertexBuffer(const void* bufferData,
+                                        const unsigned &dataSize,
+                                        BufferType bufferType)
   : hasData(true)
   , type(bufferType)
   , bufferData(bufferData)
@@ -34,8 +37,9 @@ VertexBuffer::unbind()
 }
 
 // Constructor and destructor.
-IndexBuffer::IndexBuffer(const GLuint* bufferData, unsigned numIndices,
-                         BufferType bufferType)
+IndexBuffer::IndexBuffer(const GLuint* bufferData,
+                                      unsigned numIndices,
+                                      BufferType bufferType)
   : hasData(true)
   , type(bufferType)
   , bufferData(bufferData)
@@ -66,15 +70,16 @@ IndexBuffer::unbind()
 }
 
 // Get the number of stored vertices.
-unsigned IndexBuffer::getCount()
+unsigned
+IndexBuffer::getCount()
 {
   return this->count;
 }
 
 // Build a vertex buffer with a vector of meshes.
 VertexBuffer*
-buildBatchVBuffer(const std::vector<Mesh*> &loadedMeshes,
-                  BufferType bufferType)
+SciRenderer::buildBatchVBuffer(const std::vector<Mesh*> &loadedMeshes,
+                               BufferType bufferType)
 {
   // Vector for merging all the vertex data.
   std::vector<Vertex> batchData;
@@ -92,8 +97,8 @@ buildBatchVBuffer(const std::vector<Mesh*> &loadedMeshes,
 
 // Build an index buffer with a vector of meshes.
 IndexBuffer*
-buildBatchIBuffer(const std::vector<Mesh*> &loadedMeshes,
-                  BufferType bufferType)
+SciRenderer::buildBatchIBuffer(const std::vector<Mesh*> &loadedMeshes,
+                               BufferType bufferType)
 {
   // Vector for merging all the indices.
   std::vector<GLuint> batchIndices;

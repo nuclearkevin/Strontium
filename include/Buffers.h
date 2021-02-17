@@ -7,77 +7,80 @@
 // Project includes.
 #include "Meshes.h"
 
-// Draw types.
-enum BufferType {STATIC = GL_STATIC_DRAW, DYNAMIC = GL_DYNAMIC_DRAW};
-
-// Vertex buffer class.
-class VertexBuffer
+namespace SciRenderer
 {
-public:
-  // Constructor and destructor.
-  VertexBuffer(const void* bufferData, const unsigned &dataSize,
-               BufferType bufferType);
-  ~VertexBuffer();
+  // Draw types.
+  enum BufferType {STATIC = GL_STATIC_DRAW, DYNAMIC = GL_DYNAMIC_DRAW};
 
-  // Bind/unbind the buffer.
-  void bind();
-  void unbind();
+  // Vertex buffer class.
+  class VertexBuffer
+  {
+  public:
+    // Constructor and destructor.
+    VertexBuffer(const void* bufferData, const unsigned &dataSize,
+                 BufferType bufferType);
+    ~VertexBuffer();
 
-  // Set the buffer data. TODO
-  void setData();
+    // Bind/unbind the buffer.
+    void bind();
+    void unbind();
 
-protected:
-  // OpenGL buffer ID.
-  GLuint      bufferID;
+    // Set the buffer data. TODO
+    void setData();
 
-  // If the buffer has data or not.
-  bool        hasData;
+  protected:
+    // OpenGL buffer ID.
+    GLuint      bufferID;
 
-  // Type of the buffer to prevent mismatching.
-  BufferType  type;
+    // If the buffer has data or not.
+    bool        hasData;
 
-  // The data currently in the buffer.
-  const void* bufferData;
-  unsigned    dataSize;
-};
+    // Type of the buffer to prevent mismatching.
+    BufferType  type;
 
-// Index buffer class.
-class IndexBuffer
-{
-public:
-  // Constructor and destructor.
-  IndexBuffer(const GLuint* bufferData, unsigned numIndices, BufferType type);
-  ~IndexBuffer();
+    // The data currently in the buffer.
+    const void* bufferData;
+    unsigned    dataSize;
+  };
 
-  // Bind/unbind the buffer.
-  void bind();
-  void unbind();
+  // Index buffer class.
+  class IndexBuffer
+  {
+  public:
+    // Constructor and destructor.
+    IndexBuffer(const GLuint* bufferData, unsigned numIndices, BufferType type);
+    ~IndexBuffer();
 
-  // Set the buffer data. TODO
-  void setData();
+    // Bind/unbind the buffer.
+    void bind();
+    void unbind();
 
-  // Getters.
-  unsigned getCount();
+    // Set the buffer data. TODO
+    void setData();
 
-protected:
-  // OpenGL buffer ID.
-  GLuint        bufferID;
+    // Getters.
+    unsigned getCount();
 
-  // If the buffer has data or not.
-  bool          hasData;
+  protected:
+    // OpenGL buffer ID.
+    GLuint        bufferID;
 
-  // Type of the buffer to prevent mismatching.
-  BufferType    type;
+    // If the buffer has data or not.
+    bool          hasData;
 
-  // The data currently in the buffer.
-  const GLuint* bufferData;
-  unsigned      count;
-};
+    // Type of the buffer to prevent mismatching.
+    BufferType    type;
 
-// Builds a batch vertex buffer using a vector of meshes.
-VertexBuffer* buildBatchVBuffer(const std::vector<Mesh*> &loadedMeshes,
-                                BufferType bufferType);
+    // The data currently in the buffer.
+    const GLuint* bufferData;
+    unsigned      count;
+  };
 
-// Builds a batch index buffer using a vector of meshes.
-IndexBuffer* buildBatchIBuffer(const std::vector<Mesh*> &loadedMeshes,
-                               BufferType bufferType);
+  // Builds a batch vertex buffer using a vector of meshes.
+  VertexBuffer* buildBatchVBuffer(const std::vector<Mesh*> &loadedMeshes,
+                                  BufferType bufferType);
+
+  // Builds a batch index buffer using a vector of meshes.
+  IndexBuffer* buildBatchIBuffer(const std::vector<Mesh*> &loadedMeshes,
+                                 BufferType bufferType);
+}

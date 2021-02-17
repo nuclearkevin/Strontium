@@ -14,6 +14,8 @@
 // Header include.
 #include "Shaders.h"
 
+using namespace SciRenderer;
+
 // Constructor and destructor.
 Shader::Shader(const char* vertPath, const char* fragPath)
 {
@@ -209,7 +211,8 @@ Shader::addAtribute(const char* attribName, GLVectorType type,
 }
 
 // Getters, yay. . .
-GLuint Shader::getShaderID() {return this->progID;}
+GLuint
+Shader::getShaderID() {return this->progID;}
 
 // Debug method to dump the shader program.
 void

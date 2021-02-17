@@ -1,6 +1,8 @@
 // Project includes.
 #include "Camera.h"
 
+using namespace SciRenderer;
+
 // Constructors.
 Camera::Camera(float xCenter, float yCenter, CameraType type)
   : position(glm::vec3 { 0.0f, 0.0f, 0.0f })
@@ -23,8 +25,8 @@ Camera::Camera(float xCenter, float yCenter, CameraType type)
                            this->camTop);
 }
 
-Camera::Camera(float xCenter, float yCenter, const glm::vec3 &initPosition,
-               CameraType type)
+Camera::Camera(float xCenter, float yCenter,
+                            const glm::vec3 &initPosition, CameraType type)
   : position(initPosition)
   , camFront(glm::vec3 { 0.0f, 0.0f, -1.0f })
   , camTop(glm::vec3 { 0.0f, 1.0f, 0.0f })
@@ -52,9 +54,11 @@ Camera::init(GLFWwindow *window)
   {
     case FPS:
       glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+      this->isInit = true;
       break;
     case EDITOR:
       glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+      this->isInit = true;
       break;
   }
 }
@@ -166,7 +170,8 @@ Camera::mouseAction(GLFWwindow *window)
 }
 
 // Scroll callback.
-void Camera::scrollAction(double xoffset, double yoffset)
+void
+Camera::scrollAction(double xoffset, double yoffset)
 {
   bool recomputeView = false;
 
@@ -206,14 +211,19 @@ Camera::swap(GLFWwindow *window)
 {
   if (this->currentType == EDITOR)
   {
-    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     this->currentType = FPS;
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
   }
   else
   {
-    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
     this->currentType = EDITOR;
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
   }
+
+  double mouseX, mouseY;
+  glfwGetCursorPos(window, &mouseX, &mouseY);
+  this->lastMouseX = (float) mouseX;
+  this->lastMouseY = (float) mouseY;
 }
 
 // Fetch the view matrix of the camera.

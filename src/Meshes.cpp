@@ -1,6 +1,8 @@
 //Header includes.
 #include "Meshes.h"
 
+using namespace SciRenderer;
+
 // Constructors
 Mesh::Mesh()
   : loaded(false)
@@ -366,8 +368,8 @@ meshLoader(const char* filepath)
 // Helper function to recursively find the max of a component of a position
 // vector.
 GLfloat
-vertexMax(std::vector<Vertex> vector, unsigned start,
-        unsigned end, unsigned axis)
+SciRenderer::vertexMax(std::vector<Vertex> vector, unsigned start,
+                       unsigned end, unsigned axis)
 {
   // Base cases.
   if (end == start)
@@ -381,18 +383,18 @@ vertexMax(std::vector<Vertex> vector, unsigned start,
 
   // Conquer.
   if ((end + start) % 2 == 0)
-    return std::max(vertexMax(vector, start, middle, axis),
-                    vertexMax(vector, middle + 1, end, axis));
+    return std::max(SciRenderer::vertexMax(vector, start, middle, axis),
+                    SciRenderer::vertexMax(vector, middle + 1, end, axis));
   else
-    return std::max(vertexMax(vector, start, middle - 1, axis),
-                    vertexMax(vector, middle, end, axis));
+    return std::max(SciRenderer::vertexMax(vector, start, middle - 1, axis),
+                    SciRenderer::vertexMax(vector, middle, end, axis));
 }
 
 // Helper function to recursively find the min of a component of a position
 // vector.
 GLfloat
-vertexMin(std::vector<Vertex> vector, unsigned start,
-        unsigned end, unsigned axis)
+SciRenderer::vertexMin(std::vector<Vertex> vector, unsigned start,
+                       unsigned end, unsigned axis)
 {
   // Base cases.
   if (end == start)
@@ -406,9 +408,9 @@ vertexMin(std::vector<Vertex> vector, unsigned start,
 
   // Conquer.
   if ((end + start) % 2 == 0)
-    return std::min(vertexMin(vector, start, middle, axis),
-                    vertexMin(vector, middle + 1, end, axis));
+    return std::min(SciRenderer::vertexMin(vector, start, middle, axis),
+                    SciRenderer::vertexMin(vector, middle + 1, end, axis));
   else
-    return std::min(vertexMin(vector, start, middle - 1, axis),
-                    vertexMin(vector, middle, end, axis));
+    return std::min(SciRenderer::vertexMin(vector, start, middle - 1, axis),
+                    SciRenderer::vertexMin(vector, middle, end, axis));
 }

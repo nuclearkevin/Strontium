@@ -1,6 +1,8 @@
 // Project includes.
 #include "VertexArray.h"
 
+using namespace SciRenderer;
+
 // Constructors and destructors.
 VertexArray::VertexArray(VertexBuffer* buffer)
   : data(buffer)

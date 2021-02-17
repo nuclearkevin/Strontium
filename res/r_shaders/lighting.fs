@@ -33,7 +33,7 @@ void main()
 {
   // White ambient, object colour is red.
   vec3 ambientColour = vec3(1.0, 1.0, 1.0);
-  vec3 colour = vec3(1.0, 0.0, 0.0);
+  vec3 colour = vec3(1.0, 1.0, 1.0);
 
   vec3 ambient = ambientColour * 0.1;
 

@@ -1,5 +1,7 @@
 #include "Renderer.h"
 
+using namespace SciRenderer;
+
 Renderer* Renderer::instance = nullptr;
 
 // Get the renderer instance.
@@ -25,10 +27,8 @@ Renderer::init(GLenum mode)
 
 // Draw the data to the screen.
 void
-Renderer::draw(GLFWwindow* window, VertexArray* data, Shader* program)
+Renderer::draw(VertexArray* data, Shader* program)
 {
-  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
   data->bind();
   program->bind();
 
@@ -39,7 +39,19 @@ Renderer::draw(GLFWwindow* window, VertexArray* data, Shader* program)
 }
 
 void
+Renderer::draw(Mesh* data, Shader* program)
+{
+
+}
+
+void
 Renderer::swap(GLFWwindow* window)
 {
   glfwSwapBuffers(window);
+}
+
+void
+Renderer::clear()
+{
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }

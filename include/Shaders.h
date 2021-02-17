@@ -7,51 +7,54 @@
 // Macro include file.
 #include "SciRenderIncludes.h"
 
-enum GLVectorType { VEC4 = 4, VEC3 = 3, VEC2 = 1};
-
-class Shader
+namespace SciRenderer
 {
-public:
-  // Constructor and destructor.
-  Shader(const char* vertPath, const char* fragPath);
-  ~Shader();
+  enum GLVectorType { VEC4 = 4, VEC3 = 3, VEC2 = 1};
 
-  // Forward declaration of the shader parser/compiler function.
-  void buildShader(int type, const char* filename);
+  class Shader
+  {
+  public:
+    // Constructor and destructor.
+    Shader(const char* vertPath, const char* fragPath);
+    ~Shader();
 
-  // Forward declaration of the program linker function.
-  void buildProgram(GLuint first, ...);
+    // Forward declaration of the shader parser/compiler function.
+    void buildShader(int type, const char* filename);
 
-  // Bind/unbind the shader.
-  void bind();
-  void unbind();
+    // Forward declaration of the program linker function.
+    void buildProgram(GLuint first, ...);
 
-  // Setters for shader uniforms.
-  void addUniformMatrix(const char* uniformName, const glm::mat4 &matrix,
-                        GLboolean transpose);
-  void addUniformMatrix(const char* uniformName, const glm::mat3 &matrix,
-                        GLboolean transpose);
-  void addUniformMatrix(const char* uniformName, const glm::mat2 &matrix,
-                        GLboolean transpose);
-  void addUniformVector(const char* uniformName, const glm::vec4 &vector);
-  void addUniformVector(const char* uniformName, const glm::vec3 &vector);
-  void addUniformVector(const char* uniformName, const glm::vec2 &vector);
-  void addUniformFloat(const char* uniformName, GLfloat value);
+    // Bind/unbind the shader.
+    void bind();
+    void unbind();
 
-  // Setters for vertex attributes.
-  void addAtribute(const char* attribName, GLVectorType type,
-                   GLboolean normalized, unsigned size, unsigned stride);
+    // Setters for shader uniforms.
+    void addUniformMatrix(const char* uniformName, const glm::mat4 &matrix,
+                          GLboolean transpose);
+    void addUniformMatrix(const char* uniformName, const glm::mat3 &matrix,
+                          GLboolean transpose);
+    void addUniformMatrix(const char* uniformName, const glm::mat2 &matrix,
+                          GLboolean transpose);
+    void addUniformVector(const char* uniformName, const glm::vec4 &vector);
+    void addUniformVector(const char* uniformName, const glm::vec3 &vector);
+    void addUniformVector(const char* uniformName, const glm::vec2 &vector);
+    void addUniformFloat(const char* uniformName, GLfloat value);
 
-  // Getters.
-  GLuint getShaderID();
+    // Setters for vertex attributes.
+    void addAtribute(const char* attribName, GLVectorType type,
+                     GLboolean normalized, unsigned size, unsigned stride);
 
-  // Forward declaration of the shader debug function.
-  void dumpProgram(GLuint program, char* description);
-protected:
-    GLuint progID;
-    GLuint vertID;
-    GLuint fragID;
+    // Getters.
+    GLuint getShaderID();
 
-private:
-    char *readShaderFile(const char* filename);
-};
+    // Forward declaration of the shader debug function.
+    void dumpProgram(GLuint program, char* description);
+  protected:
+      GLuint progID;
+      GLuint vertID;
+      GLuint fragID;
+
+  private:
+      char *readShaderFile(const char* filename);
+  };
+}

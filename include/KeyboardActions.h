@@ -9,24 +9,27 @@
 #include "WindowItem.h"
 #include "Meshes.h"
 
-class KeyBoardActions : public WindowItem
+namespace SciRenderer
 {
-public:
-  // Constructor/destructor.
-  KeyBoardActions() = default;
-  ~KeyBoardActions() = default;
+  class KeyBoardActions : public WindowItem
+  {
+  public:
+    // Constructor/destructor.
+    KeyBoardActions() = default;
+    ~KeyBoardActions() = default;
 
-  // Set the model to move.
-  void setModel(Mesh* model);
+    // Set the model to move.
+    void setModel(Mesh* model);
 
-  // Implement the action system.
-  void keyboardAction(GLFWwindow *window);
-  void mouseAction(GLFWwindow *window);
+    // Implement the action system.
+    void keyboardAction(GLFWwindow *window);
+    void mouseAction(GLFWwindow *window);
 
-private:
-  Mesh* model;
+  private:
+    Mesh* model;
 
-  float dt;
-  float lastTime;
-  float currentTime;
-};
+    float dt;
+    float lastTime;
+    float currentTime;
+  };
+}

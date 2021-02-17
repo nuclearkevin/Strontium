@@ -14,20 +14,25 @@
 #include "imgui/imgui_impl_glfw.h"
 #include "imgui/imgui_impl_opengl3.h"
 
+using namespace SciRenderer;
+
 // Projection (perspective) matrix.
-glm::mat4 projection;
+glm::mat4 projection = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 100.0f);
 
 // Window objects.
 Camera* sceneCam = new Camera(1920/2, 1080/2, glm::vec3 {0.0f, 0.0f, 4.0f}, EDITOR);
-
-// Mesh data.
-Mesh objModel1, objModel2;
 
 // Abstracted OpenGL objects.
 GLFWwindow *window;
 VertexArray* vArray;
 Shader* program;
 Renderer* renderer = Renderer::getInstance();
+
+// Mesh data.
+Mesh objModel1, objModel2;
+
+// Spotlight colour.
+glm::vec3 spotLight(1.0f, 1.0f, 1.0f);
 
 void init()
 {
@@ -50,19 +55,20 @@ void init()
 
 	// Link the vertex position and normal data to the variables in the NEW shader
 	// program.
-	program = new Shader("./res/shaders/default.vs", "./res/shaders/lighting.fs");
+	program = new Shader("./res/r_shaders/default.vs", "./res/r_shaders/lighting.fs");
 
 	// Spotlight on top of the model.
 	program->addUniformVector("light.position", glm::vec4(0.0f, 2.0f, 0.0f, 1.0f));
 	program->addUniformVector("light.direction", glm::vec3(0.0f, 1.0f, 0.0f));
-	program->addUniformVector("light.colour", glm::vec3(1.0f, 1.0f, 1.0f));
 	program->addUniformFloat("light.intensity", 1.0f);
 	program->addUniformFloat("light.cosTheta", cos(glm::radians(45.0f)));
+	program->addUniformVector("light.colour", spotLight);
 
 	// Camera light properties.
-	program->addUniformVector("camera.colour", glm::vec3(1.0f, 1.0f, 1.0f));
+	program->addUniformVector("camera.colour", spotLight);
 	program->addUniformFloat("camera.intensity", 1.0f);
 	program->addUniformFloat("camera.cosTheta", cos(glm::radians(12.0f)));
+	program->addUniformVector("camera.colour", spotLight);
 
 	// Vertex attributes.
 	program->addAtribute("vPosition", VEC4, GL_FALSE, sizeof(Vertex), 0);
@@ -79,7 +85,7 @@ void framebufferSizeCallback(GLFWwindow *window, int w, int h) {
 	glfwMakeContextCurrent(window);
 
 	glViewport(0, 0, w, h);
-	projection = glm::perspective(0.7f, ratio, 1.0f, 100.0f);
+	projection = glm::perspective(glm::radians(90.0f), ratio, 0.1f, 100.0f);
 }
 
 // Display function, called for each frame.
@@ -97,8 +103,9 @@ void display()
 	// Camera lighting uniforms.
 	program->addUniformVector("camera.position", sceneCam->getCamPos());
 	program->addUniformVector("camera.direction", sceneCam->getCamFront());
+	program->addUniformVector("light.colour", spotLight);
 
-	renderer->draw(window, vArray, program);
+	renderer->draw(vArray, program);
 }
 
 // Key callback, called each time a key is pressed.
@@ -163,10 +170,8 @@ int main(int argc, char **argv) {
 	ImGui_ImplGlfw_InitForOpenGL(window, true);
   ImGui_ImplOpenGL3_Init("#version 440");
 
-	ImVec4 clear_color = ImVec4(0.0f, 0.0f, 0.0f, 1.0f);
+	ImVec4 clearColour = ImVec4(0.0f, 0.0f, 0.0f, 1.0f);
 	glViewport(0, 0, 512, 512);
-
-	projection = glm::perspective(0.7f, 1.0f, 1.0f, 100.0f);
 
 	init();
 
@@ -190,14 +195,17 @@ int main(int argc, char **argv) {
     ImGui::Text("Application averaging %.3f ms/frame (%.1f FPS)",
 								1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
 		ImGui::Text("Press P to swap between freeform and editor.");
+		ImGui::ColorEdit3("Clear colour", (float*)&clearColour);
+		ImGui::ColorEdit3("Spotlight Colour", (float*)&spotLight);
     ImGui::End();
 
 		ImGui::Render();
-		glClearColor(clear_color.x, clear_color.y, clear_color.z, clear_color.w);
+		glClearColor(clearColour.x, clearColour.y, clearColour.z, clearColour.w);
 
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
 		renderer->swap(window);
+		renderer->clear();
 	}
 
 	ImGui_ImplOpenGL3_Shutdown();
