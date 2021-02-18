@@ -33,6 +33,7 @@ Mesh objModel1, objModel2;
 
 // Spotlight colour.
 glm::vec3 spotLight(1.0f, 1.0f, 1.0f);
+glm::vec4 spotLightPos(0.0f, 2.0f, 0.0f, 1.0f);
 
 void init()
 {
@@ -59,7 +60,6 @@ void init()
 	program = new Shader("./res/r_shaders/default.vs", "./res/r_shaders/lighting.fs");
 
 	// Spotlight on top of the model.
-	program->addUniformVector("light.position", glm::vec4(0.0f, 2.0f, 0.0f, 1.0f));
 	program->addUniformVector("light.direction", glm::vec3(0.0f, 1.0f, 0.0f));
 	program->addUniformFloat("light.intensity", 1.0f);
 	program->addUniformFloat("light.cosTheta", cos(glm::radians(45.0f)));
@@ -69,13 +69,14 @@ void init()
 	program->addUniformVector("camera.colour", spotLight);
 	program->addUniformFloat("camera.intensity", 1.0f);
 	program->addUniformFloat("camera.cosTheta", cos(glm::radians(12.0f)));
+	program->addUniformFloat("camera.cosGamma", cos(glm::radians(24.0f)));
 	program->addUniformVector("camera.colour", spotLight);
 
 	// Vertex attributes.
 	program->addAtribute("vPosition", VEC4, GL_FALSE, sizeof(Vertex), 0);
 	program->addAtribute("vNormal", VEC3, GL_FALSE, sizeof(Vertex), offsetof(Vertex, normal));
+	program->addAtribute("vColour", VEC3, GL_FALSE, sizeof(Vertex), offsetof(Vertex, colour));
 }
-
 void framebufferSizeCallback(GLFWwindow *window, int w, int h) {
 	// Prevent a divide by zero when the window is too short.
 	if (h == 0)
@@ -106,6 +107,7 @@ void display()
 	program->addUniformVector("camera.position", sceneCam->getCamPos());
 	program->addUniformVector("camera.direction", sceneCam->getCamFront());
 	program->addUniformVector("light.colour", spotLight);
+	program->addUniformVector("light.position", spotLightPos);
 
 	renderer->draw(vArray, program);
 }
@@ -193,12 +195,15 @@ int main(int argc, char **argv) {
 		display();
 
 		ImGui::SetNextWindowSize(ImVec2(400, 200), ImGuiCond_Always);
-		ImGui::Begin("Performance");
+		ImGui::Begin("Performance and Settings:");
     ImGui::Text("Application averaging %.3f ms/frame (%.1f FPS)",
 								1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
 		ImGui::Text("Press P to swap between freeform and editor.");
 		ImGui::ColorEdit3("Clear colour", (float*)&clearColour);
 		ImGui::ColorEdit3("Spotlight Colour", (float*)&spotLight);
+		ImGui::SliderFloat("Splotlight x-position", &spotLightPos.x, -10.0f, 10.0f, "%.1f");
+		ImGui::SliderFloat("Splotlight y-position", &spotLightPos.y, -10.0f, 10.0f, "%.1f");
+		ImGui::SliderFloat("Splotlight z-position", &spotLightPos.z, -10.0f, 10.0f, "%.1f");
     ImGui::End();
 
 		ImGui::Render();

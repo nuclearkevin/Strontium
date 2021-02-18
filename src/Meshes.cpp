@@ -50,6 +50,7 @@ Mesh::loadOBJFile(const char* filepath)
                               1.0f);
     this->data.push_back(temp);
   }
+
   // Get the indices.
   unsigned vertexOffset = 0;
   for (unsigned i = 0; i < shapes.size(); i++)
@@ -61,10 +62,11 @@ Mesh::loadOBJFile(const char* filepath)
     }
     vertexOffset += shapes[i].mesh.indices.size();
   }
+
   // Compute the normal vectors if the obj has none.
   if (attrib.normals.size() == 0)
     this->computeNormals();
-  else
+  else if (attrib.normals.size() / 3 == this->data.size())
   {
     for (unsigned i = 0; i < this->data.size(); i++)
     {
@@ -75,13 +77,29 @@ Mesh::loadOBJFile(const char* filepath)
   }
 
   // Get the UVs.
-  if (attrib.texcoords.size() > 0)
+  if (attrib.texcoords.size() > 0 && attrib.texcoords.size() / 2 == this->data.size())
   {
     for (unsigned i = 0; i < this->data.size(); i++)
     {
       this->data[i].uv = glm::vec2(attrib.texcoords[2 * i],
                                    attrib.texcoords[2 * i + 1]);
     }
+  }
+
+  // Get the colours for each vertex if they exist.
+  if (attrib.colors.size() > 0 && attrib.colors.size() / 3 == this->data.size())
+  {
+    for (unsigned i = 0; i < this->data.size(); i++)
+    {
+      this->data[i].colour = glm::vec3(attrib.colors[3 * i],
+                                       attrib.colors[3 * i + 1],
+                                       attrib.colors[3 * i + 2]);
+    }
+  }
+  else
+  {
+    for (unsigned i = 0; i < this->data.size(); i++)
+      this->data[i].colour = glm::vec3(1.0f, 0.0f, 1.0f);
   }
 
   this->loaded = true;
@@ -93,14 +111,12 @@ Mesh::computeNormals()
 {
   // Temporary variables to make life easier.
   glm::vec3              a, b, c, edgeOne, edgeTwo, cross;
-  std::vector<glm::vec3> triangleNormals;
   std::vector<glm::vec3> vertexNormals;
   std::vector<unsigned>  count;
 
-  glm::vec3 zero(0.0f, 0.0f, 0.0f);
   for (unsigned i = 0; i < this->data.size(); i++)
   {
-    vertexNormals.push_back(zero);
+    vertexNormals.emplace_back(glm::vec3(0.0f, 0.0f, 0.0f));
     count.push_back(0);
   }
 
@@ -118,7 +134,6 @@ Mesh::computeNormals()
     edgeOne = b - a;
     edgeTwo = c - a;
     cross = glm::normalize(glm::cross(edgeOne, edgeTwo));
-    triangleNormals.push_back(cross);
 
     // Add the face normal to the vertex normal array.
     vertexNormals[this->indices[i]]     += cross;
@@ -135,9 +150,6 @@ Mesh::computeNormals()
     vertexNormals[i] = glm::normalize(vertexNormals[i]);
     this->data[i].normal = vertexNormals[i];
   }
-
-  // Push the vectors to the mesh container.
-  this->triangleNormals = triangleNormals;
 }
 
 // Helper function to linearly scale each vertex to the screenspace.
@@ -213,21 +225,11 @@ Mesh::dumpMeshData()
     printf("I%d: (%d, %d, %d)\n", i, this->indices[i], this->indices[i + 1],
            this->indices[i + 2]);
   }
-  printf("\nDumping face normals (%ld):\n", this->triangleNormals.size());
-  for (unsigned i = 0; i < this->triangleNormals.size(); i++)
-  {
-    printf("FN%d: (%f, %f, %f)\n", i, this->triangleNormals[i][0],
-           this->triangleNormals[i][1],
-           this->triangleNormals[i][2]);
-  }
 }
 
 // Getters, yay. . .
 std::vector<GLuint>
 Mesh::getIndices() {return this->indices;}
-
-std::vector<glm::vec3>
-Mesh::getTriNormals() {return this->triangleNormals;}
 
 std::vector<Vertex>
 Mesh::getData() {return this->data;}

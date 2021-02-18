@@ -1,6 +1,8 @@
 // Project includes.
 #include "Camera.h"
 
+// OpenGL includes.
+
 using namespace SciRenderer;
 
 // Constructors.
@@ -20,9 +22,12 @@ Camera::Camera(float xCenter, float yCenter, CameraType type)
   , yaw(-90.0f)
   , pitch(0.0f)
   , currentType(type)
+  , firstClick(true)
 {
   this->view = glm::lookAt(this->position, this->position + this->camFront,
                            this->camTop);
+  this->hand  = glfwCreateStandardCursor(GLFW_HAND_CURSOR);
+  this->arrow = glfwCreateStandardCursor(GLFW_ARROW_CURSOR);
 }
 
 Camera::Camera(float xCenter, float yCenter,
@@ -42,9 +47,12 @@ Camera::Camera(float xCenter, float yCenter,
   , yaw(-90.0f)
   , pitch(0.0f)
   , currentType(type)
+  , firstClick(true)
 {
   this->view = glm::lookAt(this->position, this->position + this->camFront,
                            this->camTop);
+  this->hand  = glfwCreateStandardCursor(GLFW_HAND_CURSOR);
+  this->arrow = glfwCreateStandardCursor(GLFW_ARROW_CURSOR);
 }
 
 void
@@ -161,6 +169,49 @@ Camera::mouseAction(GLFWwindow *window)
       }
       break;
     case EDITOR:
+      // Poll for mouse input and see if the button is pressed.
+      int mouseState = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT);
+
+      if (mouseState == GLFW_PRESS && this->firstClick == true)
+      {
+        // Update the camera matrix if the mouse is moving AND LMB is pressed.
+        if (mouseX != this->lastMouseX || mouseY != this->lastMouseY)
+        {
+          recomputeView = true;
+          glfwSetCursor(window, this->hand);
+
+          this->firstClick = false;
+
+          this->lastMouseX = mouseX;
+          this->lastMouseY = mouseY;
+        }
+      }
+      else if (mouseState == GLFW_PRESS && this->firstClick == false)
+      {
+        if (mouseX != this->lastMouseX || mouseY != this->lastMouseY)
+        {
+          recomputeView = true;
+
+          // Compute the rotation variables and matrix. This gimble locks!
+          glm::mat4 rot;
+          rot = glm::rotate(glm::mat4(1.0f), (float) glm::radians(this->lastMouseX - mouseX),
+                            glm::vec3(0.0f, 1.0f, 0.0f));
+          rot = glm::rotate(rot, (float) glm::radians(this->lastMouseY - mouseY),
+                            glm::vec3(1.0f, 0.0f, 0.0f));
+          glm::mat4 rotNorm = glm::transpose(glm::inverse(rot));
+          this->position = glm::vec3(rot * glm::vec4(this->position, 1.0f));
+          this->camFront = glm::vec3(rotNorm * glm::vec4(this->camFront, 0.0f));
+          //this->camTop = glm::vec3(rotNorm * glm::vec4(this->camTop, 0.0f));
+
+          this->lastMouseX = mouseX;
+          this->lastMouseY = mouseY;
+        }
+      }
+      else if (mouseState == GLFW_RELEASE && this->firstClick == false)
+      {
+        this->firstClick = true;
+        glfwSetCursor(window, this->arrow);
+      }
       break;
   }
   // Recompute the view matrix if required.

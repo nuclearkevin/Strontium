@@ -14,7 +14,7 @@ namespace SciRenderer
   {
     glm::vec4 position;
     glm::vec3 normal;
-    glm::vec4 colour;
+    glm::vec3 colour;
     glm::vec2 uv;
     unsigned  id;
   };
@@ -43,7 +43,6 @@ namespace SciRenderer
     // Getters.
     std::vector<Vertex>     getData();
     std::vector<GLuint>     getIndices();
-    std::vector<glm::vec3>  getTriNormals();
 
     bool                    isLoaded();
   protected:
@@ -51,7 +50,6 @@ namespace SciRenderer
     bool loaded;
     std::vector<Vertex>              data;
     std::vector<GLuint>              indices;
-    std::vector<glm::vec3>           triangleNormals;
     std::vector<tinyobj::material_t> materials;
     unsigned                         meshID;
 

@@ -40,6 +40,9 @@ namespace SciRenderer
     glm::vec3 getCamFront();
 
   protected:
+    // Cursors.
+    GLFWcursor* hand;
+    GLFWcursor* arrow;
     // Variables for camera position, front and top vectors.
     glm::vec3   position;
     glm::vec3   camFront;
@@ -63,14 +66,15 @@ namespace SciRenderer
     float       lastMouseX;
     float       lastMouseY;
 
-    // Camera yaw and pitch.
+    // FPS/free camera variables.
     float       yaw;
     float       pitch;
-
-    // Constants for sensitivity.
     const float scalarSpeed = 2.5f;
     const float sensitivity = 0.1f;
 
-    CameraType currentType;
+    CameraType  currentType;
+
+    // Editor cam variables.
+    bool        firstClick;
   };
 }
