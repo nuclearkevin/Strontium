@@ -5,8 +5,8 @@ using namespace SciRenderer;
 
 // Constructor and destructor.
 VertexBuffer::VertexBuffer(const void* bufferData,
-                                        const unsigned &dataSize,
-                                        BufferType bufferType)
+                           const unsigned &dataSize,
+                           BufferType bufferType)
   : hasData(true)
   , type(bufferType)
   , bufferData(bufferData)
@@ -38,8 +38,8 @@ VertexBuffer::unbind()
 
 // Constructor and destructor.
 IndexBuffer::IndexBuffer(const GLuint* bufferData,
-                                      unsigned numIndices,
-                                      BufferType bufferType)
+                         unsigned numIndices,
+                         BufferType bufferType)
   : hasData(true)
   , type(bufferType)
   , bufferData(bufferData)

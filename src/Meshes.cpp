@@ -1,6 +1,9 @@
 //Header includes.
 #include "Meshes.h"
 
+#define TINYOBJLOADER_IMPLEMENTATION
+#include "tiny_obj_loader/tiny_obj_loader.h"
+
 using namespace SciRenderer;
 
 // Constructors
@@ -20,187 +23,68 @@ Mesh::Mesh(std::vector<Vertex> vertices, std::vector<GLuint> indices)
 void
 Mesh::loadOBJFile(const char* filepath)
 {
-  printf("Loading .obj file.\n");
+  tinyobj::ObjReader objReader;
+  tinyobj::ObjReaderConfig readerConfig;
+  readerConfig.mtl_search_path = "";
 
-  // Temporary data structures to store mesh data.
-  std::vector<glm::vec4>  vertices;
-  std::vector<glm::vec3>  normals;
-  std::vector<glm::uvec3> indices;
-
-  // Buffer variables.
-  std::string lineBuffer;
-  glm::vec4   tempVec4F;
-  glm::uvec3  tempVec3U;
-
-  // File handling meshs and varaibles.
-  std::ifstream file(filepath);
-
-  // Boolean variables for reading in index values properly.
-  bool hasVT = false;
-  bool hasVN = false;
-
-  // Couldn't open the file, quit.
-  if (!file.is_open())
-    return;
-
-  // Parse each line of the obj file.
-  while (std::getline(file, lineBuffer))
+  if (!objReader.ParseFromFile(filepath, readerConfig))
   {
-    // Line contains a vertex, parse accordingly.
-    if (lineBuffer.substr(0, 2) == "v ")
+    if (!objReader.Error().empty())
     {
-      if (2 <= lineBuffer.size())
-      {
-        // Variables to store the numbers and deal with scientific notation.
-        unsigned startIndex = 2;
-        float    mult       = 0.0;
-        float    exponent   = 0.0;
-
-        // Loop over the line string to find the number.
-        for (int j = 0; j < 3; j++)
-        {
-          for (unsigned i = startIndex; i < lineBuffer.size(); i++)
-          {
-            // Detect if the value is in scientific notation.
-            if (lineBuffer[i] == 'e')
-            {
-              // Read in the multiplicative part of the scientific notation.
-              mult       = std::stof(lineBuffer.substr(startIndex, i - startIndex));
-              startIndex = i + 1;
-              //printf("buffer: %ld, startIndex: %d ", lineBuffer.size(), startIndex);
-              for (unsigned k = startIndex; k <= lineBuffer.size(); k++)
-              {
-                // Read in the exponential part of the scientific notation.
-                if (lineBuffer[k] == ' ')
-                {
-                  exponent   = std::stof(lineBuffer.substr(startIndex, k - startIndex));
-                  startIndex = k + 1;
-                  break;
-                }
-                else
-                {
-                  // Hella jank, fix when not stupid.
-                  exponent = std::stof(lineBuffer.substr(startIndex, lineBuffer.size() - startIndex));
-                }
-              }
-              break;
-            }
-            // If the number isn't in scientific notation, read it in normally.
-            else if (lineBuffer[i] == ' ')
-            {
-              mult       = std::stof(lineBuffer.substr(startIndex, i - startIndex - 1));
-              startIndex = i + 1;
-              break;
-            }
-            else if (i == (lineBuffer.size() - 1))
-            {
-              mult = std::stof(lineBuffer.substr(startIndex, i - startIndex + 1));
-            }
-          }
-          // Fill the temporary vec3 coordinate.
-          tempVec4F[j] = mult * pow(10, exponent);
-          exponent = 0.0;
-        }
-        tempVec4F[3] = 1.0;
-        // Push the temporary vec4 to the vertex array.
-        data.push_back({ tempVec4F, glm::vec3 {0.0f, 0.0f, 0.0f} });
-      }
-    }
-
-    // Line contains a face, parse accordingly.
-    if (lineBuffer.substr(0, 2) == "f ")
-    {
-      unsigned startIndex = 2;
-
-      if (3 <= lineBuffer.size())
-      {
-        // Loop over the line string to find the number.
-        for (int j = 0; j < 3; j++)
-        {
-          for (unsigned i = startIndex; i < lineBuffer.size(); i++)
-          {
-            // Read in the index.
-            if (lineBuffer[i] == ' ')
-            {
-              tempVec3U[j] = std::stoi(lineBuffer.substr(startIndex, i - startIndex)) - 1;
-              startIndex   = i + 1;
-              break;
-            }
-            else if (lineBuffer[i] == '/')
-            {
-              // Read in the vertex index.
-              tempVec3U[j] = std::stoi(lineBuffer.substr(startIndex, i - startIndex)) - 1;
-              startIndex   = i + 1;
-
-              // Parse the texture coordinate next (since it shows up after the
-              // vertex coordinate). WIP.
-              if (hasVT)
-              {
-                for (unsigned k = 0; k < lineBuffer.size(); i++)
-                {
-                  if (lineBuffer[k] == '/' || lineBuffer[k] == ' ')
-                  {
-                    startIndex = i + 1;
-                    break;
-                  }
-                }
-              }
-
-              // Parse the vertex normal next (since it shows up after the
-              // texture coordinate). TODO.
-              if (hasVT)
-              {
-                for (unsigned k = 0; k < lineBuffer.size(); k++)
-                {
-                  if (lineBuffer[k] == '/' || lineBuffer[k] == ' ')
-                  {
-                    startIndex = i + 1;
-                    break;
-                  }
-                }
-              }
-            }
-            else if (i == lineBuffer.size() - 1)
-            {
-              if (hasVN) {}
-              else if (hasVT) {}
-              else {tempVec3U[j] = std::stoi(lineBuffer.substr(startIndex, i - startIndex + 1)) - 1;}
-            }
-          }
-        }
-
-        // Push the indices to the index array.
-        this->indices.push_back(tempVec3U[0]);
-        this->indices.push_back(tempVec3U[1]);
-        this->indices.push_back(tempVec3U[2]);
-      }
-    }
-
-    // Line contains a texture coordinate, parse accordingly.
-    if (lineBuffer.substr(0, 2) == "vt")
-    {
-      hasVT = true;
-    }
-
-    // Line contains a normal, parse accordingly.
-    if (lineBuffer.substr(0, 2) == "vn")
-    {
-      hasVN = true;
-    }
-
-    // Line contains a material string, parse accordingly.
-    if (lineBuffer.substr(0, 6) == "usemtl")
-    {
-
+      std::cerr << "Error loading file (" << filepath << "): "
+                << objReader.Error() << std::endl;
     }
   }
 
-  // Fill the container mesh.
-  this->loaded = true;
+  tinyobj::attrib_t attrib             = objReader.GetAttrib();
+  std::vector<tinyobj::shape_t> shapes = objReader.GetShapes();
+  this->materials                      = objReader.GetMaterials();
 
-  // Compute vertex normal vectors.
-  printf("Computing vertex normals.\n");
-  this->computeNormals();
+  // Get the vertex components.
+  for (unsigned i = 0; i < attrib.vertices.size(); i+=3)
+  {
+    Vertex temp;
+    temp.position = glm::vec4(attrib.vertices[i],
+                              attrib.vertices[i + 1],
+                              attrib.vertices[i + 2],
+                              1.0f);
+    this->data.push_back(temp);
+  }
+  // Get the indices.
+  unsigned vertexOffset = 0;
+  for (unsigned i = 0; i < shapes.size(); i++)
+  {
+    for (unsigned j = 0; j < shapes[i].mesh.indices.size(); j++)
+    {
+      this->indices.push_back(shapes[i].mesh.indices[j].vertex_index
+                              + vertexOffset);
+    }
+    vertexOffset += shapes[i].mesh.indices.size();
+  }
+  // Compute the normal vectors if the obj has none.
+  if (attrib.normals.size() == 0)
+    this->computeNormals();
+  else
+  {
+    for (unsigned i = 0; i < this->data.size(); i++)
+    {
+      this->data[i].normal = glm::vec3(attrib.normals[3 * i],
+                                       attrib.normals[3 * i + 1],
+                                       attrib.normals[3 * i + 2]);
+    }
+  }
+
+  // Get the UVs.
+  if (attrib.texcoords.size() > 0)
+  {
+    for (unsigned i = 0; i < this->data.size(); i++)
+    {
+      this->data[i].uv = glm::vec2(attrib.texcoords[2 * i],
+                                   attrib.texcoords[2 * i + 1]);
+    }
+  }
+
+  this->loaded = true;
 }
 
 // Helper function to bulk compute normals.
@@ -344,9 +228,6 @@ Mesh::getIndices() {return this->indices;}
 
 std::vector<glm::vec3>
 Mesh::getTriNormals() {return this->triangleNormals;}
-
-std::string
-Mesh::getMaterial() {return this->material;}
 
 std::vector<Vertex>
 Mesh::getData() {return this->data;}

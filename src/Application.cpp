@@ -40,16 +40,17 @@ void init()
 	renderer->init(GL_FILL);
 
 	// Load the obj file(s).
-	objModel2.loadOBJFile("./models/teapot.obj");
-	objModel2.normalizeVertices();
 	objModel1.loadOBJFile("./models/bunny.obj");
 	objModel1.normalizeVertices();
+	//objModel2.loadOBJFile("./models/bunny.obj");
+	//objModel2.normalizeVertices();
 
 	// Generate the vertex and index buffers, assign them to a vertex array.
-	VertexBuffer* verBuff = buildBatchVBuffer(std::vector<Mesh*>
-																					  { &objModel1, &objModel2 }, DYNAMIC);
-	IndexBuffer* indBuff = buildBatchIBuffer(std::vector<Mesh*>
-																					 { &objModel1, &objModel2 }, DYNAMIC);
+	VertexBuffer* verBuff = new VertexBuffer(&(objModel1.getData()[0]),
+																					 objModel1.getData().size() * sizeof(Vertex),
+																					 DYNAMIC);
+	IndexBuffer* indBuff = new IndexBuffer(&(objModel1.getIndices()[0]),
+																				 objModel1.getIndices().size(), DYNAMIC);
 	vArray = new VertexArray(verBuff);
 	vArray->addIndexBuffer(indBuff);
 
@@ -91,6 +92,7 @@ void framebufferSizeCallback(GLFWwindow *window, int w, int h) {
 // Display function, called for each frame.
 void display()
 {
+	renderer->clear();
 	// Model, view and projection transforms.
 	glm::mat4 model = glm::mat4(1.0);
 	glm::mat3 normal = glm::transpose(glm::inverse(glm::mat3(model)));
@@ -205,7 +207,6 @@ int main(int argc, char **argv) {
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
 		renderer->swap(window);
-		renderer->clear();
 	}
 
 	ImGui_ImplOpenGL3_Shutdown();

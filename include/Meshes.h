@@ -4,6 +4,9 @@
 // Macro include file.
 #include "SciRenderIncludes.h"
 
+// Tiny object loader!
+#include "tiny_obj_loader/tiny_obj_loader.h"
+
 namespace SciRenderer
 {
   // Vertex datatype to store vertex attributes.
@@ -12,6 +15,7 @@ namespace SciRenderer
     glm::vec4 position;
     glm::vec3 normal;
     glm::vec4 colour;
+    glm::vec2 uv;
     unsigned  id;
   };
 
@@ -40,17 +44,16 @@ namespace SciRenderer
     std::vector<Vertex>     getData();
     std::vector<GLuint>     getIndices();
     std::vector<glm::vec3>  getTriNormals();
-    std::string             getMaterial();
 
     bool                    isLoaded();
   protected:
     // Mesh properties.
     bool loaded;
-    std::vector<Vertex>          data;
-    std::vector<GLuint>          indices;
-    std::vector<glm::vec3>       triangleNormals;
-    std::string                  material;
-    unsigned                     meshID;
+    std::vector<Vertex>              data;
+    std::vector<GLuint>              indices;
+    std::vector<glm::vec3>           triangleNormals;
+    std::vector<tinyobj::material_t> materials;
+    unsigned                         meshID;
 
     // Global mesh id.
     static std::vector<unsigned> globalIDs;
