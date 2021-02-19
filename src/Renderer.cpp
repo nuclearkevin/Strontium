@@ -39,9 +39,25 @@ Renderer::draw(VertexArray* data, Shader* program)
 }
 
 void
-Renderer::draw(Mesh* data, Shader* program)
+Renderer::draw(Mesh* data, Shader* program, Camera* camera)
 {
+  program->bind();
+  glm::mat4 model = data->getModelMatrix();
+	glm::mat3 normal = glm::transpose(glm::inverse(glm::mat3(model)));
+	glm::mat4 modelViewPerspective = camera->getProjMatrix() * camera->getViewMatrix() * model;
 
+	program->addUniformMatrix("model", model, GL_FALSE);
+	program->addUniformMatrix("mVP", modelViewPerspective, GL_FALSE);
+	program->addUniformMatrix("normalMat", normal, GL_FALSE);
+
+  if (data->hasVAO())
+    this->draw(data->getVAO(), program);
+  else
+  {
+    data->generateVAO(program);
+    if (data->hasVAO())
+      this->draw(data->getVAO(), program);
+  }
 }
 
 void

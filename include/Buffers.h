@@ -4,9 +4,6 @@
 // Macro include file.
 #include "SciRenderIncludes.h"
 
-// Project includes.
-#include "Meshes.h"
-
 namespace SciRenderer
 {
   // Draw types.
@@ -75,12 +72,4 @@ namespace SciRenderer
     const GLuint* bufferData;
     unsigned      count;
   };
-
-  // Builds a batch vertex buffer using a vector of meshes.
-  VertexBuffer* buildBatchVBuffer(const std::vector<Mesh*> &loadedMeshes,
-                                  BufferType bufferType);
-
-  // Builds a batch index buffer using a vector of meshes.
-  IndexBuffer* buildBatchIBuffer(const std::vector<Mesh*> &loadedMeshes,
-                                 BufferType bufferType);
 }

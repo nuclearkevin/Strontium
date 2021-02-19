@@ -16,11 +16,8 @@
 
 using namespace SciRenderer;
 
-// Projection (perspective) matrix.
-glm::mat4 projection = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 100.0f);
-
 // Window objects.
-Camera* sceneCam = new Camera(1920/2, 1080/2, glm::vec3 {0.0f, 0.0f, 4.0f}, EDITOR);
+Camera* sceneCam;
 
 // Abstracted OpenGL objects.
 GLFWwindow *window;
@@ -40,20 +37,15 @@ void init()
 	// Initialize the renderer.
 	renderer->init(GL_FILL);
 
+	// Initialize the camera.
+	sceneCam = new Camera(1920/2, 1080/2, glm::vec3 {0.0f, 0.0f, 4.0f}, EDITOR);
+	sceneCam->init(window, glm::perspective(90.0f, 1.0f, 0.1f, 100.0f));
+
 	// Load the obj file(s).
 	objModel1.loadOBJFile("./models/bunny.obj");
 	objModel1.normalizeVertices();
-	//objModel2.loadOBJFile("./models/bunny.obj");
-	//objModel2.normalizeVertices();
-
-	// Generate the vertex and index buffers, assign them to a vertex array.
-	VertexBuffer* verBuff = new VertexBuffer(&(objModel1.getData()[0]),
-																					 objModel1.getData().size() * sizeof(Vertex),
-																					 DYNAMIC);
-	IndexBuffer* indBuff = new IndexBuffer(&(objModel1.getIndices()[0]),
-																				 objModel1.getIndices().size(), DYNAMIC);
-	vArray = new VertexArray(verBuff);
-	vArray->addIndexBuffer(indBuff);
+	objModel2.loadOBJFile("./models/teapot.obj");
+	objModel2.normalizeVertices();
 
 	// Link the vertex position and normal data to the variables in the NEW shader
 	// program.
@@ -71,37 +63,23 @@ void init()
 	program->addUniformFloat("camera.cosTheta", cos(glm::radians(12.0f)));
 	program->addUniformFloat("camera.cosGamma", cos(glm::radians(24.0f)));
 	program->addUniformVector("camera.colour", spotLight);
-
-	// Vertex attributes.
-	program->addAtribute("vPosition", VEC4, GL_FALSE, sizeof(Vertex), 0);
-	program->addAtribute("vNormal", VEC3, GL_FALSE, sizeof(Vertex), offsetof(Vertex, normal));
-	program->addAtribute("vColour", VEC3, GL_FALSE, sizeof(Vertex), offsetof(Vertex, colour));
 }
 void framebufferSizeCallback(GLFWwindow *window, int w, int h) {
 	// Prevent a divide by zero when the window is too short.
 	if (h == 0)
 		h = 1;
-
 	float ratio = 1.0f * w / h;
 
 	glfwMakeContextCurrent(window);
-
 	glViewport(0, 0, w, h);
-	projection = glm::perspective(glm::radians(90.0f), ratio, 0.1f, 100.0f);
+	sceneCam->updateProj(90.0f, ratio, 0.1f, 100.0f);
 }
 
 // Display function, called for each frame.
 void display()
 {
+	// Clear the framebuffer and depthbuffer.
 	renderer->clear();
-	// Model, view and projection transforms.
-	glm::mat4 model = glm::mat4(1.0);
-	glm::mat3 normal = glm::transpose(glm::inverse(glm::mat3(model)));
-	glm::mat4 modelViewPerspective = projection * (*sceneCam->getViewMatrix()) * model;
-
-	program->addUniformMatrix("model", model, GL_FALSE);
-	program->addUniformMatrix("mVP", modelViewPerspective, GL_FALSE);
-	program->addUniformMatrix("normalMat", normal, GL_FALSE);
 
 	// Camera lighting uniforms.
 	program->addUniformVector("camera.position", sceneCam->getCamPos());
@@ -109,7 +87,10 @@ void display()
 	program->addUniformVector("light.colour", spotLight);
 	program->addUniformVector("light.position", spotLightPos);
 
-	renderer->draw(vArray, program);
+	// Draw the bunny.
+	renderer->draw(&objModel1, program, sceneCam);
+	// Draw the teapot.
+	renderer->draw(&objModel2, program, sceneCam);
 }
 
 // Key callback, called each time a key is pressed.
@@ -123,7 +104,7 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
 
 static void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
-	sceneCam->scrollAction(xoffset, yoffset);
+	sceneCam->scrollAction(window, xoffset, yoffset);
 }
 
 // Error callback, called when there is an error during program initialization
@@ -154,9 +135,6 @@ int main(int argc, char **argv) {
 	glfwSetKeyCallback(window, key_callback);
 	glfwSetScrollCallback(window, scroll_callback);
 
-	// Setup the camera.
-	sceneCam->init(window);
-
 	// Initialize GLEW.
 	glfwMakeContextCurrent(window);
 	GLenum error = glewInit();
@@ -175,7 +153,7 @@ int main(int argc, char **argv) {
   ImGui_ImplOpenGL3_Init("#version 440");
 
 	ImVec4 clearColour = ImVec4(0.0f, 0.0f, 0.0f, 1.0f);
-	glViewport(0, 0, 512, 512);
+	glViewport(0, 0, 1920, 1080);
 
 	init();
 

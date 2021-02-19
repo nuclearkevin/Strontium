@@ -16,24 +16,29 @@ namespace SciRenderer
   public:
     // Constructors.
     Camera(float xCenter, float yCenter, CameraType type);
-    Camera(float xCenter, float yCenter, const glm::vec3 &initPosition, CameraType type);
+    Camera(float xCenter, float yCenter, const glm::vec3 &initPosition,
+           CameraType type);
 
     // Destructor.
     ~Camera() = default;
 
     // Implement init.
-    void init(GLFWwindow *window);
+    void init(GLFWwindow *window, const glm::mat4 &viewportProj);
 
     // Implement the action system.
     void keyboardAction(GLFWwindow *window);
     void mouseAction(GLFWwindow *window);
-    void scrollAction(double xoffset, double yoffset);
+    void scrollAction(GLFWwindow *window, double xoffset, double yoffset);
 
     // Swap the camera types.
     void swap(GLFWwindow *window);
 
-    // Get the view matrix.
-    glm::mat4* getViewMatrix();
+    // Update the projection matrx.
+    void updateProj(GLfloat fov, GLfloat aspect, GLfloat near, GLfloat far);
+
+    // Get the view/projection matrices.
+    glm::mat4 getViewMatrix();
+    glm::mat4 getProjMatrix();
 
     // Get the camera position and front.
     glm::vec4 getCamPos();
@@ -52,8 +57,9 @@ namespace SciRenderer
     glm::vec3   initCamFront;
     glm::vec3   initCamTop;
 
-    // Camera view matrix, stored here to avoid recomputing the matrix each time.
+    // The camera matrices. Stored here to avoid recalculation on each frame.
     glm::mat4   view;
+    glm::mat4   proj;
 
     // Time steps to normalize camera movement to frame time.
     float       dt;

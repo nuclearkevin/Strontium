@@ -16,7 +16,6 @@ struct SpotLight
   vec3 colour;
   vec4 position;
   vec3 direction;
-
   float intensity;
   // cosTheta is inner cutoff, cosGamma is outer.
   float cosTheta;

@@ -4,18 +4,24 @@
 #define TINYOBJLOADER_IMPLEMENTATION
 #include "tiny_obj_loader/tiny_obj_loader.h"
 
+// OpenGL includes.
+#include <glm/gtc/quaternion.hpp>
+#include <glm/gtx/quaternion.hpp>
+
 using namespace SciRenderer;
 
 // Constructors
 Mesh::Mesh()
   : loaded(false)
+  , modelMatrix(glm::mat4(1.0f))
 {
 }
 
-Mesh::Mesh(std::vector<Vertex> vertices, std::vector<GLuint> indices)
+Mesh::Mesh(const std::vector<Vertex> &vertices, const std::vector<GLuint> &indices)
   : loaded(true)
   , data(vertices)
   , indices(indices)
+  , modelMatrix(glm::mat4(1.0f))
 {
 }
 
@@ -105,6 +111,27 @@ Mesh::loadOBJFile(const char* filepath)
   this->loaded = true;
 }
 
+// Generate a vertex array object associated with this mesh.
+void
+Mesh::generateVAO(Shader* program)
+{
+  this->vArray = new VertexArray(&(this->data[0]),
+                                 this->data.size() * sizeof(Vertex),
+                                 DYNAMIC);
+  this->vArray->addIndexBuffer(&(this->indices[0]), this->indices.size(), DYNAMIC);
+
+	program->addAtribute("vPosition", VEC4, GL_FALSE, sizeof(Vertex), 0);
+	program->addAtribute("vNormal", VEC3, GL_FALSE, sizeof(Vertex), offsetof(Vertex, normal));
+	program->addAtribute("vColour", VEC3, GL_FALSE, sizeof(Vertex), offsetof(Vertex, colour));
+}
+
+// Delete the vertex array object associated with this mesh.
+void
+Mesh::deleteVAO()
+{
+  delete this->vArray;
+}
+
 // Helper function to bulk compute normals.
 void
 Mesh::computeNormals()
@@ -182,24 +209,35 @@ Mesh::normalizeVertices()
 }
 
 void
-Mesh::normalizeVertices(GLfloat scale)
+Mesh::setModelMatrix(glm::mat4 model)
 {
-  // Scale each component of the vertices.
-  for (auto &vertex : this->data)
-  {
-    vertex.position[0] = vertex.position[0] * (1 / scale);
-    vertex.position[1] = vertex.position[1] * (1 / scale);
-    vertex.position[2] = vertex.position[2] * (1 / scale);
-  }
+  this->modelMatrix = model;
 }
 
-// Function to apply matrix transforms to an mesh. As its on the CPU, its slow.
+// Methods for controlling the model matrix.
 void
-Mesh::applyTransform(glm::mat4 transform)
+Mesh::moveMesh(glm::vec3 direction)
 {
-  // This doesn't work?
-  for (auto &vertex : this->data)
-    vertex.position = transform * vertex.position;
+  this->modelMatrix = glm::translate(this->modelMatrix, direction);
+}
+
+void
+Mesh::rotateMesh(GLfloat angle, glm::vec3 axis)
+{
+  this->modelMatrix = glm::rotate(this->modelMatrix, angle, axis);
+}
+
+void
+Mesh::rotateMesh(glm::vec3 eulerAngles)
+{
+  glm::quat rot = glm::quat(eulerAngles);
+  this->modelMatrix = glm::toMat4(rot) * this->modelMatrix;
+}
+
+void
+Mesh::scaleMesh(GLfloat scale)
+{
+  this->modelMatrix = glm::scale(this->modelMatrix, glm::vec3(scale, scale, scale));
 }
 
 // Debugging helper function to dump mesh data to the console.
@@ -234,19 +272,22 @@ Mesh::getIndices() {return this->indices;}
 std::vector<Vertex>
 Mesh::getData() {return this->data;}
 
+VertexArray*
+Mesh::getVAO() {return this->vArray;}
+
+glm::mat4
+Mesh::getModelMatrix()
+{return this->modelMatrix;}
+
 bool
 Mesh::isLoaded() {return this->loaded;}
+
+bool
+Mesh::hasVAO() {return this->vArray != nullptr;}
 
 /*------------------------------------------------------------------------------
 Mesh loader and utility functions.
 ------------------------------------------------------------------------------*/
-
-// Mesh loader, TODO.
-std::vector<Mesh*>
-meshLoader(const char* filepath)
-{
-  std::vector<Mesh> outMeshs;
-}
 
 // Helper function to recursively find the max of a component of a position
 // vector.

@@ -7,6 +7,8 @@
 // Project includes.
 #include "VertexArray.h"
 #include "Shaders.h"
+#include "Meshes.h"
+#include "Camera.h"
 
 namespace SciRenderer
 {
@@ -28,7 +30,7 @@ namespace SciRenderer
 
     // Draw the data given.
     void draw(VertexArray* data, Shader* program);
-    void draw(Mesh* data, Shader* program);
+    void draw(Mesh* data, Shader* program, Camera* camera);
 
     // Swap the buffers.
     void swap(GLFWwindow* window);
