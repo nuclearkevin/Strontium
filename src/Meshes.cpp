@@ -105,7 +105,7 @@ Mesh::loadOBJFile(const char* filepath)
   else
   {
     for (unsigned i = 0; i < this->data.size(); i++)
-      this->data[i].colour = glm::vec3(1.0f, 0.0f, 1.0f);
+      this->data[i].colour = glm::vec3(1.0f, 1.0f, 1.0f);
   }
 
   this->loaded = true;
@@ -209,7 +209,7 @@ Mesh::normalizeVertices()
 }
 
 void
-Mesh::setModelMatrix(glm::mat4 model)
+Mesh::setModelMatrix(const glm::mat4& model)
 {
   this->modelMatrix = model;
 }
@@ -238,6 +238,13 @@ void
 Mesh::scaleMesh(GLfloat scale)
 {
   this->modelMatrix = glm::scale(this->modelMatrix, glm::vec3(scale, scale, scale));
+}
+
+void
+Mesh::setColour(glm::vec3 colour)
+{
+  for (unsigned i = 0; i < this->data.size(); i++)
+    this->data[i].colour = colour;
 }
 
 // Debugging helper function to dump mesh data to the console.

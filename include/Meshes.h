@@ -44,13 +44,14 @@ namespace SciRenderer
     // Debug function to dump to the console.
     void dumpMeshData();
     // Set the model matrix for positioning the model.
-    void setModelMatrix(glm::mat4 model);
+    void setModelMatrix(const glm::mat4& model);
 
     // Various functions to abstract the vector math of moving meshes.
     void moveMesh(glm::vec3 direction);
     void rotateMesh(GLfloat angle, glm::vec3 axis);
     void rotateMesh(glm::vec3 eulerAngles);
     void scaleMesh(GLfloat scale);
+    void setColour(glm::vec3 colour);
 
     // Getters.
     std::vector<Vertex>     getData();

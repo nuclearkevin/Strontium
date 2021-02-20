@@ -1,4 +1,4 @@
-#version 440 core
+#version 440
 /*
  *  Vertex shader to experiment with structs.
  */
@@ -11,14 +11,15 @@ uniform mat4 mVP;
 uniform mat3 normalMat;
 uniform mat4 model;
 
-out vec3 normal;
-out vec4 position;
-out vec3 colour;
+out vec3 fNormal;
+out vec4 fPosition;
+out vec3 fColour;
 
-void main() {
+void main()
+{
 
 	gl_Position = mVP * vPosition;
-  position = model * vPosition;
-	normal = normalMat * vNormal;
-	colour = vColour;
+  fPosition = model * vPosition;
+	fNormal = normalMat * vNormal;
+	fColour = vColour;
 }

@@ -39,6 +39,7 @@ namespace SciRenderer
     void addUniformVector(const char* uniformName, const glm::vec3 &vector);
     void addUniformVector(const char* uniformName, const glm::vec2 &vector);
     void addUniformFloat(const char* uniformName, GLfloat value);
+    void addUniformUInt(const char* uniformName, GLuint value);
 
     // Setters for vertex attributes.
     void addAtribute(const char* attribName, GLVectorType type,

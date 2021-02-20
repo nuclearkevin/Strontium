@@ -198,6 +198,14 @@ Shader::addUniformFloat(const char* uniformName, GLfloat value)
 	glUniform1f(uniLoc, value);
 }
 
+void
+Shader::addUniformUInt(const char* uniformName, GLuint value)
+{
+	this->bind();
+	GLuint uniLoc = glGetUniformLocation(this->progID, uniformName);
+	glUniform1ui(uniLoc, value);
+}
+
 // Vertex attribute setters.
 void
 Shader::addAtribute(const char* attribName, GLVectorType type,
