@@ -7,26 +7,24 @@
 #include "Camera.h"
 #include "Renderer.h"
 #include "Lighting.h"
-
-// Dear Imgui includes.
-#include "imgui/imgui.h"
-#include "imgui/imgui_impl_glfw.h"
-#include "imgui/imgui_impl_opengl3.h"
+#include "GuiHandler.h"
 
 using namespace SciRenderer;
 
 // Window objects.
 Camera* sceneCam;
+GLFWwindow* window;
 
 // Abstracted OpenGL objects.
-GLFWwindow *window;
-Shader* program;
+Shader* 				 program;
 LightController* lights;
-Renderer* renderer = Renderer::getInstance();
+GuiHandler* 		 gui;
+Renderer* 			 renderer = Renderer::getInstance();
 
 // Mesh data.
-Mesh objModel1, objModel2;
+Mesh objModel1, objModel2, ground;
 
+// Selectable lighting variables.
 glm::vec4 clearColour = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
 
 void init()
@@ -45,24 +43,18 @@ void init()
 	sceneCam->init(window, glm::perspective(90.0f, 1.0f, 0.1f, 100.0f));
 
 	// Load the obj file(s).
+	ground.loadOBJFile("./models/ground_plane.obj");
 	objModel1.loadOBJFile("./models/bunny.obj");
 	objModel1.normalizeVertices();
 	objModel2.loadOBJFile("./models/teapot.obj");
 	objModel2.normalizeVertices();
 
-	// Setup a single spotlight under the teapot and a uniform light from the top.
-	SpotLight light1;
+	// Setup a basic uniform light field.
+	UniformLight light1;
 	light1.colour = glm::vec3(1.0f, 1.0f, 1.0f);
-	light1.direction = glm::vec3(0.0f, 1.0f, 0.0f);
-	light1.position = glm::vec4(0.0f, 2.0f, 0.0f, 1.0f);
-	light1.intensity = 1.0f;
-	light1.innerCutOff = cos(glm::radians(45.0f));
-	light1.outerCutOff = cos(glm::radians(65.0f));
-	lights->addLight(light1, 0.1f);
-	light1.colour = glm::vec3(1.0f, 0.0f, 0.0f);
 	light1.direction = glm::vec3(0.0f, -1.0f, 0.0f);
-	light1.position = glm::vec4(0.0f, -2.0f, 0.0f, 1.0f);
-	lights->addLight(light1, 0.1f);
+	light1.intensity = 0.5f;
+	lights->addLight(light1);
 }
 
 // Display function, called for each frame.
@@ -70,13 +62,12 @@ void display()
 {
 	// Clear the frame buffer and depth buffer.
 	renderer->clear();
-
 	// Draw the light meshes.
 	lights->drawLightMeshes(renderer, sceneCam);
 	// Prepare the scene lighting.
 	lights->setLighting(program);
-	// Draw the bunny.
-	//renderer->draw(&objModel1, program, sceneCam);
+	// Draw the ground plane.
+	renderer->draw(&ground, program, sceneCam);
 	// Draw the teapot.
 	renderer->draw(&objModel2, program, sceneCam);
 }
@@ -115,7 +106,8 @@ static void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 	sceneCam->scrollAction(window, xoffset, yoffset);
 }
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
 	// Set the error callback so we get output when things go wrong.
 	glfwSetErrorCallback(error_callback);
 
@@ -144,18 +136,11 @@ int main(int argc, char **argv) {
 		exit(0);
 	}
 
-	// Dear Imgui init.
-	IMGUI_CHECKVERSION();
-	ImGui::CreateContext();
-  ImGuiIO& io = ImGui::GetIO(); (void)io;
-
-	ImGui::StyleColorsDark();
-	ImGui_ImplGlfw_InitForOpenGL(window, true);
-  ImGui_ImplOpenGL3_Init("#version 440");
+	init();
+	gui = new GuiHandler(lights);
+	gui->init(window);
 
 	glViewport(0, 0, 1920, 1080);
-
-	init();
 
 	glfwSwapInterval(1);
 
@@ -166,34 +151,19 @@ int main(int argc, char **argv) {
 		sceneCam->mouseAction(window);
 		sceneCam->keyboardAction(window);
 
-		ImGui_ImplOpenGL3_NewFrame();
-    ImGui_ImplGlfw_NewFrame();
-    ImGui::NewFrame();
-
 		display();
+		gui->drawGUI();
 
-		ImGui::SetNextWindowSize(ImVec2(400, 200), ImGuiCond_Always);
-		ImGui::Begin("Performance and Settings:");
-    ImGui::Text("Application averaging %.3f ms/frame (%.1f FPS)",
-								1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
-		ImGui::Text("Press P to swap between freeform and editor.");
-		ImGui::ColorEdit3("Clear colour", (float*)&clearColour);
-    ImGui::End();
-
-		ImGui::Render();
-		glClearColor(clearColour.x, clearColour.y, clearColour.z, clearColour.w);
-
-    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 
 		renderer->swap(window);
 	}
 
-	ImGui_ImplOpenGL3_Shutdown();
-  ImGui_ImplGlfw_Shutdown();
-	ImGui::DestroyContext();
+	gui->shutDown();
 
 	// Cleanup pointers.
 	delete program;
 	delete renderer;
+	delete lights;
 	glfwTerminate();
 }

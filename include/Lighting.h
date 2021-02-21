@@ -11,7 +11,7 @@
 
 namespace SciRenderer
 {
-  enum LightType { UNIFORM, POINT, SPOT };
+  enum LightType { UNIFORM, POINT, SPOT, ALL };
 
   struct LightMaterial
   {
@@ -25,9 +25,12 @@ namespace SciRenderer
     glm::vec3 colour;
     glm::vec3 direction;
 
+    GLfloat intensity;
+
     LightMaterial mat;
 
-    GLuint lightID;
+    std::string   name;
+    GLuint        lightID;
   };
 
   struct PointLight
@@ -36,10 +39,12 @@ namespace SciRenderer
     glm::vec4 position;
 
     GLfloat intensity;
+    GLfloat meshScale;
 
     LightMaterial mat;
 
-    GLuint lightID;
+    std::string   name;
+    GLuint        lightID;
   };
 
   struct SpotLight
@@ -51,16 +56,19 @@ namespace SciRenderer
     GLfloat intensity;
     GLfloat innerCutOff;
     GLfloat outerCutOff;
+    GLfloat meshScale;
 
     LightMaterial mat;
 
-    GLuint lightID;
+    std::string   name;
+    GLuint        lightID;
   };
 
   class LightController
   {
   public:
-    LightController(const char* vertPath, const char* fragPath, const char* lightMeshPath);
+    LightController(const char* vertPath, const char* fragPath,
+                    const char* lightMeshPath);
     ~LightController() = default;
 
     // Add lights to this controller.
@@ -75,10 +83,17 @@ namespace SciRenderer
     // Remove a light from its lighting ID.
     void deleteLight(LightType type, GLuint lightID);
 
+    // Setting the gui labels.
+    void setGuiLabel(LightType type);
+
     // Getters.
+    glm::vec3*    getAmbient();
     UniformLight* getULight(GLuint uLightID);
     PointLight*   getPLight(GLuint pLightID);
-    SpotLight*    getSLightID(GLuint sLightID);
+    SpotLight*    getSLight(GLuint sLightID);
+    GLuint        getNumLights(LightType type);
+
+    std::vector<std::string> &getGuiLabel(LightType type);
   protected:
     // Program specifically for rendering the light sources.
     Shader*                   lightProgram;
@@ -87,10 +102,18 @@ namespace SciRenderer
     Mesh*                     lightMesh;
 
     // The lights.
+    glm::vec3                 ambient;
     std::vector<UniformLight> uniformLights;
     std::vector<PointLight>   pointLights;
     std::vector<SpotLight>    spotLights;
-    std::vector<glm::mat4>    pointLightModels;
-    std::vector<glm::mat4>    spotLightModels;
+
+    std::vector<std::string>  uLGuiLabel;
+    std::vector<std::string>  pLGuiLabel;
+    std::vector<std::string>  sLGuiLabel;
+    std::vector<std::string>  allLightGuiLabel;
+
+    GLuint uLightCounter;
+    GLuint pLightCounter;
+    GLuint sLightCounter;
   };
 }
