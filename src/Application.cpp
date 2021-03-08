@@ -39,13 +39,14 @@ void init()
 	program = new Shader("./res/r_shaders/default.vs", "./res/r_shaders/lighting.fs");
 
 	// Initialize the camera.
-	sceneCam = new Camera(1920/2, 1080/2, glm::vec3 {0.0f, 0.0f, 4.0f}, EDITOR);
+	sceneCam = new Camera(1920/2, 1080/2, glm::vec3 {0.0f, 1.0f, 4.0f}, EDITOR);
 	sceneCam->init(window, glm::perspective(90.0f, 1.0f, 0.1f, 100.0f));
 
 	// Load the obj file(s).
 	ground.loadOBJFile("./models/ground_plane.obj");
 	objModel1.loadOBJFile("./models/bunny.obj");
 	objModel1.normalizeVertices();
+	objModel1.moveMesh(glm::vec3(-2.0f, 0.0f, 0.0f));
 	objModel2.loadOBJFile("./models/teapot.obj");
 	objModel2.normalizeVertices();
 
@@ -65,9 +66,11 @@ void display()
 	// Draw the light meshes.
 	lights->drawLightMeshes(renderer, sceneCam);
 	// Prepare the scene lighting.
-	lights->setLighting(program);
+	lights->setLighting(program, sceneCam);
 	// Draw the ground plane.
 	renderer->draw(&ground, program, sceneCam);
+	// Draw the bonny.
+	renderer->draw(&objModel1, program, sceneCam);
 	// Draw the teapot.
 	renderer->draw(&objModel2, program, sceneCam);
 }
@@ -116,7 +119,7 @@ int main(int argc, char **argv)
 		fprintf(stderr, "Can't initialize GLFW\n");
 
 	// Open the window using GLFW.
-	window = glfwCreateWindow(1920, 1080, "SciRender", NULL, NULL);
+	window = glfwCreateWindow(1920, 1080, "Viewport", NULL, NULL);
 	if (!window)
 	{
 		glfwTerminate();
@@ -144,7 +147,7 @@ int main(int argc, char **argv)
 
 	glfwSwapInterval(1);
 
-	// GLFW main loop, display model, swapbuffer and check for input.
+	// Main application loop.
 	while (!glfwWindowShouldClose(window))
 	{
 		glfwPollEvents();
@@ -165,5 +168,7 @@ int main(int argc, char **argv)
 	delete program;
 	delete renderer;
 	delete lights;
+	delete gui;
+
 	glfwTerminate();
 }

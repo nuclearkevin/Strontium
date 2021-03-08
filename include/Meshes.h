@@ -47,17 +47,17 @@ namespace SciRenderer
     void setModelMatrix(const glm::mat4& model);
 
     // Various functions to abstract the vector math of moving meshes.
-    void moveMesh(glm::vec3 direction);
-    void rotateMesh(GLfloat angle, glm::vec3 axis);
-    void rotateMesh(glm::vec3 eulerAngles);
-    void scaleMesh(GLfloat scale);
-    void setColour(glm::vec3 colour);
+    void moveMesh(const glm::vec3 &direction);
+    void rotateMesh(const GLfloat &angle, const glm::vec3 &axis);
+    void rotateMesh(const glm::vec3 &eulerAngles);
+    void scaleMesh(const GLfloat &scale);
+    void setColour(const glm::vec3 &colour);
 
     // Getters.
-    std::vector<Vertex>     getData();
-    std::vector<GLuint>     getIndices();
-    VertexArray*            getVAO();
-    glm::mat4               getModelMatrix();
+    std::vector<Vertex>&     getData();
+    std::vector<GLuint>&     getIndices();
+    VertexArray*             getVAO();
+    glm::mat4                getModelMatrix();
 
     // Check for states.
     bool                    hasVAO();

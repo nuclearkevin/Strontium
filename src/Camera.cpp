@@ -344,10 +344,10 @@ Camera::getProjMatrix()
 }
 
 // Fetch the camera position (for shading).
-glm::vec4
+glm::vec3
 Camera::getCamPos()
 {
-  return glm::vec4(this->position[0], this->position[1], this->position[2], 1.0f);
+  return this->position;
 }
 
 // Fetch the camera front vector (for shading).

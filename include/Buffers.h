@@ -72,4 +72,30 @@ namespace SciRenderer
     const GLuint* bufferData;
     unsigned      count;
   };
+
+  // Frame buffer class.
+  class Framebuffer
+  {
+  public:
+    // A constructor to generate a framebuffer at a particular location or any
+    // location.
+    Framebuffer();
+    Framebuffer(GLuint bufferLocation);
+    ~Framebuffer();
+
+    // Bind and unbind the framebuffer. Have to unbind before rendering to the
+    // default buffer.
+    void bind();
+    void unbind();
+
+    // Methods to add/remove textures and a depth buffer.
+    void attachTexture2D();
+    void attachDepthBuffer();
+
+    void unattachTexture2D();
+    void unattachDepthBuffer();
+  protected:
+    GLuint framebufferID;
+
+  };
 }

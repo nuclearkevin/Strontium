@@ -216,32 +216,32 @@ Mesh::setModelMatrix(const glm::mat4& model)
 
 // Methods for controlling the model matrix.
 void
-Mesh::moveMesh(glm::vec3 direction)
+Mesh::moveMesh(const glm::vec3 &direction)
 {
   this->modelMatrix = glm::translate(this->modelMatrix, direction);
 }
 
 void
-Mesh::rotateMesh(GLfloat angle, glm::vec3 axis)
+Mesh::rotateMesh(const GLfloat &angle, const glm::vec3 &axis)
 {
   this->modelMatrix = glm::rotate(this->modelMatrix, angle, axis);
 }
 
 void
-Mesh::rotateMesh(glm::vec3 eulerAngles)
+Mesh::rotateMesh(const glm::vec3 &eulerAngles)
 {
   glm::quat rot = glm::quat(eulerAngles);
   this->modelMatrix = glm::toMat4(rot) * this->modelMatrix;
 }
 
 void
-Mesh::scaleMesh(GLfloat scale)
+Mesh::scaleMesh(const GLfloat &scale)
 {
   this->modelMatrix = glm::scale(this->modelMatrix, glm::vec3(scale, scale, scale));
 }
 
 void
-Mesh::setColour(glm::vec3 colour)
+Mesh::setColour(const glm::vec3 &colour)
 {
   for (unsigned i = 0; i < this->data.size(); i++)
     this->data[i].colour = colour;
@@ -273,10 +273,10 @@ Mesh::dumpMeshData()
 }
 
 // Getters, yay. . .
-std::vector<GLuint>
+std::vector<GLuint>&
 Mesh::getIndices() {return this->indices;}
 
-std::vector<Vertex>
+std::vector<Vertex>&
 Mesh::getData() {return this->data;}
 
 VertexArray*

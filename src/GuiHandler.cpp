@@ -130,6 +130,9 @@ GuiHandler::lightingMenu()
 	ImGui::Begin("Lights", &this->lighting);
 	ImGui::Text("Total of %d lightcasters", this->currentLights->getNumLights(ALL));
 	ImGui::ColorEdit3("Ambient colour", &this->currentLights->getAmbient()->x);
+  ImGui::SliderFloat2("Attenuation", &this->currentLights->getAttenuation()->x,
+                      0.0f, 1.0f);
+
 	// Dropdown box for uniform lights.
 	if (ImGui::BeginCombo("Uniform lights", this->currentULName))
 	{
@@ -152,9 +155,12 @@ GuiHandler::lightingMenu()
 	// Menu to modify the uniform light properties.
 	if (this->selectedULight != nullptr)
 	{
-		ImGui::SliderFloat3("  U-Light direction", &(this->selectedULight->direction.x), -1.0f, 1.0f);
-		ImGui::ColorEdit3("  U-Light colour", &(this->selectedULight->colour.x));
-		ImGui::SliderFloat("  U-Light intensity", &(this->selectedULight->intensity), 0.0f, 1.0f);
+		ImGui::SliderFloat3((this->selectedULight->name + std::string(" direction")).c_str(),
+                        &(this->selectedULight->direction.x), -1.0f, 1.0f);
+		ImGui::ColorEdit3((this->selectedULight->name + std::string(" colour")).c_str(),
+                      &(this->selectedULight->colour.x));
+		ImGui::SliderFloat((this->selectedULight->name + std::string(" intensity")).c_str(),
+                      &(this->selectedULight->intensity), 0.0f, 1.0f);
 		if (ImGui::Button((std::string("Delete ") + this->selectedULight->name).c_str()))
 		{
 			this->currentLights->deleteLight(UNIFORM, this->selectedULight->lightID);
@@ -185,10 +191,14 @@ GuiHandler::lightingMenu()
 	// Menu to modify point light properties.
 	if (this->selectedPLight != nullptr)
 	{
-		ImGui::SliderFloat3("  P-Light position", &(this->selectedPLight->position.x), -10.0f, 10.0f);
-		ImGui::ColorEdit3("  P-Light colour", &(this->selectedPLight->colour.x));
-		ImGui::SliderFloat("  P-Light intensity", &(this->selectedPLight->intensity), 0.0f, 1.0f);
-		ImGui::SliderFloat("  P-Light mesh scale", &(this->selectedPLight->meshScale), 0.0f, 1.0f);
+		ImGui::SliderFloat3((this->selectedPLight->name + std::string(" position")).c_str(),
+                        &(this->selectedPLight->position.x), -10.0f, 10.0f);
+		ImGui::ColorEdit3((this->selectedPLight->name + std::string(" colour")).c_str(),
+                      &(this->selectedPLight->colour.x));
+		ImGui::SliderFloat((this->selectedPLight->name + std::string(" intensity")).c_str(),
+                       &(this->selectedPLight->intensity), 0.0f, 1.0f);
+		ImGui::SliderFloat((this->selectedPLight->name + std::string(" mesh scale")).c_str(),
+                       &(this->selectedPLight->meshScale), 0.0f, 1.0f);
 		if (ImGui::Button((std::string("Delete ") + this->selectedPLight->name).c_str()))
 		{
 			this->currentLights->deleteLight(POINT, this->selectedPLight->lightID);
@@ -219,13 +229,20 @@ GuiHandler::lightingMenu()
 	// Menu to modify spot light properties.
 	if (selectedSLight != nullptr)
 	{
-		ImGui::SliderFloat3("  S-Light position", &(this->selectedSLight->position.x), -10.0f, 10.0f);
-		ImGui::SliderFloat3("  S-Light direction", &(this->selectedSLight->direction.x), -1.0f, 1.0f);
-		ImGui::ColorEdit3("  S-Light colour", &(this->selectedSLight->colour.x));
-		ImGui::SliderFloat("  S-Light intensity", &(this->selectedSLight->intensity), 0.0f, 1.0f);
-		ImGui::SliderFloat("  S-Light outer cutoff", &(this->selectedSLight->innerCutOff), 0.0f, 1.0f);
-		ImGui::SliderFloat("  S-Light inner cutoff", &(this->selectedSLight->outerCutOff), 0.0f, 1.0f);
-		ImGui::SliderFloat("  S-Light mesh scale", &(this->selectedSLight->meshScale), 0.0f, 1.0f);
+		ImGui::SliderFloat3((this->selectedSLight->name + std::string(" position")).c_str(),
+                        &(this->selectedSLight->position.x), -10.0f, 10.0f);
+		ImGui::SliderFloat3((this->selectedSLight->name + std::string(" direction")).c_str(),
+                        &(this->selectedSLight->direction.x), -1.0f, 1.0f);
+		ImGui::ColorEdit3((this->selectedSLight->name + std::string(" colour")).c_str(),
+                      &(this->selectedSLight->colour.x));
+		ImGui::SliderFloat((this->selectedSLight->name + std::string(" intensity")).c_str(),
+                       &(this->selectedSLight->intensity), 0.0f, 1.0f);
+		ImGui::SliderFloat((this->selectedSLight->name + std::string(" inner cutoff")).c_str(),
+                       &(this->selectedSLight->innerCutOff), 0.0f, 1.0f);
+		ImGui::SliderFloat((this->selectedSLight->name + std::string(" outer cutoff")).c_str(),
+                       &(this->selectedSLight->outerCutOff), 0.0f, 1.0f);
+		ImGui::SliderFloat((this->selectedSLight->name + std::string(" mesh scale")).c_str(),
+                       &(this->selectedSLight->meshScale), 0.0f, 1.0f);
 		if (ImGui::Button((std::string("Delete ") + this->selectedSLight->name).c_str()))
 		{
 			this->currentLights->deleteLight(SPOT, this->selectedSLight->lightID);
@@ -248,7 +265,7 @@ GuiHandler::lightingMenu()
 	{
 		PointLight temp;
 		temp.colour = glm::vec3(0.0f, 0.0f, 0.0f);
-		temp.position = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
+		temp.position = glm::vec3(0.0f, 0.0f, 0.0f);
 		temp.intensity = 0.0f;
 		this->currentLights->addLight(temp, 0.1f);
 	}
@@ -258,7 +275,7 @@ GuiHandler::lightingMenu()
 		SpotLight temp;
 		temp.colour = glm::vec3(0.0f, 0.0f, 0.0f);
 		temp.direction = glm::vec3(0.0f, 0.0f, 0.0f);
-		temp.position = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
+		temp.position = glm::vec3(0.0f, 0.0f, 0.0f);
 		temp.intensity = 0.0f;
 		temp.innerCutOff = 0.0f;
 		temp.outerCutOff = 0.0f;

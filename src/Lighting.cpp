@@ -5,6 +5,7 @@ using namespace SciRenderer;
 LightController::LightController(const char* vertPath, const char* fragPath,
                                  const char* lightMeshPath)
   : ambient(glm::vec3(0.0f, 0.0f, 0.0f))
+  , attenuation(glm::vec2(0.0f, 0.0f))
   , uLightCounter(0)
   , pLightCounter(0)
   , sLightCounter(0)
@@ -17,10 +18,22 @@ LightController::LightController(const char* vertPath, const char* fragPath,
   this->lightMesh->generateVAO(this->lightProgram);
 }
 
+LightController::~LightController()
+{
+  delete this->lightProgram;
+  delete this->lightMesh;
+}
+
 glm::vec3*
 LightController::getAmbient()
 {
   return &this->ambient;
+}
+
+glm::vec2*
+LightController::getAttenuation()
+{
+  return &this->attenuation;
 }
 
 // Add lights to be applied.
@@ -72,10 +85,14 @@ LightController::addLight(const SpotLight& light, GLfloat scaleFactor)
 
 // Set the light uniforms in the lighting shader for the next frame.
 void
-LightController::setLighting(Shader* lightingShader)
+LightController::setLighting(Shader* lightingShader, Camera* camera)
 {
   lightingShader->bind();
   lightingShader->addUniformVector("ambientColour", this->ambient);
+  lightingShader->addUniformVector("falloff", this->attenuation);
+  lightingShader->addUniformVector("camera.position", camera->getCamPos());
+  lightingShader->addUniformVector("camera.viewDir", camera->getCamFront());
+
   // Set the uniform lights.
   if (this->uniformLights.size() < 9)
     lightingShader->addUniformUInt("numULights", this->uniformLights.size());

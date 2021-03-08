@@ -6,6 +6,11 @@
 *.mtl
 *.jpg
 
+!bunny.obj
+!sphere.obj
+!teapot.obj
+!ground_plane.obj
+
 # Object files
 *.d
 *.o

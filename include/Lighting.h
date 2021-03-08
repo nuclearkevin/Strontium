@@ -36,7 +36,7 @@ namespace SciRenderer
   struct PointLight
   {
     glm::vec3 colour;
-    glm::vec4 position;
+    glm::vec3 position;
 
     GLfloat intensity;
     GLfloat meshScale;
@@ -50,7 +50,7 @@ namespace SciRenderer
   struct SpotLight
   {
     glm::vec3 colour;
-    glm::vec4 position;
+    glm::vec3 position;
     glm::vec3 direction;
 
     GLfloat intensity;
@@ -69,7 +69,7 @@ namespace SciRenderer
   public:
     LightController(const char* vertPath, const char* fragPath,
                     const char* lightMeshPath);
-    ~LightController() = default;
+    ~LightController();
 
     // Add lights to this controller.
     void addLight(const UniformLight& light);
@@ -77,7 +77,7 @@ namespace SciRenderer
     void addLight(const SpotLight& light, GLfloat scaleFactor);
 
     // Sets up the lights for rendering and draw the light meshes.
-    void setLighting(Shader* lightingShader);
+    void setLighting(Shader* lightingShader, Camera* camera);
     void drawLightMeshes(Renderer* renderer, Camera* camera);
 
     // Remove a light from its lighting ID.
@@ -88,6 +88,7 @@ namespace SciRenderer
 
     // Getters.
     glm::vec3*    getAmbient();
+    glm::vec2*    getAttenuation();
     UniformLight* getULight(GLuint uLightID);
     PointLight*   getPLight(GLuint pLightID);
     SpotLight*    getSLight(GLuint sLightID);
@@ -97,12 +98,15 @@ namespace SciRenderer
   protected:
     // Program specifically for rendering the light sources.
     Shader*                   lightProgram;
+    // Program for rendering to the shadow map.
+    Shader*                   shadowProgram;
 
     // The mesh for the lights.
     Mesh*                     lightMesh;
 
     // The lights.
     glm::vec3                 ambient;
+    glm::vec2                 attenuation;
     std::vector<UniformLight> uniformLights;
     std::vector<PointLight>   pointLights;
     std::vector<SpotLight>    spotLights;

@@ -4,8 +4,7 @@
 using namespace SciRenderer;
 
 // Constructor and destructor.
-VertexBuffer::VertexBuffer(const void* bufferData,
-                           const unsigned &dataSize,
+VertexBuffer::VertexBuffer(const void* bufferData, const unsigned &dataSize,
                            BufferType bufferType)
   : hasData(true)
   , type(bufferType)
@@ -47,7 +46,8 @@ IndexBuffer::IndexBuffer(const GLuint* bufferData,
 {
   glGenBuffers(1, &this->bufferID);
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, this->bufferID);
-  glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLuint) * numIndices, bufferData, bufferType);
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLuint) * numIndices, bufferData,
+               bufferType);
 }
 
 IndexBuffer::~IndexBuffer()

@@ -41,7 +41,7 @@ namespace SciRenderer
     glm::mat4 getProjMatrix();
 
     // Get the camera position and front.
-    glm::vec4 getCamPos();
+    glm::vec3 getCamPos();
     glm::vec3 getCamFront();
 
   protected:

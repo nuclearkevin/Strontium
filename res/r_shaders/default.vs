@@ -11,15 +11,18 @@ uniform mat4 mVP;
 uniform mat3 normalMat;
 uniform mat4 model;
 
-out vec3 fNormal;
-out vec4 fPosition;
-out vec3 fColour;
+out VERT_OUT
+{
+	vec3 fNormal;
+	vec3 fPosition;
+	vec3 fColour;
+} vertOut;
 
 void main()
 {
 
 	gl_Position = mVP * vPosition;
-  fPosition = model * vPosition;
-	fNormal = normalMat * vNormal;
-	fColour = vColour;
+  vertOut.fPosition = (model * vPosition).xyz;
+	vertOut.fNormal = normalMat * vNormal;
+	vertOut.fColour = vColour;
 }
