@@ -17,6 +17,7 @@ namespace SciRenderer
   {
     glm::vec3 diffuse;
     glm::vec3 specular;
+    glm::vec2 attenuation;
     GLfloat   shininess;
   };
 
@@ -88,7 +89,6 @@ namespace SciRenderer
 
     // Getters.
     glm::vec3*    getAmbient();
-    glm::vec2*    getAttenuation();
     UniformLight* getULight(GLuint uLightID);
     PointLight*   getPLight(GLuint pLightID);
     SpotLight*    getSLight(GLuint sLightID);
@@ -106,7 +106,6 @@ namespace SciRenderer
 
     // The lights.
     glm::vec3                 ambient;
-    glm::vec2                 attenuation;
     std::vector<UniformLight> uniformLights;
     std::vector<PointLight>   pointLights;
     std::vector<SpotLight>    spotLights;

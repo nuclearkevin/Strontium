@@ -9,7 +9,7 @@
 
 namespace SciRenderer
 {
-  enum GLVectorType { VEC4 = 4, VEC3 = 3, VEC2 = 1};
+  enum GLVectorType { VEC4 = 4, VEC3 = 3, VEC2 = 2};
 
   class Shader
   {
@@ -40,6 +40,8 @@ namespace SciRenderer
     void addUniformVector(const char* uniformName, const glm::vec2 &vector);
     void addUniformFloat(const char* uniformName, GLfloat value);
     void addUniformUInt(const char* uniformName, GLuint value);
+
+    void addUniformSampler2D(const char* uniformName, GLuint texID);
 
     // Setters for vertex attributes.
     void addAtribute(const char* attribName, GLVectorType type,

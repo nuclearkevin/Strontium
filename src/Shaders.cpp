@@ -206,6 +206,15 @@ Shader::addUniformUInt(const char* uniformName, GLuint value)
 	glUniform1ui(uniLoc, value);
 }
 
+// Set a texture sampler.
+void
+Shader::addUniformSampler2D(const char* uniformName, GLuint texID)
+{
+	this->bind();
+	GLuint uniLoc = glGetUniformLocation(this->progID, uniformName);
+	glUniform1ui(uniLoc, texID);
+}
+
 // Vertex attribute setters.
 void
 Shader::addAtribute(const char* attribName, GLVectorType type,

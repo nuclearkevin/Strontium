@@ -126,12 +126,10 @@ GuiHandler::lightingMenu()
 
   // The lighting window.
 	ImGui::SetNextWindowPos(ImVec2(0, 95));
-	ImGui::SetNextWindowSize(ImVec2(450, 400), ImGuiCond_Always);
+	ImGui::SetNextWindowSize(ImVec2(450, 550), ImGuiCond_Always);
 	ImGui::Begin("Lights", &this->lighting);
 	ImGui::Text("Total of %d lightcasters", this->currentLights->getNumLights(ALL));
 	ImGui::ColorEdit3("Ambient colour", &this->currentLights->getAmbient()->x);
-  ImGui::SliderFloat2("Attenuation", &this->currentLights->getAttenuation()->x,
-                      0.0f, 1.0f);
 
 	// Dropdown box for uniform lights.
 	if (ImGui::BeginCombo("Uniform lights", this->currentULName))
@@ -161,6 +159,14 @@ GuiHandler::lightingMenu()
                       &(this->selectedULight->colour.x));
 		ImGui::SliderFloat((this->selectedULight->name + std::string(" intensity")).c_str(),
                       &(this->selectedULight->intensity), 0.0f, 1.0f);
+    ImGui::Text("%s properties:", this->selectedULight->name.c_str());
+    ImGui::SliderFloat3((this->selectedULight->name + std::string(" diffuse")).c_str(),
+                        &(this->selectedULight->mat.diffuse.x), 0.0f, 1.0f);
+    ImGui::SliderFloat3((this->selectedULight->name + std::string(" specular")).c_str(),
+                        &(this->selectedULight->mat.specular.x), 0.0f, 1.0f);
+    ImGui::SliderFloat((this->selectedULight->name + std::string(" shininess")).c_str(),
+                        &(this->selectedULight->mat.shininess), 1.0f, 128.0f);
+
 		if (ImGui::Button((std::string("Delete ") + this->selectedULight->name).c_str()))
 		{
 			this->currentLights->deleteLight(UNIFORM, this->selectedULight->lightID);
@@ -199,6 +205,16 @@ GuiHandler::lightingMenu()
                        &(this->selectedPLight->intensity), 0.0f, 1.0f);
 		ImGui::SliderFloat((this->selectedPLight->name + std::string(" mesh scale")).c_str(),
                        &(this->selectedPLight->meshScale), 0.0f, 1.0f);
+    ImGui::Text("%s properties:", this->selectedPLight->name.c_str());
+    ImGui::SliderFloat3((this->selectedPLight->name + std::string(" diffuse")).c_str(),
+                        &(this->selectedPLight->mat.diffuse.x), 0.0f, 1.0f);
+    ImGui::SliderFloat3((this->selectedPLight->name + std::string(" specular")).c_str(),
+                        &(this->selectedPLight->mat.specular.x), 0.0f, 1.0f);
+    ImGui::SliderFloat2((this->selectedPLight->name + std::string(" attenuation")).c_str(),
+                        &(this->selectedPLight->mat.attenuation.x), 0.0f, 1.0f);
+    ImGui::SliderFloat((this->selectedPLight->name + std::string(" shininess")).c_str(),
+                       &(this->selectedPLight->mat.shininess), 1.0f, 128.0f);
+
 		if (ImGui::Button((std::string("Delete ") + this->selectedPLight->name).c_str()))
 		{
 			this->currentLights->deleteLight(POINT, this->selectedPLight->lightID);
@@ -243,6 +259,16 @@ GuiHandler::lightingMenu()
                        &(this->selectedSLight->outerCutOff), 0.0f, 1.0f);
 		ImGui::SliderFloat((this->selectedSLight->name + std::string(" mesh scale")).c_str(),
                        &(this->selectedSLight->meshScale), 0.0f, 1.0f);
+    ImGui::Text("%s properties:", this->selectedSLight->name.c_str());
+    ImGui::SliderFloat3((this->selectedSLight->name + std::string(" diffuse")).c_str(),
+                        &(this->selectedSLight->mat.diffuse.x), 0.0f, 1.0f);
+    ImGui::SliderFloat3((this->selectedSLight->name + std::string(" specular")).c_str(),
+                        &(this->selectedSLight->mat.specular.x), 0.0f, 1.0f);
+    ImGui::SliderFloat2((this->selectedSLight->name + std::string(" attenuation")).c_str(),
+                        &(this->selectedSLight->mat.attenuation.x), 0.0f, 1.0f);
+    ImGui::SliderFloat((this->selectedSLight->name + std::string(" shininess")).c_str(),
+                       &(this->selectedSLight->mat.shininess), 1.0f, 128.0f);
+
 		if (ImGui::Button((std::string("Delete ") + this->selectedSLight->name).c_str()))
 		{
 			this->currentLights->deleteLight(SPOT, this->selectedSLight->lightID);
@@ -258,6 +284,10 @@ GuiHandler::lightingMenu()
 		temp.colour = glm::vec3(0.0f, 0.0f, 0.0f);
 		temp.direction = glm::vec3(0.0f, 0.0f, 0.0f);
 		temp.intensity = 0.0f;
+    temp.mat.diffuse = glm::vec3(0.0f, 0.0f, 0.0f);
+    temp.mat.specular = glm::vec3(0.0f, 0.0f, 0.0f);
+    temp.mat.attenuation = glm::vec2(0.0f, 0.0f);
+    temp.mat.shininess = 1.0f;
 		this->currentLights->addLight(temp);
 	}
 	ImGui::SameLine();
@@ -267,6 +297,10 @@ GuiHandler::lightingMenu()
 		temp.colour = glm::vec3(0.0f, 0.0f, 0.0f);
 		temp.position = glm::vec3(0.0f, 0.0f, 0.0f);
 		temp.intensity = 0.0f;
+    temp.mat.diffuse = glm::vec3(0.0f, 0.0f, 0.0f);
+    temp.mat.specular = glm::vec3(0.0f, 0.0f, 0.0f);
+    temp.mat.attenuation = glm::vec2(0.0f, 0.0f);
+    temp.mat.shininess = 1.0f;
 		this->currentLights->addLight(temp, 0.1f);
 	}
 	ImGui::SameLine();
@@ -279,6 +313,10 @@ GuiHandler::lightingMenu()
 		temp.intensity = 0.0f;
 		temp.innerCutOff = 0.0f;
 		temp.outerCutOff = 0.0f;
+    temp.mat.diffuse = glm::vec3(0.0f, 0.0f, 0.0f);
+    temp.mat.specular = glm::vec3(0.0f, 0.0f, 0.0f);
+    temp.mat.attenuation = glm::vec2(0.0f, 0.0f);
+    temp.mat.shininess = 1.0f;
 		this->currentLights->addLight(temp, 0.1f);
 	}
 	ImGui::End();

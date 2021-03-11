@@ -17,12 +17,36 @@ Renderer::getInstance()
     return instance;
 }
 
+Renderer::~Renderer()
+{
+  glDeleteBuffers(1, &this->viewportVBOID);
+  glDeleteVertexArrays(1, &this->viewportVAOID);
+  delete this->viewportProgram;
+}
+
 // Initialize the renderer.
 void
-Renderer::init(GLenum mode)
+Renderer::init(const char* vertPath, const char* fragPath)
 {
+  // Initialize depth testing.
   glEnable(GL_DEPTH_TEST);
-  glPolygonMode(GL_FRONT_AND_BACK, mode);
+  // Initialize the vewport shader passthrough.
+  this->viewportProgram = new Shader(vertPath, fragPath);
+
+  // Setup the VAO for the full screen quad.
+  glGenVertexArrays(1, &this->viewportVAOID);
+  glGenBuffers(1, &this->viewportVBOID);
+  glBindVertexArray(this->viewportVAOID);
+  glBindBuffer(GL_ARRAY_BUFFER, this->viewportVBOID);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(this->viewport), &this->viewport,
+               GL_STATIC_DRAW);
+
+  // Setup the shader program with the attributes.
+  this->viewportProgram->addAtribute("vPosition", VEC2, GL_FALSE, 4 * sizeof(float), 0);
+  this->viewportProgram->addAtribute("vTexCoords", VEC2, GL_FALSE, 4 * sizeof(float), 2 * sizeof(float));
+  this->viewportProgram->addUniformSampler2D("screenTexture", 0);
+  glBindVertexArray(0);
+  glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
 // Draw the data to the screen.
@@ -61,13 +85,23 @@ Renderer::draw(Mesh* data, Shader* program, Camera* camera)
 }
 
 void
-Renderer::swap(GLFWwindow* window)
+Renderer::drawToViewPort(FrameBuffer* drawBuffer)
 {
-  glfwSwapBuffers(window);
+  drawBuffer->unbind();
+  glDisable(GL_DEPTH_TEST);
+
+  glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+  glClear(GL_COLOR_BUFFER_BIT);
+
+	viewportProgram->bind();
+  glBindVertexArray(this->viewportVAOID);
+  glBindTexture(GL_TEXTURE_2D, drawBuffer->getColourID());
+  glDrawArrays(GL_TRIANGLES, 0, 6);
+	glEnable(GL_DEPTH_TEST);
 }
 
 void
-Renderer::clear()
+Renderer::swap(GLFWwindow* window)
 {
-  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+  glfwSwapBuffers(window);
 }

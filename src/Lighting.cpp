@@ -5,7 +5,6 @@ using namespace SciRenderer;
 LightController::LightController(const char* vertPath, const char* fragPath,
                                  const char* lightMeshPath)
   : ambient(glm::vec3(0.0f, 0.0f, 0.0f))
-  , attenuation(glm::vec2(0.0f, 0.0f))
   , uLightCounter(0)
   , pLightCounter(0)
   , sLightCounter(0)
@@ -28,12 +27,6 @@ glm::vec3*
 LightController::getAmbient()
 {
   return &this->ambient;
-}
-
-glm::vec2*
-LightController::getAttenuation()
-{
-  return &this->attenuation;
 }
 
 // Add lights to be applied.
@@ -87,9 +80,10 @@ LightController::addLight(const SpotLight& light, GLfloat scaleFactor)
 void
 LightController::setLighting(Shader* lightingShader, Camera* camera)
 {
+  // This is a janky implementation. TODO: use uniform buffer objects to make
+  // this faster.
   lightingShader->bind();
   lightingShader->addUniformVector("ambientColour", this->ambient);
-  lightingShader->addUniformVector("falloff", this->attenuation);
   lightingShader->addUniformVector("camera.position", camera->getCamPos());
   lightingShader->addUniformVector("camera.viewDir", camera->getCamFront());
 
@@ -109,6 +103,12 @@ LightController::setLighting(Shader* lightingShader, Camera* camera)
         + std::string("].direction")).c_str(), uniformLights[i].direction);
     lightingShader->addUniformFloat((std::string("uLight[") + std::to_string(i)
         + std::string("].intensity")).c_str(), uniformLights[i].intensity);
+    lightingShader->addUniformVector((std::string("uLight[") + std::to_string(i)
+        + std::string("].mat.diffuse")).c_str(), uniformLights[i].mat.diffuse);
+    lightingShader->addUniformVector((std::string("uLight[") + std::to_string(i)
+        + std::string("].mat.specular")).c_str(), uniformLights[i].mat.specular);
+    lightingShader->addUniformFloat((std::string("uLight[") + std::to_string(i)
+        + std::string("].mat.shininess")).c_str(), uniformLights[i].mat.shininess);
   }
   // Set the point lights.
   if (this->pointLights.size() < 9)
@@ -126,6 +126,14 @@ LightController::setLighting(Shader* lightingShader, Camera* camera)
         + std::string("].position")).c_str(), pointLights[i].position);
     lightingShader->addUniformFloat((std::string("pLight[") + std::to_string(i)
         + std::string("].intensity")).c_str(), pointLights[i].intensity);
+    lightingShader->addUniformVector((std::string("pLight[") + std::to_string(i)
+        + std::string("].mat.diffuse")).c_str(), pointLights[i].mat.diffuse);
+    lightingShader->addUniformVector((std::string("pLight[") + std::to_string(i)
+        + std::string("].mat.specular")).c_str(), pointLights[i].mat.specular);
+    lightingShader->addUniformVector((std::string("pLight[") + std::to_string(i)
+        + std::string("].mat.attenuation")).c_str(), pointLights[i].mat.attenuation);
+    lightingShader->addUniformFloat((std::string("pLight[") + std::to_string(i)
+        + std::string("].mat.shininess")).c_str(), pointLights[i].mat.shininess);
   }
   // Set the spot lights.
   if (this->spotLights.size() < 9)
@@ -149,6 +157,14 @@ LightController::setLighting(Shader* lightingShader, Camera* camera)
         + std::string("].cosTheta")).c_str(), spotLights[i].innerCutOff);
     lightingShader->addUniformFloat((std::string("sLight[") + std::to_string(i)
         + std::string("].cosGamma")).c_str(), spotLights[i].outerCutOff);
+    lightingShader->addUniformVector((std::string("sLight[") + std::to_string(i)
+        + std::string("].mat.diffuse")).c_str(), spotLights[i].mat.diffuse);
+    lightingShader->addUniformVector((std::string("sLight[") + std::to_string(i)
+        + std::string("].mat.specular")).c_str(), spotLights[i].mat.specular);
+    lightingShader->addUniformVector((std::string("sLight[") + std::to_string(i)
+        + std::string("].mat.attenuation")).c_str(), spotLights[i].mat.attenuation);
+    lightingShader->addUniformFloat((std::string("sLight[") + std::to_string(i)
+        + std::string("].mat.shininess")).c_str(), spotLights[i].mat.shininess);
   }
 }
 

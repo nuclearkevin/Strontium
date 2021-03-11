@@ -12,9 +12,8 @@ struct LightMaterial
 {
   vec3 diffuse;
   vec3 specular;
-  float shininess;
-
   vec2 attenuation;
+  float shininess;
  };
 
 // Different light types.
@@ -68,8 +67,6 @@ uniform uint numSLights;
 
 uniform vec3 ambientColour;
 
-uniform vec2 falloff;
-
 // Input lights.
 uniform UniformLight uLight[MAX_NUM_UNIFORM_LIGHTS];
 uniform PointLight   pLight[MAX_NUM_POINT_LIGHTS];
@@ -113,9 +110,10 @@ vec3 computeUL(UniformLight light, vec3 normal, vec3 position, vec3 colour, Came
 
   // Uniform light lighting calculations. Yes, its spaghetti. ( ͡° ͜ʖ ͡°).
   float diff = max(dot(nNormal, lightDir), 0.0);
-  float spec = pow(max(dot(normal, halfwayDir), 0.0), 64) * 0.5;
+  float spec = pow(max(dot(normal, halfwayDir), 0.0), light.mat.shininess) * 0.5;
 
-  return light.intensity * light.colour * (colour * diff + spec);
+  return light.intensity * light.colour *
+         (light.mat.diffuse * colour * diff + light.mat.specular * spec);
 }
 
 vec3 computePL(PointLight light, vec3 normal, vec3 position, vec3 colour, Camera camera)
@@ -126,13 +124,14 @@ vec3 computePL(PointLight light, vec3 normal, vec3 position, vec3 colour, Camera
   vec3 halfwayDir = normalize(lightDir + viewDir);
 
   // Point light lighting calculations. Yes, its spaghetti. ( ͡° ͜ʖ ͡°).
-  float attenuation = 1 / (1.0 + length(light.position - position) * falloff.x
+  float attenuation = 1 / (1.0 + length(light.position - position) * light.mat.attenuation.x
                       + (length(light.position - position)
-                      * length(light.position - position)) * falloff.y);
+                      * length(light.position - position)) * light.mat.attenuation.y);
   float diff = max(dot(nNormal, lightDir), 0.0);
-  float spec = pow(max(dot(normal, halfwayDir), 0.0), 64) * 0.5;
+  float spec = pow(max(dot(normal, halfwayDir), 0.0), light.mat.shininess) * 0.5;
 
-  return light.intensity * light.colour * attenuation * (colour * diff + spec);
+  return light.intensity * light.colour * attenuation *
+         (light.mat.diffuse * colour * diff + light.mat.specular * spec);
 }
 
 // Computes the lighting contribution from a spotlight.
@@ -143,17 +142,18 @@ vec3 computeSL(SpotLight light, vec3 normal, vec3 position, vec3 colour, Camera 
   vec3 viewDir = normalize(camera.position - position);
   vec3 halfwayDir = normalize(lightDir + viewDir);
 
-  vec3 ray = -normalize(position - light.position).xyz;
-  float phi = dot(ray, normalize(-light.direction));
+  vec3 ray = -normalize(position - light.position);
+  float phi = dot(ray, normalize(-light.direction)); // I had no idea why this works, in reverse. . .
 
   // Spotlight lighting calculations. Yes, its spaghetti. ( ͡° ͜ʖ ͡°).
   float radialAtten = clamp((phi - light.cosGamma) /
                             (light.cosTheta - light.cosGamma), 0.0, 1.0);
-  float attenuation = 1 / (1.0 + length(light.position - position) * falloff.x
-                      + (length(light.position - position)
-                      * length(light.position - position)) * falloff.y);
+  float attenuation = 1 / (1.0 + length(light.position - position) *
+                      light.mat.attenuation.x + (length(light.position - position)
+                      * length(light.position - position)) * light.mat.attenuation.y);
   float diff = max(dot(nNormal, lightDir), 0.0);
-  float spec = pow(max(dot(normal, halfwayDir), 0.0), 64) * 0.5;
+  float spec = pow(max(dot(normal, halfwayDir), 0.0), light.mat.shininess) * 0.5;
 
-  return light.intensity * light.colour * radialAtten * attenuation * (colour * diff + spec);
+  return light.intensity * light.colour * radialAtten * attenuation *
+         (light.mat.diffuse * colour * diff + light.mat.specular * spec);
 }

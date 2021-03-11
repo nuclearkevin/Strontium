@@ -6,6 +6,12 @@
 
 namespace SciRenderer
 {
+  // Struct for framebuffer attachments.
+  struct FBOAttach
+  {
+    GLuint id;
+  };
+
   // Draw types.
   enum BufferType {STATIC = GL_STATIC_DRAW, DYNAMIC = GL_DYNAMIC_DRAW};
 
@@ -74,28 +80,49 @@ namespace SciRenderer
   };
 
   // Frame buffer class.
-  class Framebuffer
+  class FrameBuffer
   {
   public:
     // A constructor to generate a framebuffer at a particular location or any
     // location.
-    Framebuffer();
-    Framebuffer(GLuint bufferLocation);
-    ~Framebuffer();
+    FrameBuffer(GLuint width, GLuint height);
+    FrameBuffer(GLuint bufferLocation, GLuint width, GLuint height);
+    ~FrameBuffer();
 
     // Bind and unbind the framebuffer. Have to unbind before rendering to the
     // default buffer.
     void bind();
     void unbind();
 
-    // Methods to add/remove textures and a depth buffer.
-    void attachTexture2D();
-    void attachDepthBuffer();
+    // Methods for texture/buffer attachment.
+    void attachColourTexture2D();
+    void attachDepthTexture2D();
+    void attachRenderBuffer();
 
-    void unattachTexture2D();
-    void unattachDepthBuffer();
+    // Update the framebuffer size.
+    void resize(GLuint width, GLuint height);
+
+    // Get the IDs of the attachments.
+    GLuint getColourID();
+    GLuint getDepthID();
+
+    // Clear the buffer.
+    void clear();
+
+    // Check if the framebuffer is valid.
+    bool isValid();
+
   protected:
-    GLuint framebufferID;
+    GLuint       bufferID;
+    FBOAttach*   colourAttach;
+    FBOAttach*   depthAttach;
 
+    GLuint       width, height;
+
+    bool         hasRenderBuffer;
+
+    GLbitfield   clearFlags;
+
+    glm::vec4    clearColour;
   };
 }

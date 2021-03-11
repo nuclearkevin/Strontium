@@ -13,7 +13,7 @@
 
 namespace SciRenderer
 {
-  // Vertex datatype to store vertex attributes.
+  // Vertex datatypes to store vertex attributes.
   struct Vertex
   {
     glm::vec4 position;
@@ -21,6 +21,12 @@ namespace SciRenderer
     glm::vec3 colour;
     glm::vec2 uv;
     unsigned  id;
+  };
+
+  struct Vertex2D
+  {
+    glm::vec2 position;
+    glm::vec2 uv;
   };
 
   class Mesh

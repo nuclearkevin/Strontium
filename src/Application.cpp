@@ -11,12 +11,19 @@
 
 using namespace SciRenderer;
 
+// Window size.
+GLuint width = 800;
+GLuint height = 800;
+
 // Window objects.
 Camera* sceneCam;
 GLFWwindow* window;
 
 // Abstracted OpenGL objects.
+FrameBuffer* 		 drawBuffer;
 Shader* 				 program;
+Shader* 				 vpPassthrough;
+VertexArray* 		 viewport;
 LightController* lights;
 GuiHandler* 		 gui;
 Renderer* 			 renderer = Renderer::getInstance();
@@ -24,22 +31,29 @@ Renderer* 			 renderer = Renderer::getInstance();
 // Mesh data.
 Mesh objModel1, objModel2, ground;
 
-// Selectable lighting variables.
-glm::vec4 clearColour = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
+GLuint framebuffer, textureColorbuffer, rbo;
+GLuint quadVAO;
+Shader* screenShader;
 
 void init()
 {
+	// Initialize the framebuffer for drawing.
+	drawBuffer = new FrameBuffer(width, height);
+	drawBuffer->attachColourTexture2D();
+	drawBuffer->attachRenderBuffer();
+
 	// Initialize the renderer.
-	renderer->init(GL_FILL);
+	renderer->init("./res/r_shaders/viewport.vs", "./res/r_shaders/viewport.fs");
 
 	// Initialize the lighting system.
-	lights = new LightController("./res/r_shaders/lights.vs",
-															 "./res/r_shaders/lights.fs",
+	lights = new LightController("./res/r_shaders/lightMesh.vs",
+															 "./res/r_shaders/lightMesh.fs",
 															 "./models/sphere.obj");
-	program = new Shader("./res/r_shaders/default.vs", "./res/r_shaders/lighting.fs");
+	program = new Shader("./res/r_shaders/default.vs",
+											 "./res/r_shaders/lighting.fs");
 
 	// Initialize the camera.
-	sceneCam = new Camera(1920/2, 1080/2, glm::vec3 {0.0f, 1.0f, 4.0f}, EDITOR);
+	sceneCam = new Camera(width/2, height/2, glm::vec3 {0.0f, 1.0f, 4.0f}, EDITOR);
 	sceneCam->init(window, glm::perspective(90.0f, 1.0f, 0.1f, 100.0f));
 
 	// Load the obj file(s).
@@ -55,14 +69,19 @@ void init()
 	light1.colour = glm::vec3(1.0f, 1.0f, 1.0f);
 	light1.direction = glm::vec3(0.0f, -1.0f, 0.0f);
 	light1.intensity = 0.5f;
+	light1.mat.diffuse = glm::vec3(1.0f, 1.0f, 1.0f);
+	light1.mat.specular = glm::vec3(1.0f, 1.0f, 1.0f);
+	light1.mat.attenuation = glm::vec2(0.0f, 0.0f);
+	light1.mat.shininess = 64.0f;
 	lights->addLight(light1);
 }
 
 // Display function, called for each frame.
 void display()
 {
-	// Clear the frame buffer and depth buffer.
-	renderer->clear();
+	// First pass to render the scene.
+	drawBuffer->bind();
+  drawBuffer->clear();
 	// Draw the light meshes.
 	lights->drawLightMeshes(renderer, sceneCam);
 	// Prepare the scene lighting.
@@ -73,6 +92,8 @@ void display()
 	renderer->draw(&objModel1, program, sceneCam);
 	// Draw the teapot.
 	renderer->draw(&objModel2, program, sceneCam);
+	// Second pass for post-processing.
+  renderer->drawToViewPort(drawBuffer);
 }
 
 // Error callback, called when there is an error during program initialization
@@ -92,6 +113,8 @@ void framebufferSizeCallback(GLFWwindow *window, int w, int h)
 	glfwMakeContextCurrent(window);
 	glViewport(0, 0, w, h);
 	sceneCam->updateProj(90.0f, ratio, 0.1f, 100.0f);
+
+	drawBuffer->resize(w, h);
 }
 
 // Key callback, called each time a key is pressed.
@@ -119,33 +142,36 @@ int main(int argc, char **argv)
 		fprintf(stderr, "Can't initialize GLFW\n");
 
 	// Open the window using GLFW.
-	window = glfwCreateWindow(1920, 1080, "Viewport", NULL, NULL);
+	window = glfwCreateWindow(width, height, "Viewport", NULL, NULL);
 	if (!window)
 	{
 		glfwTerminate();
 		exit(EXIT_FAILURE);
 	}
 
-	// Set the remaining callbacks.
-	glfwSetFramebufferSizeCallback(window, framebufferSizeCallback);
-	glfwSetKeyCallback(window, key_callback);
-	glfwSetScrollCallback(window, scroll_callback);
-
 	// Initialize GLEW.
 	glfwMakeContextCurrent(window);
 	GLenum error = glewInit();
-	if (error != GLEW_OK) {
+	if (error != GLEW_OK)
+	{
 		printf("Error starting GLEW: %s\n",glewGetErrorString(error));
 		exit(0);
 	}
+
+	glEnable(GL_DEPTH_TEST);
+	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+	glViewport(0, 0, width, height);
 
 	init();
 	gui = new GuiHandler(lights);
 	gui->init(window);
 
-	glViewport(0, 0, 1920, 1080);
-
 	glfwSwapInterval(1);
+
+	// Set the remaining callbacks.
+	glfwSetFramebufferSizeCallback(window, framebufferSizeCallback);
+	glfwSetKeyCallback(window, key_callback);
+	glfwSetScrollCallback(window, scroll_callback);
 
 	// Main application loop.
 	while (!glfwWindowShouldClose(window))
@@ -157,8 +183,6 @@ int main(int argc, char **argv)
 		display();
 		gui->drawGUI();
 
-		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-
 		renderer->swap(window);
 	}
 
@@ -166,9 +190,10 @@ int main(int argc, char **argv)
 
 	// Cleanup pointers.
 	delete program;
-	delete renderer;
 	delete lights;
 	delete gui;
+	delete drawBuffer;
+	delete renderer;
 
 	glfwTerminate();
 }

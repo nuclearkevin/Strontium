@@ -20,26 +20,46 @@ namespace SciRenderer
     static Renderer* instance;
 
     // Destructor.
-    ~Renderer() = default;
+    ~Renderer();
 
     // Get the renderer instance.
     static Renderer* getInstance();
 
     // Init the renderer object for drawing.
-    void init(GLenum mode);
+    void init(const char* vertPath, const char* fragPath);
 
     // Draw the data given.
     void draw(VertexArray* data, Shader* program);
     void draw(Mesh* data, Shader* program, Camera* camera);
 
+    // Draw a populated framebuffer to a viewport (fullscreen quad).
+    void drawToViewPort(FrameBuffer* drawBuffer);
+
     // Swap the buffers.
     void swap(GLFWwindow* window);
-
-    // Clear the depth and colour buffers.
-    void clear();
 
   private:
     // Constructor.
     Renderer() = default;
+
+    // Shader to draw a texture to a screen.
+    Shader* viewportProgram;
+
+    // Viewport VAO and buffer ID.
+    GLuint viewportVAOID;
+    GLuint viewportVBOID;
+
+    // Quad for the screen viewport.
+    GLfloat viewport[24] =
+    {
+        // positions   // texCoords
+        -1.0f,  1.0f,  0.0f, 1.0f,
+        -1.0f, -1.0f,  0.0f, 0.0f,
+         1.0f, -1.0f,  1.0f, 0.0f,
+
+        -1.0f,  1.0f,  0.0f, 1.0f,
+         1.0f, -1.0f,  1.0f, 0.0f,
+         1.0f,  1.0f,  1.0f, 1.0f
+    };
   };
 }
