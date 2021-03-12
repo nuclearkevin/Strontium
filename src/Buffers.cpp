@@ -222,7 +222,7 @@ FrameBuffer::resize(GLuint width, GLuint height)
   if (this->depthAttach != nullptr && !hasRenderBuffer)
   {
     // Update the depth attachment texture. TODO.
-    
+
   }
 }
 
@@ -266,5 +266,73 @@ FrameBuffer::isValid()
   {
     return true;
   }
+  this->unbind();
+}
+
+/**
+ *------------------------------------------------------------------------------
+ *  Uniform buffer starts here.
+ *------------------------------------------------------------------------------
+ */
+UniformBuffer::UniformBuffer(const unsigned &bufferSize, BufferType bufferType)
+  : type(bufferType)
+  , dataSize(bufferSize)
+{
+  glGenBuffers(1, &this->bufferID);
+  glBindBuffer(GL_UNIFORM_BUFFER, this->bufferID);
+  glBufferData(GL_UNIFORM_BUFFER, bufferSize, nullptr, bufferType);
+  glBindBuffer(GL_UNIFORM_BUFFER, 0);
+}
+
+UniformBuffer::UniformBuffer(const void* bufferData, const unsigned &dataSize,
+                             BufferType bufferType)
+  : type(bufferType)
+  , dataSize(dataSize)
+{
+  glGenBuffers(1, &this->bufferID);
+  glBindBuffer(GL_UNIFORM_BUFFER, this->bufferID);
+  glBufferData(GL_UNIFORM_BUFFER, dataSize, nullptr, bufferType);
+  glBufferSubData(GL_UNIFORM_BUFFER, 0, dataSize, bufferData);
+  glBindBuffer(GL_UNIFORM_BUFFER, 0);
+}
+
+UniformBuffer::~UniformBuffer()
+{
+  glDeleteBuffers(1, &this->bufferID);
+}
+
+// Bind/unbind the buffer.
+void
+UniformBuffer::bindToPoint(GLuint point)
+{
+  glBindBuffer(GL_UNIFORM_BUFFER, this->bufferID);
+  glBindBufferBase(GL_UNIFORM_BUFFER, point, this->bufferID);
+}
+
+void
+UniformBuffer::bind()
+{
+  glBindBuffer(GL_UNIFORM_BUFFER, this->bufferID);
+}
+
+void
+UniformBuffer::unbind()
+{
+  glBindBuffer(GL_UNIFORM_BUFFER, 0);
+}
+
+// Set a specific part of the buffer data.
+void
+UniformBuffer::setData(GLuint start, GLuint newDataSize, const void* newData)
+{
+  if (start + newDataSize > this->dataSize)
+  {
+    std::cout << "New data (" << newDataSize << ") at position " << start
+              << " exceeds the maximum buffer size of " << this->dataSize << "."
+              << std::endl;
+    return;
+  }
+  this->bind();
+  glBufferSubData(GL_UNIFORM_BUFFER, start, newDataSize, newData);
   this->unbind();
 }

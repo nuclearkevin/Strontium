@@ -8,6 +8,7 @@ LightController::LightController(const char* vertPath, const char* fragPath,
   , uLightCounter(0)
   , pLightCounter(0)
   , sLightCounter(0)
+  , updateBuffer(false)
 {
   // Generate the light shader.
   this->lightProgram = new Shader(vertPath, fragPath);
@@ -15,12 +16,23 @@ LightController::LightController(const char* vertPath, const char* fragPath,
   this->lightMesh = new Mesh();
   this->lightMesh->loadOBJFile(lightMeshPath);
   this->lightMesh->generateVAO(this->lightProgram);
+
+  // Generate 3 uniform buffers for the lights.
+  this->ulightBuffer = new UniformBuffer(8 * sizeof(ShaderUL), STATIC);
+  this->ulightBuffer->bindToPoint(1);
+  this->plightBuffer = new UniformBuffer(8 * sizeof(ShaderPL), STATIC);
+  this->plightBuffer->bindToPoint(2);
+  this->slightBuffer = new UniformBuffer(8 * sizeof(ShaderSL), STATIC);
+  this->slightBuffer->bindToPoint(3);
 }
 
 LightController::~LightController()
 {
   delete this->lightProgram;
   delete this->lightMesh;
+  delete this->ulightBuffer;
+  delete this->plightBuffer;
+  delete this->slightBuffer;
 }
 
 glm::vec3*
@@ -87,85 +99,84 @@ LightController::setLighting(Shader* lightingShader, Camera* camera)
   lightingShader->addUniformVector("camera.position", camera->getCamPos());
   lightingShader->addUniformVector("camera.viewDir", camera->getCamFront());
 
+  // Fixed-size arrays for each type of light, since the shader can only support
+  // 8 at maximum.
+  ShaderUL ulCollection[8];
+  ShaderPL plCollection[8];
+  ShaderSL slCollection[8];
+
   // Set the uniform lights.
   if (this->uniformLights.size() < 9)
     lightingShader->addUniformUInt("numULights", this->uniformLights.size());
   else
     lightingShader->addUniformUInt("numULights", 8);
-  for (unsigned i = 0; i < this->uniformLights.size(); i++)
+
+  for (unsigned i = 0; i < 8; i++)
   {
-    // Guard so the maximum number of uniform lights (8) isn't exceeded.
-    if (i == 8)
-      break;
-    lightingShader->addUniformVector((std::string("uLight[") + std::to_string(i)
-        + std::string("].colour")).c_str(), uniformLights[i].colour);
-    lightingShader->addUniformVector((std::string("uLight[") + std::to_string(i)
-        + std::string("].direction")).c_str(), uniformLights[i].direction);
-    lightingShader->addUniformFloat((std::string("uLight[") + std::to_string(i)
-        + std::string("].intensity")).c_str(), uniformLights[i].intensity);
-    lightingShader->addUniformVector((std::string("uLight[") + std::to_string(i)
-        + std::string("].mat.diffuse")).c_str(), uniformLights[i].mat.diffuse);
-    lightingShader->addUniformVector((std::string("uLight[") + std::to_string(i)
-        + std::string("].mat.specular")).c_str(), uniformLights[i].mat.specular);
-    lightingShader->addUniformFloat((std::string("uLight[") + std::to_string(i)
-        + std::string("].mat.shininess")).c_str(), uniformLights[i].mat.shininess);
+    if (i + 1 <= this->uniformLights.size())
+    {
+      ulCollection[i].colour = glm::vec4(this->uniformLights[i].colour, 1.0f);
+      ulCollection[i].direction = glm::vec4(this->uniformLights[i].direction, 1.0f);
+      ulCollection[i].diffuse = this->uniformLights[i].mat.diffuse;
+      ulCollection[i].specular = this->uniformLights[i].mat.specular;
+      ulCollection[i].attenuation = this->uniformLights[i].mat.attenuation;
+      ulCollection[i].shininess = this->uniformLights[i].mat.shininess;
+      ulCollection[i].intensity = this->uniformLights[i].intensity;
+    }
   }
+
   // Set the point lights.
   if (this->pointLights.size() < 9)
     lightingShader->addUniformUInt("numPLights", this->pointLights.size());
   else
     lightingShader->addUniformUInt("numPLights", 8);
-  for (unsigned i = 0; i < this->pointLights.size(); i++)
+
+  for (unsigned i = 0; i < 8; i++)
   {
-    // Guard so the maximum number of point lights (8) isn't exceeded.
-    if (i == 8)
-      break;
-    lightingShader->addUniformVector((std::string("pLight[") + std::to_string(i)
-        + std::string("].colour")).c_str(), pointLights[i].colour);
-    lightingShader->addUniformVector((std::string("pLight[") + std::to_string(i)
-        + std::string("].position")).c_str(), pointLights[i].position);
-    lightingShader->addUniformFloat((std::string("pLight[") + std::to_string(i)
-        + std::string("].intensity")).c_str(), pointLights[i].intensity);
-    lightingShader->addUniformVector((std::string("pLight[") + std::to_string(i)
-        + std::string("].mat.diffuse")).c_str(), pointLights[i].mat.diffuse);
-    lightingShader->addUniformVector((std::string("pLight[") + std::to_string(i)
-        + std::string("].mat.specular")).c_str(), pointLights[i].mat.specular);
-    lightingShader->addUniformVector((std::string("pLight[") + std::to_string(i)
-        + std::string("].mat.attenuation")).c_str(), pointLights[i].mat.attenuation);
-    lightingShader->addUniformFloat((std::string("pLight[") + std::to_string(i)
-        + std::string("].mat.shininess")).c_str(), pointLights[i].mat.shininess);
+    if (i + 1 <= this->pointLights.size())
+    {
+      plCollection[i].colour = glm::vec4(this->pointLights[i].colour, 1.0f);
+      plCollection[i].position = glm::vec4(this->pointLights[i].position, 1.0f);
+      plCollection[i].intensity = this->pointLights[i].intensity;
+      plCollection[i].diffuse = this->pointLights[i].mat.diffuse;
+      plCollection[i].specular = this->pointLights[i].mat.specular;
+      plCollection[i].attenuation = this->pointLights[i].mat.attenuation;
+      plCollection[i].shininess = this->pointLights[i].mat.shininess;
+      plCollection[i].intensity = this->pointLights[i].intensity;
+    }
   }
-  // Set the spot lights.
+
+  // Set the spotlights.
   if (this->spotLights.size() < 9)
     lightingShader->addUniformUInt("numSLights", this->spotLights.size());
   else
     lightingShader->addUniformUInt("numSLights", 8);
-  for (unsigned i = 0; i < this->spotLights.size(); i++)
+
+  for (unsigned i = 0; i < 8; i++)
   {
-    // Guard so the maximum number of spot lights (8) isn't exceeded.
-    if (i == 8)
-      break;
-    lightingShader->addUniformVector((std::string("sLight[") + std::to_string(i)
-        + std::string("].colour")).c_str(), spotLights[i].colour);
-    lightingShader->addUniformVector((std::string("sLight[") + std::to_string(i)
-        + std::string("].position")).c_str(), spotLights[i].position);
-    lightingShader->addUniformVector((std::string("sLight[") + std::to_string(i)
-        + std::string("].direction")).c_str(), spotLights[i].direction);
-    lightingShader->addUniformFloat((std::string("sLight[") + std::to_string(i)
-        + std::string("].intensity")).c_str(), spotLights[i].intensity);
-    lightingShader->addUniformFloat((std::string("sLight[") + std::to_string(i)
-        + std::string("].cosTheta")).c_str(), spotLights[i].innerCutOff);
-    lightingShader->addUniformFloat((std::string("sLight[") + std::to_string(i)
-        + std::string("].cosGamma")).c_str(), spotLights[i].outerCutOff);
-    lightingShader->addUniformVector((std::string("sLight[") + std::to_string(i)
-        + std::string("].mat.diffuse")).c_str(), spotLights[i].mat.diffuse);
-    lightingShader->addUniformVector((std::string("sLight[") + std::to_string(i)
-        + std::string("].mat.specular")).c_str(), spotLights[i].mat.specular);
-    lightingShader->addUniformVector((std::string("sLight[") + std::to_string(i)
-        + std::string("].mat.attenuation")).c_str(), spotLights[i].mat.attenuation);
-    lightingShader->addUniformFloat((std::string("sLight[") + std::to_string(i)
-        + std::string("].mat.shininess")).c_str(), spotLights[i].mat.shininess);
+    if (i + 1 <= this->spotLights.size())
+    {
+      slCollection[i].colour = glm::vec4(this->spotLights[i].colour, 1.0f);
+      slCollection[i].position = glm::vec4(this->spotLights[i].position, 1.0f);
+      slCollection[i].direction = glm::vec4(this->spotLights[i].direction, 1.0f);
+      slCollection[i].intensity = this->spotLights[i].intensity;
+      slCollection[i].cosTheta = this->spotLights[i].innerCutOff;
+      slCollection[i].cosGamma = this->spotLights[i].outerCutOff;
+      slCollection[i].diffuse = this->spotLights[i].mat.diffuse;
+      slCollection[i].specular = this->spotLights[i].mat.specular;
+      slCollection[i].attenuation = this->spotLights[i].mat.attenuation;
+      slCollection[i].shininess = this->spotLights[i].mat.shininess;
+      slCollection[i].intensity = this->spotLights[i].intensity;
+    }
   }
+
+  // Stream the data to the buffer and bind it to position 1->3.
+  this->ulightBuffer->setData(0, sizeof(ulCollection), &ulCollection);
+  this->plightBuffer->setData(0, sizeof(plCollection), &plCollection);
+  this->slightBuffer->setData(0, sizeof(slCollection), &slCollection);
+  this->ulightBuffer->bindToPoint(1);
+  this->plightBuffer->bindToPoint(2);
+  this->slightBuffer->bindToPoint(3);
 }
 
 // Draw the light meshes.

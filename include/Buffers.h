@@ -125,4 +125,36 @@ namespace SciRenderer
 
     glm::vec4    clearColour;
   };
+
+  // Uniform Buffer Class.
+  class UniformBuffer
+  {
+  public:
+    // Constructors and destructor.
+    UniformBuffer(const void* bufferData, const unsigned &dataSize,
+                  BufferType bufferType);
+    UniformBuffer(const unsigned &bufferSize, BufferType bufferType);
+    ~UniformBuffer();
+
+    // Bind/unbind the buffer.
+    void bindToPoint(GLuint point);
+    void bind();
+    void unbind();
+
+    // Set a specific part of the buffer data.
+    void setData(GLuint start, GLuint newDataSize, const void* newData);
+
+  protected:
+    // OpenGL buffer ID.
+    GLuint      bufferID;
+
+    // If the buffer has data or not.
+    bool        hasData;
+
+    // Type of the buffer to prevent mismatching.
+    BufferType  type;
+
+    // The data currently in the buffer.
+    unsigned    dataSize;
+  };
 }

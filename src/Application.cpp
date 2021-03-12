@@ -69,8 +69,8 @@ void init()
 	light1.colour = glm::vec3(1.0f, 1.0f, 1.0f);
 	light1.direction = glm::vec3(0.0f, -1.0f, 0.0f);
 	light1.intensity = 0.5f;
-	light1.mat.diffuse = glm::vec3(1.0f, 1.0f, 1.0f);
-	light1.mat.specular = glm::vec3(1.0f, 1.0f, 1.0f);
+	light1.mat.diffuse = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+	light1.mat.specular = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 	light1.mat.attenuation = glm::vec2(0.0f, 0.0f);
 	light1.mat.shininess = 64.0f;
 	lights->addLight(light1);

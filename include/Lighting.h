@@ -13,10 +13,12 @@ namespace SciRenderer
 {
   enum LightType { UNIFORM, POINT, SPOT, ALL };
 
+  // Structs to store light information.
   struct LightMaterial
   {
-    glm::vec3 diffuse;
-    glm::vec3 specular;
+    // 12 float components.
+    glm::vec4 diffuse;
+    glm::vec4 specular;
     glm::vec2 attenuation;
     GLfloat   shininess;
   };
@@ -65,6 +67,47 @@ namespace SciRenderer
     GLuint        lightID;
   };
 
+  // Structs which match their shader counterparts in lighting.fs
+  struct ShaderUL
+  {
+    // 24 float components.
+    glm::vec4     colour;
+    glm::vec4     direction;
+    glm::vec4     diffuse;
+    glm::vec4     specular;
+    glm::vec2     attenuation;
+    GLfloat       shininess;
+    GLfloat       intensity;
+  };
+
+  struct ShaderPL
+  {
+    // 24 float components.
+    glm::vec4     colour;
+    glm::vec4     position;
+    glm::vec4     diffuse;
+    glm::vec4     specular;
+    glm::vec2     attenuation;
+    GLfloat       shininess;
+    GLfloat       intensity;
+  };
+
+  struct ShaderSL
+  {
+    // 28 float components.
+    glm::vec4     colour;
+    glm::vec4     position;
+    glm::vec4     direction;
+    glm::vec4     diffuse;
+    glm::vec4     specular;
+    glm::vec2     attenuation;
+    GLfloat       shininess;
+    GLfloat       intensity;
+    GLfloat       cosTheta;
+    GLfloat       cosGamma;
+    GLfloat       padding[2];
+  };
+
   class LightController
   {
   public:
@@ -101,6 +144,10 @@ namespace SciRenderer
     // Program for rendering to the shadow map.
     Shader*                   shadowProgram;
 
+    UniformBuffer*            ulightBuffer;
+    UniformBuffer*            plightBuffer;
+    UniformBuffer*            slightBuffer;
+
     // The mesh for the lights.
     Mesh*                     lightMesh;
 
@@ -115,8 +162,10 @@ namespace SciRenderer
     std::vector<std::string>  sLGuiLabel;
     std::vector<std::string>  allLightGuiLabel;
 
-    GLuint uLightCounter;
-    GLuint pLightCounter;
-    GLuint sLightCounter;
+    GLuint                    uLightCounter;
+    GLuint                    pLightCounter;
+    GLuint                    sLightCounter;
+
+    bool                      updateBuffer;
   };
 }

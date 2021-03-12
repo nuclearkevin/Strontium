@@ -284,8 +284,8 @@ GuiHandler::lightingMenu()
 		temp.colour = glm::vec3(0.0f, 0.0f, 0.0f);
 		temp.direction = glm::vec3(0.0f, 0.0f, 0.0f);
 		temp.intensity = 0.0f;
-    temp.mat.diffuse = glm::vec3(0.0f, 0.0f, 0.0f);
-    temp.mat.specular = glm::vec3(0.0f, 0.0f, 0.0f);
+    temp.mat.diffuse = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f);
+    temp.mat.specular = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f);
     temp.mat.attenuation = glm::vec2(0.0f, 0.0f);
     temp.mat.shininess = 1.0f;
 		this->currentLights->addLight(temp);
@@ -297,8 +297,8 @@ GuiHandler::lightingMenu()
 		temp.colour = glm::vec3(0.0f, 0.0f, 0.0f);
 		temp.position = glm::vec3(0.0f, 0.0f, 0.0f);
 		temp.intensity = 0.0f;
-    temp.mat.diffuse = glm::vec3(0.0f, 0.0f, 0.0f);
-    temp.mat.specular = glm::vec3(0.0f, 0.0f, 0.0f);
+    temp.mat.diffuse = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f);
+    temp.mat.specular = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f);
     temp.mat.attenuation = glm::vec2(0.0f, 0.0f);
     temp.mat.shininess = 1.0f;
 		this->currentLights->addLight(temp, 0.1f);
@@ -313,8 +313,8 @@ GuiHandler::lightingMenu()
 		temp.intensity = 0.0f;
 		temp.innerCutOff = 0.0f;
 		temp.outerCutOff = 0.0f;
-    temp.mat.diffuse = glm::vec3(0.0f, 0.0f, 0.0f);
-    temp.mat.specular = glm::vec3(0.0f, 0.0f, 0.0f);
+    temp.mat.diffuse = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f);
+    temp.mat.specular = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f);
     temp.mat.attenuation = glm::vec2(0.0f, 0.0f);
     temp.mat.shininess = 1.0f;
 		this->currentLights->addLight(temp, 0.1f);

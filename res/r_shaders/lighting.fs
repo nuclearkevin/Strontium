@@ -7,43 +7,43 @@
 #define MAX_NUM_POINT_LIGHTS   8
 #define MAX_NUM_SPOT_LIGHTS    8
 
-// Light interaction properties. 10 float components.
-struct LightMaterial
-{
-  vec3 diffuse;
-  vec3 specular;
-  vec2 attenuation;
-  float shininess;
- };
-
 // Different light types.
-// A uniform light field. 17 float components.
+// A uniform light field. 16 float components.
 struct UniformLight
 {
-  vec3 colour;
-  vec3 direction;
+  vec4 colour;
+  vec4 direction;
+  vec4 diffuse;
+  vec4 specular;
+  vec2 attenuation;
+  float shininess;
   float intensity;
-  LightMaterial mat;
 };
-// A point light source. 18 float components.
+// A point light source. 16 float components.
 struct PointLight
 {
-  vec3 colour;
-  vec3 position;
+  vec4 colour;
+  vec4 position;
+  vec4 diffuse;
+  vec4 specular;
+  vec2 attenuation;
+  float shininess;
   float intensity;
-  LightMaterial mat;
 };
-// A conical spotlight. 23 float components.
+// A conical spotlight. 21 float components.
 // cosTheta is inner cutoff, cosGamma is outer cutoff.
 struct SpotLight
 {
-  vec3 colour;
-  vec3 position;
-  vec3 direction;
+  vec4 colour;
+  vec4 position;
+  vec4 direction;
+  vec4 diffuse;
+  vec4 specular;
+  vec2 attenuation;
+  float shininess;
   float intensity;
   float cosTheta;
   float cosGamma;
-  LightMaterial mat;
 };
 
 // The camera position in worldspace. 7 float components.
@@ -61,16 +61,25 @@ in VERT_OUT
 	vec3 fColour;
 } fragIn;
 
+// Input lights.
+layout(std140, binding = 1) uniform uLightCollection
+{
+  UniformLight uLight[MAX_NUM_UNIFORM_LIGHTS];
+};
+layout(std140, binding = 2) uniform pLightCollection
+{
+  PointLight pLight[MAX_NUM_POINT_LIGHTS];
+};
+layout(std140, binding = 3) uniform sLightCollection
+{
+  SpotLight sLight[MAX_NUM_SPOT_LIGHTS];
+};
+
 uniform uint numULights;
 uniform uint numPLights;
 uniform uint numSLights;
 
 uniform vec3 ambientColour;
-
-// Input lights.
-uniform UniformLight uLight[MAX_NUM_UNIFORM_LIGHTS];
-uniform PointLight   pLight[MAX_NUM_POINT_LIGHTS];
-uniform SpotLight    sLight[MAX_NUM_SPOT_LIGHTS];
 
 // Camera uniform.
 uniform Camera camera;
@@ -104,56 +113,56 @@ void main()
 vec3 computeUL(UniformLight light, vec3 normal, vec3 position, vec3 colour, Camera camera)
 {
   vec3 nNormal = normalize(normal);
-  vec3 lightDir = normalize(-light.direction);
+  vec3 lightDir = normalize(-light.direction.xyz);
   vec3 viewDir = normalize(camera.position - position);
   vec3 halfwayDir = normalize(lightDir + viewDir);
 
   // Uniform light lighting calculations. Yes, its spaghetti. ( ͡° ͜ʖ ͡°).
   float diff = max(dot(nNormal, lightDir), 0.0);
-  float spec = pow(max(dot(normal, halfwayDir), 0.0), light.mat.shininess) * 0.5;
+  float spec = pow(max(dot(normal, halfwayDir), 0.0), light.shininess) * 0.5;
 
-  return light.intensity * light.colour *
-         (light.mat.diffuse * colour * diff + light.mat.specular * spec);
+  return light.intensity * light.colour.rgb *
+         (light.diffuse.rbg * colour * diff + light.specular.rgb * spec);
 }
 
 vec3 computePL(PointLight light, vec3 normal, vec3 position, vec3 colour, Camera camera)
 {
   vec3 nNormal = normalize(normal);
-  vec3 lightDir = -normalize(position - light.position);
+  vec3 lightDir = -normalize(position - light.position.xyz);
   vec3 viewDir = normalize(camera.position - position);
   vec3 halfwayDir = normalize(lightDir + viewDir);
 
   // Point light lighting calculations. Yes, its spaghetti. ( ͡° ͜ʖ ͡°).
-  float attenuation = 1 / (1.0 + length(light.position - position) * light.mat.attenuation.x
-                      + (length(light.position - position)
-                      * length(light.position - position)) * light.mat.attenuation.y);
+  float attenuation = 1 / (1.0 + length(light.position.xyz - position) * light.attenuation.x
+                      + (length(light.position.xyz - position)
+                      * length(light.position.xyz - position)) * light.attenuation.y);
   float diff = max(dot(nNormal, lightDir), 0.0);
-  float spec = pow(max(dot(normal, halfwayDir), 0.0), light.mat.shininess) * 0.5;
+  float spec = pow(max(dot(normal, halfwayDir), 0.0), light.shininess) * 0.5;
 
-  return light.intensity * light.colour * attenuation *
-         (light.mat.diffuse * colour * diff + light.mat.specular * spec);
+  return light.intensity * light.colour.rgb * attenuation *
+         (light.diffuse.rgb * colour * diff + light.specular.rgb * spec);
 }
 
 // Computes the lighting contribution from a spotlight.
 vec3 computeSL(SpotLight light, vec3 normal, vec3 position, vec3 colour, Camera camera)
 {
   vec3 nNormal = normalize(normal);
-  vec3 lightDir = -normalize(light.direction);
+  vec3 lightDir = -normalize(light.direction.xyz);
   vec3 viewDir = normalize(camera.position - position);
   vec3 halfwayDir = normalize(lightDir + viewDir);
 
-  vec3 ray = -normalize(position - light.position);
-  float phi = dot(ray, normalize(-light.direction)); // I had no idea why this works, in reverse. . .
+  vec3 ray = -normalize(position - light.position.xyz);
+  float phi = dot(ray, normalize(-light.direction.xyz)); // I had no idea why this works, in reverse. . .
 
   // Spotlight lighting calculations. Yes, its spaghetti. ( ͡° ͜ʖ ͡°).
   float radialAtten = clamp((phi - light.cosGamma) /
                             (light.cosTheta - light.cosGamma), 0.0, 1.0);
-  float attenuation = 1 / (1.0 + length(light.position - position) *
-                      light.mat.attenuation.x + (length(light.position - position)
-                      * length(light.position - position)) * light.mat.attenuation.y);
+  float attenuation = 1 / (1.0 + length(light.position.xyz - position) *
+                      light.attenuation.x + (length(light.position.xyz - position)
+                      * length(light.position.xyz - position)) * light.attenuation.y);
   float diff = max(dot(nNormal, lightDir), 0.0);
-  float spec = pow(max(dot(normal, halfwayDir), 0.0), light.mat.shininess) * 0.5;
+  float spec = pow(max(dot(normal, halfwayDir), 0.0), light.shininess) * 0.5;
 
-  return light.intensity * light.colour * radialAtten * attenuation *
-         (light.mat.diffuse * colour * diff + light.mat.specular * spec);
+  return light.intensity * light.colour.rgb * radialAtten * attenuation *
+         (light.diffuse.rgb * colour * diff + light.specular.rgb * spec);
 }
