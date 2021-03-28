@@ -74,14 +74,13 @@ namespace SciRenderer
     std::vector<Vertex>              data;
     std::vector<GLuint>              indices;
     std::vector<tinyobj::material_t> materials;
-    unsigned                         meshID;
     glm::mat4                        modelMatrix;
+    bool                             hasUVs;
+
+    std::string                      meshName;
 
     // Vertex array object for the mesh data.
     VertexArray* vArray;
-
-    // Global mesh ids.
-    static std::vector<unsigned> globalIDs;
   };
 
   // Forward declaration of the max/min helper functions.

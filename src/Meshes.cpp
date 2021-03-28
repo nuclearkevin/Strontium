@@ -14,6 +14,7 @@ using namespace SciRenderer;
 Mesh::Mesh()
   : loaded(false)
   , modelMatrix(glm::mat4(1.0f))
+  , hasUVs(false)
 {
 }
 
@@ -22,6 +23,7 @@ Mesh::Mesh(const std::vector<Vertex> &vertices, const std::vector<GLuint> &indic
   , data(vertices)
   , indices(indices)
   , modelMatrix(glm::mat4(1.0f))
+  , hasUVs(false)
 {
 }
 
@@ -70,36 +72,53 @@ Mesh::loadOBJFile(const char* filepath)
   }
 
   // Compute the normal vectors if the obj has none.
+  vertexOffset = 0;
   if (attrib.normals.size() == 0)
     this->computeNormals();
-  else if (attrib.normals.size() / 3 == this->data.size())
+  else if (attrib.normals.size() > 0)
   {
-    for (unsigned i = 0; i < this->data.size(); i++)
+    glm::vec3 temp;
+    for (unsigned i = 0; i < shapes.size(); i++)
     {
-      this->data[i].normal = glm::vec3(attrib.normals[3 * i],
-                                       attrib.normals[3 * i + 1],
-                                       attrib.normals[3 * i + 2]);
+      for (unsigned j = 0; j < shapes[i].mesh.indices.size(); j++)
+      {
+        temp.x = attrib.normals[3 * (shapes[i].mesh.indices[j].normal_index)];
+        temp.y = attrib.normals[3 * (shapes[i].mesh.indices[j].normal_index) + 1];
+        temp.z = attrib.normals[3 * (shapes[i].mesh.indices[j].normal_index) + 2];
+        this->data[shapes[i].mesh.indices[j].vertex_index].normal = temp;
+      }
     }
   }
 
   // Get the UVs.
-  if (attrib.texcoords.size() > 0 && attrib.texcoords.size() / 2 == this->data.size())
+  if (attrib.texcoords.size() > 0)
   {
-    for (unsigned i = 0; i < this->data.size(); i++)
+    glm::vec2 temp;
+    for (unsigned i = 0; i < shapes.size(); i++)
     {
-      this->data[i].uv = glm::vec2(attrib.texcoords[2 * i],
-                                   attrib.texcoords[2 * i + 1]);
+      for (unsigned j = 0; j < shapes[i].mesh.indices.size(); j++)
+      {
+        temp.x = attrib.texcoords[2 * (shapes[i].mesh.indices[j].texcoord_index)];
+        temp.y = attrib.texcoords[2 * (shapes[i].mesh.indices[j].texcoord_index) + 1];
+        this->data[shapes[i].mesh.indices[j].vertex_index].uv = temp;
+      }
     }
+    this->hasUVs = true;
   }
 
   // Get the colours for each vertex if they exist.
-  if (attrib.colors.size() > 0 && attrib.colors.size() / 3 == this->data.size())
+  if (attrib.colors.size() > 0)
   {
-    for (unsigned i = 0; i < this->data.size(); i++)
+    glm::vec3 temp;
+    for (unsigned i = 0; i < shapes.size(); i++)
     {
-      this->data[i].colour = glm::vec3(attrib.colors[3 * i],
-                                       attrib.colors[3 * i + 1],
-                                       attrib.colors[3 * i + 2]);
+      for (unsigned j = 0; j < shapes[i].mesh.indices.size(); j++)
+      {
+        temp.x = attrib.colors[2 * (shapes[i].mesh.indices[j].vertex_index)];
+        temp.y = attrib.colors[2 * (shapes[i].mesh.indices[j].vertex_index) + 1];
+        temp.z = attrib.colors[2 * (shapes[i].mesh.indices[j].vertex_index) + 2];
+        this->data[shapes[i].mesh.indices[j].vertex_index].colour = temp;
+      }
     }
   }
   else
@@ -123,6 +142,7 @@ Mesh::generateVAO(Shader* program)
 	program->addAtribute("vPosition", VEC4, GL_FALSE, sizeof(Vertex), 0);
 	program->addAtribute("vNormal", VEC3, GL_FALSE, sizeof(Vertex), offsetof(Vertex, normal));
 	program->addAtribute("vColour", VEC3, GL_FALSE, sizeof(Vertex), offsetof(Vertex, colour));
+  program->addAtribute("vTexCoords", VEC2, GL_FALSE, sizeof(Vertex), offsetof(Vertex, uv));
 }
 
 // Delete the vertex array object associated with this mesh.

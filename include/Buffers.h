@@ -102,6 +102,9 @@ namespace SciRenderer
     // Update the framebuffer size.
     void resize(GLuint width, GLuint height);
 
+    // Get the size of the framebuffer.
+    void setViewport();
+
     // Get the IDs of the attachments.
     GLuint getColourID();
     GLuint getDepthID();

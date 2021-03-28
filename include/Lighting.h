@@ -139,11 +139,10 @@ namespace SciRenderer
 
     std::vector<std::string> &getGuiLabel(LightType type);
   protected:
-    // Program specifically for rendering the light sources.
+    // Program specifically for rendering the light source meshes.
     Shader*                   lightProgram;
-    // Program for rendering to the shadow map.
-    Shader*                   shadowProgram;
 
+    // Uniform buffers for the different light types.
     UniformBuffer*            ulightBuffer;
     UniformBuffer*            plightBuffer;
     UniformBuffer*            slightBuffer;
@@ -165,7 +164,5 @@ namespace SciRenderer
     GLuint                    uLightCounter;
     GLuint                    pLightCounter;
     GLuint                    sLightCounter;
-
-    bool                      updateBuffer;
   };
 }

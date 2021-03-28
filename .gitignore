@@ -6,10 +6,20 @@
 *.mtl
 *.jpg
 
+# Ignore the ignore of important model files.
 !bunny.obj
 !sphere.obj
 !teapot.obj
 !ground_plane.obj
+!cube.obj
+
+# Ignore the ignore of the skybox jpgs.
+!right.jpg
+!left.jpg
+!top.jpg
+!bottom.jpg
+!front.jpg
+!back.jpg
 
 # Object files
 *.d

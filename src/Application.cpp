@@ -8,6 +8,7 @@
 #include "Renderer.h"
 #include "Lighting.h"
 #include "GuiHandler.h"
+#include "Textures.h"
 
 using namespace SciRenderer;
 
@@ -27,6 +28,7 @@ VertexArray* 		 viewport;
 LightController* lights;
 GuiHandler* 		 gui;
 Renderer* 			 renderer = Renderer::getInstance();
+EnvironmentMap*  skybox;
 
 // Mesh data.
 Mesh objModel1, objModel2, ground;
@@ -48,20 +50,35 @@ void init()
 	// Initialize the lighting system.
 	lights = new LightController("./res/r_shaders/lightMesh.vs",
 															 "./res/r_shaders/lightMesh.fs",
-															 "./models/sphere.obj");
+															 "./res/models/sphere.obj");
 	program = new Shader("./res/r_shaders/default.vs",
 											 "./res/r_shaders/lighting.fs");
 
 	// Initialize the camera.
 	sceneCam = new Camera(width/2, height/2, glm::vec3 {0.0f, 1.0f, 4.0f}, EDITOR);
-	sceneCam->init(window, glm::perspective(90.0f, 1.0f, 0.1f, 100.0f));
+	sceneCam->init(window, glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 30.0f));
+
+	// Initialize the skybox.
+	std::vector<std::string> cubeTex
+  {
+    "./res/textures/skybox/right.jpg",
+    "./res/textures/skybox/left.jpg",
+    "./res/textures/skybox/top.jpg",
+    "./res/textures/skybox/bottom.jpg",
+    "./res/textures/skybox/front.jpg",
+    "./res/textures/skybox/back.jpg"
+  };
+	skybox = new EnvironmentMap("./res/r_shaders/skybox.vs",
+													    "./res/r_shaders/skybox.fs",
+															"./res/models/cube.obj");
+	skybox->loadCubeMap(cubeTex, SKYBOX);
 
 	// Load the obj file(s).
-	ground.loadOBJFile("./models/ground_plane.obj");
-	objModel1.loadOBJFile("./models/bunny.obj");
+	ground.loadOBJFile("./res/models/ground_plane.obj");
+	objModel1.loadOBJFile("./res/models/bunny.obj");
 	objModel1.normalizeVertices();
 	objModel1.moveMesh(glm::vec3(-2.0f, 0.0f, 0.0f));
-	objModel2.loadOBJFile("./models/teapot.obj");
+	objModel2.loadOBJFile("./res/models/teapot.obj");
 	objModel2.normalizeVertices();
 
 	// Setup a basic uniform light field.
@@ -79,19 +96,28 @@ void init()
 // Display function, called for each frame.
 void display()
 {
-	// First pass to render the scene.
+	// Clear and bind the framebuffer.
+	drawBuffer->clear();
 	drawBuffer->bind();
-  drawBuffer->clear();
-	// Draw the light meshes.
-	lights->drawLightMeshes(renderer, sceneCam);
+	drawBuffer->setViewport();
+
 	// Prepare the scene lighting.
 	lights->setLighting(program, sceneCam);
+
+	// Draw the light meshes.
+	lights->drawLightMeshes(renderer, sceneCam);
+
 	// Draw the ground plane.
 	renderer->draw(&ground, program, sceneCam);
-	// Draw the bonny.
+
+	// Draw the SoopEgg.
 	renderer->draw(&objModel1, program, sceneCam);
+
 	// Draw the teapot.
 	renderer->draw(&objModel2, program, sceneCam);
+
+	skybox->draw(renderer, sceneCam);
+
 	// Second pass for post-processing.
   renderer->drawToViewPort(drawBuffer);
 }
@@ -190,6 +216,7 @@ int main(int argc, char **argv)
 
 	// Cleanup pointers.
 	delete program;
+	delete vpPassthrough;
 	delete lights;
 	delete gui;
 	delete drawBuffer;

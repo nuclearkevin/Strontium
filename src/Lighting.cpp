@@ -4,11 +4,10 @@ using namespace SciRenderer;
 
 LightController::LightController(const char* vertPath, const char* fragPath,
                                  const char* lightMeshPath)
-  : ambient(glm::vec3(0.0f, 0.0f, 0.0f))
+  : ambient(glm::vec3(1.0f, 1.0f, 1.0f))
   , uLightCounter(0)
   , pLightCounter(0)
   , sLightCounter(0)
-  , updateBuffer(false)
 {
   // Generate the light shader.
   this->lightProgram = new Shader(vertPath, fragPath);
@@ -92,8 +91,6 @@ LightController::addLight(const SpotLight& light, GLfloat scaleFactor)
 void
 LightController::setLighting(Shader* lightingShader, Camera* camera)
 {
-  // This is a janky implementation. TODO: use uniform buffer objects to make
-  // this faster.
   lightingShader->bind();
   lightingShader->addUniformVector("ambientColour", this->ambient);
   lightingShader->addUniformVector("camera.position", camera->getCamPos());
@@ -123,6 +120,8 @@ LightController::setLighting(Shader* lightingShader, Camera* camera)
       ulCollection[i].shininess = this->uniformLights[i].mat.shininess;
       ulCollection[i].intensity = this->uniformLights[i].intensity;
     }
+    else
+      break;
   }
 
   // Set the point lights.
@@ -144,6 +143,8 @@ LightController::setLighting(Shader* lightingShader, Camera* camera)
       plCollection[i].shininess = this->pointLights[i].mat.shininess;
       plCollection[i].intensity = this->pointLights[i].intensity;
     }
+    else
+      break;
   }
 
   // Set the spotlights.
@@ -168,6 +169,8 @@ LightController::setLighting(Shader* lightingShader, Camera* camera)
       slCollection[i].shininess = this->spotLights[i].mat.shininess;
       slCollection[i].intensity = this->spotLights[i].intensity;
     }
+    else
+      break;
   }
 
   // Stream the data to the buffer and bind it to position 1->3.
@@ -177,6 +180,7 @@ LightController::setLighting(Shader* lightingShader, Camera* camera)
   this->ulightBuffer->bindToPoint(1);
   this->plightBuffer->bindToPoint(2);
   this->slightBuffer->bindToPoint(3);
+  lightingShader->unbind();
 }
 
 // Draw the light meshes.
@@ -255,7 +259,6 @@ LightController::deleteLight(LightType type, GLuint lightID)
   this->setGuiLabel(type);
 }
 
-// Getters.
 UniformLight*
 LightController::getULight(GLuint uLightID)
 {

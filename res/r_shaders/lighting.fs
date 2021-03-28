@@ -8,7 +8,7 @@
 #define MAX_NUM_SPOT_LIGHTS    8
 
 // Different light types.
-// A uniform light field. 16 float components.
+// A uniform light field. 20 float components.
 struct UniformLight
 {
   vec4 colour;
@@ -19,7 +19,7 @@ struct UniformLight
   float shininess;
   float intensity;
 };
-// A point light source. 16 float components.
+// A point light source. 20 float components.
 struct PointLight
 {
   vec4 colour;
@@ -30,7 +30,7 @@ struct PointLight
   float shininess;
   float intensity;
 };
-// A conical spotlight. 21 float components.
+// A conical spotlight. 26 float components.
 // cosTheta is inner cutoff, cosGamma is outer cutoff.
 struct SpotLight
 {
@@ -59,6 +59,7 @@ in VERT_OUT
   vec3 fNormal;
 	vec3 fPosition;
 	vec3 fColour;
+  vec2 fTexCoords;
 } fragIn;
 
 // Input lights.

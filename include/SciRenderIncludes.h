@@ -10,11 +10,12 @@
 #include <stdlib.h>
 #include <iostream>
 #include <math.h>
-#include <vector>
 #include <algorithm>
 #include <fstream>
 #include <stdarg.h>
 #include <string.h>
+#include <vector>
+#include <unordered_map>
 
 // OpenGL includes.
 #include <GL/glew.h>

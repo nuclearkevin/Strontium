@@ -162,7 +162,18 @@ FrameBuffer::attachDepthTexture2D()
     return;
 
   this->bind();
-  // In here.
+  glGenTextures(1, &this->depthAttach->id);
+  glBindTexture(GL_TEXTURE_2D, this->depthAttach->id);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, this->width, this->height,
+               0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+  glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D,
+                         this->depthAttach->id, 0);
+  glDrawBuffer(GL_NONE);
+  glReadBuffer(GL_NONE);
   this->unbind();
   this->clearFlags |= GL_DEPTH_BUFFER_BIT;
 }
@@ -226,6 +237,12 @@ FrameBuffer::resize(GLuint width, GLuint height)
   }
 }
 
+void
+FrameBuffer::setViewport()
+{
+  glViewport(0, 0, this->width, this->height);
+}
+
 // Fetch the texture IDs.
 GLuint
 FrameBuffer::getColourID()
@@ -248,9 +265,11 @@ FrameBuffer::getDepthID()
 void
 FrameBuffer::clear()
 {
+  this->bind();
   glClearColor(this->clearColour[0], this->clearColour[1], this->clearColour[2],
                this->clearColour[3]);
   glClear(this->clearFlags);
+  this->unbind();
 }
 
 bool

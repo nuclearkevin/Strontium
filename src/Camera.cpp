@@ -1,8 +1,6 @@
 // Project includes.
 #include "Camera.h"
 
-// OpenGL includes.
-
 using namespace SciRenderer;
 
 // Constructors.
