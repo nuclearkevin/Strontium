@@ -49,8 +49,10 @@ GUI.o:
 	$(COMPILE_FLAGS) -c ./src/imgui/imgui_tables.cpp $(OUTPUT_DIR_FLAG)d.o
 	$(COMPILE_FLAGS) -c ./src/imgui/imgui_widgets.cpp $(OUTPUT_DIR_FLAG)e.o
 	$(COMPILE_FLAGS) -c ./src/imgui/imgui_impl_opengl3.cpp $(OUTPUT_DIR_FLAG)f.o
+	$(COMPILE_FLAGS) -c ./src/imgui/ImGuiFileBrowser.cpp $(OUTPUT_DIR_FLAG)g.o
 	ld -relocatable $(OUTPUT_DIR)a.o $(OUTPUT_DIR)b.o $(OUTPUT_DIR)c.o\
-	 $(OUTPUT_DIR)d.o $(OUTPUT_DIR)e.o $(OUTPUT_DIR)f.o $(OUTPUT_DIR_FLAG)GUI.o
+	 $(OUTPUT_DIR)d.o $(OUTPUT_DIR)e.o $(OUTPUT_DIR)f.o $(OUTPUT_DIR)g.o\
+	 $(OUTPUT_DIR_FLAG)GUI.o
 
 make_dir:
 	mkdir -p bin

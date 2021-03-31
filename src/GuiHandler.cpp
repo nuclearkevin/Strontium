@@ -1,15 +1,11 @@
 #include "GuiHandler.h"
 
-// Dear Imgui includes.
-#include "imgui/imgui.h"
-#include "imgui/imgui_impl_glfw.h"
-#include "imgui/imgui_impl_opengl3.h"
-
 using namespace SciRenderer;
 
 GuiHandler::GuiHandler(LightController* lights)
   : lighting(false)
   , model(false)
+  , usePBR(false)
   , currentLights(lights)
 {
   this->currentULName = "----";
@@ -20,7 +16,10 @@ GuiHandler::GuiHandler(LightController* lights)
   this->selectedSLight = nullptr;
 }
 
-GuiHandler::~GuiHandler() { }
+GuiHandler::~GuiHandler()
+{
+
+}
 
 void
 GuiHandler::init(GLFWwindow *window)
@@ -49,6 +48,11 @@ GuiHandler::drawGUI()
   ImGui_ImplGlfw_NewFrame();
   ImGui::NewFrame();
 
+  // Get the window size.
+  ImVec2 wSize = ImGui::GetIO().DisplaySize;
+
+  bool openObjMenu = false;
+
 	if (ImGui::BeginMainMenuBar())
 	{
   	if (ImGui::BeginMenu("File"))
@@ -71,7 +75,7 @@ GuiHandler::drawGUI()
   	{
       if (ImGui::MenuItem("Load Model"))
      	{
-
+        openObjMenu = true;
      	}
       if (ImGui::MenuItem("Load Texture"))
      	{
@@ -101,7 +105,7 @@ GuiHandler::drawGUI()
 
 	// The performance stats window.
 	ImGui::SetNextWindowPos(ImVec2(0, 20));
-	ImGui::SetNextWindowSize(ImVec2(450, 75), ImGuiCond_Always);
+	ImGui::SetNextWindowSize(ImVec2(wSize.x * 16 / 64, 75), ImGuiCond_Always);
 	ImGui::Begin("Performance");
 	ImGui::Text("Application averaging %.3f ms/frame (%.1f FPS)",
 							1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
@@ -112,6 +116,16 @@ GuiHandler::drawGUI()
   if (this->lighting)
     this->lightingMenu();
 
+  if (openObjMenu)
+    ImGui::OpenPopup("Load Obj File");
+
+  if (this->fileHandler.showFileDialog("Load Obj File",
+      imgui_addons::ImGuiFileBrowser::DialogMode::OPEN, ImVec2(700, 310)))
+  {
+    std::cout << this->fileHandler.selected_fn << std::endl;
+    std::cout << this->fileHandler.selected_path << std::endl;
+  }
+
 	ImGui::Render();
 	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }
@@ -119,6 +133,9 @@ GuiHandler::drawGUI()
 void
 GuiHandler::lightingMenu()
 {
+  // Get the window size.
+  ImVec2 wSize = ImGui::GetIO().DisplaySize;
+
   // Get the gui labels for the lights.
   this->uLightNames = this->currentLights->getGuiLabel(UNIFORM);
   this->pLightNames = this->currentLights->getGuiLabel(POINT);
@@ -126,9 +143,10 @@ GuiHandler::lightingMenu()
 
   // The lighting window.
 	ImGui::SetNextWindowPos(ImVec2(0, 95));
-	ImGui::SetNextWindowSize(ImVec2(450, 550), ImGuiCond_Always);
+	ImGui::SetNextWindowSize(ImVec2(wSize.x * 16 / 64, 550), ImGuiCond_Always);
 	ImGui::Begin("Lights", &this->lighting);
 	ImGui::Text("Total of %d lightcasters", this->currentLights->getNumLights(ALL));
+  ImGui::Checkbox("Use PBR Pipeline", &this->usePBR);
 	ImGui::ColorEdit3("Ambient colour", &this->currentLights->getAmbient()->x);
 
 	// Dropdown box for uniform lights.
@@ -159,13 +177,16 @@ GuiHandler::lightingMenu()
                       &(this->selectedULight->colour.x));
 		ImGui::SliderFloat((this->selectedULight->name + std::string(" intensity")).c_str(),
                       &(this->selectedULight->intensity), 0.0f, 1.0f);
-    ImGui::Text("%s properties:", this->selectedULight->name.c_str());
-    ImGui::SliderFloat3((this->selectedULight->name + std::string(" diffuse")).c_str(),
-                        &(this->selectedULight->mat.diffuse.x), 0.0f, 1.0f);
-    ImGui::SliderFloat3((this->selectedULight->name + std::string(" specular")).c_str(),
-                        &(this->selectedULight->mat.specular.x), 0.0f, 1.0f);
-    ImGui::SliderFloat((this->selectedULight->name + std::string(" shininess")).c_str(),
-                        &(this->selectedULight->mat.shininess), 1.0f, 128.0f);
+    if (!this->usePBR)
+    {
+      ImGui::Text("%s properties:", this->selectedULight->name.c_str());
+      ImGui::SliderFloat3((this->selectedULight->name + std::string(" diffuse")).c_str(),
+                          &(this->selectedULight->mat.diffuse.x), 0.0f, 1.0f);
+      ImGui::SliderFloat3((this->selectedULight->name + std::string(" specular")).c_str(),
+                          &(this->selectedULight->mat.specular.x), 0.0f, 1.0f);
+      ImGui::SliderFloat((this->selectedULight->name + std::string(" shininess")).c_str(),
+                          &(this->selectedULight->mat.shininess), 1.0f, 128.0f);
+    }
 
 		if (ImGui::Button((std::string("Delete ") + this->selectedULight->name).c_str()))
 		{
@@ -206,14 +227,17 @@ GuiHandler::lightingMenu()
 		ImGui::SliderFloat((this->selectedPLight->name + std::string(" mesh scale")).c_str(),
                        &(this->selectedPLight->meshScale), 0.0f, 1.0f);
     ImGui::Text("%s properties:", this->selectedPLight->name.c_str());
-    ImGui::SliderFloat3((this->selectedPLight->name + std::string(" diffuse")).c_str(),
-                        &(this->selectedPLight->mat.diffuse.x), 0.0f, 1.0f);
-    ImGui::SliderFloat3((this->selectedPLight->name + std::string(" specular")).c_str(),
-                        &(this->selectedPLight->mat.specular.x), 0.0f, 1.0f);
+    if (!this->usePBR)
+    {
+      ImGui::SliderFloat3((this->selectedPLight->name + std::string(" diffuse")).c_str(),
+                          &(this->selectedPLight->mat.diffuse.x), 0.0f, 1.0f);
+      ImGui::SliderFloat3((this->selectedPLight->name + std::string(" specular")).c_str(),
+                          &(this->selectedPLight->mat.specular.x), 0.0f, 1.0f);
+      ImGui::SliderFloat((this->selectedPLight->name + std::string(" shininess")).c_str(),
+                         &(this->selectedPLight->mat.shininess), 1.0f, 128.0f);
+    }
     ImGui::SliderFloat2((this->selectedPLight->name + std::string(" attenuation")).c_str(),
                         &(this->selectedPLight->mat.attenuation.x), 0.0f, 1.0f);
-    ImGui::SliderFloat((this->selectedPLight->name + std::string(" shininess")).c_str(),
-                       &(this->selectedPLight->mat.shininess), 1.0f, 128.0f);
 
 		if (ImGui::Button((std::string("Delete ") + this->selectedPLight->name).c_str()))
 		{
@@ -260,14 +284,17 @@ GuiHandler::lightingMenu()
 		ImGui::SliderFloat((this->selectedSLight->name + std::string(" mesh scale")).c_str(),
                        &(this->selectedSLight->meshScale), 0.0f, 1.0f);
     ImGui::Text("%s properties:", this->selectedSLight->name.c_str());
-    ImGui::SliderFloat3((this->selectedSLight->name + std::string(" diffuse")).c_str(),
-                        &(this->selectedSLight->mat.diffuse.x), 0.0f, 1.0f);
-    ImGui::SliderFloat3((this->selectedSLight->name + std::string(" specular")).c_str(),
-                        &(this->selectedSLight->mat.specular.x), 0.0f, 1.0f);
+    if (!this->usePBR)
+    {
+      ImGui::SliderFloat3((this->selectedSLight->name + std::string(" diffuse")).c_str(),
+                          &(this->selectedSLight->mat.diffuse.x), 0.0f, 1.0f);
+      ImGui::SliderFloat3((this->selectedSLight->name + std::string(" specular")).c_str(),
+                          &(this->selectedSLight->mat.specular.x), 0.0f, 1.0f);
+      ImGui::SliderFloat((this->selectedSLight->name + std::string(" shininess")).c_str(),
+                         &(this->selectedSLight->mat.shininess), 1.0f, 128.0f);
+    }
     ImGui::SliderFloat2((this->selectedSLight->name + std::string(" attenuation")).c_str(),
                         &(this->selectedSLight->mat.attenuation.x), 0.0f, 1.0f);
-    ImGui::SliderFloat((this->selectedSLight->name + std::string(" shininess")).c_str(),
-                       &(this->selectedSLight->mat.shininess), 1.0f, 128.0f);
 
 		if (ImGui::Button((std::string("Delete ") + this->selectedSLight->name).c_str()))
 		{
@@ -320,6 +347,12 @@ GuiHandler::lightingMenu()
 		this->currentLights->addLight(temp, 0.1f);
 	}
 	ImGui::End();
+}
+
+void
+GuiHandler::loadObjMenu()
+{
+
 }
 
 void

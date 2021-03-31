@@ -5,6 +5,7 @@
 *.png
 *.mtl
 *.jpg
+*.tga
 
 # Ignore the ignore of important model files.
 !bunny.obj

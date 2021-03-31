@@ -20,6 +20,8 @@ namespace SciRenderer
     glm::vec3 normal;
     glm::vec3 colour;
     glm::vec2 uv;
+    glm::vec3 tangent;
+    glm::vec3 bitangent;
     unsigned  id;
   };
 
@@ -39,12 +41,14 @@ namespace SciRenderer
     ~Mesh() = default;
 
     // Load data from a file.
-    void loadOBJFile(const char* filepath);
+    void loadOBJFile(const char* filepath, bool computeTBN);
     // Generate/delete the vertex array object.
     void generateVAO(Shader* program);
     void deleteVAO();
     // Compute vertex and surface normals.
     void computeNormals();
+    // Compute the tangents and bitangents.
+    void computeTBN();
     // Normalize the vertices to the screenspace (-1 -> 1).
     void normalizeVertices();
     // Debug function to dump to the console.

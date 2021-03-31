@@ -122,7 +122,7 @@ namespace SciRenderer
 
     // Sets up the lights for rendering and draw the light meshes.
     void setLighting(Shader* lightingShader, Camera* camera);
-    void drawLightMeshes(Renderer* renderer, Camera* camera);
+    void drawLightMeshes(Camera* camera);
 
     // Remove a light from its lighting ID.
     void deleteLight(LightType type, GLuint lightID);

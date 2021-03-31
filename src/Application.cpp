@@ -21,17 +21,19 @@ Camera* sceneCam;
 GLFWwindow* window;
 
 // Abstracted OpenGL objects.
-FrameBuffer* 		 drawBuffer;
-Shader* 				 program;
-Shader* 				 vpPassthrough;
-VertexArray* 		 viewport;
-LightController* lights;
-GuiHandler* 		 gui;
-Renderer* 			 renderer = Renderer::getInstance();
-EnvironmentMap*  skybox;
+FrameBuffer* 		 		 drawBuffer;
+Shader* 				 		 program;
+Shader* 				 		 vpPassthrough;
+Shader*					 		 PBR;
+VertexArray* 		 		 viewport;
+LightController* 		 lights;
+GuiHandler* 		 		 gui;
+Renderer* 			 		 renderer = Renderer::getInstance();
+EnvironmentMap*      skybox;
+Texture2DController* textures;
 
 // Mesh data.
-Mesh objModel1, objModel2, ground;
+Mesh objModel1, objModel2, objModel3, ground;
 
 GLuint framebuffer, textureColorbuffer, rbo;
 GLuint quadVAO;
@@ -51,8 +53,17 @@ void init()
 	lights = new LightController("./res/r_shaders/lightMesh.vs",
 															 "./res/r_shaders/lightMesh.fs",
 															 "./res/models/sphere.obj");
-	program = new Shader("./res/r_shaders/default.vs",
-											 "./res/r_shaders/lighting.fs");
+	program = new Shader("./res/r_shaders/mesh.vs",
+											 "./res/r_shaders/phong/spec.fs");
+
+	PBR = new Shader("./res/r_shaders/mesh.vs",
+									 "./res/r_shaders/pbr/pbrTex.fs");
+	PBR->addUniformSampler2D("albedoMap", 0);
+	PBR->addUniformSampler2D("normalMap", 1);
+	PBR->addUniformSampler2D("roughnessMap", 2);
+	PBR->addUniformSampler2D("metallicMap", 3);
+	PBR->addUniformSampler2D("aOcclusionMap", 4);
+	PBR->unbind();
 
 	// Initialize the camera.
 	sceneCam = new Camera(width/2, height/2, glm::vec3 {0.0f, 1.0f, 4.0f}, EDITOR);
@@ -72,14 +83,18 @@ void init()
 													    "./res/r_shaders/skybox.fs",
 															"./res/models/cube.obj");
 	skybox->loadCubeMap(cubeTex, SKYBOX);
+	skybox->precomputeIrradiance();
 
 	// Load the obj file(s).
-	ground.loadOBJFile("./res/models/ground_plane.obj");
-	objModel1.loadOBJFile("./res/models/bunny.obj");
+	ground.loadOBJFile("./res/models/ground_plane.obj", false);
+	objModel1.loadOBJFile("./res/models/bunny.obj", false);
 	objModel1.normalizeVertices();
 	objModel1.moveMesh(glm::vec3(-2.0f, 0.0f, 0.0f));
-	objModel2.loadOBJFile("./res/models/teapot.obj");
+	objModel2.loadOBJFile("./res/models/teapot.obj", false);
 	objModel2.normalizeVertices();
+
+	// The textures for the sphere.
+	textures = new Texture2DController();
 
 	// Setup a basic uniform light field.
 	UniformLight light1;
@@ -105,18 +120,19 @@ void display()
 	lights->setLighting(program, sceneCam);
 
 	// Draw the light meshes.
-	lights->drawLightMeshes(renderer, sceneCam);
+	lights->drawLightMeshes(sceneCam);
 
 	// Draw the ground plane.
 	renderer->draw(&ground, program, sceneCam);
 
-	// Draw the SoopEgg.
+	// Draw the bunny.
 	renderer->draw(&objModel1, program, sceneCam);
 
 	// Draw the teapot.
 	renderer->draw(&objModel2, program, sceneCam);
 
-	skybox->draw(renderer, sceneCam);
+	// Draw the skybox.
+	skybox->draw(sceneCam);
 
 	// Second pass for post-processing.
   renderer->drawToViewPort(drawBuffer);
@@ -216,11 +232,14 @@ int main(int argc, char **argv)
 
 	// Cleanup pointers.
 	delete program;
+	delete PBR;
 	delete vpPassthrough;
 	delete lights;
+	delete textures;
 	delete gui;
 	delete drawBuffer;
 	delete renderer;
+	delete skybox;
 
 	glfwTerminate();
 }

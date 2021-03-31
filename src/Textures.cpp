@@ -43,19 +43,44 @@ Texture2DController::loadFomFile(const char* filepath, const std::string &texNam
   stbi_set_flip_vertically_on_load(true);
   unsigned char* data = stbi_load(filepath, &newTex->width, &newTex->height,
                                   &newTex->n, 0);
-  //std::cout << "Width: " << newTex.width << " Height: " << newTex.height << std::endl;
+  //std::cout << "Width: " << newTex->width << " Height: " << newTex->height <<
+               //" N: " << newTex->n << std::endl;
 
   // Something went wrong while loading, abort.
   if (!data)
   {
-    std::cout << "Failed to load image." << std::endl;
+    std::cout << "Failed to load image at: \"" << std::string(filepath) << "\""
+              << std::endl;
+    stbi_image_free(data);
+    glDeleteTextures(1, &newTex->textureID);
     return;
   }
 
-  // Generate an RGB 2D texture.
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, newTex->width, newTex->height, 0,
-               GL_RGB, GL_UNSIGNED_BYTE, data);
-  glGenerateMipmap(GL_TEXTURE_2D);
+  // Generate a 2D texture.
+  if (newTex->n == 1)
+  {
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, newTex->width, newTex->height, 0,
+                 GL_RED, GL_UNSIGNED_BYTE, data);
+    glGenerateMipmap(GL_TEXTURE_2D);
+  }
+  else if (newTex->n == 2)
+  {
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RG, newTex->width, newTex->height, 0,
+                 GL_RG, GL_UNSIGNED_BYTE, data);
+    glGenerateMipmap(GL_TEXTURE_2D);
+  }
+  else if (newTex->n == 3)
+  {
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, newTex->width, newTex->height, 0,
+                 GL_RGB, GL_UNSIGNED_BYTE, data);
+    glGenerateMipmap(GL_TEXTURE_2D);
+  }
+  else if (newTex->n == 4)
+  {
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, newTex->width, newTex->height, 0,
+                 GL_RGBA, GL_UNSIGNED_BYTE, data);
+    glGenerateMipmap(GL_TEXTURE_2D);
+  }
 
   // Push the texture to an unordered map.
   this->textures.insert({ texName, newTex });
@@ -80,7 +105,7 @@ Texture2DController::bind(const std::string &texName)
 }
 
 void
-Texture2DController::unbindTexture()
+Texture2DController::unbind()
 {
   glBindTexture(GL_TEXTURE_2D, 0);
 }
@@ -89,7 +114,7 @@ Texture2DController::unbindTexture()
 void
 Texture2DController::bindToPoint(const std::string &texName, GLuint bindPoint)
 {
-  glActiveTexture(GL_TEXTURE0 + bindPoint);
+  glActiveTexture(bindPoint);
   glBindTexture(GL_TEXTURE_2D, this->textures.at(texName)->textureID);
 }
 
@@ -110,7 +135,7 @@ EnvironmentMap::EnvironmentMap(const char* vertPath, const char* fragPath,
 {
   this->cubeShader = new Shader(vertPath, fragPath);
   this->cube = new Mesh();
-  this->cube->loadOBJFile(cubeMeshPath);
+  this->cube->loadOBJFile(cubeMeshPath, false);
 }
 
 EnvironmentMap::~EnvironmentMap()
@@ -161,7 +186,7 @@ EnvironmentMap::loadCubeMap(const std::vector<std::string> &filenames,
       glGenTextures(1, &this->skybox->textureID);
       glBindTexture(GL_TEXTURE_CUBE_MAP, this->skybox->textureID);
 
-      for (unsigned int i = 0; i < filenames.size(); i++)
+      for (unsigned i = 0; i < filenames.size(); i++)
       {
         data = stbi_load(filenames[i].c_str(), &this->skybox->width[i],
                          &this->skybox->height[i], &this->skybox->n[i], 0);
@@ -194,7 +219,7 @@ EnvironmentMap::loadCubeMap(const std::vector<std::string> &filenames,
       glGenTextures(1, &this->irradiance->textureID);
       glBindTexture(GL_TEXTURE_CUBE_MAP, this->irradiance->textureID);
 
-      for (unsigned int i = 0; i < filenames.size(); i++)
+      for (unsigned i = 0; i < filenames.size(); i++)
       {
         data = stbi_load(filenames[i].c_str(), &this->irradiance->width[i],
                          &this->irradiance->height[i], &this->irradiance->n[i], 0);
@@ -263,8 +288,9 @@ EnvironmentMap::unbind()
 
 // Draw the skybox.
 void
-EnvironmentMap::draw(Renderer* renderer, Camera* camera)
+EnvironmentMap::draw(Camera* camera)
 {
+  Renderer* renderer = Renderer::getInstance();
   glDepthFunc(GL_LEQUAL);
 
   glm::mat4 vP = camera->getProjMatrix() * glm::mat4(glm::mat3(camera->getViewMatrix()));
@@ -273,7 +299,7 @@ EnvironmentMap::draw(Renderer* renderer, Camera* camera)
   this->cubeShader->addUniformMatrix("vP", vP, GL_FALSE);
   this->cubeShader->addUniformSampler2D("skybox", 0);
   glActiveTexture(GL_TEXTURE0);
-  glBindTexture(GL_TEXTURE_CUBE_MAP, this->skybox->textureID);
+  glBindTexture(GL_TEXTURE_CUBE_MAP, this->irradiance->textureID);
 
   if (this->cube->hasVAO())
     renderer->draw(this->cube->getVAO(), this->cubeShader);
@@ -284,5 +310,111 @@ EnvironmentMap::draw(Renderer* renderer, Camera* camera)
       renderer->draw(this->cube->getVAO(), this->cubeShader);
   }
 
+  glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
   glDepthFunc(GL_LESS);
+}
+
+void
+EnvironmentMap::precomputeIrradiance()
+{
+  Renderer* renderer = Renderer::getInstance();
+
+  // The framebuffer and renderbuffer for drawing the irradiance map to.
+  GLuint convoFBO, convoRBO;
+
+  // The resulting cubemap from the convolution process.
+  this->irradiance = new CubeMap();
+
+  // A standard projection matrix, and 6 view matrices (one for each face of the
+  // cubemap).
+  glm::mat4 perspective = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 10.0f);
+  glm::mat4 views[6] =
+  {
+    glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.0f,  0.0f,  0.0f),
+                glm::vec3(0.0f, -1.0f,  0.0f)),
+    glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(-1.0f,  0.0f,  0.0f),
+                glm::vec3(0.0f, -1.0f,  0.0f)),
+    glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f,  1.0f,  0.0f),
+                glm::vec3(0.0f,  0.0f,  1.0f)),
+    glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f,  0.0f),
+                glm::vec3(0.0f,  0.0f, -1.0f)),
+    glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f,  0.0f,  1.0f),
+                glm::vec3(0.0f, -1.0f,  0.0f)),
+    glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f,  0.0f, -1.0f),
+                glm::vec3(0.0f, -1.0f,  0.0f))
+  };
+
+  // Generate and bind a cubemap textue to slot 0.
+  glGenTextures(1, &this->irradiance->textureID);
+  glActiveTexture(GL_TEXTURE0);
+  glBindTexture(GL_TEXTURE_CUBE_MAP, this->irradiance->textureID);
+
+  for (unsigned i = 0; i < 6; i++)
+  {
+    // Resulting convolution is 25% the size of the original (since we don't
+    // need a high resolution for diffuse reflection).
+    glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB,
+                 512, 512, 0, GL_RGB,
+                 GL_UNSIGNED_BYTE, nullptr);
+  }
+
+  glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+  // Framebuffer to write the convoluted cubemap to.
+  glGenFramebuffers(1, &convoFBO);
+  glBindFramebuffer(GL_FRAMEBUFFER, convoFBO);
+
+  // Render attach for the framebuffer.
+  glGenRenderbuffers(1, &convoRBO);
+  glBindRenderbuffer(GL_RENDERBUFFER, convoRBO);
+  glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24,
+                        512, 512);
+  glBindRenderbuffer(GL_RENDERBUFFER, 0);
+  glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
+                            GL_RENDERBUFFER, convoRBO);
+
+  // The convolution program.
+  Shader* convoProg = new Shader("./res/r_shaders/pbr/convolution.vs",
+                                 "./res/r_shaders/pbr/convolution.fs");
+  convoProg->addUniformSampler2D("environmentMap", 0);
+  glBindTexture(GL_TEXTURE_CUBE_MAP, this->skybox->textureID);
+
+  glViewport(0, 0, 512, 512);
+
+  // Perform the convolution for each face of the cubemap.
+  for (unsigned i = 0; i < 6; i++)
+  {
+    convoProg->addUniformMatrix("vP", perspective * views[i], GL_FALSE);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
+                           GL_TEXTURE_CUBE_MAP_POSITIVE_X + i,
+                           this->irradiance->textureID, 0);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    if (this->cube->hasVAO())
+      renderer->draw(this->cube->getVAO(), convoProg);
+    else
+    {
+      this->cube->generateVAO(convoProg);
+      if (this->cube->hasVAO())
+        renderer->draw(this->cube->getVAO(), convoProg);
+    }
+  }
+  // Unbind the framebuffer now that we're done with it.
+  glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+  // Assign the texture sizes to the cubemap struct.
+  for (unsigned i = 0; i < 6; i++)
+  {
+    irradiance->width[i]  = 512;
+    irradiance->height[i] = 512;
+    irradiance->n[i]      = 3;
+  }
+
+  // Delete the frame and render buffers now that they've served their purpose.
+  glDeleteFramebuffers(1, &convoFBO);
+  glDeleteRenderbuffers(1, &convoRBO);
 }

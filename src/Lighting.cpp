@@ -13,7 +13,7 @@ LightController::LightController(const char* vertPath, const char* fragPath,
   this->lightProgram = new Shader(vertPath, fragPath);
   // Load the light mesh.
   this->lightMesh = new Mesh();
-  this->lightMesh->loadOBJFile(lightMeshPath);
+  this->lightMesh->loadOBJFile(lightMeshPath, false);
   this->lightMesh->generateVAO(this->lightProgram);
 
   // Generate 3 uniform buffers for the lights.
@@ -91,7 +91,6 @@ LightController::addLight(const SpotLight& light, GLfloat scaleFactor)
 void
 LightController::setLighting(Shader* lightingShader, Camera* camera)
 {
-  lightingShader->bind();
   lightingShader->addUniformVector("ambientColour", this->ambient);
   lightingShader->addUniformVector("camera.position", camera->getCamPos());
   lightingShader->addUniformVector("camera.viewDir", camera->getCamFront());
@@ -185,8 +184,10 @@ LightController::setLighting(Shader* lightingShader, Camera* camera)
 
 // Draw the light meshes.
 void
-LightController::drawLightMeshes(Renderer* renderer, Camera* camera)
+LightController::drawLightMeshes(Camera* camera)
 {
+  Renderer* renderer = Renderer::getInstance();
+
   // Draw the point light meshes.
   for (unsigned i = 0; i < this->pointLights.size(); i++)
   {

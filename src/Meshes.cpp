@@ -29,7 +29,7 @@ Mesh::Mesh(const std::vector<Vertex> &vertices, const std::vector<GLuint> &indic
 
 // Loading function for .obj files.
 void
-Mesh::loadOBJFile(const char* filepath)
+Mesh::loadOBJFile(const char* filepath, bool computeTBN)
 {
   tinyobj::ObjReader objReader;
   tinyobj::ObjReaderConfig readerConfig;
@@ -127,6 +127,9 @@ Mesh::loadOBJFile(const char* filepath)
       this->data[i].colour = glm::vec3(1.0f, 1.0f, 1.0f);
   }
 
+  if (computeTBN)
+    this->computeTBN();
+
   this->loaded = true;
 }
 
@@ -142,7 +145,9 @@ Mesh::generateVAO(Shader* program)
 	program->addAtribute("vPosition", VEC4, GL_FALSE, sizeof(Vertex), 0);
 	program->addAtribute("vNormal", VEC3, GL_FALSE, sizeof(Vertex), offsetof(Vertex, normal));
 	program->addAtribute("vColour", VEC3, GL_FALSE, sizeof(Vertex), offsetof(Vertex, colour));
-  program->addAtribute("vTexCoords", VEC2, GL_FALSE, sizeof(Vertex), offsetof(Vertex, uv));
+  program->addAtribute("vTexCoord", VEC2, GL_FALSE, sizeof(Vertex), offsetof(Vertex, uv));
+  program->addAtribute("vTangent", VEC3, GL_FALSE, sizeof(Vertex), offsetof(Vertex, tangent));
+  program->addAtribute("vBitangent", VEC3, GL_FALSE, sizeof(Vertex), offsetof(Vertex, bitangent));
 }
 
 // Delete the vertex array object associated with this mesh.
@@ -196,6 +201,47 @@ Mesh::computeNormals()
     vertexNormals[i][2] /= count[i];
     vertexNormals[i] = glm::normalize(vertexNormals[i]);
     this->data[i].normal = vertexNormals[i];
+  }
+}
+
+// TODO: Complete tangent and bitangent calculations.
+void
+Mesh::computeTBN()
+{
+  glm::vec3 tangent, bitangent, edgeOne, edgeTwo;
+  glm::vec2 duvOne, duvTwo;
+  Vertex a, b, c;
+  float det;
+
+  for (unsigned i = 0; i < this->indices.size(); i+=3)
+  {
+    a = this->data[this->indices[i]];
+    b = this->data[this->indices[i + 1]];
+    c = this->data[this->indices[i + 2]];
+
+    edgeOne = b.position - a.position;
+    edgeTwo = c.position - a.position;
+
+    duvOne = b.uv - a.uv;
+    duvTwo = c.uv - a.uv;
+
+    det = 1.0f / (duvOne.x * duvTwo.y - duvTwo.x * duvOne.y);
+
+    tangent.x = det * (duvTwo.y * edgeOne.x - duvOne.y * edgeTwo.x);
+    tangent.y = det * (duvTwo.y * edgeOne.y - duvOne.y * edgeTwo.y);
+    tangent.z = det * (duvTwo.y * edgeOne.z - duvOne.y * edgeTwo.z);
+
+    bitangent.x = det * (-duvTwo.x * edgeOne.x + duvOne.x * edgeTwo.x);
+    bitangent.y = det * (-duvTwo.x * edgeOne.y + duvOne.x * edgeTwo.y);
+    bitangent.z = det * (-duvTwo.x * edgeOne.z + duvOne.x * edgeTwo.z);
+
+    this->data[this->indices[i]].tangent = tangent;
+    this->data[this->indices[i + 1]].tangent= tangent;
+    this->data[this->indices[i + 2]].tangent= tangent;
+
+    this->data[this->indices[i]].bitangent += bitangent;
+    this->data[this->indices[i + 1]].bitangent += bitangent;
+    this->data[this->indices[i + 2]].bitangent += bitangent;
   }
 }
 

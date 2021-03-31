@@ -1,5 +1,11 @@
 #pragma once
 
+// Dear Imgui includes.
+#include "imgui/imgui.h"
+#include "imgui/imgui_impl_glfw.h"
+#include "imgui/imgui_impl_opengl3.h"
+#include "imgui/ImGuiFileBrowser.h"
+
 // Macro include file.
 #include "SciRenderIncludes.h"
 
@@ -19,13 +25,20 @@ namespace SciRenderer
 
     void drawGUI();
   private:
+    // Handler objects.
+    imgui_addons::ImGuiFileBrowser fileHandler;
+
     // Functions for specific menus.
     void lightingMenu();
     void modelMenu();
+    void loadObjMenu();
 
     // Menus to draw at any one moment.
     bool lighting;
     bool model;
+
+    // Which submenus  to display.
+    bool usePBR;
 
     // Members for the lighting menu.
     LightController* currentLights;
@@ -37,7 +50,7 @@ namespace SciRenderer
     const char* currentSLName;
     UniformLight* selectedULight;
     PointLight* 	selectedPLight;
-    SpotLight* 		selectedSLight ;
+    SpotLight* 		selectedSLight;
 
     // Members for the model menu.
 

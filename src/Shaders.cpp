@@ -212,7 +212,7 @@ Shader::addUniformSampler2D(const char* uniformName, GLuint texID)
 {
 	this->bind();
 	GLuint uniLoc = glGetUniformLocation(this->progID, uniformName);
-	glUniform1ui(uniLoc, texID);
+	glUniform1i(uniLoc, texID);
 }
 
 // Vertex attribute setters.

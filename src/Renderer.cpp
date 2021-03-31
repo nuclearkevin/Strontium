@@ -95,8 +95,10 @@ Renderer::drawToViewPort(FrameBuffer* drawBuffer)
 
 	viewportProgram->bind();
   glBindVertexArray(this->viewportVAOID);
+  glActiveTexture(GL_TEXTURE0);
   glBindTexture(GL_TEXTURE_2D, drawBuffer->getColourID());
   glDrawArrays(GL_TRIANGLES, 0, 6);
+  glBindTexture(GL_TEXTURE_2D, 0);
 	glEnable(GL_DEPTH_TEST);
 }
 

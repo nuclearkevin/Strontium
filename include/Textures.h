@@ -45,7 +45,7 @@ namespace SciRenderer
 
     // Bind/unbind a texture.
     void bind(const std::string &texName);
-    void unbindTexture();
+    void unbind();
 
     // Binds a texture to a point.
     void bindToPoint(const std::string &texName, GLuint bindPoint);
@@ -74,7 +74,10 @@ namespace SciRenderer
     void unbind();
 
     // Draw the skybox.
-    void draw(Renderer* renderer, Camera* camera);
+    void draw(Camera* camera);
+
+    // Generate the irradiance map.
+    void precomputeIrradiance();
   protected:
     CubeMap* skybox;
     CubeMap* irradiance;

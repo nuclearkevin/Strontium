@@ -46,7 +46,7 @@ struct SpotLight
   float cosGamma;
 };
 
-// The camera position in worldspace. 7 float components.
+// The camera position in worldspace. 6 float components.
 struct Camera
 {
   vec3 position;
@@ -60,6 +60,7 @@ in VERT_OUT
 	vec3 fPosition;
 	vec3 fColour;
   vec2 fTexCoords;
+  mat3 fTBN;
 } fragIn;
 
 // Input lights.
@@ -88,7 +89,7 @@ uniform Camera camera;
 // Output colour variable.
 layout(location = 0) out vec4 fragColour;
 
-// Function declarations.
+// Lighting function declarations.
 vec3 computeUL(UniformLight light, vec3 normal, vec3 position, vec3 colour, Camera camera);
 vec3 computePL(PointLight light, vec3 normal, vec3 position, vec3 colour, Camera camera);
 vec3 computeSL(SpotLight light, vec3 normal, vec3 position, vec3 colour, Camera camera);
