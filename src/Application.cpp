@@ -63,6 +63,7 @@ void init()
 	PBR->addUniformSampler2D("roughnessMap", 2);
 	PBR->addUniformSampler2D("metallicMap", 3);
 	PBR->addUniformSampler2D("aOcclusionMap", 4);
+	PBR->addUniformSampler2D("irradianceMap", 5);
 	PBR->unbind();
 
 	// Initialize the camera.
@@ -79,11 +80,14 @@ void init()
     "./res/textures/skybox/front.jpg",
     "./res/textures/skybox/back.jpg"
   };
+	std::cout << "Loading the environment." << std::endl;
 	skybox = new EnvironmentMap("./res/r_shaders/skybox.vs",
 													    "./res/r_shaders/skybox.fs",
 															"./res/models/cube.obj");
 	skybox->loadCubeMap(cubeTex, SKYBOX);
-	skybox->precomputeIrradiance();
+	std::cout << "Done!" << std::endl;
+	skybox->precomputeIrradiance(512, 512);
+	skybox->precomputeSpecular(512, 512, 5);
 
 	// Load the obj file(s).
 	ground.loadOBJFile("./res/models/ground_plane.obj", false);
@@ -92,9 +96,31 @@ void init()
 	objModel1.moveMesh(glm::vec3(-2.0f, 0.0f, 0.0f));
 	objModel2.loadOBJFile("./res/models/teapot.obj", false);
 	objModel2.normalizeVertices();
+	objModel3.loadOBJFile("./res/models/testsphere.obj", true);
+	objModel3.normalizeVertices();
+	objModel3.moveMesh(glm::vec3(2.0f, 1.0f, 0.0f));
+	/*
+	objModel3.loadOBJFile("./res/cerebus/cerebus.obj", true);
+	objModel3.scaleMesh(0.01f);
+	*/
 
-	// The textures for the sphere.
 	textures = new Texture2DController();
+	/*
+	// The textures for the Cerebus PBR model.
+	std::cout << "Loading albedo, metallic, normal and roughness maps." << std::endl;
+	textures->loadFomFile("./res/cerebus/textures/albedo.tga", "albedo");
+	textures->loadFomFile("./res/cerebus/textures/metallic.tga", "metallic");
+	textures->loadFomFile("./res/cerebus/textures/normal.tga", "normal");
+	textures->loadFomFile("./res/cerebus/textures/roughness.tga", "roughness");
+	std::cout << "Done!" << std::endl;
+	*/
+	// The textures for a rusted metal ball.
+	std::cout << "Loading albedo, metallic, normal and roughness maps." << std::endl;
+	textures->loadFomFile("./res/textures/pbr/iron/albedo.png", "albedo");
+	textures->loadFomFile("./res/textures/pbr/iron/metallic.png", "metallic");
+	textures->loadFomFile("./res/textures/pbr/iron/normal.png", "normal");
+	textures->loadFomFile("./res/textures/pbr/iron/roughness.png", "roughness");
+	std::cout << "Done!" << std::endl;
 
 	// Setup a basic uniform light field.
 	UniformLight light1;
@@ -118,6 +144,7 @@ void display()
 
 	// Prepare the scene lighting.
 	lights->setLighting(program, sceneCam);
+	lights->setLighting(PBR, sceneCam);
 
 	// Draw the light meshes.
 	lights->drawLightMeshes(sceneCam);
@@ -130,6 +157,14 @@ void display()
 
 	// Draw the teapot.
 	renderer->draw(&objModel2, program, sceneCam);
+
+	// Draw the PBR test (Cerebus or something else).
+	textures->bindToPoint("albedo", 0);
+	textures->bindToPoint("normal", 1);
+	textures->bindToPoint("roughness", 2);
+	textures->bindToPoint("metallic", 3);
+	skybox->bindToPoint(IRRADIANCE, 5);
+	renderer->draw(&objModel3, PBR, sceneCam);
 
 	// Draw the skybox.
 	skybox->draw(sceneCam);

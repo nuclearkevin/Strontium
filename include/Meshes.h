@@ -86,10 +86,4 @@ namespace SciRenderer
     // Vertex array object for the mesh data.
     VertexArray* vArray;
   };
-
-  // Forward declaration of the max/min helper functions.
-  GLfloat vertexMin(std::vector<Vertex> vector, unsigned start,
-                    unsigned end, unsigned axis);
-  GLfloat vertexMax(std::vector<Vertex> vector, unsigned start,
-                    unsigned end, unsigned axis);
 }

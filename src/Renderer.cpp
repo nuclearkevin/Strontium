@@ -28,8 +28,10 @@ Renderer::~Renderer()
 void
 Renderer::init(const char* vertPath, const char* fragPath)
 {
-  // Initialize depth testing.
+  // Initialize OpenGL parameters.
   glEnable(GL_DEPTH_TEST);
+  glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
+
   // Initialize the vewport shader passthrough.
   this->viewportProgram = new Shader(vertPath, fragPath);
 
@@ -97,6 +99,24 @@ Renderer::drawToViewPort(FrameBuffer* drawBuffer)
   glBindVertexArray(this->viewportVAOID);
   glActiveTexture(GL_TEXTURE0);
   glBindTexture(GL_TEXTURE_2D, drawBuffer->getColourID());
+  glDrawArrays(GL_TRIANGLES, 0, 6);
+  glBindTexture(GL_TEXTURE_2D, 0);
+	glEnable(GL_DEPTH_TEST);
+}
+
+void
+Renderer::drawToViewPort(GLuint texID)
+{
+  glBindFramebuffer(GL_FRAMEBUFFER, 0);
+  glDisable(GL_DEPTH_TEST);
+
+  glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+  glClear(GL_COLOR_BUFFER_BIT);
+
+	viewportProgram->bind();
+  glBindVertexArray(this->viewportVAOID);
+  glActiveTexture(GL_TEXTURE0);
+  glBindTexture(GL_TEXTURE_2D, texID);
   glDrawArrays(GL_TRIANGLES, 0, 6);
   glBindTexture(GL_TEXTURE_2D, 0);
 	glEnable(GL_DEPTH_TEST);

@@ -74,7 +74,11 @@ Mesh::loadOBJFile(const char* filepath, bool computeTBN)
   // Compute the normal vectors if the obj has none.
   vertexOffset = 0;
   if (attrib.normals.size() == 0)
+  {
+    std::cout << "Computing vertex normals...";
     this->computeNormals();
+    std::cout << " Done!" << std::endl;
+  }
   else if (attrib.normals.size() > 0)
   {
     glm::vec3 temp;
@@ -128,7 +132,11 @@ Mesh::loadOBJFile(const char* filepath, bool computeTBN)
   }
 
   if (computeTBN)
+  {
+    std::cout << "Computing vertex tangents and bitangents...";
     this->computeTBN();
+    std::cout << " Done!" << std::endl;
+  }
 
   this->loaded = true;
 }
@@ -137,6 +145,8 @@ Mesh::loadOBJFile(const char* filepath, bool computeTBN)
 void
 Mesh::generateVAO(Shader* program)
 {
+  if (!this->isLoaded())
+    return;
   this->vArray = new VertexArray(&(this->data[0]),
                                  this->data.size() * sizeof(Vertex),
                                  DYNAMIC);
@@ -204,7 +214,6 @@ Mesh::computeNormals()
   }
 }
 
-// TODO: Complete tangent and bitangent calculations.
 void
 Mesh::computeTBN()
 {
@@ -250,20 +259,22 @@ void
 Mesh::normalizeVertices()
 {
   // Computing scaling factor.
-  GLfloat xScale = std::max(std::abs(vertexMax(this->data, 0,
-                                               this->data.size() - 1, 0)),
-                            std::abs(vertexMin(this->data, 0,
-                                               this->data.size() - 1, 0)));
-  GLfloat yScale = std::max(std::abs(vertexMax(this->data, 0,
-                                               this->data.size() - 1, 1)),
-                            std::abs(vertexMin(this->data, 0,
-                                               this->data.size() - 1, 1)));
-  GLfloat zScale = std::max(std::abs(vertexMax(this->data, 0,
-                                               this->data.size() - 1, 2)),
-                            std::abs(vertexMin(this->data, 0,
-                                               this->data.size() - 1, 2)));
-  GLfloat scale = std::max(xScale, yScale);
-  scale         = std::max(scale,  zScale);
+  GLfloat maxX = 0.0f;
+  GLfloat maxY = 0.0f;
+  GLfloat maxZ = 0.0f;
+
+  GLfloat scale;
+
+  // Loop over the vertices and find the maximum vertex components.
+  for (auto &vertex : this->data)
+  {
+    maxX = std::max(vertex.position.x, maxX);
+    maxY = std::max(vertex.position.y, maxY);
+    maxZ = std::max(vertex.position.z, maxZ);
+  }
+
+  scale = std::max(maxX, maxY);
+  scale = std::max(scale, maxZ);
 
   // Scale each component of the vertices.
   for (auto &vertex : this->data)
@@ -357,57 +368,3 @@ Mesh::isLoaded() {return this->loaded;}
 
 bool
 Mesh::hasVAO() {return this->vArray != nullptr;}
-
-/*------------------------------------------------------------------------------
-Mesh loader and utility functions.
-------------------------------------------------------------------------------*/
-
-// Helper function to recursively find the max of a component of a position
-// vector.
-GLfloat
-SciRenderer::vertexMax(std::vector<Vertex> vector, unsigned start,
-                       unsigned end, unsigned axis)
-{
-  // Base cases.
-  if (end == start)
-    return vector[end].position[axis];
-
-  if ((end - start) == 1)
-    return std::max(vector[end].position[axis], vector[start].position[axis]);
-
-  // Divide.
-  unsigned middle = (end + start) / 2;
-
-  // Conquer.
-  if ((end + start) % 2 == 0)
-    return std::max(SciRenderer::vertexMax(vector, start, middle, axis),
-                    SciRenderer::vertexMax(vector, middle + 1, end, axis));
-  else
-    return std::max(SciRenderer::vertexMax(vector, start, middle - 1, axis),
-                    SciRenderer::vertexMax(vector, middle, end, axis));
-}
-
-// Helper function to recursively find the min of a component of a position
-// vector.
-GLfloat
-SciRenderer::vertexMin(std::vector<Vertex> vector, unsigned start,
-                       unsigned end, unsigned axis)
-{
-  // Base cases.
-  if (end == start)
-    return vector[end].position[axis];
-
-  if ((end - start) == 1)
-    return std::min(vector[end].position[axis], vector[start].position[axis]);
-
-  // Divide.
-  unsigned middle = (end + start) / 2;
-
-  // Conquer.
-  if ((end + start) % 2 == 0)
-    return std::min(SciRenderer::vertexMin(vector, start, middle, axis),
-                    SciRenderer::vertexMin(vector, middle + 1, end, axis));
-  else
-    return std::min(SciRenderer::vertexMin(vector, start, middle - 1, axis),
-                    SciRenderer::vertexMin(vector, middle, end, axis));
-}

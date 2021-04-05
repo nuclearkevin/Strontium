@@ -166,7 +166,7 @@ Index of this file:
 // - Case B: column is clipped / out of sight (because of scrolling or parent ClipRect): TableNextColumn() return false as a hint but we still allow layout output.
 // - Case C: column is hidden explicitly by the user (e.g. via the context menu, or _DefaultHide column flag, etc.).
 //
-//                        [A]         [B]          [C]         
+//                        [A]         [B]          [C]
 //  TableNextColumn():    true        false        false       -> [userland] when TableNextColumn() / TableSetColumnIndex() return false, user can skip submitting items but only if the column doesn't contribute to row height.
 //          SkipItems:    false       false        true        -> [internal] when SkipItems is true, most widgets will early out if submitted, resulting is no layout output.
 //           ClipRect:    normal      zero-width   zero-width  -> [internal] when ClipRect is zero, ItemAdd() will return false and most widgets will early out mid-way.
@@ -178,6 +178,30 @@ Index of this file:
 // About clipping/culling of whole Tables:
 // - Scrolling tables with a known outer size can be clipped earlier as BeginTable() will return false.
 //-----------------------------------------------------------------------------
+
+/*
+The MIT License (MIT)
+
+Copyright (c) 2014-2021 Omar Cornut
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
 
 //-----------------------------------------------------------------------------
 // [SECTION] Header mess
@@ -635,7 +659,7 @@ static void TableSetupColumnFlags(ImGuiTable* table, ImGuiTableColumn* column, I
     {
         IM_ASSERT(ImIsPowerOfTwo(flags & ImGuiTableColumnFlags_WidthMask_)); // Check that only 1 of each set is used.
     }
-    
+
     // Resize
     if ((table->Flags & ImGuiTableFlags_Resizable) == 0)
         flags |= ImGuiTableColumnFlags_NoResize;
@@ -805,7 +829,7 @@ void ImGui::TableUpdateLayout(ImGuiTable* table)
             // Apply same widths policy
             float width_auto = column->WidthAuto;
             if (table_sizing_policy == ImGuiTableFlags_SizingFixedSame && (column->AutoFitQueue != 0x00 || !column_is_resizable))
-                width_auto = fixed_max_width_auto; 
+                width_auto = fixed_max_width_auto;
 
             // Apply automatic width
             // Latch initial size for fixed columns and update it constantly for auto-resizing column (unless clipped!)

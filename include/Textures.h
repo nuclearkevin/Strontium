@@ -20,7 +20,7 @@ namespace SciRenderer
     int n;
   };
 
-  enum MapType { SKYBOX, IRRADIANCE };
+  enum MapType { SKYBOX, IRRADIANCE, PREFILTER, INTEGRATION };
 
   // Struct to store a cube map.
   struct CubeMap
@@ -73,14 +73,22 @@ namespace SciRenderer
     void bind(const MapType &type);
     void unbind();
 
+    // Binds one of the environment map PBR textures to a point.
+    void bindToPoint(const MapType &type, GLuint bindPoint);
+
     // Draw the skybox.
     void draw(Camera* camera);
 
-    // Generate the irradiance map.
-    void precomputeIrradiance();
+    // Generate the diffuse irradiance map.
+    void precomputeIrradiance(GLuint width, GLuint height);
+
+    // Generate the specular map components (pre-filter and BRDF integration map).
+    void precomputeSpecular(GLuint width, GLuint height, GLuint mipLevels);
   protected:
-    CubeMap* skybox;
-    CubeMap* irradiance;
+    CubeMap*   skybox;
+    CubeMap*   irradiance;
+    CubeMap*   specPrefilter;
+    Texture2D* brdfIntMap;
 
     Shader*  cubeShader;
 
@@ -89,4 +97,7 @@ namespace SciRenderer
     bool     hasSkybox;
     bool     hasIrradiance;
   };
+
+  void writeTexture(Texture2D* outTex);
+  void writeTexture(CubeMap* outTex);
 }

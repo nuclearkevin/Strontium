@@ -90,9 +90,6 @@ uniform uint numULights;
 uniform uint numPLights;
 uniform uint numSLights;
 
-// Ambient colour. TODO: Replace with an irradiance map texture lookup.
-uniform vec3 ambientColour;
-
 // Camera uniform.
 uniform Camera camera;
 
@@ -116,6 +113,8 @@ float TRDistribution(vec3 N, vec3 H, float alpha);
 float SSBGeometry(vec3 N, vec3 L, vec3 V, float roughness);
 // Schlick approximation to the Fresnel factor.
 vec3 SFresnel(float cosTheta, vec3 F0);
+// Schlick approximation to the Fresnel factor, with roughness!
+vec3 SFresnelR(float cosTheta, vec3 F0, float roughness);
 
 // Lighting function declarations.
 vec3 computeUL(UniformLight light, vec3 position, FragMaterial frag, vec3 viewDir, vec3 F0);
@@ -136,8 +135,11 @@ void main()
 
 	vec3 F0 = mix(vec3(0.04), frag.albedo, frag.metallic);
 
+  vec3 ks = SFresnelR(max(dot(frag.normal, view), 0.0), F0, frag.roughness);
+  vec3 kd = vec3(1.0) - ks;
+
 	vec3 radiosity = vec3(0.0);
-	vec3 ambient = vec3(0.03) * ambientColour * frag.albedo;// * frag.aOcclusion;
+	vec3 ambient = kd * texture(irradianceMap, frag.normal).rgb * frag.albedo;
 
 	for (int i = 0; i < numULights; i++)
     radiosity += computeUL(uLight[i], fragIn.fPosition, frag, view, F0);
@@ -197,6 +199,11 @@ float SSBGeometry(vec3 N, vec3 L, vec3 V, float roughness)
 vec3 SFresnel(float cosTheta, vec3 F0)
 {
 	return F0 + (1.0 - F0) * pow(max(1.0 - cosTheta, 0.0), 5.0);
+}
+
+vec3 SFresnelR(float cosTheta, vec3 F0, float roughness)
+{
+  return F0 + (max(vec3(1.0 - roughness), F0) - F0) * pow(max(1.0 - cosTheta, 0.0), 5.0);
 }
 
 // Implementation of the lighting functions.

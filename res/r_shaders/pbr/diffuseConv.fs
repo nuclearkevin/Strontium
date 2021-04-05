@@ -3,6 +3,7 @@
  * A fragment shader to compute the diffuse lighting integral through
  * convolution.
 */
+
 #define PI 3.141592654
 
 layout(location = 0) out vec4 fragColour;
