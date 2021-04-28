@@ -11,6 +11,8 @@
 
 // Project includes.
 #include "Lighting.h"
+#include "Buffers.h"
+#include "Camera.h"
 
 namespace SciRenderer
 {
@@ -18,24 +20,38 @@ namespace SciRenderer
   {
   public:
     GuiHandler(LightController* lights);
-    ~GuiHandler();
+    ~GuiHandler() = default;
 
     void init(GLFWwindow *window);
     void shutDown();
 
-    void drawGUI();
+    void drawGUI(FrameBuffer* frontBuffer, Camera* editorCamera, GLFWwindow* window);
   private:
+    // Window flags for the various GUI elements.
+    const ImGuiWindowFlags sidebarFlags = ImGuiWindowFlags_NoCollapse |
+      ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize |
+      ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoMove |
+      ImGuiWindowFlags_NoBringToFrontOnFocus;
+
+    const ImGuiWindowFlags logFlags = ImGuiWindowFlags_NoCollapse |
+      ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
+      ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBringToFrontOnFocus;
+
+    const ImGuiWindowFlags editorFlags = ImGuiWindowFlags_NoCollapse |
+      ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
+      ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBringToFrontOnFocus;
+
     // Handler objects.
     imgui_addons::ImGuiFileBrowser fileHandler;
 
-    // Functions for specific menus.
+    // Functions for specific GUI components.
     void lightingMenu();
     void modelMenu();
     void loadObjMenu();
+    void logMenu();
 
-    // Menus to draw at any one moment.
-    bool lighting;
-    bool model;
+    // Members for the log menu.
+    std::string logBuffer;
 
     // Which submenus  to display.
     bool usePBR;

@@ -86,6 +86,7 @@ Renderer::draw(Mesh* data, Shader* program, Camera* camera)
   }
 }
 
+// Draw the contents of a framebuffer to the default buffer.
 void
 Renderer::drawToViewPort(FrameBuffer* drawBuffer)
 {
@@ -100,12 +101,27 @@ Renderer::drawToViewPort(FrameBuffer* drawBuffer)
   glActiveTexture(GL_TEXTURE0);
   glBindTexture(GL_TEXTURE_2D, drawBuffer->getColourID());
   glDrawArrays(GL_TRIANGLES, 0, 6);
+
   glBindTexture(GL_TEXTURE_2D, 0);
+  glBindVertexArray(0);
 	glEnable(GL_DEPTH_TEST);
 }
 
+// Draws a full screen quad with a given program using whatever buffer is
+// currently bound.
 void
-Renderer::drawToViewPort(GLuint texID)
+Renderer::drawFSQ(Shader* program)
+{
+  program->bind();
+  glBindVertexArray(this->viewportVAOID);
+  glDrawArrays(GL_TRIANGLES, 0, 6);
+
+  glBindVertexArray(0);
+}
+
+// Draw a texture to the default buffer.
+void
+Renderer::debugDrawTex(GLuint texID)
 {
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
   glDisable(GL_DEPTH_TEST);
@@ -118,6 +134,8 @@ Renderer::drawToViewPort(GLuint texID)
   glActiveTexture(GL_TEXTURE0);
   glBindTexture(GL_TEXTURE_2D, texID);
   glDrawArrays(GL_TRIANGLES, 0, 6);
+
+  glBindVertexArray(0);
   glBindTexture(GL_TEXTURE_2D, 0);
 	glEnable(GL_DEPTH_TEST);
 }

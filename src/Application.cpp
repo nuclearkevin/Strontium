@@ -9,65 +9,51 @@
 #include "Lighting.h"
 #include "GuiHandler.h"
 #include "Textures.h"
+#include "Logs.h"
 
 using namespace SciRenderer;
 
-// Window size.
-GLuint width = 800;
-GLuint height = 800;
+// Window size at launch.
+GLuint width = 1920;
+GLuint height = 1080;
 
 // Window objects.
 Camera* sceneCam;
 GLFWwindow* window;
 
 // Abstracted OpenGL objects.
+Logger* 						 logs = Logger::getInstance();
 FrameBuffer* 		 		 drawBuffer;
 Shader* 				 		 program;
 Shader* 				 		 vpPassthrough;
-Shader*					 		 PBR;
 VertexArray* 		 		 viewport;
 LightController* 		 lights;
-GuiHandler* 		 		 gui;
+GuiHandler* 		 		 frontend;
 Renderer* 			 		 renderer = Renderer::getInstance();
 EnvironmentMap*      skybox;
-Texture2DController* textures;
 
-// Mesh data.
-Mesh objModel1, objModel2, objModel3, ground;
-
-GLuint framebuffer, textureColorbuffer, rbo;
-GLuint quadVAO;
 Shader* screenShader;
 
 void init()
 {
+	logs->init();
 	// Initialize the framebuffer for drawing.
 	drawBuffer = new FrameBuffer(width, height);
-	drawBuffer->attachColourTexture2D();
-	drawBuffer->attachRenderBuffer();
+	drawBuffer->generateColourTexture2D();
+	drawBuffer->generateRenderBuffer();
 
 	// Initialize the renderer.
-	renderer->init("./res/r_shaders/viewport.vs", "./res/r_shaders/viewport.fs");
+	renderer->init("./res/shaders/viewport.vs", "./res/shaders/viewport.fs");
 
 	// Initialize the lighting system.
-	lights = new LightController("./res/r_shaders/lightMesh.vs",
-															 "./res/r_shaders/lightMesh.fs",
+	lights = new LightController("./res/shaders/lightMesh.vs",
+															 "./res/shaders/lightMesh.fs",
 															 "./res/models/sphere.obj");
-	program = new Shader("./res/r_shaders/mesh.vs",
-											 "./res/r_shaders/phong/spec.fs");
-
-	PBR = new Shader("./res/r_shaders/mesh.vs",
-									 "./res/r_shaders/pbr/pbrTex.fs");
-	PBR->addUniformSampler2D("albedoMap", 0);
-	PBR->addUniformSampler2D("normalMap", 1);
-	PBR->addUniformSampler2D("roughnessMap", 2);
-	PBR->addUniformSampler2D("metallicMap", 3);
-	PBR->addUniformSampler2D("aOcclusionMap", 4);
-	PBR->addUniformSampler2D("irradianceMap", 5);
-	PBR->unbind();
+	program = new Shader("./res/shaders/mesh.vs",
+											 "./res/shaders/phong/spec.fs");
 
 	// Initialize the camera.
-	sceneCam = new Camera(width/2, height/2, glm::vec3 {0.0f, 1.0f, 4.0f}, EDITOR);
+	sceneCam = new Camera(width / 2, height / 2, glm::vec3 {0.0f, 1.0f, 4.0f}, EDITOR);
 	sceneCam->init(window, glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 30.0f));
 
 	// Initialize the skybox.
@@ -80,47 +66,10 @@ void init()
     "./res/textures/skybox/front.jpg",
     "./res/textures/skybox/back.jpg"
   };
-	std::cout << "Loading the environment." << std::endl;
-	skybox = new EnvironmentMap("./res/r_shaders/skybox.vs",
-													    "./res/r_shaders/skybox.fs",
+	skybox = new EnvironmentMap("./res/shaders/skybox.vs",
+													    "./res/shaders/skybox.fs",
 															"./res/models/cube.obj");
 	skybox->loadCubeMap(cubeTex, SKYBOX);
-	std::cout << "Done!" << std::endl;
-	skybox->precomputeIrradiance(512, 512);
-	skybox->precomputeSpecular(512, 512, 5);
-
-	// Load the obj file(s).
-	ground.loadOBJFile("./res/models/ground_plane.obj", false);
-	objModel1.loadOBJFile("./res/models/bunny.obj", false);
-	objModel1.normalizeVertices();
-	objModel1.moveMesh(glm::vec3(-2.0f, 0.0f, 0.0f));
-	objModel2.loadOBJFile("./res/models/teapot.obj", false);
-	objModel2.normalizeVertices();
-	objModel3.loadOBJFile("./res/models/testsphere.obj", true);
-	objModel3.normalizeVertices();
-	objModel3.moveMesh(glm::vec3(2.0f, 1.0f, 0.0f));
-	/*
-	objModel3.loadOBJFile("./res/cerebus/cerebus.obj", true);
-	objModel3.scaleMesh(0.01f);
-	*/
-
-	textures = new Texture2DController();
-	/*
-	// The textures for the Cerebus PBR model.
-	std::cout << "Loading albedo, metallic, normal and roughness maps." << std::endl;
-	textures->loadFomFile("./res/cerebus/textures/albedo.tga", "albedo");
-	textures->loadFomFile("./res/cerebus/textures/metallic.tga", "metallic");
-	textures->loadFomFile("./res/cerebus/textures/normal.tga", "normal");
-	textures->loadFomFile("./res/cerebus/textures/roughness.tga", "roughness");
-	std::cout << "Done!" << std::endl;
-	*/
-	// The textures for a rusted metal ball.
-	std::cout << "Loading albedo, metallic, normal and roughness maps." << std::endl;
-	textures->loadFomFile("./res/textures/pbr/iron/albedo.png", "albedo");
-	textures->loadFomFile("./res/textures/pbr/iron/metallic.png", "metallic");
-	textures->loadFomFile("./res/textures/pbr/iron/normal.png", "normal");
-	textures->loadFomFile("./res/textures/pbr/iron/roughness.png", "roughness");
-	std::cout << "Done!" << std::endl;
 
 	// Setup a basic uniform light field.
 	UniformLight light1;
@@ -144,33 +93,13 @@ void display()
 
 	// Prepare the scene lighting.
 	lights->setLighting(program, sceneCam);
-	lights->setLighting(PBR, sceneCam);
 
 	// Draw the light meshes.
 	lights->drawLightMeshes(sceneCam);
 
-	// Draw the ground plane.
-	renderer->draw(&ground, program, sceneCam);
-
-	// Draw the bunny.
-	renderer->draw(&objModel1, program, sceneCam);
-
-	// Draw the teapot.
-	renderer->draw(&objModel2, program, sceneCam);
-
-	// Draw the PBR test (Cerebus or something else).
-	textures->bindToPoint("albedo", 0);
-	textures->bindToPoint("normal", 1);
-	textures->bindToPoint("roughness", 2);
-	textures->bindToPoint("metallic", 3);
-	skybox->bindToPoint(IRRADIANCE, 5);
-	renderer->draw(&objModel3, PBR, sceneCam);
-
 	// Draw the skybox.
 	skybox->draw(sceneCam);
-
-	// Second pass for post-processing.
-  renderer->drawToViewPort(drawBuffer);
+	drawBuffer->unbind();
 }
 
 // Error callback, called when there is an error during program initialization
@@ -180,25 +109,9 @@ void error_callback(int error, const char* description)
 	fprintf(stderr, "Error: %s\n", description);
 }
 
-// Size callback, resizes the window when required.
-void framebufferSizeCallback(GLFWwindow *window, int w, int h)
-{
-	if (h == 0)
-		h = 1;
-	float ratio = 1.0f * w / h;
-
-	glfwMakeContextCurrent(window);
-	glViewport(0, 0, w, h);
-	sceneCam->updateProj(90.0f, ratio, 0.1f, 100.0f);
-
-	drawBuffer->resize(w, h);
-}
-
 // Key callback, called each time a key is pressed.
 static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
-	if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
-		glfwSetWindowShouldClose(window, GLFW_TRUE);
 	if (key == GLFW_KEY_P && action == GLFW_PRESS)
 		sceneCam->swap(window);
 }
@@ -240,13 +153,12 @@ int main(int argc, char **argv)
 	glViewport(0, 0, width, height);
 
 	init();
-	gui = new GuiHandler(lights);
-	gui->init(window);
+	frontend = new GuiHandler(lights);
+	frontend->init(window);
 
 	glfwSwapInterval(1);
 
 	// Set the remaining callbacks.
-	glfwSetFramebufferSizeCallback(window, framebufferSizeCallback);
 	glfwSetKeyCallback(window, key_callback);
 	glfwSetScrollCallback(window, scroll_callback);
 
@@ -258,20 +170,18 @@ int main(int argc, char **argv)
 		sceneCam->keyboardAction(window);
 
 		display();
-		gui->drawGUI();
 
+		frontend->drawGUI(drawBuffer, sceneCam, window);
 		renderer->swap(window);
 	}
 
-	gui->shutDown();
+	frontend->shutDown();
 
 	// Cleanup pointers.
 	delete program;
-	delete PBR;
 	delete vpPassthrough;
 	delete lights;
-	delete textures;
-	delete gui;
+	delete frontend;
 	delete drawBuffer;
 	delete renderer;
 	delete skybox;

@@ -94,10 +94,15 @@ namespace SciRenderer
     void bind();
     void unbind();
 
-    // Methods for texture/buffer attachment.
-    void attachColourTexture2D();
-    void attachDepthTexture2D();
-    void attachRenderBuffer();
+    // Methods for texture/buffer generation and attachment.
+    void generateColourTexture2D();
+    void generateDepthTexture2D();
+    void generateRenderBuffer();
+
+    // Methods for texture attachment.
+    void attachColourTexture2D(GLuint textureID, GLuint width, GLuint height);
+    void attachDepthTexture2D(GLuint textureID, GLuint width, GLuint height);
+    void attachRenderBuffer(GLuint bufferID, GLuint width, GLuint height);
 
     // Update the framebuffer size.
     void resize(GLuint width, GLuint height);
@@ -108,6 +113,9 @@ namespace SciRenderer
     // Get the IDs of the attachments.
     GLuint getColourID();
     GLuint getDepthID();
+
+    // Get the size of the framebuffer.
+    void getSize(GLuint &outWidth, GLuint &outHeight);
 
     // Clear the buffer.
     void clear();

@@ -35,16 +35,16 @@ namespace SciRenderer
     // Draw a populated framebuffer to a viewport (fullscreen quad).
     void drawToViewPort(FrameBuffer* drawBuffer);
 
+    // Draws a full screen quad with a shader program.
+    void drawFSQ(Shader* program);
+
     // Draw a texture to a viewport (fullscreen squad).
-    void drawToViewPort(GLuint texID);
+    void debugDrawTex(GLuint texID);
 
     // Swap the buffers.
     void swap(GLFWwindow* window);
 
   private:
-    // Constructor.
-    Renderer() = default;
-
     // Shader to draw a texture to a screen.
     Shader* viewportProgram;
 

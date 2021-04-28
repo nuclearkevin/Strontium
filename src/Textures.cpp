@@ -7,6 +7,7 @@
 
 // Project includes.
 #include "Textures.h"
+#include "Logs.h"
 
 using namespace SciRenderer;
 
@@ -259,6 +260,77 @@ EnvironmentMap::loadCubeMap(const std::vector<std::string> &filenames,
       glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 
       break;
+    case PREFILTER:
+      this->specPrefilter = new CubeMap();
+      glGenTextures(1, &this->specPrefilter->textureID);
+      glBindTexture(GL_TEXTURE_CUBE_MAP, this->specPrefilter->textureID);
+
+      for (unsigned i = 0; i < filenames.size(); i++)
+      {
+        data = stbi_load(filenames[i].c_str(), &this->specPrefilter->width[i],
+                         &this->specPrefilter->height[i], &this->specPrefilter->n[i], 0);
+        if (data)
+        {
+            glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB,
+                         this->specPrefilter->width[i], this->specPrefilter->height[i], 0,
+                         GL_RGB, GL_UNSIGNED_BYTE, data);
+            stbi_image_free(data);
+        }
+        else
+        {
+            std::cout << "Cubemap texture failed to load at path: "
+                      << filenames[i] << std::endl;
+            stbi_image_free(data);
+            successful = false;
+            break;
+        }
+
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+
+      }
+      break;
+    case INTEGRATION:
+      this->brdfIntMap = new Texture2D();
+      glGenTextures(1, &this->brdfIntMap->textureID);
+      glBindTexture(GL_TEXTURE_2D, this->brdfIntMap->textureID);
+
+      if (filenames.size() != 1)
+      {
+        std::cout << "Warning, multiple file paths provided. Only the first "
+                  << "will be loaded as the BRDF lookup texture." << std::endl;
+      }
+
+      data = stbi_load(filenames[0].c_str(), &this->brdfIntMap->width,
+                       &this->brdfIntMap->height, &this->brdfIntMap->n, 0);
+      if (this->brdfIntMap->n != 2)
+      {
+        std::cout << "Invalid integration lookup texture (n = "
+                  << this->brdfIntMap->n << ")." << std::endl;
+        successful = false;
+      }
+
+      if (data)
+      {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RG, this->brdfIntMap->width,
+                     this->brdfIntMap->height, 0, GL_RG, GL_UNSIGNED_BYTE, data);
+
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+      }
+      else
+      {
+        std::cout << "BRDF lookup texture failed to load at path: "
+                  << filenames[0] << std::endl;
+        successful = false;
+      }
+
+      break;
   }
 
   if (!successful)
@@ -268,10 +340,22 @@ EnvironmentMap::loadCubeMap(const std::vector<std::string> &filenames,
       case SKYBOX:
         glDeleteTextures(1, &this->skybox->textureID);
         delete this->skybox;
+        this->skybox = nullptr;
         break;
       case IRRADIANCE:
         glDeleteTextures(1, &this->irradiance->textureID);
         delete this->irradiance;
+        this->irradiance = nullptr;
+        break;
+      case PREFILTER:
+        glDeleteTextures(1, &this->specPrefilter->textureID);
+        delete this->specPrefilter;
+        this->specPrefilter = nullptr;
+        break;
+      case INTEGRATION:
+        glDeleteTextures(1, &this->brdfIntMap->textureID);
+        delete this->brdfIntMap;
+        this->brdfIntMap = nullptr;
         break;
     }
   }
@@ -361,6 +445,8 @@ EnvironmentMap::draw(Camera* camera)
 void
 EnvironmentMap::precomputeIrradiance(GLuint width, GLuint height)
 {
+  Logger* logs = Logger::getInstance();
+
   if (this->irradiance != nullptr)
   {
     std::cout << "This environment already has an irradiance map. Aborting."
@@ -368,7 +454,7 @@ EnvironmentMap::precomputeIrradiance(GLuint width, GLuint height)
     return;
   }
 
-  std::cout << "Convoluting environment map..." << std::endl;
+  auto start = std::chrono::steady_clock::now();
 
   Renderer* renderer = Renderer::getInstance();
 
@@ -429,8 +515,8 @@ EnvironmentMap::precomputeIrradiance(GLuint width, GLuint height)
                             GL_RENDERBUFFER, convoRBO);
 
   // The convolution program.
-  Shader* convoProg = new Shader("./res/r_shaders/pbr/diffuseConv.vs",
-                                 "./res/r_shaders/pbr/diffuseConv.fs");
+  Shader* convoProg = new Shader("./res/shaders/pbr/diffuseConv.vs",
+                                 "./res/shaders/pbr/diffuseConv.fs");
   convoProg->addUniformSampler2D("environmentMap", 0);
   glBindTexture(GL_TEXTURE_CUBE_MAP, this->skybox->textureID);
 
@@ -472,23 +558,27 @@ EnvironmentMap::precomputeIrradiance(GLuint width, GLuint height)
   // Delete the shader program used for the convolution as well.
   delete convoProg;
 
-  std::cout << "Done!" << std::endl;
+  auto end = std::chrono::steady_clock::now();
+  std::chrono::duration<double> elapsed = end - start;
+
+  logs->logMessage(LogMessage("Convoluted environment map (elapsed time: "
+                              + std::to_string(elapsed.count()) + " s).", true,
+                              false, true));
 }
 
 // Generate the specular map components. Computes the pre-filtered environment
 // map first, than the integration map second.
 void
-EnvironmentMap::precomputeSpecular(GLuint width, GLuint height, GLuint mipLevels)
+EnvironmentMap::precomputeSpecular(GLuint width, GLuint height)
 {
-  if (this->specPrefilter != nullptr || this->brdfIntMap != nullptr)
+  if (this->specPrefilter != nullptr && this->brdfIntMap != nullptr)
   {
     std::cout << "This environment already has the required specular maps. Aborting."
               << std::endl;
     return;
   }
 
-  std::cout << "Generating the specular pre-filter..." << std::endl;
-
+  Logger* logs = Logger::getInstance();
   Renderer* renderer = Renderer::getInstance();
 
   // The framebuffer and renderbuffer for drawing the pre-filter and
@@ -526,99 +616,148 @@ EnvironmentMap::precomputeSpecular(GLuint width, GLuint height, GLuint mipLevels
                 glm::vec3(0.0f, -1.0f,  0.0f))
   };
 
-//------------------------------------------------------------------------------
-  // The pre-filtered environment map component.
-//------------------------------------------------------------------------------
-
-  // The resulting cubemap from the environment pre-filter.
-  this->specPrefilter = new CubeMap();
-
-  // Generate the pre-filter texture.
-  glGenTextures(1, &this->specPrefilter->textureID);
-  glBindTexture(GL_TEXTURE_CUBE_MAP, this->specPrefilter->textureID);
-
-  for (unsigned i = 0; i < 6; i++)
+  if (this->specPrefilter == nullptr)
   {
-    glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB,
-                 width, height, 0, GL_RGB,
-                 GL_UNSIGNED_BYTE, nullptr);
-  }
+    //--------------------------------------------------------------------------
+    // The pre-filtered environment map component. This is hella slow,
+    // need to move it to compute shaders.
+    //--------------------------------------------------------------------------
+    auto start = std::chrono::steady_clock::now();
 
-  glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-  glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-  glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-  glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-  glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    // The resulting cubemap from the environment pre-filter.
+    this->specPrefilter = new CubeMap();
 
-  glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
+    // Generate the pre-filter texture.
+    glGenTextures(1, &this->specPrefilter->textureID);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, this->specPrefilter->textureID);
 
-  // Compile and link the shader program used to generate the pre-filter map.
-  Shader* specPrefilterProg = new Shader("res/r_shaders/pbr/specPrefilter.vs",
-                                         "res/r_shaders/pbr/specPrefilter.fs");
-  specPrefilterProg->addUniformSampler2D("environmentMap", 0);
-  glActiveTexture(GL_TEXTURE0);
-  glBindTexture(GL_TEXTURE_CUBE_MAP, this->skybox->textureID);
-
-  // Perform the pre-filter for each fact of the cubemap.
-  for (GLuint i = 0; i < mipLevels; i++)
-  {
-    // Compute the current mip levels.
-    GLuint mipWidth  = (GLuint) ((float) width * std::pow(0.5f, i));
-    GLuint mipHeight = (GLuint) ((float) height * std::pow(0.5f, i));
-
-    // Update the framebuffer to those levels.
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, mipWidth, mipHeight);
-    glViewport(0, 0, mipWidth, mipHeight);
-
-    float roughness = ((float) i) / ((float) (mipLevels - 1));
-    specPrefilterProg->addUniformFloat("roughness", roughness);
-
-    for (GLuint j = 0; j < 6; j++)
+    for (unsigned i = 0; i < 6; i++)
     {
-      specPrefilterProg->addUniformMatrix("vP", perspective * views[j], GL_FALSE);
-      specPrefilterProg->addUniformFloat("resolution", this->skybox->width[j]);
-      glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
-                             GL_TEXTURE_CUBE_MAP_POSITIVE_X + j,
-                             this->specPrefilter->textureID, i);
-      glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+      glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB,
+                   width, height, 0, GL_RGB,
+                   GL_UNSIGNED_BYTE, nullptr);
+    }
 
-      if (this->cube->hasVAO())
-        renderer->draw(this->cube->getVAO(), specPrefilterProg);
-      else
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
+
+    // Compile and link the shader program used to generate the pre-filter map.
+    Shader* specPrefilterProg = new Shader("res/shaders/pbr/specPrefilter.vs",
+                                           "res/shaders/pbr/specPrefilter.fs");
+    specPrefilterProg->addUniformSampler2D("environmentMap", 0);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, this->skybox->textureID);
+
+    // Perform the pre-filter for each fact of the cubemap.
+    for (GLuint i = 0; i < 5; i++)
+    {
+      // Compute the current mip levels.
+      GLuint mipWidth  = (GLuint) ((float) width * std::pow(0.5f, i));
+      GLuint mipHeight = (GLuint) ((float) height * std::pow(0.5f, i));
+
+      // Update the framebuffer to those levels.
+      glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, mipWidth, mipHeight);
+      glViewport(0, 0, mipWidth, mipHeight);
+
+      float roughness = ((float) i) / ((float) (5 - 1));
+      specPrefilterProg->addUniformFloat("roughness", roughness);
+
+      for (GLuint j = 0; j < 6; j++)
       {
-        this->cube->generateVAO(specPrefilterProg);
+        specPrefilterProg->addUniformMatrix("vP", perspective * views[j], GL_FALSE);
+        specPrefilterProg->addUniformFloat("resolution", this->skybox->width[j]);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
+                               GL_TEXTURE_CUBE_MAP_POSITIVE_X + j,
+                               this->specPrefilter->textureID, i);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
         if (this->cube->hasVAO())
           renderer->draw(this->cube->getVAO(), specPrefilterProg);
+        else
+        {
+          this->cube->generateVAO(specPrefilterProg);
+          if (this->cube->hasVAO())
+            renderer->draw(this->cube->getVAO(), specPrefilterProg);
+        }
       }
     }
 
+    // Unbind the framebuffer now that we're done with it.
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    // Assign the texture sizes to the cubemap struct.
+    for (unsigned i = 0; i < 6; i++)
+    {
+      this->specPrefilter->width[i]  = width;
+      this->specPrefilter->height[i] = height;
+      this->specPrefilter->n[i]      = 3;
+    }
+
+    // Delete the shader program used for the pre-filter.
+    delete specPrefilterProg;
+
+    auto end = std::chrono::steady_clock::now();
+    std::chrono::duration<double> elapsed = end - start;
+
+    logs->logMessage(LogMessage("Pre-filtered environment map (elapsed time: "
+                                + std::to_string(elapsed.count()) + " s).", true,
+                                false, true));
   }
 
-  // Unbind the framebuffer now that we're done with it.
-  glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-  // Assign the texture sizes to the cubemap struct.
-  for (unsigned i = 0; i < 6; i++)
+  if (this->brdfIntMap == nullptr)
   {
-    this->specPrefilter->width[i]  = width;
-    this->specPrefilter->height[i] = height;
-    this->specPrefilter->n[i]      = 3;
+    //--------------------------------------------------------------------------
+    // The BRDF integration map component.
+    //--------------------------------------------------------------------------
+    auto start = std::chrono::steady_clock::now();
+
+    this->brdfIntMap = new Texture2D();
+
+    glGenTextures(1, &this->brdfIntMap->textureID);
+    glBindTexture(GL_TEXTURE_2D, this->brdfIntMap->textureID);
+
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RG, width, height, 0, GL_RG,
+                 GL_UNSIGNED_BYTE, nullptr);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, specFBO);
+    glBindRenderbuffer(GL_RENDERBUFFER, specRBO);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, width, height);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
+                           this->brdfIntMap->textureID, 0);
+
+    // Shader program to compute the integration lookup texture.
+    Shader* intProg = new Shader("./res/shaders/pbr/brdfIntegration.vs",
+  												       "./res/shaders/pbr/brdfIntegration.fs");
+
+    glViewport(0, 0, width, height);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    renderer->drawFSQ(intProg);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    // Delete the shader object, we're done with it.
+    delete intProg;
+
+    auto end = std::chrono::steady_clock::now();
+    std::chrono::duration<double> elapsed = end - start;
+
+    logs->logMessage(LogMessage("Generated BRDF lookup texture (elapsed time: "
+                                + std::to_string(elapsed.count()) + " s).", true,
+                                false, true));
   }
-
-  // Delete the shader program used for the pre-filter.
-  delete specPrefilterProg;
-
-//------------------------------------------------------------------------------
-  // The BRDF integration map component. TODO: Finish this!
-//------------------------------------------------------------------------------
-
-  this->brdfIntMap = new Texture2D();
 
   // Delete the frame and render buffers now that they've served their purpose.
   glDeleteFramebuffers(1, &specFBO);
   glDeleteRenderbuffers(1, &specRBO);
-
-  std::cout << "Done!" << std::endl;
 }
 
 //------------------------------------------------------------------------------

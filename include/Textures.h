@@ -8,6 +8,10 @@
 #include "Shaders.h"
 #include "Renderer.h"
 #include "Camera.h"
+#include "Buffers.h"
+
+// STL includes.
+#include <unordered_map>
 
 namespace SciRenderer
 {
@@ -83,7 +87,7 @@ namespace SciRenderer
     void precomputeIrradiance(GLuint width, GLuint height);
 
     // Generate the specular map components (pre-filter and BRDF integration map).
-    void precomputeSpecular(GLuint width, GLuint height, GLuint mipLevels);
+    void precomputeSpecular(GLuint width, GLuint height);
   protected:
     CubeMap*   skybox;
     CubeMap*   irradiance;

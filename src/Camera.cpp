@@ -1,5 +1,7 @@
-// Project includes.
 #include "Camera.h"
+
+// Project includes.
+#include "Logs.h"
 
 using namespace SciRenderer;
 
@@ -304,15 +306,19 @@ Camera::scrollAction(GLFWwindow *window, double xoffset, double yoffset)
 void
 Camera::swap(GLFWwindow *window)
 {
+  Logger* logs = Logger::getInstance();
+
   if (this->currentType == EDITOR)
   {
     this->currentType = FPS;
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    logs->logMessage(LogMessage("Swapped camera to FPS.", true, false, false));
   }
   else
   {
     this->currentType = EDITOR;
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+    logs->logMessage(LogMessage("Swapped camera to editor.", true, false, false));
   }
 
   double mouseX, mouseY;

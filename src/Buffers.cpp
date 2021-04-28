@@ -131,10 +131,10 @@ FrameBuffer::unbind()
 
 // Methods for managing framebuffer textures and render buffers..
 void
-FrameBuffer::attachColourTexture2D()
+FrameBuffer::generateColourTexture2D()
 {
   if (this->colourAttach == nullptr)
-    this->colourAttach = new FBOAttach;
+    this->colourAttach = new FBOAttach();
   else
     return;
 
@@ -153,11 +153,10 @@ FrameBuffer::attachColourTexture2D()
 }
 
 void
-FrameBuffer::attachDepthTexture2D()
+FrameBuffer::generateDepthTexture2D()
 {
-  // TODO: finish depth textures.
   if (this->depthAttach == nullptr)
-    this->depthAttach = new FBOAttach;
+    this->depthAttach = new FBOAttach();
   else
     return;
 
@@ -172,17 +171,15 @@ FrameBuffer::attachDepthTexture2D()
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
   glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D,
                          this->depthAttach->id, 0);
-  glDrawBuffer(GL_NONE);
-  glReadBuffer(GL_NONE);
   this->unbind();
   this->clearFlags |= GL_DEPTH_BUFFER_BIT;
 }
 
 void
-FrameBuffer::attachRenderBuffer()
+FrameBuffer::generateRenderBuffer()
 {
   if (this->depthAttach == nullptr)
-    this->depthAttach = new FBOAttach;
+    this->depthAttach = new FBOAttach();
   else
     return;
 
@@ -195,6 +192,61 @@ FrameBuffer::attachRenderBuffer()
   this->unbind();
   this->clearFlags |= GL_DEPTH_BUFFER_BIT;
   this->hasRenderBuffer = true;
+}
+
+// Attach a pre-generated texture or renderbuffer to the FBO.
+void
+FrameBuffer::attachColourTexture2D(GLuint textureID, GLuint width, GLuint height)
+{
+  // Overwrites the current colour texture.
+  if (this->colourAttach != nullptr)
+  {
+    glDeleteTextures(1, &this->colourAttach->id);
+    delete this->colourAttach;
+    this->colourAttach = new FBOAttach();
+  }
+  else
+  {
+    this->colourAttach = new FBOAttach();
+  }
+
+  this->colourAttach->id = textureID;
+}
+
+void
+FrameBuffer::attachDepthTexture2D(GLuint textureID, GLuint width, GLuint height)
+{
+  // Overwrites the current depth texture.
+  if (this->depthAttach != nullptr)
+  {
+    glDeleteTextures(1, &this->depthAttach->id);
+    delete this->depthAttach;
+    this->depthAttach = new FBOAttach();
+  }
+  else
+  {
+    this->depthAttach = new FBOAttach();
+  }
+
+  this->depthAttach->id = textureID;
+}
+
+void
+FrameBuffer::attachRenderBuffer(GLuint bufferID, GLuint width, GLuint height)
+{
+  // Overwrites the current renderbuffer.
+  if (this->depthAttach != nullptr)
+  {
+    glDeleteRenderbuffers(1, &this->depthAttach->id);
+    delete this->depthAttach;
+    this->depthAttach = new FBOAttach();
+  }
+  else
+  {
+    this->depthAttach = new FBOAttach();
+  }
+
+  this->depthAttach->id = bufferID;
 }
 
 // Resize the framebuffer.
@@ -260,6 +312,13 @@ FrameBuffer::getDepthID()
     return this->depthAttach->id;
   else
     return 0;
+}
+
+void
+FrameBuffer::getSize(GLuint &outWidth, GLuint &outHeight)
+{
+  outWidth = this->width;
+  outHeight = this->height;
 }
 
 void

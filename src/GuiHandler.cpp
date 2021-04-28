@@ -1,10 +1,12 @@
 #include "GuiHandler.h"
 
+// Project includes.
+#include "Logs.h"
+
 using namespace SciRenderer;
 
 GuiHandler::GuiHandler(LightController* lights)
-  : lighting(false)
-  , model(false)
+  : logBuffer("")
   , usePBR(false)
   , currentLights(lights)
 {
@@ -14,11 +16,6 @@ GuiHandler::GuiHandler(LightController* lights)
   this->selectedULight = nullptr;
   this->selectedPLight = nullptr;
   this->selectedSLight = nullptr;
-}
-
-GuiHandler::~GuiHandler()
-{
-
 }
 
 void
@@ -42,8 +39,11 @@ GuiHandler::shutDown()
 }
 
 void
-GuiHandler::drawGUI()
+GuiHandler::drawGUI(FrameBuffer* frontBuffer, Camera* editorCamera, GLFWwindow* window)
 {
+  // Fetch the singleton logger.
+  Logger* logs = Logger::getInstance();
+
   ImGui_ImplOpenGL3_NewFrame();
   ImGui_ImplGlfw_NewFrame();
   ImGui::NewFrame();
@@ -69,52 +69,81 @@ GuiHandler::drawGUI()
      	{
 
      	}
-     	ImGui::EndMenu();
-   	}
-    if (ImGui::BeginMenu("Models"))
-  	{
-      if (ImGui::MenuItem("Load Model"))
-     	{
-        openObjMenu = true;
-     	}
-      if (ImGui::MenuItem("Load Texture"))
-     	{
-
-     	}
-      if (ImGui::MenuItem("Load Material"))
-     	{
-
-     	}
-     	ImGui::EndMenu();
-    }
-		if (ImGui::BeginMenu("Scene Settings"))
-  	{
-     	if (ImGui::MenuItem("Lights"))
+      if (ImGui::MenuItem("Exit"))
       {
-     	  this->lighting = true;
-      }
-      if (ImGui::MenuItem("Models"))
-      {
-
+        glfwSetWindowShouldClose(window, GLFW_TRUE);
       }
      	ImGui::EndMenu();
    	}
-
    	ImGui::EndMainMenuBar();
 	}
 
-	// The performance stats window.
-	ImGui::SetNextWindowPos(ImVec2(0, 20));
-	ImGui::SetNextWindowSize(ImVec2(wSize.x * 16 / 64, 75), ImGuiCond_Always);
-	ImGui::Begin("Performance");
-	ImGui::Text("Application averaging %.3f ms/frame (%.1f FPS)",
-							1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
-	ImGui::Text("Press P to swap between freeform and editor");
+  // The editor viewport.
+  ImGui::SetNextWindowPos(ImVec2(wSize.x * 16 / 64, 19));
+  ImGui::SetNextWindowSize(ImVec2(wSize.x - wSize.x * 32 / 64,
+                                  wSize.y - wSize.x * 16 / 128),
+                                  ImGuiCond_Always);
+  ImGui::Begin("Editor Viewport", nullptr, this->editorFlags);
+  {
+    ImGui::BeginChild("EditorRender");
+      {
+        ImVec2 editorSize = ImGui::GetWindowSize();
+        ImGui::Image((ImTextureID) frontBuffer->getColourID(), editorSize,
+                     ImVec2(0, 1), ImVec2(1, 0));
+      }
+    ImGui::EndChild();
+  }
+  ImGui::End();
+
+	// Left sidebar.
+	ImGui::SetNextWindowPos(ImVec2(0, 19));
+	ImGui::SetNextWindowSize(ImVec2(wSize.x * 16 / 64, wSize.y), ImGuiCond_Always);
+	ImGui::Begin("Left Sidebar", nullptr, this->sidebarFlags);
+  {
+    // Left sidebar contents.
+    if (ImGui::CollapsingHeader("Performance", ImGuiTreeNodeFlags_DefaultOpen))
+    {
+  	  ImGui::Text("Application averaging %.3f ms/frame (%.1f FPS)",
+  							  1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+    }
+    if (ImGui::CollapsingHeader("Lighting"))
+    {
+      this->lightingMenu();
+    }
+    if (ImGui::CollapsingHeader("Models"))
+    {
+
+    }
+    if (ImGui::CollapsingHeader("2D Textures"))
+    {
+
+    }
+    if (ImGui::CollapsingHeader("Environment Maps"))
+    {
+
+    }
+  }
 	ImGui::End();
 
-  // Other windows of note.
-  if (this->lighting)
-    this->lightingMenu();
+  // The right sidebar.
+  ImGui::SetNextWindowPos(ImVec2(wSize.x - wSize.x * 16 / 64, 19));
+	ImGui::SetNextWindowSize(ImVec2(wSize.x * 16 / 64, wSize.y), ImGuiCond_Always);
+	ImGui::Begin("Right Sidebar", nullptr, this->sidebarFlags);
+  {
+    // Right sidebar contents.
+  }
+  ImGui::End();
+
+  // The log menu.
+  this->logBuffer += logs->getLastMessages();
+  ImGui::SetNextWindowPos(ImVec2(wSize.x * 16 / 64, wSize.y - wSize.x * 15 / 128 + 2));
+	ImGui::SetNextWindowSize(ImVec2(wSize.x - wSize.x * 16 / 64 - wSize.x * 16 / 64,
+                                  wSize.x * 16 / 128), ImGuiCond_Always);
+  ImGui::Begin("Application Logs", nullptr, this->logFlags);
+  {
+    ImGui::Text(this->logBuffer.c_str());
+  }
+  ImGui::End();
 
   if (openObjMenu)
     ImGui::OpenPopup("Load Obj File");
@@ -128,24 +157,27 @@ GuiHandler::drawGUI()
 
 	ImGui::Render();
 	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
+  GLuint buffW, buffH;
+  frontBuffer->getSize(buffW, buffH);
+  if (buffW != wSize.x - wSize.x * 32 / 64 || buffH != wSize.y - wSize.x * 16 / 128)
+  {
+    frontBuffer->resize(wSize.x - wSize.x * 32 / 64, wSize.y - wSize.x * 16 / 128);
+    GLfloat ratio = 1.0f * (wSize.x - wSize.x * 32 / 64) / (wSize.y - wSize.x * 16 / 128);
+    editorCamera->updateProj(90.0f, ratio, 0.1f, 50.0f);
+  }
 }
 
 void
 GuiHandler::lightingMenu()
 {
-  // Get the window size.
-  ImVec2 wSize = ImGui::GetIO().DisplaySize;
-
   // Get the gui labels for the lights.
   this->uLightNames = this->currentLights->getGuiLabel(UNIFORM);
   this->pLightNames = this->currentLights->getGuiLabel(POINT);
   this->sLightNames = this->currentLights->getGuiLabel(SPOT);
 
   // The lighting window.
-	ImGui::SetNextWindowPos(ImVec2(0, 95));
-	ImGui::SetNextWindowSize(ImVec2(wSize.x * 16 / 64, 550), ImGuiCond_Always);
-	ImGui::Begin("Lights", &this->lighting);
-	ImGui::Text("Total of %d lightcasters", this->currentLights->getNumLights(ALL));
+	ImGui::Text("Total of %d lightcaster(s)", this->currentLights->getNumLights(ALL));
   ImGui::Checkbox("Use PBR Pipeline", &this->usePBR);
 	ImGui::ColorEdit3("Ambient colour", &this->currentLights->getAmbient()->x);
 
@@ -346,7 +378,6 @@ GuiHandler::lightingMenu()
     temp.mat.shininess = 1.0f;
 		this->currentLights->addLight(temp, 0.1f);
 	}
-	ImGui::End();
 }
 
 void
