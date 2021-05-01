@@ -1,9 +1,8 @@
 // This file contains some shader code developed by Dr. Mark Green at OTU. It
 // has been heavily modified to support OpenGL abstraction.
 
-// OpenGL includes.
-#include <GL/glew.h>
-#include <glm/gtc/type_ptr.hpp>
+// Macro include file.
+#include "SciRenderIncludes.h"
 
 // STL includes.
 #include <stdio.h>

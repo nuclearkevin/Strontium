@@ -2,7 +2,7 @@
 #include "Meshes.h"
 
 #define TINYOBJLOADER_IMPLEMENTATION
-#include "tiny_obj_loader/tiny_obj_loader.h"
+#include "tinyobjloader/tiny_obj_loader.h"
 
 // OpenGL includes.
 #include <glm/gtc/quaternion.hpp>

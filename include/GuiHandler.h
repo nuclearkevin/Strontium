@@ -2,9 +2,9 @@
 
 // Dear Imgui includes.
 #include "imgui/imgui.h"
-#include "imgui/imgui_impl_glfw.h"
-#include "imgui/imgui_impl_opengl3.h"
-#include "imgui/ImGuiFileBrowser.h"
+#include "imgui/backends/imgui_impl_glfw.h"
+#include "imgui/backends/imgui_impl_opengl3.h"
+#include "imguibrowser/FileBrowser/ImGuiFileBrowser.h"
 
 // Macro include file.
 #include "SciRenderIncludes.h"

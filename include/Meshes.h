@@ -9,7 +9,7 @@
 #include "Shaders.h"
 
 // Tiny object loader!
-#include "tiny_obj_loader/tiny_obj_loader.h"
+#include "tinyobjloader/tiny_obj_loader.h"
 
 namespace SciRenderer
 {

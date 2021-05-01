@@ -129,7 +129,9 @@ int main(int argc, char **argv)
 
 	// Initialize GLFW.
 	if (!glfwInit())
+	{
 		fprintf(stderr, "Can't initialize GLFW\n");
+	}
 
 	// Open the window using GLFW.
 	window = glfwCreateWindow(width, height, "Viewport", NULL, NULL);
@@ -139,12 +141,11 @@ int main(int argc, char **argv)
 		exit(EXIT_FAILURE);
 	}
 
-	// Initialize GLEW.
+	// Initialize GLAD using the GLFW instance.
 	glfwMakeContextCurrent(window);
-	GLenum error = glewInit();
-	if (error != GLEW_OK)
+	if (!gladLoadGLLoader((GLADloadproc) glfwGetProcAddress))
 	{
-		printf("Error starting GLEW: %s\n",glewGetErrorString(error));
+		std::cout << "Error initializing GLAD!" << std::endl;
 		exit(0);
 	}
 

@@ -2,8 +2,8 @@
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 
 // Image loading include.
-#include "stb_image/stb_image.h"
-#include "stb_image/stb_image_write.h"
+#include "stb/stb_image.h"
+#include "stb/stb_image_write.h"
 
 // Project includes.
 #include "Textures.h"
