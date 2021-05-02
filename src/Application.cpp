@@ -32,8 +32,6 @@ GuiHandler* 		 		 frontend;
 Renderer* 			 		 renderer = Renderer::getInstance();
 EnvironmentMap*      skybox;
 
-Shader* screenShader;
-
 void init()
 {
 	logs->init();
