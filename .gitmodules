@@ -7,12 +7,12 @@
 [submodule "vendor/imgui"]
 	path = vendor/imgui
 	url = https://github.com/ksawatzky777/imgui.git
-[submodule "vendor/tinyobjloader"]
-	path = vendor/tinyobjloader
-	url = https://github.com/tinyobjloader/tinyobjloader.git
-[submodule "vendor/stb"]
-	path = vendor/stb
-	url = https://github.com/nothings/stb.git
 [submodule "vendor/imguibrowser"]
 	path = vendor/imguibrowser
 	url = https://github.com/ksawatzky777/ImGui-Addons.git
+[submodule "vendor/stb"]
+	path = vendor/stb
+	url = https://github.com/nothings/stb.git
+[submodule "vendor/tinyobjloader"]
+	path = vendor/tinyobjloader
+	url = https://github.com/tinyobjloader/tinyobjloader.git
