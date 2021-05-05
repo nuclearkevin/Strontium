@@ -2,14 +2,15 @@
 #include "SciRenderIncludes.h"
 
 // Project includes.
-#include "Shaders.h"
-#include "Meshes.h"
-#include "Camera.h"
-#include "Renderer.h"
-#include "Lighting.h"
-#include "GuiHandler.h"
-#include "Textures.h"
-#include "Logs.h"
+#include "Core/Logs.h"
+#include "Graphics/Shaders.h"
+#include "Graphics/Meshes.h"
+#include "Graphics/Camera.h"
+#include "Graphics/Renderer.h"
+#include "Graphics/Lighting.h"
+#include "Graphics/GuiHandler.h"
+#include "Graphics/Textures.h"
+#include "Graphics/EnvironmentMap.h"
 
 using namespace SciRenderer;
 

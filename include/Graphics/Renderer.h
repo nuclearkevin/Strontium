@@ -5,10 +5,10 @@
 #include "SciRenderIncludes.h"
 
 // Project includes.
-#include "VertexArray.h"
-#include "Shaders.h"
-#include "Meshes.h"
-#include "Camera.h"
+#include "Graphics/VertexArray.h"
+#include "Graphics/Shaders.h"
+#include "Graphics/Meshes.h"
+#include "Graphics/Camera.h"
 
 namespace SciRenderer
 {

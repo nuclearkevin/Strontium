@@ -25,11 +25,8 @@ namespace SciRenderer
     ~VertexBuffer();
 
     // Bind/unbind the buffer.
-    void bind();
-    void unbind();
-
-    // Set the buffer data. TODO
-    void setData();
+    auto bind()   -> void;
+    auto unbind() -> void;
 
   protected:
     // OpenGL buffer ID.
@@ -55,14 +52,11 @@ namespace SciRenderer
     ~IndexBuffer();
 
     // Bind/unbind the buffer.
-    void bind();
-    void unbind();
-
-    // Set the buffer data. TODO
-    void setData();
+    auto bind()     -> void;
+    auto unbind()   -> void;
 
     // Getters.
-    unsigned getCount();
+    auto getCount() -> unsigned;
 
   protected:
     // OpenGL buffer ID.

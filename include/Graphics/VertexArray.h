@@ -5,7 +5,7 @@
 #include "SciRenderIncludes.h"
 
 // Project includes.
-#include "Buffers.h"
+#include "Graphics/Buffers.h"
 
 namespace SciRenderer
 {

@@ -5,8 +5,8 @@
 #include "SciRenderIncludes.h"
 
 // Project includes.
-#include "VertexArray.h"
-#include "Shaders.h"
+#include "Graphics/VertexArray.h"
+#include "Graphics/Shaders.h"
 
 // Tiny object loader!
 #include "tinyobjloader/tiny_obj_loader.h"

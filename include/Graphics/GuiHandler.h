@@ -10,9 +10,9 @@
 #include "SciRenderIncludes.h"
 
 // Project includes.
-#include "Lighting.h"
-#include "Buffers.h"
-#include "Camera.h"
+#include "Graphics/Lighting.h"
+#include "Graphics/Buffers.h"
+#include "Graphics/Camera.h"
 
 namespace SciRenderer
 {

@@ -49,20 +49,22 @@ namespace SciRenderer
     ~Logger() = default;
 
     // Get the logger instance.
-    static Logger* getInstance();
+    static auto getInstance()              -> Logger*;
 
     // Initialize the application logs.
-    void init();
+    auto init()                            -> void;
 
     // Add a message to the logger.
-    void logMessage(const LogMessage &msg);
+    auto logMessage(const LogMessage &msg) -> void;
 
-    // Fetches all the logged messages from the previous frame as a single
-    // string. This clears the log.
-    std::string getLastMessages();
+    // Fetches all the logged messages
+    // from the previous frame as a
+    // single string. This clears the log.
+    auto getLastMessages()                 -> std::string;
 
-    // Fetches all the global logs as a single string. This clears the log.
-    std::string getGlobalLogs();
+    // Fetches all the global logs as a
+    //single string. This clears the log.
+    auto getGlobalLogs()                   -> std::string;
 
   private:
     // Queue to store the logs from the previous frame.

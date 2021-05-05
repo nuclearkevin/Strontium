@@ -5,7 +5,7 @@
 #include "SciRenderIncludes.h"
 
 // Project includes.
-#include "InputItem.h"
+#include "Core/InputItem.h"
 
 namespace SciRenderer
 {
