@@ -1,7 +1,7 @@
 #pragma once
 
 // Macro include file.
-#include "SciRenderIncludes.h"
+#include "SciRenderPCH.h"
 
 namespace SciRenderer
 {

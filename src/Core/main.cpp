@@ -1,5 +1,5 @@
 // Include macro file.
-#include "SciRenderIncludes.h"
+#include "SciRenderPCH.h"
 
 // Project includes.
 #include "Core/Logs.h"
@@ -30,7 +30,7 @@ Shader* 				 		 vpPassthrough;
 VertexArray* 		 		 viewport;
 LightController* 		 lights;
 GuiHandler* 		 		 frontend;
-Renderer* 			 		 renderer = Renderer::getInstance();
+Renderer3D* 			 	 renderer = Renderer3D::getInstance();
 EnvironmentMap*      skybox;
 
 void init()
@@ -55,20 +55,11 @@ void init()
 	sceneCam = new Camera(width / 2, height / 2, glm::vec3 {0.0f, 1.0f, 4.0f}, EDITOR);
 	sceneCam->init(window, glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 30.0f));
 
-	// Initialize the skybox.
-	std::vector<std::string> cubeTex
-  {
-    "./res/textures/skybox/right.jpg",
-    "./res/textures/skybox/left.jpg",
-    "./res/textures/skybox/top.jpg",
-    "./res/textures/skybox/bottom.jpg",
-    "./res/textures/skybox/front.jpg",
-    "./res/textures/skybox/back.jpg"
-  };
-	skybox = new EnvironmentMap("./res/shaders/skybox.vs",
-													    "./res/shaders/skybox.fs",
+	// Initialize the PBR skybox.
+	skybox = new EnvironmentMap("./res/shaders/pbr/pbrSkybox.vs",
+													    "./res/shaders/pbr/pbrSkybox.fs",
 															"./res/models/cube.obj");
-	skybox->loadCubeMap(cubeTex, SKYBOX);
+	skybox->loadEquirectangularMap("./res/textures/hdr_environments/Factory_Catwalk_2k.hdr", {}, true, 2048, 2048);
 
 	// Setup a basic uniform light field.
 	UniformLight light1;
@@ -133,11 +124,11 @@ int main(int argc, char **argv)
 	}
 
 	// Open the window using GLFW.
-	window = glfwCreateWindow(width, height, "Viewport", NULL, NULL);
+	window = glfwCreateWindow(width, height, "Editor Window", NULL, NULL);
 	if (!window)
 	{
 		glfwTerminate();
-		exit(EXIT_FAILURE);
+		return -1;
 	}
 
 	// Initialize GLAD using the GLFW instance.
@@ -171,7 +162,7 @@ int main(int argc, char **argv)
 
 		display();
 
-		frontend->drawGUI(drawBuffer, sceneCam, window);
+		frontend->drawGUI(drawBuffer, sceneCam, skybox, window);
 		renderer->swap(window);
 	}
 

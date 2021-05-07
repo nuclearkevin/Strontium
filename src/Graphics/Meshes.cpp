@@ -1,9 +1,6 @@
 //Header includes.
 #include "Graphics/Meshes.h"
 
-#define TINYOBJLOADER_IMPLEMENTATION
-#include "tinyobjloader/tiny_obj_loader.h"
-
 // OpenGL includes.
 #include "glm/gtc/quaternion.hpp"
 #include "glm/gtx/quaternion.hpp"

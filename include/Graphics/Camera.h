@@ -2,7 +2,7 @@
 #pragma once
 
 // Macro include file.
-#include "SciRenderIncludes.h"
+#include "SciRenderPCH.h"
 
 // Project includes.
 #include "Core/InputItem.h"

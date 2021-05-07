@@ -40,7 +40,7 @@ namespace SciRenderer
 
   void
   GuiHandler::drawGUI(FrameBuffer* frontBuffer, Camera* editorCamera,
-                      GLFWwindow* window)
+                      EnvironmentMap* environment, GLFWwindow* window)
   {
     // Fetch the singleton logger.
     Logger* logs = Logger::getInstance();
@@ -121,7 +121,8 @@ namespace SciRenderer
       }
       if (ImGui::CollapsingHeader("Environment Maps"))
       {
-
+        ImGui::SliderFloat("Gamma", &environment->getGamma(), 1.0f, 5.0f);
+        ImGui::SliderFloat3("Exposure", &(environment->getExposure().r), 1.0f, 5.0f);
       }
     }
   	ImGui::End();

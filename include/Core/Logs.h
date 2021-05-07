@@ -2,7 +2,7 @@
 #pragma once
 
 // Macro include file.
-#include "SciRenderIncludes.h"
+#include "SciRenderPCH.h"
 
 // Data structures for logging.
 #include <queue>
@@ -22,21 +22,21 @@ namespace SciRenderer
       , logTime(true)
       , addToGlobal(false)
       , consoleOutput(false)
-    {};
+    { };
 
     LogMessage(std::string msg)
       : message(msg)
       , logTime(true)
       , addToGlobal(false)
       , consoleOutput(false)
-    {};
+    { };
 
     LogMessage(std::string msg, bool logTime, bool global, bool console)
       : message(msg)
       , logTime(logTime)
       , addToGlobal(global)
       , consoleOutput(console)
-    {};
+    { };
   };
 
   // Singleton application logging class.

@@ -2,7 +2,7 @@
 #pragma once
 
 // Macro include file.
-#include "SciRenderIncludes.h"
+#include "SciRenderPCH.h"
 
 // Project includes.
 #include "Graphics/VertexArray.h"
@@ -12,21 +12,21 @@
 
 namespace SciRenderer
 {
-  // Singleton rendering class.
-  class Renderer
+  // Singleton 3D rendering class.
+  class Renderer3D
   {
   public:
     // Renderer instance.
-    static Renderer* instance;
+    static Renderer3D* instance;
 
     // Destructor.
-    ~Renderer();
+    ~Renderer3D();
 
     // Get the renderer instance.
-    static Renderer* getInstance();
+    static Renderer3D* getInstance();
 
     // Init the renderer object for drawing.
-    void init(const char* vertPath, const char* fragPath);
+    void init(const std::string &vertPath, const std::string &fragPath);
 
     // Draw the data given.
     void draw(VertexArray* data, Shader* program);

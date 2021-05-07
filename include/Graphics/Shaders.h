@@ -5,7 +5,7 @@
 #pragma once
 
 // Macro include file.
-#include "SciRenderIncludes.h"
+#include "SciRenderPCH.h"
 
 namespace SciRenderer
 {
@@ -15,7 +15,7 @@ namespace SciRenderer
   {
   public:
     // Constructor and destructor.
-    Shader(const char* vertPath, const char* fragPath);
+    Shader(const std::string &vertPath, const std::string &fragPath);
     ~Shader();
 
     // Forward declaration of the shader parser/compiler function.

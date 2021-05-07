@@ -1,7 +1,7 @@
 #pragma once
 
 // Macro include file.
-#include "SciRenderIncludes.h"
+#include "SciRenderPCH.h"
 
 // Project includes.
 #include "Graphics/Meshes.h"
@@ -15,6 +15,58 @@
 
 namespace SciRenderer
 {
+  // Parameters for textures.
+  enum class TextureWrapParams
+  {
+    ClampEdges = GL_CLAMP_TO_EDGE, ClampBorder = GL_CLAMP_TO_BORDER,
+    MirroredRepeat =  GL_MIRRORED_REPEAT, Repeat = GL_REPEAT,
+    MirrorClampEdges =  GL_MIRROR_CLAMP_TO_EDGE
+  };
+  enum class TextureMinFilterParams
+  {
+    Nearest = GL_NEAREST, Linear = GL_LINEAR,
+    NearestMipMapNearest = GL_NEAREST_MIPMAP_NEAREST,
+    LinearMipMapNearest = GL_LINEAR_MIPMAP_NEAREST,
+    LinearMipMapLinear = GL_LINEAR_MIPMAP_LINEAR
+  };
+  enum class TextureMaxFilterParams
+  {
+    Nearest = GL_NEAREST, Linear = GL_LINEAR
+  };
+
+  // Parameters for loading textures.
+  struct Texture2DParams
+  {
+    TextureWrapParams      sWrap;
+    TextureWrapParams      tWrap;
+    TextureMinFilterParams minFilter;
+    TextureMaxFilterParams maxFilter;
+
+    Texture2DParams()
+      : sWrap(TextureWrapParams::Repeat)
+      , tWrap(TextureWrapParams::Repeat)
+      , minFilter(TextureMinFilterParams::Linear)
+      , maxFilter(TextureMaxFilterParams::Linear)
+      { };
+  };
+
+  struct TextureCubeMapParams
+  {
+    TextureWrapParams      sWrap;
+    TextureWrapParams      tWrap;
+    TextureWrapParams      rWrap;
+    TextureMinFilterParams minFilter;
+    TextureMaxFilterParams maxFilter;
+
+    TextureCubeMapParams()
+      : sWrap(TextureWrapParams::ClampEdges)
+      , tWrap(TextureWrapParams::ClampEdges)
+      , rWrap(TextureWrapParams::ClampEdges)
+      , minFilter(TextureMinFilterParams::Linear)
+      , maxFilter(TextureMaxFilterParams::Linear)
+      { };
+  };
+
   // Struct to store texture information.
   struct Texture2D
   {
@@ -23,8 +75,6 @@ namespace SciRenderer
     int height;
     int n;
   };
-
-  enum MapType { SKYBOX, IRRADIANCE, PREFILTER, INTEGRATION };
 
   // Struct to store a cube map.
   struct CubeMap
@@ -42,7 +92,9 @@ namespace SciRenderer
     ~Texture2DController();
 
     // Load a texture from a file into the texture handler.
-    void loadFomFile(const char* filepath, const std::string &texName);
+    void loadFomFile(const std::string &filepath, const std::string &texName,
+                     Texture2DParams params = Texture2DParams(),
+                     bool isHDR = false);
 
     // Deletes a texture given its name.
     void deleteTexture(const std::string &texName);
@@ -62,6 +114,34 @@ namespace SciRenderer
     std::vector<std::string>                    texNames;
   };
 
-  void writeTexture(Texture2D* outTex);
-  void writeTexture(CubeMap* outTex);
+  namespace Textures
+  {
+    // Read textures from disk.
+    Texture2D* loadTexture2D(const std::string &filepath,
+                             Texture2DParams params = Texture2DParams(),
+                             bool isHDR = false);
+    CubeMap* loadTextureCubeMap(const std::vector<std::string> &filenames,
+                                const TextureCubeMapParams &params = TextureCubeMapParams(),
+                                const bool &isHDR = false);
+
+    // Write textures to disk.
+    void writeTexture2D(Texture2D* outTex);
+    void writeTextureCubeMap(CubeMap* outTex);
+
+    // Delete a texture and set the raw pointer to nullptr;
+    void deleteTexture(Texture2D* tex);
+    void deleteTexture(CubeMap* tex);
+
+    // Bind a texture.
+    void bindTexture(Texture2D* tex);
+    void bindTexture(CubeMap* tex);
+
+    // Bind a texture to a specific binding point.
+    void bindTexture(Texture2D* tex, GLuint bindPoint);
+    void bindTexture(CubeMap* tex, GLuint bindPoint);
+
+    // Unbind a texture.
+    void unbindTexture2D();
+    void unbindCubeMap();
+  }
 }

@@ -1,7 +1,7 @@
 #pragma once
 
 // Macro include file.
-#include "SciRenderIncludes.h"
+#include "SciRenderPCH.h"
 
 // Project includes.
 #include "Graphics/Shaders.h"
@@ -111,7 +111,7 @@ namespace SciRenderer
   class LightController
   {
   public:
-    LightController(const char* vertPath, const char* fragPath,
+    LightController(const std::string &vertPath, const std::string &fragPath,
                     const char* lightMeshPath);
     ~LightController();
 

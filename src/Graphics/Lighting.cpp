@@ -2,7 +2,8 @@
 
 namespace SciRenderer
 {
-  LightController::LightController(const char* vertPath, const char* fragPath,
+  LightController::LightController(const std::string &vertPath,
+                                   const std::string &fragPath,
                                    const char* lightMeshPath)
     : ambient(glm::vec3(1.0f, 1.0f, 1.0f))
     , uLightCounter(0)
@@ -11,6 +12,7 @@ namespace SciRenderer
   {
     // Generate the light shader.
     this->lightProgram = new Shader(vertPath, fragPath);
+
     // Load the light mesh.
     this->lightMesh = new Mesh();
     this->lightMesh->loadOBJFile(lightMeshPath, false);
@@ -186,7 +188,7 @@ namespace SciRenderer
   void
   LightController::drawLightMeshes(Camera* camera)
   {
-    Renderer* renderer = Renderer::getInstance();
+    Renderer3D* renderer = Renderer3D::getInstance();
 
     // Draw the point light meshes.
     for (unsigned i = 0; i < this->pointLights.size(); i++)

@@ -1,19 +1,16 @@
 // This file contains some shader code developed by Dr. Mark Green at OTU. It
 // has been heavily modified to support OpenGL abstraction.
 
-// Macro include file.
-#include "SciRenderIncludes.h"
-
 // Header include.
 #include "Graphics/Shaders.h"
 
 namespace SciRenderer
 {
 	// Constructor and destructor.
-	Shader::Shader(const char* vertPath, const char* fragPath)
+	Shader::Shader(const std::string &vertPath, const std::string &fragPath)
 	{
-		this->buildShader(GL_VERTEX_SHADER, vertPath);
-		this->buildShader(GL_FRAGMENT_SHADER, fragPath);
+		this->buildShader(GL_VERTEX_SHADER, vertPath.c_str());
+		this->buildShader(GL_FRAGMENT_SHADER, fragPath.c_str());
 		this->buildProgram(this->vertID, this->fragID, 0);
 		glUseProgram(this->progID);
 	}
@@ -50,7 +47,7 @@ namespace SciRenderer
 		if (source == 0)
 			return;
 
-		glShaderSource(shaderID, 1, (const  GLchar **) &source, 0);
+		glShaderSource(shaderID, 1, (const  GLchar**) &source, 0);
 		glCompileShader(shaderID);
 		glGetShaderiv(shaderID, GL_COMPILE_STATUS, &result);
 		if (result != GL_TRUE)
@@ -267,6 +264,7 @@ namespace SciRenderer
 		}
 	}
 
+  // Read in the shader source code.
 	char*
 	Shader::readShaderFile(const char* filename)
 	{

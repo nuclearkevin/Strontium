@@ -7,12 +7,13 @@
 #include "imguibrowser/FileBrowser/ImGuiFileBrowser.h"
 
 // Macro include file.
-#include "SciRenderIncludes.h"
+#include "SciRenderPCH.h"
 
 // Project includes.
 #include "Graphics/Lighting.h"
 #include "Graphics/Buffers.h"
 #include "Graphics/Camera.h"
+#include "Graphics/EnvironmentMap.h"
 
 namespace SciRenderer
 {
@@ -25,7 +26,8 @@ namespace SciRenderer
     void init(GLFWwindow *window);
     void shutDown();
 
-    void drawGUI(FrameBuffer* frontBuffer, Camera* editorCamera, GLFWwindow* window);
+    void drawGUI(FrameBuffer* frontBuffer, Camera* editorCamera,
+                 EnvironmentMap* environment, GLFWwindow* window);
   private:
     // Window flags for the various GUI elements.
     const ImGuiWindowFlags sidebarFlags = ImGuiWindowFlags_NoCollapse |

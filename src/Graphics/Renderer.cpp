@@ -2,22 +2,22 @@
 
 namespace SciRenderer
 {
-  Renderer* Renderer::instance = nullptr;
+  Renderer3D* Renderer3D::instance = nullptr;
 
   // Get the renderer instance.
-  Renderer*
-  Renderer::getInstance()
+  Renderer3D*
+  Renderer3D::getInstance()
   {
     if (instance == nullptr)
     {
-      instance = new Renderer();
+      instance = new Renderer3D();
       return instance;
     }
     else
       return instance;
   }
 
-  Renderer::~Renderer()
+  Renderer3D::~Renderer3D()
   {
     glDeleteBuffers(1, &this->viewportVBOID);
     glDeleteVertexArrays(1, &this->viewportVAOID);
@@ -26,7 +26,7 @@ namespace SciRenderer
 
   // Initialize the renderer.
   void
-  Renderer::init(const char* vertPath, const char* fragPath)
+  Renderer3D::init(const std::string &vertPath, const std::string &fragPath)
   {
     // Initialize OpenGL parameters.
     glEnable(GL_DEPTH_TEST);
@@ -53,7 +53,7 @@ namespace SciRenderer
 
   // Draw the data to the screen.
   void
-  Renderer::draw(VertexArray* data, Shader* program)
+  Renderer3D::draw(VertexArray* data, Shader* program)
   {
     data->bind();
     program->bind();
@@ -65,7 +65,7 @@ namespace SciRenderer
   }
 
   void
-  Renderer::draw(Mesh* data, Shader* program, Camera* camera)
+  Renderer3D::draw(Mesh* data, Shader* program, Camera* camera)
   {
     program->bind();
     glm::mat4 model = data->getModelMatrix();
@@ -88,7 +88,7 @@ namespace SciRenderer
 
   // Draw the contents of a framebuffer to the default buffer.
   void
-  Renderer::drawToViewPort(FrameBuffer* drawBuffer)
+  Renderer3D::drawToViewPort(FrameBuffer* drawBuffer)
   {
     drawBuffer->unbind();
     glDisable(GL_DEPTH_TEST);
@@ -110,7 +110,7 @@ namespace SciRenderer
   // Draws a full screen quad with a given program using whatever buffer is
   // currently bound.
   void
-  Renderer::drawFSQ(Shader* program)
+  Renderer3D::drawFSQ(Shader* program)
   {
     program->bind();
     glBindVertexArray(this->viewportVAOID);
@@ -121,7 +121,7 @@ namespace SciRenderer
 
   // Draw a texture to the default buffer.
   void
-  Renderer::debugDrawTex(GLuint texID)
+  Renderer3D::debugDrawTex(GLuint texID)
   {
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glDisable(GL_DEPTH_TEST);
@@ -141,7 +141,7 @@ namespace SciRenderer
   }
 
   void
-  Renderer::swap(GLFWwindow* window)
+  Renderer3D::swap(GLFWwindow* window)
   {
     glfwSwapBuffers(window);
   }
