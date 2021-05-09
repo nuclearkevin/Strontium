@@ -146,8 +146,8 @@ namespace SciRenderer
       return;
     this->vArray = new VertexArray(&(this->data[0]),
                                    this->data.size() * sizeof(Vertex),
-                                   DYNAMIC);
-    this->vArray->addIndexBuffer(&(this->indices[0]), this->indices.size(), DYNAMIC);
+                                   BufferType::Dynamic);
+    this->vArray->addIndexBuffer(&(this->indices[0]), this->indices.size(), BufferType::Dynamic);
 
   	program->addAtribute("vPosition", VEC4, GL_FALSE, sizeof(Vertex), 0);
   	program->addAtribute("vNormal", VEC3, GL_FALSE, sizeof(Vertex), offsetof(Vertex, normal));

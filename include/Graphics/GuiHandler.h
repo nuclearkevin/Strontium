@@ -14,6 +14,7 @@
 #include "Graphics/Buffers.h"
 #include "Graphics/Camera.h"
 #include "Graphics/EnvironmentMap.h"
+#include "Graphics/FrameBuffer.h"
 
 namespace SciRenderer
 {

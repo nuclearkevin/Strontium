@@ -55,16 +55,17 @@ namespace SciRenderer
 
     // Getters.
     inline GLfloat& getGamma() { return this->gamma; }
-    inline glm::vec3& getExposure() { return this->exposure; }
-    
+    inline GLfloat& getExposure() { return this->exposure; }
+
   protected:
+    Texture2D* erMap;
     CubeMap*   skybox;
     CubeMap*   irradiance;
     CubeMap*   specPrefilter;
     Texture2D* brdfIntMap;
 
     // Tone-mapped parameters.
-    glm::vec3 exposure;
+    GLfloat   exposure;
     GLfloat   gamma;
 
     Shader*  cubeShader;

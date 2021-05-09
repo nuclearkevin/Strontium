@@ -9,11 +9,11 @@
 namespace SciRenderer
 {
   //----------------------------------------------------------------------------
-  // 2D texture controller here.
+  // 2D texture controller.
   //----------------------------------------------------------------------------
-  // Frees all the textures from GPU memory when deleted.
   Texture2DController::~Texture2DController()
   {
+    // Frees all the textures from GPU memory when deleted.
     for (auto& name : this->texNames)
     {
       Texture2D* temp = this->textures[name];

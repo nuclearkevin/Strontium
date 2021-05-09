@@ -9,6 +9,7 @@
 #include "Graphics/Shaders.h"
 #include "Graphics/Meshes.h"
 #include "Graphics/Camera.h"
+#include "Graphics/FrameBuffer.h"
 
 namespace SciRenderer
 {

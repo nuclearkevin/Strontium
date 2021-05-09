@@ -11,6 +11,7 @@
 #include "Graphics/GuiHandler.h"
 #include "Graphics/Textures.h"
 #include "Graphics/EnvironmentMap.h"
+#include "Graphics/FrameBuffer.h"
 
 using namespace SciRenderer;
 
@@ -38,8 +39,9 @@ void init()
 	logs->init();
 	// Initialize the framebuffer for drawing.
 	drawBuffer = new FrameBuffer(width, height);
-	drawBuffer->generateColourTexture2D();
-	drawBuffer->generateRenderBuffer();
+	drawBuffer->attachTexture2D(FrameBufferCommands::getDefaultColourSpec(FBOTargetParam::Colour0));
+	//drawBuffer->attachTexture2D();
+	drawBuffer->attachRenderBuffer();
 
 	// Initialize the renderer.
 	renderer->init("./res/shaders/viewport.vs", "./res/shaders/viewport.fs");
@@ -59,7 +61,6 @@ void init()
 	skybox = new EnvironmentMap("./res/shaders/pbr/pbrSkybox.vs",
 													    "./res/shaders/pbr/pbrSkybox.fs",
 															"./res/models/cube.obj");
-	skybox->loadEquirectangularMap("./res/textures/hdr_environments/Factory_Catwalk_2k.hdr", {}, true, 2048, 2048);
 
 	// Setup a basic uniform light field.
 	UniformLight light1;

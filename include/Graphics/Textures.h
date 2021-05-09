@@ -3,19 +3,29 @@
 // Macro include file.
 #include "SciRenderPCH.h"
 
-// Project includes.
-#include "Graphics/Meshes.h"
-#include "Graphics/Shaders.h"
-#include "Graphics/Renderer.h"
-#include "Graphics/Camera.h"
-#include "Graphics/Buffers.h"
-
 // STL includes.
 #include <unordered_map>
 
 namespace SciRenderer
 {
   // Parameters for textures.
+  enum class TextureInternalFormats
+  {
+    Depth = GL_DEPTH_COMPONENT, DepthStencil = GL_DEPTH_STENCIL,
+    Depth24Stencil8 = GL_DEPTH24_STENCIL8, Red = GL_RED, RG = GL_RG,
+    RGB = GL_RGB, RGBA = GL_RGBA, R16F = GL_R16F, RG16f = GL_RG16F,
+    RGB16f = GL_RGB16F
+  };
+  enum class TextureFormats
+  {
+    Depth = GL_DEPTH_COMPONENT, DepthStencil = GL_DEPTH_STENCIL, Red = GL_RED,
+    RG = GL_RG, RGB = GL_RGB, RGBA = GL_RGBA
+  };
+  enum class TextureDataType
+  {
+    Bytes = GL_UNSIGNED_BYTE, Floats = GL_FLOAT,
+    UInt24UInt8 = GL_UNSIGNED_INT_24_8
+  };
   enum class TextureWrapParams
   {
     ClampEdges = GL_CLAMP_TO_EDGE, ClampBorder = GL_CLAMP_TO_BORDER,
@@ -47,7 +57,7 @@ namespace SciRenderer
       , tWrap(TextureWrapParams::Repeat)
       , minFilter(TextureMinFilterParams::Linear)
       , maxFilter(TextureMaxFilterParams::Linear)
-      { };
+    { };
   };
 
   struct TextureCubeMapParams
@@ -64,7 +74,7 @@ namespace SciRenderer
       , rWrap(TextureWrapParams::ClampEdges)
       , minFilter(TextureMinFilterParams::Linear)
       , maxFilter(TextureMaxFilterParams::Linear)
-      { };
+    { };
   };
 
   // Struct to store texture information.
@@ -85,6 +95,9 @@ namespace SciRenderer
     int n[6];
   };
 
+  //----------------------------------------------------------------------------
+  // 2D texture controller.
+  //----------------------------------------------------------------------------
   class Texture2DController
   {
   public:
@@ -114,6 +127,10 @@ namespace SciRenderer
     std::vector<std::string>                    texNames;
   };
 
+  //----------------------------------------------------------------------------
+  // Misc. functions for texture manipulation. Wrapped in the Textures
+  // namespace.
+  //----------------------------------------------------------------------------
   namespace Textures
   {
     // Read textures from disk.

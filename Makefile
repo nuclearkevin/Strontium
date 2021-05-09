@@ -26,7 +26,7 @@ makebuild: make_dir Application
 
 # Link everything together.
 Application: $(CORE_OBJECTS) $(GRAPHICS_OBJECTS) $(UTILS_OBJECTS) $(GLAD_OBJECTS) \
-	 $(IMGUI_FB_OBJECTS) $(IMGUI_OBJECTS)
+	$(IMGUI_FB_OBJECTS) $(IMGUI_OBJECTS)
 	@echo Linking the application.
 	@$(COMPILE_FLAGS) $^ -o $@ -ldl -lglfw
 

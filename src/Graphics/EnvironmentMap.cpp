@@ -7,17 +7,19 @@
 // Project includes.
 #include "Core/Logs.h"
 #include "Graphics/Buffers.h"
+#include "Graphics/FrameBuffer.h"
 
 namespace SciRenderer
 {
   EnvironmentMap::EnvironmentMap(const char* vertPath, const char* fragPath,
                                  const char* cubeMeshPath)
-    : skybox(nullptr)
+    : erMap(nullptr)
+    , skybox(nullptr)
     , irradiance(nullptr)
     , specPrefilter(nullptr)
     , brdfIntMap(nullptr)
     , gamma(2.2f)
-    , exposure(glm::vec3(1.0f))
+    , exposure(1.0f)
   {
     this->cubeShader = new Shader(vertPath, fragPath);
     this->cube = new Mesh();
@@ -26,6 +28,8 @@ namespace SciRenderer
 
   EnvironmentMap::~EnvironmentMap()
   {
+    if (this->erMap != nullptr)
+      Textures::deleteTexture(this->erMap);
     if (this->skybox != nullptr)
       Textures::deleteTexture(this->skybox);
     if (this->irradiance != nullptr)
@@ -65,7 +69,7 @@ namespace SciRenderer
     Logger* logs = Logger::getInstance();
 
     // If we already have a cubemap of a given type, don't load another.
-    if (this->skybox != nullptr)
+    if (this->skybox != nullptr && this->erMap != nullptr)
     {
       logs->logMessage(LogMessage("This environment map already has a skybox "
                                   "cubemap.", true, false, true));
@@ -76,7 +80,7 @@ namespace SciRenderer
 
     Renderer3D* renderer = Renderer3D::getInstance();
 
-    Texture2D* equirectangularMap = Textures::loadTexture2D(filepath, params, isHDR);
+    this->erMap = Textures::loadTexture2D(filepath, params, isHDR);
 
     // The framebuffer and renderbuffer for drawing the skybox to.
     GLuint equiFBO, equiRBO;
@@ -142,7 +146,7 @@ namespace SciRenderer
                                   "./res/shaders/pbr/equiconv.fs");
 
     eqToCube->addUniformSampler2D("equirectangularMap", 0);
-    Textures::bindTexture(equirectangularMap, 0);
+    Textures::bindTexture(this->erMap, 0);
 
     glViewport(0, 0, width, height);
 
@@ -189,9 +193,6 @@ namespace SciRenderer
     logs->logMessage(LogMessage("Converted the equirectangular map to a cubemap"
                                 " (elapsed time: " + std::to_string(elapsed.count())
                                 + " s).", true, false, true));
-
-    // Free memory.
-    Textures::deleteTexture(equirectangularMap);
   }
 
   // Bind/unbind a specific cubemap.
@@ -271,7 +272,7 @@ namespace SciRenderer
     this->cubeShader->addUniformMatrix("vP", vP, GL_FALSE);
     this->cubeShader->addUniformSampler2D("skybox", 0);
     this->cubeShader->addUniformFloat("gamma", this->gamma);
-    this->cubeShader->addUniformVector("exposure", this->exposure);
+    this->cubeShader->addUniformFloat("exposure", this->exposure);
     this->bindToPoint(MapType::SKYBOX, 0);
 
     if (this->cube->hasVAO())

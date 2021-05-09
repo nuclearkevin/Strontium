@@ -19,11 +19,11 @@ namespace SciRenderer
     this->lightMesh->generateVAO(this->lightProgram);
 
     // Generate 3 uniform buffers for the lights.
-    this->ulightBuffer = new UniformBuffer(8 * sizeof(ShaderUL), STATIC);
+    this->ulightBuffer = new UniformBuffer(8 * sizeof(ShaderUL), BufferType::Static);
     this->ulightBuffer->bindToPoint(1);
-    this->plightBuffer = new UniformBuffer(8 * sizeof(ShaderPL), STATIC);
+    this->plightBuffer = new UniformBuffer(8 * sizeof(ShaderPL), BufferType::Static);
     this->plightBuffer->bindToPoint(2);
-    this->slightBuffer = new UniformBuffer(8 * sizeof(ShaderSL), STATIC);
+    this->slightBuffer = new UniformBuffer(8 * sizeof(ShaderSL), BufferType::Static);
     this->slightBuffer->bindToPoint(3);
   }
 

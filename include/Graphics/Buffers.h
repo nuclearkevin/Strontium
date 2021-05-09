@@ -6,16 +6,12 @@
 
 namespace SciRenderer
 {
-  // Struct for framebuffer attachments.
-  struct FBOAttach
-  {
-    GLuint id;
-  };
-
   // Draw types.
-  enum BufferType {STATIC = GL_STATIC_DRAW, DYNAMIC = GL_DYNAMIC_DRAW};
+  enum class BufferType {Static = GL_STATIC_DRAW, Dynamic = GL_DYNAMIC_DRAW};
 
-  // Vertex buffer class.
+  //----------------------------------------------------------------------------
+  // Vertex buffer here.
+  //----------------------------------------------------------------------------
   class VertexBuffer
   {
   public:
@@ -28,6 +24,7 @@ namespace SciRenderer
     auto bind()   -> void;
     auto unbind() -> void;
 
+    inline GLuint getID() { return this->bufferID; }
   protected:
     // OpenGL buffer ID.
     GLuint      bufferID;
@@ -43,7 +40,9 @@ namespace SciRenderer
     unsigned    dataSize;
   };
 
-  // Index buffer class.
+  //----------------------------------------------------------------------------
+  // Index buffer here.
+  //----------------------------------------------------------------------------
   class IndexBuffer
   {
   public:
@@ -58,6 +57,7 @@ namespace SciRenderer
     // Getters.
     auto getCount() -> unsigned;
 
+    inline GLuint getID() { return this->bufferID; }
   protected:
     // OpenGL buffer ID.
     GLuint        bufferID;
@@ -73,65 +73,9 @@ namespace SciRenderer
     unsigned      count;
   };
 
-  // Frame buffer class.
-  class FrameBuffer
-  {
-  public:
-    // A constructor to generate a framebuffer at a particular location or any
-    // location.
-    FrameBuffer(GLuint width, GLuint height);
-    FrameBuffer(GLuint bufferLocation, GLuint width, GLuint height);
-    ~FrameBuffer();
-
-    // Bind and unbind the framebuffer. Have to unbind before rendering to the
-    // default buffer.
-    void bind();
-    void unbind();
-
-    // Methods for texture/buffer generation and attachment.
-    void generateColourTexture2D();
-    void generateDepthTexture2D();
-    void generateRenderBuffer();
-
-    // Methods for texture attachment.
-    void attachColourTexture2D(GLuint textureID, GLuint width, GLuint height);
-    void attachDepthTexture2D(GLuint textureID, GLuint width, GLuint height);
-    void attachRenderBuffer(GLuint bufferID, GLuint width, GLuint height);
-
-    // Update the framebuffer size.
-    void resize(GLuint width, GLuint height);
-
-    // Get the size of the framebuffer.
-    void setViewport();
-
-    // Get the IDs of the attachments.
-    GLuint getColourID();
-    GLuint getDepthID();
-
-    // Get the size of the framebuffer.
-    void getSize(GLuint &outWidth, GLuint &outHeight);
-
-    // Clear the buffer.
-    void clear();
-
-    // Check if the framebuffer is valid.
-    bool isValid();
-
-  protected:
-    GLuint       bufferID;
-    FBOAttach*   colourAttach;
-    FBOAttach*   depthAttach;
-
-    GLuint       width, height;
-
-    bool         hasRenderBuffer;
-
-    GLbitfield   clearFlags;
-
-    glm::vec4    clearColour;
-  };
-
-  // Uniform Buffer Class.
+  //----------------------------------------------------------------------------
+  // Uniform buffer here.
+  //----------------------------------------------------------------------------
   class UniformBuffer
   {
   public:
@@ -149,6 +93,7 @@ namespace SciRenderer
     // Set a specific part of the buffer data.
     void setData(GLuint start, GLuint newDataSize, const void* newData);
 
+    inline GLuint getID() { return this->bufferID; }
   protected:
     // OpenGL buffer ID.
     GLuint      bufferID;
@@ -161,5 +106,35 @@ namespace SciRenderer
 
     // The data currently in the buffer.
     unsigned    dataSize;
+  };
+
+  //----------------------------------------------------------------------------
+  // Render buffer here.
+  //----------------------------------------------------------------------------
+  enum class RBOInternalFormat
+  {
+    Depth = GL_DEPTH_COMPONENT24,
+    Stencil = GL_STENCIL_INDEX8,
+    DepthStencil = GL_DEPTH24_STENCIL8
+  };
+
+  class RenderBuffer
+  {
+  public:
+    // Default constructor generates a generic render buffer with just a depth
+    // attachment.
+    RenderBuffer(GLuint width, GLuint height);
+    RenderBuffer(GLuint width, GLuint height, const RBOInternalFormat &format);
+    ~RenderBuffer();
+
+    void bind();
+    void unbind();
+
+    inline GLuint getID() { return this->bufferID; }
+    inline RBOInternalFormat getFormat() { return this->format; }
+  protected:
+    GLuint bufferID;
+
+    RBOInternalFormat format;
   };
 }

@@ -53,6 +53,7 @@ namespace SciRenderer
     ImVec2 wSize = ImGui::GetIO().DisplaySize;
 
     bool openObjMenu = false;
+    bool openEnvironment = false;
 
   	if (ImGui::BeginMainMenuBar())
   	{
@@ -89,7 +90,7 @@ namespace SciRenderer
       ImGui::BeginChild("EditorRender");
         {
           ImVec2 editorSize = ImGui::GetWindowSize();
-          ImGui::Image((ImTextureID) frontBuffer->getColourID(), editorSize,
+          ImGui::Image((ImTextureID) frontBuffer->getAttachID(FBOTargetParam::Colour0), editorSize,
                        ImVec2(0, 1), ImVec2(1, 0));
         }
       ImGui::EndChild();
@@ -121,8 +122,11 @@ namespace SciRenderer
       }
       if (ImGui::CollapsingHeader("Environment Maps"))
       {
+        if (ImGui::Button("Load Environment Map"))
+          openEnvironment = true;
+
         ImGui::SliderFloat("Gamma", &environment->getGamma(), 1.0f, 5.0f);
-        ImGui::SliderFloat3("Exposure", &(environment->getExposure().r), 1.0f, 5.0f);
+        ImGui::SliderFloat("Exposure", &environment->getExposure(), 1.0f, 5.0f);
       }
     }
   	ImGui::End();
@@ -147,13 +151,22 @@ namespace SciRenderer
     }
     ImGui::End();
 
+    if (openEnvironment)
+      ImGui::OpenPopup("Load Environment Map");
+
+    if (this->fileHandler.showFileDialog("Load Environment Map",
+        imgui_addons::ImGuiFileBrowser::DialogMode::OPEN, ImVec2(700, 310)))
+    {
+      std::cout << this->fileHandler.selected_fn << std::endl;
+      environment->loadEquirectangularMap(this->fileHandler.selected_path);
+    }
+
     if (openObjMenu)
       ImGui::OpenPopup("Load Obj File");
 
     if (this->fileHandler.showFileDialog("Load Obj File",
         imgui_addons::ImGuiFileBrowser::DialogMode::OPEN, ImVec2(700, 310)))
     {
-      std::cout << this->fileHandler.selected_fn << std::endl;
       std::cout << this->fileHandler.selected_path << std::endl;
     }
 
