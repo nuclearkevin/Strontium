@@ -41,7 +41,7 @@ namespace SciRenderer
     ~Mesh() = default;
 
     // Load data from a file.
-    void loadOBJFile(const char* filepath, bool computeTBN);
+    void loadOBJFile(const char* filepath, bool computeTBN = true);
     // Generate/delete the vertex array object.
     void generateVAO(Shader* program);
     void deleteVAO();

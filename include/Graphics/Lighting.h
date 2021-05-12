@@ -21,6 +21,13 @@ namespace SciRenderer
     glm::vec4 specular;
     glm::vec2 attenuation;
     GLfloat   shininess;
+
+    LightMaterial()
+      : diffuse(glm::vec4(0.0f))
+      , specular(glm::vec4(0.0f))
+      , attenuation(glm::vec2(0.0f))
+      , shininess(1.0f)
+    { }
   };
 
   struct UniformLight
@@ -34,6 +41,13 @@ namespace SciRenderer
 
     std::string   name;
     GLuint        lightID;
+
+    UniformLight()
+      : colour(glm::vec3(0.0f))
+      , direction(glm::vec3(0.0f))
+      , intensity(0.0f)
+      , mat(LightMaterial())
+    { }
   };
 
   struct PointLight
@@ -48,6 +62,14 @@ namespace SciRenderer
 
     std::string   name;
     GLuint        lightID;
+
+    PointLight()
+      : colour(glm::vec3(0.0f))
+      , position(glm::vec3(0.0f))
+      , intensity(0.0f)
+      , meshScale(0.1f)
+      , mat(LightMaterial())
+    { }
   };
 
   struct SpotLight
@@ -65,6 +87,16 @@ namespace SciRenderer
 
     std::string   name;
     GLuint        lightID;
+
+    SpotLight()
+      : colour(glm::vec3(0.0f))
+      , position(glm::vec3(0.0f))
+      , intensity(0.0f)
+      , innerCutOff(0.0f)
+      , outerCutOff(0.0f)
+      , meshScale(0.1f)
+      , mat(LightMaterial())
+    { }
   };
 
   // Structs which match their shader counterparts in lighting.fs

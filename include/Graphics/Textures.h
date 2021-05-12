@@ -146,8 +146,8 @@ namespace SciRenderer
     void writeTextureCubeMap(CubeMap* outTex);
 
     // Delete a texture and set the raw pointer to nullptr;
-    void deleteTexture(Texture2D* tex);
-    void deleteTexture(CubeMap* tex);
+    void deleteTexture(Texture2D* &tex);
+    void deleteTexture(CubeMap* &tex);
 
     // Bind a texture.
     void bindTexture(Texture2D* tex);

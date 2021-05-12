@@ -63,6 +63,16 @@ namespace SciRenderer
     { };
   };
 
+  namespace Textures
+  {
+    const FBOTex2DParam cubemapFaces[6] =
+    {
+      FBOTex2DParam::CubeMapPX, FBOTex2DParam::CubeMapNX,
+      FBOTex2DParam::CubeMapPY, FBOTex2DParam::CubeMapNY,
+      FBOTex2DParam::CubeMapPZ, FBOTex2DParam::CubeMapNZ
+    };
+  };
+
   // Frame buffer class.
   class FrameBuffer
   {
@@ -78,16 +88,21 @@ namespace SciRenderer
     void unbind();
 
     // Methods for texture/buffer generation and attachment.
-    void attachTexture2D(const FBOSpecification &spec);
-    void attachTexture2D(const FBOSpecification &spec, Texture2D* tex);
+    void attachTexture2D(const FBOSpecification &spec, const bool &removeTex = true);
+    void attachTexture2D(const FBOSpecification &spec, Texture2D* tex,
+                         const bool &removeTex = true);
+    void attachCubeMapFace(const FBOSpecification &spec, CubeMap* map,
+                           const bool &removeTex = true, GLuint mip = 0);
     void attachRenderBuffer();
     void attachRenderBuffer(RenderBuffer* buffer);
-    void attachCubeMapFace();
+
+    // Unattach a 2D texture. This won't delete the texture.
+    Texture2D* unattachTexture2D(const FBOTargetParam &attachment);
 
     // Update the framebuffer size.
     void resize(GLuint width, GLuint height);
 
-    // Get the size of the framebuffer.
+    // Set the viewport size.
     void setViewport();
 
     // Get the IDs of the attachments.
@@ -95,7 +110,7 @@ namespace SciRenderer
     GLuint getRenderBufferID();
 
     // Get the size of the framebuffer.
-    void getSize(GLuint &outWidth, GLuint &outHeight);
+    inline glm::vec2 getSize() { return glm::vec2(this->width, this->height); }
 
     // Clear the buffer.
     void clear();
@@ -106,7 +121,6 @@ namespace SciRenderer
   protected:
     GLuint       bufferID;
 
-    std::vector<FBOTargetParam> currentAttachments;
     std::unordered_map<FBOTargetParam, std::pair<FBOSpecification, Texture2D*>> textureAttachments;
     RenderBuffer* depthBuffer;
 
@@ -119,7 +133,7 @@ namespace SciRenderer
     glm::vec4    clearColour;
   };
 
-  namespace FrameBufferCommands
+  namespace FBOCommands
   {
     // Helper commands to get a colour and depth specification.
     FBOSpecification getDefaultColourSpec(const FBOTargetParam &attach);

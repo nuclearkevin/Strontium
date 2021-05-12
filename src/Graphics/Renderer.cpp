@@ -145,4 +145,36 @@ namespace SciRenderer
   {
     glfwSwapBuffers(window);
   }
+
+  void
+  RendererCommands::enable(const RendererFunction &toEnable)
+  {
+
+  }
+
+  void
+  RendererCommands::depthFunction(const DepthFunctions &function)
+  {
+
+  }
+
+  void
+  RendererCommands::setClearColour(const glm::vec4 &clearColour)
+  {
+
+  }
+
+  void
+  RendererCommands::clear(const bool &clearColour, const bool &clearDepth,
+                          const bool &clearStencil)
+  {
+
+  }
+
+  void
+  RendererCommands::setViewport(const glm::ivec2 topRight,
+                                const glm::ivec2 bottomLeft)
+  {
+
+  }
 }

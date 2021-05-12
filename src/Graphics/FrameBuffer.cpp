@@ -19,6 +19,20 @@ namespace SciRenderer
 
   FrameBuffer::~FrameBuffer()
   {
+    // Delete the texture attachments.
+    for (auto& pair : this->textureAttachments)
+    {
+      auto tex = pair.second.second;
+
+      if (tex == nullptr)
+        continue;
+
+      Textures::deleteTexture(tex);
+    }
+
+    if (this->depthBuffer != nullptr)
+      delete this->depthBuffer;
+
     // Actual buffer delete.
     glDeleteFramebuffers(1, &this->bufferID);
   }
@@ -39,11 +53,10 @@ namespace SciRenderer
 
   // Attach a texture to the framebuffer.
   void
-  FrameBuffer::attachTexture2D(const FBOSpecification &spec)
+  FrameBuffer::attachTexture2D(const FBOSpecification &spec, const bool &removeTex)
   {
     Logger* logs = Logger::getInstance();
 
-    this->bind();
     Texture2D* newTex = new Texture2D();
 
     newTex->width = this->width;
@@ -63,6 +76,19 @@ namespace SciRenderer
       delete newTex;
       return;
     }
+
+    this->bind();
+
+    // If an attachment target already exists, remove it from the map and add
+    // the new target.
+    auto targetLoc = this->textureAttachments.find(spec.target);
+    if (targetLoc != this->textureAttachments.end())
+    {
+      if (removeTex)
+        Textures::deleteTexture(targetLoc->second.second);
+      this->textureAttachments.erase(targetLoc);
+    }
+
 
     glGenTextures(1, &newTex->textureID);
     glBindTexture(static_cast<GLuint>(spec.type), newTex->textureID);
@@ -88,11 +114,11 @@ namespace SciRenderer
     this->clearFlags |= GL_COLOR_BUFFER_BIT;
 
     this->textureAttachments.insert({ spec.target, { spec, newTex } });
-    this->currentAttachments.push_back(spec.target);
   }
 
   void
-  FrameBuffer::attachTexture2D(const FBOSpecification &spec, Texture2D* tex)
+  FrameBuffer::attachTexture2D(const FBOSpecification &spec, Texture2D* tex,
+                               const bool &removeTex)
   {
     Logger* logs = Logger::getInstance();
 
@@ -102,29 +128,99 @@ namespace SciRenderer
       return;
     }
 
+    this->bind();
+
+    // If an attachment target already exists, remove it from the map and add
+    // the new target.
+    auto targetLoc = this->textureAttachments.find(spec.target);
+    if (targetLoc != this->textureAttachments.end())
+    {
+      if (removeTex)
+        Textures::deleteTexture(targetLoc->second.second);
+      this->textureAttachments.erase(targetLoc);
+    }
+
+
     glFramebufferTexture2D(GL_FRAMEBUFFER, static_cast<GLuint>(spec.target),
                            static_cast<GLuint>(spec.type),
                            tex->textureID, 0);
 
+    this->unbind();
+
+    this->clearFlags |= GL_COLOR_BUFFER_BIT;
+
     this->textureAttachments.insert({ spec.target, { spec, tex } });
-    this->currentAttachments.push_back(spec.target);
+  }
+
+  void
+  FrameBuffer::attachCubeMapFace(const FBOSpecification &spec, CubeMap* map,
+                                 const bool &removeTex, GLuint mip)
+  {
+    Logger* logs = Logger::getInstance();
+
+    // Error check to make sure that:
+    // a) The attachment type is a cubemap
+    // b) THe dimensions agree.
+    GLuint faceID = static_cast<GLuint>(spec.type) -
+                    static_cast<GLuint>(FBOTex2DParam::CubeMapPX);
+    if (faceID < 0 || faceID > 5)
+    {
+      std::cout << "Cannot attach, face ID out of bounds!" << std::endl;
+      return;
+    }
+
+    if (map->width[faceID] != (GLuint) ((GLfloat) this->width / std::pow(0.5f, mip))
+        || map->height[faceID] != (GLuint) ((GLfloat) this->height / std::pow(0.5f, mip)))
+    {
+      std::cout << "Cannot attach this cubemap face, dimensions do not agree!"
+                << std::endl;
+      return;
+    }
+    this->bind();
+
+    // If an attachment target already exists, remove it from the map and add
+    // the new target.
+    auto targetLoc = this->textureAttachments.find(spec.target);
+    if (targetLoc != this->textureAttachments.end())
+    {
+      if (removeTex)
+        Textures::deleteTexture(targetLoc->second.second);
+      this->textureAttachments.erase(targetLoc);
+    }
+
+    Texture2D* tex = new Texture2D();
+    tex->textureID = map->textureID;
+    tex->width = this->width;
+    tex->height = this->height;
+
+    glFramebufferTexture2D(GL_FRAMEBUFFER, static_cast<GLuint>(spec.target),
+                           static_cast<GLuint>(spec.type),
+                           tex->textureID, mip);
+    this->unbind();
+
+    this->clearFlags |= GL_COLOR_BUFFER_BIT;
+
+    this->textureAttachments.insert({ spec.target, { spec, tex } });
   }
 
   void
   FrameBuffer::attachRenderBuffer()
   {
+    Logger* logs = Logger::getInstance();
+
     if (this->depthBuffer != nullptr)
     {
       std::cout << "This framebuffer already has a render buffer" << std::endl;
       return;
     }
+    this->bind();
 
     this->depthBuffer = new RenderBuffer(this->width, this->height);
 
-    this->bind();
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT,
                               GL_RENDERBUFFER, this->depthBuffer->getID());
     this->unbind();
+
     this->clearFlags |= GL_DEPTH_BUFFER_BIT;
     this->hasRenderBuffer = true;
   }
@@ -132,19 +228,40 @@ namespace SciRenderer
   void
   FrameBuffer::attachRenderBuffer(RenderBuffer* buffer)
   {
+    Logger* logs = Logger::getInstance();
+
     if (this->depthBuffer != nullptr)
     {
       std::cout << "This framebuffer already has a render buffer" << std::endl;
       return;
     }
-
     this->bind();
+
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT,
                               GL_RENDERBUFFER, buffer->getID());
+
     this->unbind();
+
     this->depthBuffer = buffer;
     this->clearFlags |= GL_DEPTH_BUFFER_BIT;
     this->hasRenderBuffer = true;
+  }
+
+  // Unattach the texture and return it (if it exists).
+  Texture2D*
+  FrameBuffer::unattachTexture2D(const FBOTargetParam &attachment)
+  {
+    auto targetLoc = this->textureAttachments.find(attachment);
+    if (targetLoc != this->textureAttachments.end())
+    {
+      auto outTex = this->textureAttachments[attachment].second;
+      this->textureAttachments.erase(targetLoc);
+      return outTex;
+    }
+    else
+    {
+      return nullptr;
+    }
   }
 
   // Resize the framebuffer.
@@ -202,13 +319,6 @@ namespace SciRenderer
   }
 
   void
-  FrameBuffer::getSize(GLuint &outWidth, GLuint &outHeight)
-  {
-    outWidth = this->width;
-    outHeight = this->height;
-  }
-
-  void
   FrameBuffer::clear()
   {
     this->bind();
@@ -235,7 +345,7 @@ namespace SciRenderer
   }
 
   FBOSpecification
-  FrameBufferCommands::getDefaultColourSpec(const FBOTargetParam &attach)
+  FBOCommands::getDefaultColourSpec(const FBOTargetParam &attach)
   {
     FBOSpecification defaultColour = FBOSpecification();
     defaultColour.target = attach;
@@ -252,7 +362,7 @@ namespace SciRenderer
   }
 
   FBOSpecification
-  FrameBufferCommands::getFloatColourSpec(const FBOTargetParam &attach)
+  FBOCommands::getFloatColourSpec(const FBOTargetParam &attach)
   {
     FBOSpecification floatColour = FBOSpecification();
     floatColour.target = attach;
@@ -269,7 +379,7 @@ namespace SciRenderer
   }
 
   FBOSpecification
-  FrameBufferCommands::getDefaultDepthSpec()
+  FBOCommands::getDefaultDepthSpec()
   {
     FBOSpecification defaultDepth = FBOSpecification();
     defaultDepth.target = FBOTargetParam::DepthStencil;

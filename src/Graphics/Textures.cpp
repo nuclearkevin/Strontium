@@ -269,7 +269,7 @@ namespace SciRenderer
 
   // Delete a texture and set the raw pointer to nullptr;
   void
-  Textures::deleteTexture(Texture2D* tex)
+  Textures::deleteTexture(Texture2D* &tex)
   {
     glDeleteTextures(1, &tex->textureID);
     delete tex;
@@ -277,7 +277,7 @@ namespace SciRenderer
   }
 
   void
-  Textures::deleteTexture(CubeMap* tex)
+  Textures::deleteTexture(CubeMap* &tex)
   {
     glDeleteTextures(1, &tex->textureID);
     delete tex;

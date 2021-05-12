@@ -14,6 +14,7 @@ namespace SciRenderer
     if (appLogs == nullptr)
     {
       appLogs = new Logger();
+      appLogs->init();
       return appLogs;
     }
     else

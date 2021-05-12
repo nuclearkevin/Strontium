@@ -7,7 +7,10 @@ namespace SciRenderer
 {
   GuiHandler::GuiHandler(LightController* lights)
     : logBuffer("")
-    , usePBR(false)
+    , usePBR(true)
+    , drawIrrad(false)
+    , drawFilter(false)
+    , mapRes(512)
     , currentLights(lights)
   {
     this->currentULName = "----";
@@ -108,25 +111,123 @@ namespace SciRenderer
     	  ImGui::Text("Application averaging %.3f ms/frame (%.1f FPS)",
     							  1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
       }
+
       if (ImGui::CollapsingHeader("Lighting"))
       {
         this->lightingMenu();
       }
+
       if (ImGui::CollapsingHeader("Models"))
       {
 
       }
+
       if (ImGui::CollapsingHeader("2D Textures"))
       {
 
       }
+
       if (ImGui::CollapsingHeader("Environment Maps"))
       {
-        if (ImGui::Button("Load Environment Map"))
+        if (ImGui::Button("Load Equirectangular Map"))
+        {
           openEnvironment = true;
+        }
 
-        ImGui::SliderFloat("Gamma", &environment->getGamma(), 1.0f, 5.0f);
-        ImGui::SliderFloat("Exposure", &environment->getExposure(), 1.0f, 5.0f);
+        ImGui::SameLine();
+        if (ImGui::Button("Clear Environment Map"))
+        {
+          environment->unloadEnvironment();
+          this->drawIrrad = false;
+          this->drawFilter = false;
+          environment->setDrawingType(MapType::Skybox);
+        }
+
+        if (environment->hasEqrMap() && !environment->hasSkybox())
+        {
+          ImGui::Text("Preview:");
+          ImGui::Image((ImTextureID) environment->getTexID(MapType::Equirectangular),
+                       ImVec2(360, 180), ImVec2(0, 1), ImVec2(1, 0));
+          ImGui::SliderInt("Environment Resolution", &this->mapRes, 512, 2048);
+          if (ImGui::Button("Generate Skybox"))
+          {
+            environment->equiToCubeMap(true, this->mapRes, this->mapRes);
+          }
+        }
+
+        if (environment->hasSkybox())
+        {
+          ImGui::SliderFloat("Gamma", &environment->getGamma(), 1.0f, 5.0f);
+          ImGui::SliderFloat("Exposure", &environment->getExposure(), 1.0f, 5.0f);
+
+          if (!environment->hasIrradiance())
+          {
+            if (ImGui::Button("Generate Irradiance Map"))
+            {
+              environment->precomputeIrradiance(256, 256, true);
+            }
+          }
+          else
+          {
+            ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+            ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
+            ImGui::Button("Generate Irradiance Map");
+            ImGui::PopItemFlag();
+            ImGui::PopStyleVar();
+
+            ImGui::Checkbox("Draw Irradiance Map", &this->drawIrrad);
+            if (this->drawIrrad && !environment->drawingFilter())
+            {
+              environment->setDrawingType(MapType::Irradiance);
+            }
+            else if (!this->drawIrrad && !environment->drawingFilter())
+            {
+              environment->setDrawingType(MapType::Skybox);
+            }
+            else
+            {
+              this->drawIrrad = false;
+            }
+          }
+
+          if (!environment->hasPrefilter())
+          {
+            if (ImGui::Button("Generate BRDF Specular Map"))
+            {
+              environment->precomputeSpecular(this->mapRes, this->mapRes);
+            }
+          }
+          else
+          {
+            ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+            ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
+            ImGui::Button("Generate BRDF Specular Map");
+            ImGui::PopItemFlag();
+            ImGui::PopStyleVar();
+
+            ImGui::Checkbox("Draw Pre-Filter Map", &this->drawFilter);
+            if (this->drawFilter && !environment->drawingIrrad())
+            {
+              environment->setDrawingType(MapType::Prefilter);
+              ImGui::SliderFloat("Roughness", &environment->getRoughness(), 0.0f, 1.0f);
+            }
+            else if (!this->drawFilter && !environment->drawingIrrad())
+            {
+              environment->setDrawingType(MapType::Skybox);
+            }
+            else
+            {
+              this->drawFilter = false;
+            }
+          }
+
+          if (environment->hasIntegration())
+          {
+            ImGui::Text("BRDF Lookup Texture:");
+            ImGui::Image((ImTextureID) environment->getTexID(MapType::Integration),
+                         ImVec2(128, 128), ImVec2(0, 1), ImVec2(1, 0));
+          }
+        }
       }
     }
   	ImGui::End();
@@ -147,17 +248,22 @@ namespace SciRenderer
                                     wSize.x * 16 / 128), ImGuiCond_Always);
     ImGui::Begin("Application Logs", nullptr, this->logFlags);
     {
-      ImGui::Text(this->logBuffer.c_str());
+      if (ImGui::Button("Clear Logs"))
+        this->logBuffer = "";
+      ImGui::BeginChild("LogText");
+      {
+        ImGui::Text(this->logBuffer.c_str());
+      }
+      ImGui::EndChild();
     }
     ImGui::End();
 
     if (openEnvironment)
-      ImGui::OpenPopup("Load Environment Map");
+      ImGui::OpenPopup("Load Equirectangular Map");
 
-    if (this->fileHandler.showFileDialog("Load Environment Map",
-        imgui_addons::ImGuiFileBrowser::DialogMode::OPEN, ImVec2(700, 310)))
+    if (this->fileHandler.showFileDialog("Load Equirectangular Map",
+        imgui_addons::ImGuiFileBrowser::DialogMode::OPEN, ImVec2(700, 310), ".hdr"))
     {
-      std::cout << this->fileHandler.selected_fn << std::endl;
       environment->loadEquirectangularMap(this->fileHandler.selected_path);
     }
 
@@ -165,7 +271,7 @@ namespace SciRenderer
       ImGui::OpenPopup("Load Obj File");
 
     if (this->fileHandler.showFileDialog("Load Obj File",
-        imgui_addons::ImGuiFileBrowser::DialogMode::OPEN, ImVec2(700, 310)))
+        imgui_addons::ImGuiFileBrowser::DialogMode::OPEN, ImVec2(700, 310), ".obj"))
     {
       std::cout << this->fileHandler.selected_path << std::endl;
     }
@@ -173,9 +279,8 @@ namespace SciRenderer
   	ImGui::Render();
   	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
-    GLuint buffW, buffH;
-    frontBuffer->getSize(buffW, buffH);
-    if (buffW != wSize.x - wSize.x * 32 / 64 || buffH != wSize.y - wSize.x * 16 / 128)
+    auto bSize = frontBuffer->getSize();
+    if (bSize.x != wSize.x - wSize.x * 32 / 64 || bSize.y != wSize.y - wSize.x * 16 / 128)
     {
       frontBuffer->resize(wSize.x - wSize.x * 32 / 64, wSize.y - wSize.x * 16 / 128);
       GLfloat ratio = 1.0f * (wSize.x - wSize.x * 32 / 64) / (wSize.y - wSize.x * 16 / 128);
@@ -354,43 +459,19 @@ namespace SciRenderer
   	// Buttons to create lights.
   	if (ImGui::Button("New uniform light"))
   	{
-  		UniformLight temp;
-  		temp.colour = glm::vec3(0.0f, 0.0f, 0.0f);
-  		temp.direction = glm::vec3(0.0f, 0.0f, 0.0f);
-  		temp.intensity = 0.0f;
-      temp.mat.diffuse = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f);
-      temp.mat.specular = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f);
-      temp.mat.attenuation = glm::vec2(0.0f, 0.0f);
-      temp.mat.shininess = 1.0f;
+  		UniformLight temp = UniformLight();
   		this->currentLights->addLight(temp);
   	}
   	ImGui::SameLine();
   	if (ImGui::Button("New point light"))
   	{
-  		PointLight temp;
-  		temp.colour = glm::vec3(0.0f, 0.0f, 0.0f);
-  		temp.position = glm::vec3(0.0f, 0.0f, 0.0f);
-  		temp.intensity = 0.0f;
-      temp.mat.diffuse = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f);
-      temp.mat.specular = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f);
-      temp.mat.attenuation = glm::vec2(0.0f, 0.0f);
-      temp.mat.shininess = 1.0f;
+  		PointLight temp = PointLight();
   		this->currentLights->addLight(temp, 0.1f);
   	}
   	ImGui::SameLine();
   	if (ImGui::Button("New spotlight"))
   	{
-  		SpotLight temp;
-  		temp.colour = glm::vec3(0.0f, 0.0f, 0.0f);
-  		temp.direction = glm::vec3(0.0f, 0.0f, 0.0f);
-  		temp.position = glm::vec3(0.0f, 0.0f, 0.0f);
-  		temp.intensity = 0.0f;
-  		temp.innerCutOff = 0.0f;
-  		temp.outerCutOff = 0.0f;
-      temp.mat.diffuse = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f);
-      temp.mat.specular = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f);
-      temp.mat.attenuation = glm::vec2(0.0f, 0.0f);
-      temp.mat.shininess = 1.0f;
+  		SpotLight temp = SpotLight();
   		this->currentLights->addLight(temp, 0.1f);
   	}
   }

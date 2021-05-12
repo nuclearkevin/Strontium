@@ -14,6 +14,7 @@
 !teapot.obj
 !ground_plane.obj
 !cube.obj
+!checkers.hdr
 
 # Ignore the ignore of the skybox jpgs.
 !right.jpg

@@ -18,7 +18,9 @@ namespace SciRenderer
     , irradiance(nullptr)
     , specPrefilter(nullptr)
     , brdfIntMap(nullptr)
+    , currentEnvironment(MapType::Skybox)
     , gamma(2.2f)
+    , roughness(0.0f)
     , exposure(1.0f)
   {
     this->cubeShader = new Shader(vertPath, fragPath);
@@ -58,35 +60,215 @@ namespace SciRenderer
     this->skybox = Textures::loadTextureCubeMap(filenames, params, isHDR);
   }
 
+  // Unload all the textures associated from this environment.
+  void
+  EnvironmentMap::unloadEnvironment()
+  {
+    if (this->erMap != nullptr)
+      Textures::deleteTexture(this->erMap);
+    if (this->skybox != nullptr)
+      Textures::deleteTexture(this->skybox);
+    if (this->irradiance != nullptr)
+      Textures::deleteTexture(this->irradiance);
+    if (this->specPrefilter != nullptr)
+      Textures::deleteTexture(this->specPrefilter);
+    if (this->brdfIntMap != nullptr)
+      Textures::deleteTexture(this->brdfIntMap);
+  }
+
+  // Bind/unbind a specific cubemap.
+  void
+  EnvironmentMap::bind(const MapType &type)
+  {
+    switch (type)
+    {
+      case MapType::Equirectangular:
+        if (this->erMap != nullptr)
+          Textures::bindTexture(this->erMap);
+        break;
+      case MapType::Skybox:
+        if (this->skybox != nullptr)
+          Textures::bindTexture(this->skybox);
+        break;
+      case MapType::Irradiance:
+        if (this->irradiance != nullptr)
+          Textures::bindTexture(this->irradiance);
+        break;
+      case MapType::Prefilter:
+        if (this->specPrefilter != nullptr)
+          Textures::bindTexture(this->specPrefilter);
+        break;
+      case MapType::Integration:
+        if (this->brdfIntMap != nullptr)
+          Textures::bindTexture(this->brdfIntMap);
+        break;
+    }
+  }
+
+  void
+  EnvironmentMap::unbind()
+  {
+
+  }
+
+  void
+  EnvironmentMap::bind(const MapType &type, GLuint bindPoint)
+  {
+    switch (type)
+    {
+      case MapType::Equirectangular:
+        if (this->erMap != nullptr)
+          Textures::bindTexture(this->erMap, bindPoint);
+        break;
+      case MapType::Skybox:
+        if (this->skybox != nullptr)
+          Textures::bindTexture(this->skybox, bindPoint);
+        break;
+      case MapType::Irradiance:
+        if (this->irradiance != nullptr)
+          Textures::bindTexture(this->irradiance, bindPoint);
+        break;
+      case MapType::Prefilter:
+        if (this->specPrefilter != nullptr)
+          Textures::bindTexture(this->specPrefilter, bindPoint);
+        break;
+      case MapType::Integration:
+        if (this->brdfIntMap != nullptr)
+          Textures::bindTexture(this->brdfIntMap, bindPoint);
+        break;
+    }
+  }
+
+  // Draw the skybox.
+  void
+  EnvironmentMap::draw(Camera* camera)
+  {
+    Logger* logs = Logger::getInstance();
+    Renderer3D* renderer = Renderer3D::getInstance();
+
+    if (this->skybox == nullptr)
+    {
+      return;
+    }
+
+    glDepthFunc(GL_LEQUAL);
+
+    glm::mat4 vP = camera->getProjMatrix() * glm::mat4(glm::mat3(camera->getViewMatrix()));
+
+    this->cubeShader->bind();
+    this->cubeShader->addUniformMatrix("vP", vP, GL_FALSE);
+    this->cubeShader->addUniformSampler2D("skybox", 0);
+    this->cubeShader->addUniformFloat("gamma", this->gamma);
+    this->cubeShader->addUniformFloat("exposure", this->exposure);
+
+    if (this->currentEnvironment == MapType::Prefilter)
+      this->cubeShader->addUniformFloat("roughness", this->roughness);
+
+    this->bind(this->currentEnvironment, 0);
+
+    if (this->cube->hasVAO())
+      renderer->draw(this->cube->getVAO(), this->cubeShader);
+    else
+    {
+      this->cube->generateVAO(this->cubeShader);
+      if (this->cube->hasVAO())
+        renderer->draw(this->cube->getVAO(), this->cubeShader);
+    }
+
+    glDepthFunc(GL_LESS);
+  }
+
+  // Getters, I guess.
+  GLuint
+  EnvironmentMap::getTexID(const MapType &type)
+  {
+    switch (type)
+    {
+      case MapType::Equirectangular:
+        if (this->erMap != nullptr)
+          return this->erMap->textureID;
+      case MapType::Skybox:
+        if (this->skybox != nullptr)
+          return this->skybox->textureID;
+      case MapType::Irradiance:
+        if (this->irradiance != nullptr)
+          return this->irradiance->textureID;
+      case MapType::Prefilter:
+        if (this->specPrefilter != nullptr)
+          return this->specPrefilter->textureID;
+      case MapType::Integration:
+        if (this->brdfIntMap != nullptr)
+          return this->brdfIntMap->textureID;
+    }
+
+    return 0;
+  }
+
   // Load a 2D equirectangular map, than convert it to a cubemap.
   // Assumes that the map is HDR by default.
   void
   EnvironmentMap::loadEquirectangularMap(const std::string &filepath,
                                          const Texture2DParams &params,
-                                         const bool &isHDR,
-                                         const GLuint &width, const GLuint &height)
+                                         const bool &isHDR)
   {
     Logger* logs = Logger::getInstance();
 
+    // If we already have an equirectangular map, don't load another.
+    if (this->erMap != nullptr)
+    {
+      logs->logMessage(LogMessage("This environment map already has an "
+                                  "equirectangular map.", true, false, true));
+      return;
+    }
+
+    this->erMap = Textures::loadTexture2D(filepath, params, isHDR);
+  }
+
+  void
+  EnvironmentMap::equiToCubeMap(const bool &isHDR, const GLuint &width,
+                                const GLuint &height)
+  {
+    Logger* logs = Logger::getInstance();
+    Renderer3D* renderer = Renderer3D::getInstance();
+
     // If we already have a cubemap of a given type, don't load another.
-    if (this->skybox != nullptr && this->erMap != nullptr)
+    if (this->skybox != nullptr)
     {
       logs->logMessage(LogMessage("This environment map already has a skybox "
                                   "cubemap.", true, false, true));
       return;
     }
-
+    if (this->erMap == nullptr)
+    {
+      logs->logMessage(LogMessage("No equirectangular map attached! Cannot "
+                                  "generate a cubemap.", true, false, true));
+      return;
+    }
     auto start = std::chrono::steady_clock::now();
 
-    Renderer3D* renderer = Renderer3D::getInstance();
+    FBOSpecification spec;
+    if (isHDR)
+      spec = FBOCommands::getFloatColourSpec(FBOTargetParam::Colour0);
+    else
+      spec = FBOCommands::getDefaultColourSpec(FBOTargetParam::Colour0);
 
-    this->erMap = Textures::loadTexture2D(filepath, params, isHDR);
-
-    // The framebuffer and renderbuffer for drawing the skybox to.
-    GLuint equiFBO, equiRBO;
+    FrameBuffer equiFBO = FrameBuffer(width, height);
+    equiFBO.attachRenderBuffer();
 
     // The resulting cubemap from the conversion process.
     this->skybox = new CubeMap();
+
+    // Generate and bind a cubemap texture.
+    glGenTextures(1, &this->skybox->textureID);
+    Textures::bindTexture(this->skybox);
+
+    // Assign the texture sizes to the cubemap struct.
+    for (unsigned i = 0; i < 6; i++)
+    {
+      this->skybox->width[i]  = width;
+      this->skybox->height[i] = height;
+      this->skybox->n[i]      = 3;
+    }
 
     // A standard projection matrix, and 6 view matrices (one for each face of the
     // cubemap).
@@ -106,10 +288,6 @@ namespace SciRenderer
       glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f,  0.0f, -1.0f),
                   glm::vec3(0.0f, -1.0f,  0.0f))
     };
-
-    // Generate and bind a cubemap texture.
-    glGenTextures(1, &this->skybox->textureID);
-    Textures::bindTexture(this->skybox);
 
     for (unsigned i = 0; i < 6; i++)
     {
@@ -129,63 +307,38 @@ namespace SciRenderer
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-    // Framebuffer to write the convoluted cubemap to.
-    glGenFramebuffers(1, &equiFBO);
-    glBindFramebuffer(GL_FRAMEBUFFER, equiFBO);
+    Shader eqToCube = Shader("./res/shaders/pbr/equiconv.vs",
+                             "./res/shaders/pbr/equiconv.fs");
 
-    // Render attach for the framebuffer.
-    glGenRenderbuffers(1, &equiRBO);
-    glBindRenderbuffer(GL_RENDERBUFFER, equiRBO);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24,
-                          width, height);
-    glBindRenderbuffer(GL_RENDERBUFFER, 0);
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
-                              GL_RENDERBUFFER, equiRBO);
-
-    Shader* eqToCube = new Shader("./res/shaders/pbr/equiconv.vs",
-                                  "./res/shaders/pbr/equiconv.fs");
-
-    eqToCube->addUniformSampler2D("equirectangularMap", 0);
+    eqToCube.addUniformSampler2D("equirectangularMap", 0);
     Textures::bindTexture(this->erMap, 0);
 
-    glViewport(0, 0, width, height);
+    equiFBO.setViewport();
 
-    // Perform the convolution for each face of the cubemap.
+    // Perform the conversion for each face of the cubemap.
     for (unsigned i = 0; i < 6; i++)
     {
-      eqToCube->addUniformMatrix("vP", perspective * views[i], GL_FALSE);
-      glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
-                             GL_TEXTURE_CUBE_MAP_POSITIVE_X + i,
-                             this->skybox->textureID, 0);
-      glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+      eqToCube.addUniformMatrix("vP", perspective * views[i], GL_FALSE);
+      spec.type = Textures::cubemapFaces[i];
+      equiFBO.attachCubeMapFace(spec, this->skybox, false);
+      equiFBO.clear();
+      equiFBO.bind();
 
       if (this->cube->hasVAO())
-        renderer->draw(this->cube->getVAO(), eqToCube);
+        renderer->draw(this->cube->getVAO(), &eqToCube);
       else
       {
-        this->cube->generateVAO(eqToCube);
+        this->cube->generateVAO(&eqToCube);
         if (this->cube->hasVAO())
-          renderer->draw(this->cube->getVAO(), eqToCube);
+          renderer->draw(this->cube->getVAO(), &eqToCube);
       }
     }
 
-    // Unbind the framebuffer now that we're done with it.
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-    // Assign the texture sizes to the cubemap struct.
-    for (unsigned i = 0; i < 6; i++)
-    {
-      this->skybox->width[i]  = width;
-      this->skybox->height[i] = height;
-      this->skybox->n[i]      = 3;
-    }
-
-    // Delete the frame and render buffers now that they've served their purpose.
-    glDeleteFramebuffers(1, &equiFBO);
-    glDeleteRenderbuffers(1, &equiRBO);
-
-    // Delete the shader program used for the conversion as well.
-    delete eqToCube;
+    // Unattach the texture so we don't delete it when getting rid of the framebuffer.
+    auto temp = equiFBO.unattachTexture2D(FBOTargetParam::Colour0);
+    // Delete it, since we already have the cubemap stored as a cubemap texture
+    // and this returns a 2D texture.
+    delete temp;
 
     auto end = std::chrono::steady_clock::now();
     std::chrono::duration<double> elapsed = end - start;
@@ -195,104 +348,13 @@ namespace SciRenderer
                                 + " s).", true, false, true));
   }
 
-  // Bind/unbind a specific cubemap.
-  void
-  EnvironmentMap::bind(const MapType &type)
-  {
-    switch (type)
-    {
-      case MapType::SKYBOX:
-        if (this->skybox != nullptr)
-          Textures::bindTexture(this->skybox);
-        break;
-      case MapType::IRRADIANCE:
-        if (this->irradiance != nullptr)
-          Textures::bindTexture(this->irradiance);
-        break;
-      case MapType::PREFILTER:
-        if (this->specPrefilter != nullptr)
-          Textures::bindTexture(this->specPrefilter);
-        break;
-      case MapType::INTEGRATION:
-        if (this->brdfIntMap != nullptr)
-          Textures::bindTexture(this->brdfIntMap);
-        break;
-    }
-  }
-
-  void
-  EnvironmentMap::unbind()
-  {
-    Textures::unbindTexture2D();
-    Textures::unbindCubeMap();
-  }
-
-  void
-  EnvironmentMap::bindToPoint(const MapType &type, GLuint bindPoint)
-  {
-    switch (type)
-    {
-      case MapType::SKYBOX:
-        if (this->skybox != nullptr)
-          Textures::bindTexture(this->skybox, bindPoint);
-        break;
-      case MapType::IRRADIANCE:
-        if (this->irradiance != nullptr)
-          Textures::bindTexture(this->irradiance, bindPoint);
-        break;
-      case MapType::PREFILTER:
-        if (this->specPrefilter != nullptr)
-          Textures::bindTexture(this->specPrefilter, bindPoint);
-        break;
-      case MapType::INTEGRATION:
-        if (this->brdfIntMap != nullptr)
-          Textures::bindTexture(this->brdfIntMap, bindPoint);
-        break;
-    }
-  }
-
-  // Draw the skybox.
-  void
-  EnvironmentMap::draw(Camera* camera)
-  {
-    Logger* logs = Logger::getInstance();
-
-    if (this->skybox == nullptr)
-    {
-      return;
-    }
-
-    Renderer3D* renderer = Renderer3D::getInstance();
-
-    glDepthFunc(GL_LEQUAL);
-
-    glm::mat4 vP = camera->getProjMatrix() * glm::mat4(glm::mat3(camera->getViewMatrix()));
-
-    this->cubeShader->bind();
-    this->cubeShader->addUniformMatrix("vP", vP, GL_FALSE);
-    this->cubeShader->addUniformSampler2D("skybox", 0);
-    this->cubeShader->addUniformFloat("gamma", this->gamma);
-    this->cubeShader->addUniformFloat("exposure", this->exposure);
-    this->bindToPoint(MapType::SKYBOX, 0);
-
-    if (this->cube->hasVAO())
-      renderer->draw(this->cube->getVAO(), this->cubeShader);
-    else
-    {
-      this->cube->generateVAO(this->cubeShader);
-      if (this->cube->hasVAO())
-        renderer->draw(this->cube->getVAO(), this->cubeShader);
-    }
-
-    Textures::unbindCubeMap();
-    glDepthFunc(GL_LESS);
-  }
-
   // Generate the diffuse irradiance map.
   void
-  EnvironmentMap::precomputeIrradiance(GLuint width, GLuint height, bool isHDR)
+  EnvironmentMap::precomputeIrradiance(const GLuint &width, const GLuint &height,
+                                       bool isHDR)
   {
     Logger* logs = Logger::getInstance();
+    Renderer3D* renderer = Renderer3D::getInstance();
 
     if (this->irradiance != nullptr)
     {
@@ -300,16 +362,31 @@ namespace SciRenderer
                                   "map.", true, false, true));
       return;
     }
-
     auto start = std::chrono::steady_clock::now();
 
-    Renderer3D* renderer = Renderer3D::getInstance();
+    FBOSpecification spec;
+    if (isHDR)
+      spec = FBOCommands::getFloatColourSpec(FBOTargetParam::Colour0);
+    else
+      spec = FBOCommands::getDefaultColourSpec(FBOTargetParam::Colour0);
 
-    // The framebuffer and renderbuffer for drawing the irradiance map to.
-    GLuint convoFBO, convoRBO;
+    FrameBuffer convoFBO = FrameBuffer(width, height);
+    convoFBO.attachRenderBuffer();
 
     // The resulting cubemap from the convolution process.
     this->irradiance = new CubeMap();
+
+    // Assign the texture sizes to the cubemap struct.
+    for (unsigned i = 0; i < 6; i++)
+    {
+      this->irradiance->width[i]  = width;
+      this->irradiance->height[i] = height;
+      this->irradiance->n[i]      = 3;
+    }
+
+    // Generate and bind a cubemap textue to slot 0.
+    glGenTextures(1, &this->irradiance->textureID);
+    Textures::bindTexture(this->irradiance);
 
     // A standard projection matrix, and 6 view matrices (one for each face of the
     // cubemap).
@@ -330,16 +407,16 @@ namespace SciRenderer
                   glm::vec3(0.0f, -1.0f,  0.0f))
     };
 
-    // Generate and bind a cubemap textue to slot 0.
-    glGenTextures(1, &this->irradiance->textureID);
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_CUBE_MAP, this->irradiance->textureID);
-
     for (unsigned i = 0; i < 6; i++)
     {
-      glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB,
-                   width, height, 0, GL_RGB,
-                   GL_UNSIGNED_BYTE, nullptr);
+      if (isHDR)
+        glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB16F,
+                     width, height, 0, GL_RGB,
+                     GL_FLOAT, nullptr);
+      else
+        glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB,
+                     width, height, 0, GL_RGB,
+                     GL_UNSIGNED_BYTE, nullptr);
     }
 
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -348,62 +425,40 @@ namespace SciRenderer
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-    // Framebuffer to write the convoluted cubemap to.
-    glGenFramebuffers(1, &convoFBO);
-    glBindFramebuffer(GL_FRAMEBUFFER, convoFBO);
-
-    // Render attach for the framebuffer.
-    glGenRenderbuffers(1, &convoRBO);
-    glBindRenderbuffer(GL_RENDERBUFFER, convoRBO);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24,
-                          width, height);
-    glBindRenderbuffer(GL_RENDERBUFFER, 0);
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
-                              GL_RENDERBUFFER, convoRBO);
-
     // The convolution program.
-    Shader* convoProg = new Shader("./res/shaders/pbr/diffuseConv.vs",
-                                   "./res/shaders/pbr/diffuseConv.fs");
-    convoProg->addUniformSampler2D("environmentMap", 0);
-    glBindTexture(GL_TEXTURE_CUBE_MAP, this->skybox->textureID);
+    Shader convoProg = Shader("./res/shaders/pbr/diffuseConv.vs",
+                              "./res/shaders/pbr/diffuseConv.fs");
+    convoProg.addUniformSampler2D("environmentMap", 0);
+    Textures::bindTexture(this->skybox, 0);
 
-    glViewport(0, 0, width, height);
+    convoFBO.setViewport();
 
     // Perform the convolution for each face of the cubemap.
     for (unsigned i = 0; i < 6; i++)
     {
-      convoProg->addUniformMatrix("vP", perspective * views[i], GL_FALSE);
-      glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
-                             GL_TEXTURE_CUBE_MAP_POSITIVE_X + i,
-                             this->irradiance->textureID, 0);
-      glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+      convoProg.addUniformMatrix("vP", perspective * views[i], GL_FALSE);
+      spec.type = Textures::cubemapFaces[i];
+      convoFBO.attachCubeMapFace(spec, this->irradiance, false);
+      convoFBO.clear();
+      convoFBO.bind();
 
       if (this->cube->hasVAO())
-        renderer->draw(this->cube->getVAO(), convoProg);
+        renderer->draw(this->cube->getVAO(), &convoProg);
       else
       {
-        this->cube->generateVAO(convoProg);
+        this->cube->generateVAO(&convoProg);
         if (this->cube->hasVAO())
-          renderer->draw(this->cube->getVAO(), convoProg);
+          renderer->draw(this->cube->getVAO(), &convoProg);
       }
     }
     // Unbind the framebuffer now that we're done with it.
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    convoFBO.unbind();
 
-    // Assign the texture sizes to the cubemap struct.
-    for (unsigned i = 0; i < 6; i++)
-    {
-      this->irradiance->width[i]  = width;
-      this->irradiance->height[i] = height;
-      this->irradiance->n[i]      = 3;
-    }
-
-    // Delete the frame and render buffers now that they've served their purpose.
-    glDeleteFramebuffers(1, &convoFBO);
-    glDeleteRenderbuffers(1, &convoRBO);
-
-    // Delete the shader program used for the convolution as well.
-    delete convoProg;
+    // Unattach the texture so we don't delete it when getting rid of the framebuffer.
+    auto temp = convoFBO.unattachTexture2D(FBOTargetParam::Colour0);
+    // Delete it, since we already have the cubemap stored as a cubemap texture
+    // and this returns a 2D texture.
+    delete temp;
 
     auto end = std::chrono::steady_clock::now();
     std::chrono::duration<double> elapsed = end - start;
@@ -415,8 +470,10 @@ namespace SciRenderer
 
   // Generate the specular map components. Computes the pre-filtered environment
   // map first, than the integration map second.
+  // TODO: Get this working with my FBO wrapper.
   void
-  EnvironmentMap::precomputeSpecular(GLuint width, GLuint height, bool isHDR)
+  EnvironmentMap::precomputeSpecular(const GLuint &width, const GLuint &height,
+                                     bool isHDR)
   {
     Logger* logs = Logger::getInstance();
 
@@ -496,14 +553,14 @@ namespace SciRenderer
       glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
 
       // Compile and link the shader program used to generate the pre-filter map.
-      Shader* specPrefilterProg = new Shader("res/shaders/pbr/specPrefilter.vs",
-                                             "res/shaders/pbr/specPrefilter.fs");
-      specPrefilterProg->addUniformSampler2D("environmentMap", 0);
+      Shader specPrefilterProg = Shader("res/shaders/pbr/specPrefilter.vs",
+                                        "res/shaders/pbr/specPrefilter.fs");
+      specPrefilterProg.addUniformSampler2D("environmentMap", 0);
       glActiveTexture(GL_TEXTURE0);
       glBindTexture(GL_TEXTURE_CUBE_MAP, this->skybox->textureID);
 
       // Perform the pre-filter for each fact of the cubemap.
-      for (GLuint i = 0; i < 5; i++)
+      for (GLuint i = 0; i < 14; i++)
       {
         // Compute the current mip levels.
         GLuint mipWidth  = (GLuint) ((float) width * std::pow(0.5f, i));
@@ -513,25 +570,25 @@ namespace SciRenderer
         glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, mipWidth, mipHeight);
         glViewport(0, 0, mipWidth, mipHeight);
 
-        float roughness = ((float) i) / ((float) (5 - 1));
-        specPrefilterProg->addUniformFloat("roughness", roughness);
+        float roughness = ((float) i) / ((float) (14 - 1));
+        specPrefilterProg.addUniformFloat("roughness", roughness);
 
         for (GLuint j = 0; j < 6; j++)
         {
-          specPrefilterProg->addUniformMatrix("vP", perspective * views[j], GL_FALSE);
-          specPrefilterProg->addUniformFloat("resolution", this->skybox->width[j]);
+          specPrefilterProg.addUniformMatrix("vP", perspective * views[j], GL_FALSE);
+          specPrefilterProg.addUniformFloat("resolution", this->skybox->width[j]);
           glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
                                  GL_TEXTURE_CUBE_MAP_POSITIVE_X + j,
                                  this->specPrefilter->textureID, i);
           glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
           if (this->cube->hasVAO())
-            renderer->draw(this->cube->getVAO(), specPrefilterProg);
+            renderer->draw(this->cube->getVAO(), &specPrefilterProg);
           else
           {
-            this->cube->generateVAO(specPrefilterProg);
+            this->cube->generateVAO(&specPrefilterProg);
             if (this->cube->hasVAO())
-              renderer->draw(this->cube->getVAO(), specPrefilterProg);
+              renderer->draw(this->cube->getVAO(), &specPrefilterProg);
           }
         }
       }
@@ -546,9 +603,6 @@ namespace SciRenderer
         this->specPrefilter->height[i] = height;
         this->specPrefilter->n[i]      = 3;
       }
-
-      // Delete the shader program used for the pre-filter.
-      delete specPrefilterProg;
 
       auto end = std::chrono::steady_clock::now();
       std::chrono::duration<double> elapsed = end - start;

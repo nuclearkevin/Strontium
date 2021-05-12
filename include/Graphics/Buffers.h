@@ -132,9 +132,12 @@ namespace SciRenderer
 
     inline GLuint getID() { return this->bufferID; }
     inline RBOInternalFormat getFormat() { return this->format; }
+    inline glm::vec2 getSize() { return glm::vec2(this->width, this->height); }
   protected:
     GLuint bufferID;
 
     RBOInternalFormat format;
+
+    GLuint width, height;
   };
 }

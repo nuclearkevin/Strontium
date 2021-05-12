@@ -3,6 +3,7 @@
 
 // Project includes.
 #include "Core/Logs.h"
+#include "Core/Window.h"
 #include "Graphics/Shaders.h"
 #include "Graphics/Meshes.h"
 #include "Graphics/Camera.h"
@@ -22,6 +23,7 @@ GLuint height = 1080;
 // Window objects.
 Camera* sceneCam;
 GLFWwindow* window;
+Window* myWindow;
 
 // Abstracted OpenGL objects.
 Logger* 						 logs = Logger::getInstance();
@@ -31,27 +33,33 @@ Shader* 				 		 vpPassthrough;
 VertexArray* 		 		 viewport;
 LightController* 		 lights;
 GuiHandler* 		 		 frontend;
-Renderer3D* 			 	 renderer = Renderer3D::getInstance();
+Renderer3D* 			 	 renderer;
 EnvironmentMap*      skybox;
+
+Mesh bunny;
 
 void init()
 {
-	logs->init();
+	renderer = Renderer3D::getInstance();
+	renderer->init("./res/shaders/viewport.vs", "./res/shaders/viewport.fs");
+
 	// Initialize the framebuffer for drawing.
 	drawBuffer = new FrameBuffer(width, height);
-	drawBuffer->attachTexture2D(FrameBufferCommands::getDefaultColourSpec(FBOTargetParam::Colour0));
-	//drawBuffer->attachTexture2D();
-	drawBuffer->attachRenderBuffer();
 
-	// Initialize the renderer.
-	renderer->init("./res/shaders/viewport.vs", "./res/shaders/viewport.fs");
+	// Attach a colour texture at binding 0 and a renderbuffer.
+	auto cSpec = FBOCommands::getFloatColourSpec(FBOTargetParam::Colour0);
+	drawBuffer->attachTexture2D(cSpec);
+	drawBuffer->attachRenderBuffer();
 
 	// Initialize the lighting system.
 	lights = new LightController("./res/shaders/lightMesh.vs",
 															 "./res/shaders/lightMesh.fs",
 															 "./res/models/sphere.obj");
 	program = new Shader("./res/shaders/mesh.vs",
-											 "./res/shaders/phong/spec.fs");
+											 "./res/shaders/pbr/pbr.fs");
+	program->addUniformSampler2D("irradianceMap", 0);
+	program->addUniformSampler2D("reflectanceMap", 1);
+	program->addUniformSampler2D("brdfLookUp", 2);
 
 	// Initialize the camera.
 	sceneCam = new Camera(width / 2, height / 2, glm::vec3 {0.0f, 1.0f, 4.0f}, EDITOR);
@@ -61,17 +69,14 @@ void init()
 	skybox = new EnvironmentMap("./res/shaders/pbr/pbrSkybox.vs",
 													    "./res/shaders/pbr/pbrSkybox.fs",
 															"./res/models/cube.obj");
+	skybox->loadEquirectangularMap("./res/textures/hdr_environments/checkers.hdr");
+	skybox->equiToCubeMap();
+	skybox->precomputeIrradiance();
+	skybox->precomputeSpecular();
 
-	// Setup a basic uniform light field.
-	UniformLight light1;
-	light1.colour = glm::vec3(1.0f, 1.0f, 1.0f);
-	light1.direction = glm::vec3(0.0f, -1.0f, 0.0f);
-	light1.intensity = 0.5f;
-	light1.mat.diffuse = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
-	light1.mat.specular = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
-	light1.mat.attenuation = glm::vec2(0.0f, 0.0f);
-	light1.mat.shininess = 64.0f;
-	lights->addLight(light1);
+	// Test object.
+	bunny.loadOBJFile("./res/models/bunny.obj");
+	bunny.normalizeVertices();
 }
 
 // Display function, called for each frame.
@@ -87,6 +92,11 @@ void display()
 
 	// Draw the light meshes.
 	lights->drawLightMeshes(sceneCam);
+
+	skybox->bind(MapType::Irradiance, 0);
+	skybox->bind(MapType::Prefilter, 1);
+	skybox->bind(MapType::Integration, 2);
+	renderer->draw(&bunny, program, sceneCam);
 
 	// Draw the skybox.
 	skybox->draw(sceneCam);
@@ -105,6 +115,8 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
 {
 	if (key == GLFW_KEY_P && action == GLFW_PRESS)
 		sceneCam->swap(window);
+	if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
+		glfwSetWindowShouldClose(window, GLFW_TRUE);
 }
 
 // Scroll callback.
@@ -118,37 +130,12 @@ int main(int argc, char **argv)
 	// Set the error callback so we get output when things go wrong.
 	glfwSetErrorCallback(error_callback);
 
-	// Initialize GLFW.
-	if (!glfwInit())
-	{
-		fprintf(stderr, "Can't initialize GLFW\n");
-	}
-
-	// Open the window using GLFW.
-	window = glfwCreateWindow(width, height, "Editor Window", NULL, NULL);
-	if (!window)
-	{
-		glfwTerminate();
-		return -1;
-	}
-
-	// Initialize GLAD using the GLFW instance.
-	glfwMakeContextCurrent(window);
-	if (!gladLoadGLLoader((GLADloadproc) glfwGetProcAddress))
-	{
-		std::cout << "Error initializing GLAD!" << std::endl;
-		exit(0);
-	}
-
-	glEnable(GL_DEPTH_TEST);
-	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-	glViewport(0, 0, width, height);
+	myWindow = Window::getNewInstance("Editor Window", 1920, 1080);
+	window = myWindow->getWindowPtr();
 
 	init();
 	frontend = new GuiHandler(lights);
 	frontend->init(window);
-
-	glfwSwapInterval(1);
 
 	// Set the remaining callbacks.
 	glfwSetKeyCallback(window, key_callback);
@@ -157,7 +144,7 @@ int main(int argc, char **argv)
 	// Main application loop.
 	while (!glfwWindowShouldClose(window))
 	{
-		glfwPollEvents();
+		myWindow->onUpdate();
 		sceneCam->mouseAction(window);
 		sceneCam->keyboardAction(window);
 
@@ -178,5 +165,6 @@ int main(int argc, char **argv)
 	delete renderer;
 	delete skybox;
 
-	glfwTerminate();
+	// Shut down the window.
+	myWindow->shutDown();
 }

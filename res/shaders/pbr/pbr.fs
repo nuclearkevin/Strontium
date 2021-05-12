@@ -97,11 +97,9 @@ uniform uint numSLights;
 uniform Camera camera;
 
 // Uniforms for PBR textures.
-uniform sampler2D albedoMap;
-uniform sampler2D normalMap;
-uniform sampler2D roughnessMap;
-uniform sampler2D metallicMap;
-uniform sampler2D aOcclusionMap;
+uniform float roughness = 0.1;
+uniform float metallic = 0.8;
+uniform float aOcclusion = 1.0;
 
 // Uniforms for ambient lighting.
 uniform samplerCube irradianceMap;
@@ -129,11 +127,11 @@ vec3 computeSL(SpotLight light, FragMaterial frag, vec3 viewDir);
 void main()
 {
 	FragMaterial frag;
-  frag.albedo = pow(texture(albedoMap, fragIn.fTexCoords).rgb, vec3(2.2));
-	frag.normal = fragIn.fTBN * (texture(normalMap, fragIn.fTexCoords).xyz * 2.0 - 1.0);
-	frag.metallic = texture(metallicMap, fragIn.fTexCoords).r;
-	frag.roughness = texture(roughnessMap, fragIn.fTexCoords).r;
-	frag.aOcclusion = texture(aOcclusionMap, fragIn.fTexCoords).r;
+  frag.albedo = pow(fragIn.fColour.rgb, vec3(2.2));
+	frag.normal = normalize(fragIn.fNormal);
+	frag.metallic = metallic;
+	frag.roughness = roughness;
+	frag.aOcclusion = aOcclusion;
   frag.position = fragIn.fPosition;
   frag.F0 = mix(vec3(0.04), frag.albedo, frag.metallic);
 

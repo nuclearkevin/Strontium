@@ -66,4 +66,25 @@ namespace SciRenderer
          1.0f,  1.0f,  1.0f, 1.0f
     };
   };
+
+  enum class DepthFunctions
+  {
+    Less = GL_LESS,
+    LEq = GL_LEQUAL
+  };
+
+  enum class RendererFunction
+  {
+    
+  };
+
+  namespace RendererCommands
+  {
+    void enable(const RendererFunction &toEnable);
+    void depthFunction(const DepthFunctions &function);
+    void setClearColour(const glm::vec4 &clearColour);
+    void clear(const bool &clearColour = true, const bool &clearDepth = true,
+               const bool &clearStencil = true);
+    void setViewport(const glm::ivec2 topRight, const glm::ivec2 bottomLeft = glm::ivec2(0));
+  };
 }

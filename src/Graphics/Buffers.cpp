@@ -148,6 +148,8 @@ namespace SciRenderer
 
   RenderBuffer::RenderBuffer(GLuint width, GLuint height)
     : format(RBOInternalFormat::DepthStencil)
+    , width(width)
+    , height(height)
   {
     glGenRenderbuffers(1, &this->bufferID);
     glBindRenderbuffer(GL_RENDERBUFFER, this->bufferID);
@@ -160,6 +162,8 @@ namespace SciRenderer
   RenderBuffer::RenderBuffer(GLuint width, GLuint height,
                              const RBOInternalFormat &format)
     : format(format)
+    , width(width)
+    , height(height)
   {
     glGenRenderbuffers(1, &this->bufferID);
     glBindRenderbuffer(GL_RENDERBUFFER, this->bufferID);

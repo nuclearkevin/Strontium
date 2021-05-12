@@ -4,14 +4,11 @@
 // Macro include file.
 #include "SciRenderPCH.h"
 
-// Project includes.
-#include "Core/InputItem.h"
-
 namespace SciRenderer
 {
   enum CameraType { EDITOR, FPS };
 
-  class Camera : public InputItem
+  class Camera
   {
   public:
     // Constructors.

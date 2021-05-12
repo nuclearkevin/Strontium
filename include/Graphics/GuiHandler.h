@@ -2,6 +2,7 @@
 
 // Dear Imgui includes.
 #include "imgui/imgui.h"
+#include "imgui/imgui_internal.h"
 #include "imgui/backends/imgui_impl_glfw.h"
 #include "imgui/backends/imgui_impl_opengl3.h"
 #include "imguibrowser/FileBrowser/ImGuiFileBrowser.h"
@@ -10,6 +11,7 @@
 #include "SciRenderPCH.h"
 
 // Project includes.
+#include "Core/Layers.h"
 #include "Graphics/Lighting.h"
 #include "Graphics/Buffers.h"
 #include "Graphics/Camera.h"
@@ -56,8 +58,11 @@ namespace SciRenderer
     // Members for the log menu.
     std::string logBuffer;
 
-    // Which submenus  to display.
+    // Members for the environment map.
     bool usePBR;
+    bool drawIrrad;
+    bool drawFilter;
+    int mapRes;
 
     // Members for the lighting menu.
     LightController* currentLights;
