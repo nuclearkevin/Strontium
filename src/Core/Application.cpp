@@ -2,6 +2,7 @@
 
 // Project includes.
 #include "Graphics/Renderer.h"
+#include "Core/Events.h"
 
 namespace SciRenderer
 {
@@ -85,7 +86,54 @@ namespace SciRenderer
           layer->onImGuiRender();
 
         this->imLayer->endImGui();
+
+        // Handle application events
+        this->dispatchEvents();
+
+        // Update the window.
+        this->appWindow->onUpdate();
       }
     }
+  }
+
+  void
+  Application::dispatchEvents()
+  {
+    // Fetch the dispatcher.
+    EventDispatcher* appEvents = EventDispatcher::getInstance();
+
+    while (!appEvents->isEmpty())
+    {
+      // Fetch the first event.
+      Event* event = appEvents->dequeueEvent();
+
+      // Call the application on event function first.
+      this->onEvent(*event);
+
+      // Call the on event functions for each layer.
+      for (auto layer : this->layerStack)
+        layer->onEvent(*event);
+
+      // Delete the event when we're done with it.
+      Event::deleteEvent(event);
+    }
+  }
+
+  void
+  Application::onEvent(Event &event)
+  {
+    if (event.getType() == EventType::WindowResizeEvent)
+      this->onWindowResize();
+  }
+
+  void
+  Application::onWindowResize()
+  {
+    glm::ivec2 windowSize = getWindow()->getSize();
+
+    if (windowSize.x == 0 || windowSize.y == 0)
+      this->isMinimized = true;
+    else
+      this->isMinimized = false;
   }
 }

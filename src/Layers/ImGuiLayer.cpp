@@ -1,4 +1,4 @@
-#include "Core/ImGuiLayer.h"
+#include "Layers/ImGuiLayer.h"
 
 // Project includes.
 #include "Core/Application.h"
@@ -39,7 +39,7 @@ namespace SciRenderer
   }
 
   void
-  ImGuiLayer::onEvent()
+  ImGuiLayer::onEvent(Event &event)
   {
 
   }

@@ -1,4 +1,4 @@
-#include "Core/GraphicsContext.h"
+#include "Graphics/GraphicsContext.h"
 
 namespace SciRenderer
 {

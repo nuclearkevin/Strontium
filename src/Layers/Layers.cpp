@@ -1,4 +1,4 @@
-#include "Core/Layers.h"
+#include "Layers/Layers.h"
 
 namespace SciRenderer
 {
@@ -26,7 +26,7 @@ namespace SciRenderer
   { }
 
   void
-  Layer::onEvent()
+  Layer::onEvent(Event &event)
   { }
 
   void

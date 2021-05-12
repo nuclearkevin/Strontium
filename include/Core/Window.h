@@ -4,7 +4,7 @@
 #include "SciRenderPCH.h"
 
 // Project includes.
-#include "Core/GraphicsContext.h"
+#include "Graphics/GraphicsContext.h"
 
 namespace SciRenderer
 {
@@ -35,7 +35,10 @@ namespace SciRenderer
 
     // Get the GLFW window pointer.
     inline GLFWwindow* getWindowPtr() { return this->glfwWindowRef; }
-    inline glm::ivec2 getSize() { return glm::ivec2(this->width, this->height); }
+    // Get the window size.
+    inline glm::ivec2 getSize() { return glm::ivec2(this->properties.width, this->properties.height); }
+    // Get the cursor position.
+    inline glm::vec2 getCursorPos() { return glm::vec2(this->properties.cursorX, this->properties.cursorY); }
 
     // A counter of window instances.
     static GLuint windowInstances;
@@ -46,8 +49,17 @@ namespace SciRenderer
     bool initialized, isDebug, hasVSync;
 
     GLFWwindow* glfwWindowRef;
-    GLuint width, height;
-    std::string name;
     GraphicsContext* glContext;
+
+    struct WindowData
+    {
+      GLuint width;
+      GLuint height;
+      GLfloat cursorX;
+      GLfloat cursorY;
+      std::string name;
+    };
+
+    WindowData properties;
   };
 }

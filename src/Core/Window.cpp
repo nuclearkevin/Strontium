@@ -1,5 +1,8 @@
 #include "Core/Window.h"
 
+// Project includes.
+#include "Core/Events.h"
+
 namespace SciRenderer
 {
   GLuint Window::windowInstances = 0;
@@ -16,12 +19,13 @@ namespace SciRenderer
     : initialized(false)
     , isDebug(debug)
     , hasVSync(setVSync)
-    , width(width)
-    , height(height)
-    , name(name)
   {
+    this->properties.width = width;
+    this->properties.height = height;
+    this->properties.name = name;
+
     std::cout << "Generating a window with the name: " << name << ", and size: "
-              << this->width << "x" << this->height << "." << std::endl;
+              << width << "x" << height << "." << std::endl;
 
     this->init();
   }
@@ -35,6 +39,14 @@ namespace SciRenderer
   void
   Window::init()
   {
+    // Set the error callback first, so we actually know whats going on if
+    // something happens.
+    glfwSetErrorCallback(
+    [](int error, const char* description)
+    {
+      fprintf(stderr, "Error: %s\n", description);
+    });
+
     // Initialize GLFW if there are no windows.
     if (Window::windowInstances == 0)
     {
@@ -51,8 +63,9 @@ namespace SciRenderer
     if (this->isDebug)
       glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GLFW_TRUE);
 
-    this->glfwWindowRef = glfwCreateWindow(this->width, this->height,
-                                           this->name.c_str(), nullptr, nullptr);
+    this->glfwWindowRef = glfwCreateWindow(this->properties.width, this->properties.height,
+                                           this->properties.name.c_str(), nullptr,
+                                           nullptr);
     if (!this->glfwWindowRef)
     {
       std::cout << "Error creating the window. Aborting." << std::endl;
@@ -64,10 +77,119 @@ namespace SciRenderer
     this->glContext = new GraphicsContext(this->glfwWindowRef);
     this->glContext->init();
 
+    // Set a custom window pointer so we can get member data in/out of callbacks.
+    glfwSetWindowUserPointer(this->glfwWindowRef, &this->properties);
+
     // Enable / disable VSync.
     this->setVSync(hasVSync);
 
     this->initialized = true;
+
+    // Set the callbacks so events can get pushed.
+    // Key callback.
+    glfwSetKeyCallback(this->glfwWindowRef,
+    [](GLFWwindow* window, int key, int scancode, int action, int mods)
+    {
+      // Fetch the dispatcher.
+      EventDispatcher* appEvents = EventDispatcher::getInstance();
+
+      // Dispatch the event.
+      switch (action)
+      {
+        case GLFW_PRESS:
+          appEvents->queueEvent(new KeyPressedEvent(key, 0));
+          break;
+        case GLFW_RELEASE:
+          appEvents->queueEvent(new KeyReleasedEvent(key));
+          break;
+        case GLFW_REPEAT:
+          appEvents->queueEvent(new KeyPressedEvent(key, 1));
+          break;
+      }
+    });
+
+    // Character callback.
+    glfwSetCharCallback(this->glfwWindowRef,
+    [](GLFWwindow* window, unsigned int keycode)
+    {
+      // Fetch the dispatcher.
+      EventDispatcher* appEvents = EventDispatcher::getInstance();
+
+      // Dispatch the event.
+      appEvents->queueEvent(new KeyTypedEvent(keycode));
+    });
+
+    // Mouse click callback.
+    glfwSetMouseButtonCallback(this->glfwWindowRef,
+    [](GLFWwindow* window, int button, int action, int mods)
+    {
+      // Fetch the dispatcher.
+      EventDispatcher* appEvents = EventDispatcher::getInstance();
+
+      // Dispatch the event.
+      switch (action)
+      {
+        case GLFW_PRESS:
+          appEvents->queueEvent(new MouseClickEvent(button));
+          break;
+        case GLFW_RELEASE:
+          appEvents->queueEvent(new MouseReleasedEvent(button));
+          break;
+      }
+    });
+
+    // Mouse scroll callback.
+    glfwSetScrollCallback(this->glfwWindowRef,
+    [](GLFWwindow* window, double xOffset, double yOffset)
+    {
+      // Fetch the dispatcher.
+      EventDispatcher* appEvents = EventDispatcher::getInstance();
+
+      // Dispatch the event.
+      appEvents->queueEvent(new MouseScrolledEvent((GLfloat) xOffset,
+                                                   (GLfloat) yOffset));
+    });
+
+    // Mouse position callback.
+    glfwSetCursorPosCallback(this->glfwWindowRef,
+    [](GLFWwindow* window, double xPos, double yPos)
+    {
+      // Fetch the window data.
+      WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);
+
+      // Set the window cursor position.
+      data.cursorX = (GLfloat) xPos;
+      data.cursorY = (GLfloat) yPos;
+    });
+
+    // Window resize callback.
+    glfwSetWindowSizeCallback(this->glfwWindowRef,
+    [](GLFWwindow* window, int width, int height)
+    {
+      // Fetch the dispatcher.
+      EventDispatcher* appEvents = EventDispatcher::getInstance();
+
+      // Dispatch the event.
+      appEvents->queueEvent(new WindowResizeEvent((GLuint) width, (GLuint) height));
+
+      // Fetch the window data.
+      WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);
+
+      // Set the width and height of the window.
+      data.width = width;
+      data.height = height;
+    });
+
+    // Window closing callback.
+    glfwSetWindowCloseCallback(this->glfwWindowRef,
+    [](GLFWwindow* window)
+    {
+      // Fetch the dispatcher.
+      EventDispatcher* appEvents = EventDispatcher::getInstance();
+
+      // Dispatch the event.
+      appEvents->queueEvent(new WindowCloseEvent());
+    });
   }
 
   // Shutting down the window.
@@ -88,7 +210,8 @@ namespace SciRenderer
   }
 
   // Update the window.
-  void Window::onUpdate()
+  void
+  Window::onUpdate()
   {
     glfwPollEvents();
 		this->glContext->swapBuffers();

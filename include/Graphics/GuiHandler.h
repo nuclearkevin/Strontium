@@ -11,7 +11,6 @@
 #include "SciRenderPCH.h"
 
 // Project includes.
-#include "Core/Layers.h"
 #include "Graphics/Lighting.h"
 #include "Graphics/Buffers.h"
 #include "Graphics/Camera.h"

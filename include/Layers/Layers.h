@@ -3,6 +3,9 @@
 // Macro include file.
 #include "SciRenderPCH.h"
 
+// Project includes.
+#include "Core/Events.h"
+
 namespace SciRenderer
 {
   // A layer class which determines the order things are drawn to the screen.
@@ -18,7 +21,7 @@ namespace SciRenderer
     virtual void onAttach();
     virtual void onDetach();
     virtual void onImGuiRender();
-    virtual void onEvent();
+    virtual void onEvent(Event &event);
     virtual void onUpdate(float dt);
 
     // Get the name of the layer.

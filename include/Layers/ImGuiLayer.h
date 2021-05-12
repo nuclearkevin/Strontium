@@ -4,7 +4,8 @@
 #include "SciRenderPCH.h"
 
 // Project includes.
-#include "Core/Layers.h"
+#include "Layers/Layers.h"
+#include "Core/Events.h"
 
 // ImGui includes.
 #include "imgui/imgui.h"
@@ -21,7 +22,7 @@ namespace SciRenderer
 
     virtual void onAttach() override;
     virtual void onDetach() override;
-    virtual void onEvent() override;
+    virtual void onEvent(Event &event) override;
 
     void beginImGui();
     void endImGui();

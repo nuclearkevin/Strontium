@@ -28,7 +28,7 @@ namespace SciRenderer
       : message(msg)
       , logTime(true)
       , addToGlobal(false)
-      , consoleOutput(false)
+      , consoleOutput(true)
     { };
 
     LogMessage(std::string msg, bool logTime, bool global, bool console)
@@ -43,8 +43,6 @@ namespace SciRenderer
   class Logger
   {
   public:
-    static Logger* appLogs;
-
     // Destructor.
     ~Logger() = default;
 
@@ -67,6 +65,8 @@ namespace SciRenderer
     auto getGlobalLogs()                   -> std::string;
 
   private:
+    // The instance.
+    static Logger* appLogs;
     // Queue to store the logs from the previous frame.
     std::queue<std::string>  lastFrameLogs;
 

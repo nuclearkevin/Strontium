@@ -4,9 +4,9 @@
 #include "SciRenderPCH.h"
 
 // Project includes.
-#include "Core/Layers.h"
+#include "Layers/Layers.h"
 #include "Core/Window.h"
-#include "Core/ImGuiLayer.h"
+#include "Layers/ImGuiLayer.h"
 
 namespace SciRenderer
 {
@@ -51,9 +51,10 @@ namespace SciRenderer
     float lastTime;
 
   private:
-    // Functions for behavior.
+    // Functions for application behavior.
     void run();
-    bool onWindowClose();
-    bool onWindowResize();
+    void dispatchEvents();
+    void onEvent(Event &event);
+    void onWindowResize();
   };
 }

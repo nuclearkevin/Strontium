@@ -4,6 +4,7 @@
 // Project includes.
 #include "Core/Logs.h"
 #include "Core/Window.h"
+#include "Core/Events.h"
 #include "Graphics/Shaders.h"
 #include "Graphics/Meshes.h"
 #include "Graphics/Camera.h"
@@ -27,10 +28,10 @@ Window* myWindow;
 
 // Abstracted OpenGL objects.
 Logger* 						 logs = Logger::getInstance();
+EventDispatcher*     appEvents = EventDispatcher::getInstance();
 FrameBuffer* 		 		 drawBuffer;
 Shader* 				 		 program;
 Shader* 				 		 vpPassthrough;
-VertexArray* 		 		 viewport;
 LightController* 		 lights;
 GuiHandler* 		 		 frontend;
 Renderer3D* 			 	 renderer;
@@ -103,43 +104,14 @@ void display()
 	drawBuffer->unbind();
 }
 
-// Error callback, called when there is an error during program initialization
-// or runtime.
-void error_callback(int error, const char* description)
-{
-	fprintf(stderr, "Error: %s\n", description);
-}
-
-// Key callback, called each time a key is pressed.
-static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
-{
-	if (key == GLFW_KEY_P && action == GLFW_PRESS)
-		sceneCam->swap(window);
-	if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
-		glfwSetWindowShouldClose(window, GLFW_TRUE);
-}
-
-// Scroll callback.
-static void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
-{
-	sceneCam->scrollAction(window, xoffset, yoffset);
-}
-
 int main(int argc, char **argv)
 {
-	// Set the error callback so we get output when things go wrong.
-	glfwSetErrorCallback(error_callback);
-
 	myWindow = Window::getNewInstance("Editor Window", 1920, 1080);
 	window = myWindow->getWindowPtr();
 
 	init();
 	frontend = new GuiHandler(lights);
 	frontend->init(window);
-
-	// Set the remaining callbacks.
-	glfwSetKeyCallback(window, key_callback);
-	glfwSetScrollCallback(window, scroll_callback);
 
 	// Main application loop.
 	while (!glfwWindowShouldClose(window))
@@ -157,6 +129,7 @@ int main(int argc, char **argv)
 	frontend->shutDown();
 
 	// Cleanup pointers.
+	delete appEvents;
 	delete program;
 	delete vpPassthrough;
 	delete lights;
@@ -164,7 +137,8 @@ int main(int argc, char **argv)
 	delete drawBuffer;
 	delete renderer;
 	delete skybox;
+	delete sceneCam;
 
 	// Shut down the window.
-	myWindow->shutDown();
+	delete myWindow;
 }

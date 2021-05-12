@@ -17,9 +17,6 @@ namespace SciRenderer
   class Renderer3D
   {
   public:
-    // Renderer instance.
-    static Renderer3D* instance;
-
     // Destructor.
     ~Renderer3D();
 
@@ -46,6 +43,9 @@ namespace SciRenderer
     void swap(GLFWwindow* window);
 
   private:
+    // Renderer instance.
+    static Renderer3D* instance;
+
     // Shader to draw a texture to a screen.
     Shader* viewportProgram;
 
@@ -75,7 +75,7 @@ namespace SciRenderer
 
   enum class RendererFunction
   {
-    
+
   };
 
   namespace RendererCommands
