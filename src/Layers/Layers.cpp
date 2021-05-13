@@ -47,13 +47,7 @@ namespace SciRenderer
   { }
 
   LayerCollection::~LayerCollection()
-	{
-		for (auto layer : this->layers)
-		{
-			layer->onDetach();
-			delete layer;
-		}
-	}
+	{ }
 
   void
   LayerCollection::pushLayer(Layer* layer)

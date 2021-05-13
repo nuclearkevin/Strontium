@@ -141,12 +141,6 @@ namespace SciRenderer
   }
 
   void
-  Renderer3D::swap(GLFWwindow* window)
-  {
-    glfwSwapBuffers(window);
-  }
-
-  void
   RendererCommands::enable(const RendererFunction &toEnable)
   {
 
@@ -168,7 +162,16 @@ namespace SciRenderer
   RendererCommands::clear(const bool &clearColour, const bool &clearDepth,
                           const bool &clearStencil)
   {
+    if (clearColour)
+      glClear(GL_COLOR_BUFFER_BIT);
+    if (clearDepth)
+    {
+      
+    }
+    if (clearStencil)
+    {
 
+    }
   }
 
   void

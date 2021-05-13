@@ -8,6 +8,8 @@
 #include "Core/Window.h"
 #include "Layers/ImGuiLayer.h"
 
+int main(int argc, char** argv);
+
 namespace SciRenderer
 {
   // Singleton application class.
@@ -28,9 +30,12 @@ namespace SciRenderer
     static inline Application* getInstance() { return Application::appInstance; }
     inline Window* getWindow() { return this->appWindow; }
 
-  protected:
+  private:
     // The application instance.
     static Application* appInstance;
+
+    // The main function.
+    friend int ::main(int argc, char** argv);
 
     // Determines if the application should continue to run or not.
     bool running, isMinimized;
@@ -57,4 +62,7 @@ namespace SciRenderer
     void onEvent(Event &event);
     void onWindowResize();
   };
+
+  // Need to define this in the client app.
+  Application* makeApplication();
 }

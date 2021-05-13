@@ -136,7 +136,7 @@ void main()
   frag.F0 = mix(vec3(0.04), frag.albedo, frag.metallic);
 
 	vec3 view = normalize(camera.position - fragIn.fPosition);
-  vec3 reflection = reflect(-view, frag.normal);
+  vec3 reflection = reflect(view, frag.normal);
 
   vec3 ks = SFresnelR(max(dot(frag.normal, view), 0.0), frag.F0, frag.roughness);
   vec3 kd = (vec3(1.0) - ks) * (1.0 - frag.roughness);

@@ -189,6 +189,7 @@ namespace SciRenderer
 
       // Dispatch the event.
       appEvents->queueEvent(new WindowCloseEvent());
+      glfwSetWindowShouldClose(window, GLFW_TRUE);
     });
   }
 
@@ -199,6 +200,7 @@ namespace SciRenderer
     // Shutdown the window (also removes the graphics context since we load GLAD
     // with GLFW).
     glfwDestroyWindow(this->glfwWindowRef);
+    delete glContext;
     Window::windowInstances --;
 
     // If there are no more windows, we terminate GLFW as well.
@@ -229,5 +231,37 @@ namespace SciRenderer
     {
       glfwSwapInterval(0);
     }
+  }
+
+  glm::vec2
+  Window::getCursorPos()
+  {
+    double mouseX, mouseY;
+    glfwGetCursorPos(this->glfwWindowRef, &mouseX, &mouseY);
+
+    return glm::vec2((GLfloat) mouseX, (GLfloat) mouseY);
+  }
+
+  void
+  Window::setCursorCapture(const bool &active)
+  {
+    if (active)
+      glfwSetInputMode(this->glfwWindowRef, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    else
+      glfwSetInputMode(this->glfwWindowRef, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+  }
+
+  // Manually poll input.
+  bool
+  Window::isMouseClicked(const int &button)
+  {
+    return glfwGetMouseButton(this->glfwWindowRef, button) == GLFW_PRESS;
+  }
+
+  bool
+  Window::isKeyPressed(const int &key)
+  {
+    int state = glfwGetKey(this->glfwWindowRef, key);
+    return state == GLFW_PRESS || state == GLFW_REPEAT;
   }
 }

@@ -15,9 +15,14 @@ namespace SciRenderer
     void init();
 
     void swapBuffers();
+
+    inline std::string getContextInfo() { return this->contextInfo; }
   private:
     // The window with the context. Since we ask GLFW to generate a context for
     // us we need this window stored.
     GLFWwindow* glfwWindowRef;
+
+    // A string of info surrounding the graphics context.
+    std::string contextInfo;
   };
 }

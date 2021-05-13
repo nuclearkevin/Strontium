@@ -30,7 +30,7 @@ makebuild: make_dir Application
 Application: $(CORE_OBJECTS) $(LAYERS_OBJECTS) $(GRAPHICS_OBJECTS) $(UTILS_OBJECTS) \
 	$(GLAD_OBJECTS) $(IMGUI_FB_OBJECTS) $(IMGUI_OBJECTS)
 	@echo Linking the application.
-	@$(COMPILE_FLAGS) -o Application $^ -ldl -lglfw
+	@$(COMPILE_FLAGS) -g -o Application $^ -ldl -lglfw
 
 # Compile the graphics engine.
 $(OUTPUT_DIR)%.o: $(SRC_DIR)%.cpp

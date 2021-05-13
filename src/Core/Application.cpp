@@ -3,6 +3,7 @@
 // Project includes.
 #include "Graphics/Renderer.h"
 #include "Core/Events.h"
+#include "Core/Logs.h"
 
 namespace SciRenderer
 {
@@ -24,8 +25,14 @@ namespace SciRenderer
 
     Application::appInstance = this;
 
+    // Initialize the application logs.
+    SciRenderer::Logger* logs = SciRenderer::Logger::getInstance();
+    logs->init();
+
+    // Initialize the application main window.
     this->appWindow = Window::getNewInstance(this->name);
 
+    // Initialize the 3D renderer.
     Renderer3D* renderer = Renderer3D::getInstance();
     renderer->init("./res/shaders/viewport.vs", "./res/shaders/viewport.fs");
 
@@ -35,11 +42,19 @@ namespace SciRenderer
 
   Application::~Application()
   {
-    // Don't need to loop over the layers, the layer collection handles that in
-    // its destructor.
+    // Detach each layer and delete it.
+    for (auto layer : this->layerStack)
+		{
+  		layer->onDetach();
+  		delete layer;
+		}
 
-    // Shutdown and delete the application window.
+    // Delete the application window.
     delete this->appWindow;
+
+    // Delete the application event dispatcher and logs.
+    delete EventDispatcher::getInstance();
+    delete Logger::getInstance();
   }
 
   void
@@ -92,6 +107,9 @@ namespace SciRenderer
 
         // Update the window.
         this->appWindow->onUpdate();
+
+        // Clear the back buffer.
+        RendererCommands::clear(true, false, false);
       }
     }
   }
@@ -124,6 +142,9 @@ namespace SciRenderer
   {
     if (event.getType() == EventType::WindowResizeEvent)
       this->onWindowResize();
+
+    if (event.getType() == EventType::WindowCloseEvent)
+      this->close();
   }
 
   void

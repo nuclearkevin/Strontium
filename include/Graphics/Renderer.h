@@ -39,9 +39,6 @@ namespace SciRenderer
     // Draw a texture to a viewport (fullscreen squad).
     void debugDrawTex(GLuint texID);
 
-    // Swap the buffers.
-    void swap(GLFWwindow* window);
-
   private:
     // Renderer instance.
     static Renderer3D* instance;

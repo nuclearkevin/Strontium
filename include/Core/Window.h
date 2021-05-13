@@ -33,12 +33,21 @@ namespace SciRenderer
     // Enable or disable VSync.
     void setVSync(const bool &active);
 
+    // Set the cursor to be captured.
+    void setCursorCapture(const bool &active);
+
     // Get the GLFW window pointer.
     inline GLFWwindow* getWindowPtr() { return this->glfwWindowRef; }
     // Get the window size.
     inline glm::ivec2 getSize() { return glm::ivec2(this->properties.width, this->properties.height); }
     // Get the cursor position.
-    inline glm::vec2 getCursorPos() { return glm::vec2(this->properties.cursorX, this->properties.cursorY); }
+    glm::vec2 getCursorPos();
+    // Get the graphics context info.
+    inline std::string getContextInfo() { return this->glContext->getContextInfo(); }
+
+    // Check to see if a button / key is pressed.
+    bool isMouseClicked(const int &button);
+    bool isKeyPressed(const int &key);
 
     // A counter of window instances.
     static GLuint windowInstances;

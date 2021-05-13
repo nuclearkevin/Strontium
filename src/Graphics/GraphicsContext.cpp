@@ -33,6 +33,12 @@ namespace SciRenderer
               << std::endl;
     std::cout << "Graphics context version: " << glGetString(GL_VERSION)
               << std::endl;
+    this->contextInfo = std::string("Graphics device vendor: ") +
+                        std::string(reinterpret_cast<const char*>(glGetString(GL_VENDOR))) +
+                        std::string("\nGraphics device: ") +
+                        std::string(reinterpret_cast<const char*>(glGetString(GL_RENDERER))) +
+                        std::string("\nGraphics context version: ") +
+                        std::string(reinterpret_cast<const char*>(glGetString(GL_VERSION)));
   }
 
   void

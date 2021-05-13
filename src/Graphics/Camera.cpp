@@ -2,22 +2,18 @@
 
 // Project includes.
 #include "Core/Logs.h"
+#include "Core/Application.h"
+#include "Core/Window.h"
 
 namespace SciRenderer
 {
   // Constructors.
-  Camera::Camera(float xCenter, float yCenter, CameraType type)
+  Camera::Camera(float xCenter, float yCenter, EditorCameraType type)
     : position(glm::vec3 { 0.0f, 0.0f, 0.0f })
     , camFront(glm::vec3 { 0.0f, 0.0f, -1.0f })
     , camTop(glm::vec3 { 0.0f, 1.0f, 0.0f })
-    , initPosition(glm::vec3 { 0.0f, 0.0f, 0.0f })
-    , initCamFront(glm::vec3 { 0.0f, 0.0f, -1.0f })
-    , initCamTop(glm::vec3 { 0.0f, 1.0f, 0.0f })
     , proj(glm::mat4(1.0f))
-    , dt(0.0f)
     , lastTime(0.0f)
-    , currentTime(0.0f)
-    , isInit(false)
     , lastMouseX(xCenter)
     , lastMouseY(yCenter)
     , yaw(-90.0f)
@@ -27,23 +23,15 @@ namespace SciRenderer
   {
     this->view = glm::lookAt(this->position, this->position + this->camFront,
                              this->camTop);
-    this->hand  = glfwCreateStandardCursor(GLFW_HAND_CURSOR);
-    this->arrow = glfwCreateStandardCursor(GLFW_ARROW_CURSOR);
   }
 
   Camera::Camera(float xCenter, float yCenter, const glm::vec3 &initPosition,
-                 CameraType type)
+                 EditorCameraType type)
     : position(initPosition)
     , camFront(glm::vec3 { 0.0f, 0.0f, -1.0f })
     , camTop(glm::vec3 { 0.0f, 1.0f, 0.0f })
-    , initPosition(initPosition)
-    , initCamFront(glm::vec3 { 0.0f, 0.0f, -1.0f })
-    , initCamTop(glm::vec3 { 0.0f, 1.0f, 0.0f })
     , proj(glm::mat4(1.0f))
-    , dt(0.0f)
     , lastTime(0.0f)
-    , currentTime(0.0f)
-    , isInit(false)
     , lastMouseX(xCenter)
     , lastMouseY(yCenter)
     , yaw(-90.0f)
@@ -53,278 +41,210 @@ namespace SciRenderer
   {
     this->view = glm::lookAt(this->position, this->position + this->camFront,
                              this->camTop);
-    this->hand  = glfwCreateStandardCursor(GLFW_HAND_CURSOR);
-    this->arrow = glfwCreateStandardCursor(GLFW_ARROW_CURSOR);
   }
 
   void
-  Camera::init(GLFWwindow *window, const glm::mat4 &viewportProj)
+  Camera::init(const GLfloat &fov, const GLfloat &aspect,
+               const GLfloat &near, const GLfloat &far)
   {
-    this->proj = viewportProj;
+    this->proj = glm::perspective(glm::radians(fov), aspect, near, far);
     switch (this->currentType)
     {
-      case FPS:
-        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-        this->isInit = true;
+      case EditorCameraType::Free:
+        Application::getInstance()->getWindow()->setCursorCapture(true);
         break;
-      case EDITOR:
-        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-        this->isInit = true;
+      case EditorCameraType::Stationary:
+        Application::getInstance()->getWindow()->setCursorCapture(false);
         break;
     }
+
+    // Fetch the application window for input polling.
+    Window* appWindow = Application::getInstance()->getWindow();
+    glm::vec2 mousePos = appWindow->getCursorPos();
+    this->lastMouseX = mousePos.x;
+    this->lastMouseY = mousePos.y;
   }
 
-  // Action system for camera control.
+  // On update function for the camera.
   void
-  Camera::keyboardAction(GLFWwindow *window)
+  Camera::onUpdate(float dt)
   {
-    // Boolean to avoid recomputing the view matrix every frame if the camera
-    // hasn't changed.
-    bool recomputeView = false;
+    // Fetch the application window for input polling.
+    Window* appWindow = Application::getInstance()->getWindow();
 
-    // Timestep for camera movement.
-    this->currentTime = glfwGetTime();
-    this->dt = this->currentTime - this->lastTime;
-    this->lastTime = this->currentTime;
-
-    float cameraSpeed = this->scalarSpeed * this->dt;
+    glm::vec2 mousePos = appWindow->getCursorPos();
 
     switch (this->currentType)
     {
-      case FPS:
+      case EditorCameraType::Stationary:
+      {
+        break;
+      }
+      case EditorCameraType::Free:
+      {
+        //----------------------------------------------------------------------
+        // Handles the mouse input component.
+        //----------------------------------------------------------------------
+        GLfloat dx = mousePos.x - this->lastMouseX;
+        GLfloat dy = this->lastMouseY - mousePos.y;
+
+        // Compute the yaw and pitch from mouse position.
+        this->yaw   += (this->sensitivity * (dx));
+        this->pitch += (this->sensitivity * dy);
+
+        if (this->pitch > 89.0f)
+          this-> pitch = 89.0f;
+        if (this->pitch < -89.0f)
+          this->pitch = -89.0f;
+
+        // Compute the new front normal vector.
+        glm::vec3 temp;
+        temp.x         = cos(glm::radians(this->yaw)) * cos(glm::radians(this->pitch));
+        temp.y         = sin(glm::radians(this->pitch));
+        temp.z         = sin(glm::radians(this->yaw)) * cos(glm::radians(this->pitch));
+        this->camFront = glm::normalize(temp);
+
+        //----------------------------------------------------------------------
+        // Handles the keyboard input component.
+        //----------------------------------------------------------------------
+        float cameraSpeed = this->scalarSpeed * dt;
+
         // Move the camera position (Space Engineers styled camera).
-        if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-        {
-          recomputeView = true;
+        if (appWindow->isKeyPressed(GLFW_KEY_W))
           this->position += this->camFront * cameraSpeed;
-        }
-        if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-        {
-          recomputeView = true;
+
+        if (appWindow->isKeyPressed(GLFW_KEY_S))
           this->position -= this->camFront * cameraSpeed;
-        }
-        if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-        {
-          recomputeView = true;
+
+        if (appWindow->isKeyPressed(GLFW_KEY_A))
           this->position -= glm::normalize(glm::cross(this->camFront, this->camTop))
                             * cameraSpeed;
-        }
-        if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-        {
-          recomputeView = true;
+
+        if (appWindow->isKeyPressed(GLFW_KEY_D))
           this->position += glm::normalize(glm::cross(this->camFront, this->camTop))
                             * cameraSpeed;
-        }
-        if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
-        {
-          recomputeView = true;
+
+        if (appWindow->isKeyPressed(GLFW_KEY_SPACE))
           this->position += this->camTop * cameraSpeed;
-        }
-        if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
-        {
-          recomputeView = true;
+
+        if (appWindow->isKeyPressed(GLFW_KEY_LEFT_CONTROL))
           this->position -= this->camTop * cameraSpeed;
-        }
-        if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
+
+        if (appWindow->isKeyPressed(GLFW_KEY_Q))
         {
-          recomputeView = true;
           glm::mat4 rot = glm::rotate(glm::mat4(1.0f), glm::radians(-cameraSpeed * 10),
                                       this->camFront);
           this->camTop = glm::vec3(glm::normalize(rot * glm::vec4(this->camTop, 0.0f)));
         }
-        if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
+        if (appWindow->isKeyPressed(GLFW_KEY_E))
         {
-          recomputeView = true;
           glm::mat4 rot = glm::rotate(glm::mat4(1.0f), glm::radians(cameraSpeed * 10),
                                       this->camFront);
           this->camTop = glm::vec3(glm::normalize(rot * glm::vec4(this->camTop, 0.0f)));
         }
         break;
-      case EDITOR:
+      }
+    }
+
+    // Recompute the view matrix.
+    this->view = glm::lookAt(this->position, this->position + this->camFront,
+                             this->camTop);
+
+    this->lastMouseX = mousePos.x;
+    this->lastMouseY = mousePos.y;
+  }
+
+  // Camera zoom function.
+  void
+  Camera::cameraZoom(glm::vec2 offsets)
+  {
+    float cameraSpeed = 0.02 * (offsets.y) * this->scalarSpeed;
+
+    this->position += this->camFront * cameraSpeed;
+
+    this->view = glm::lookAt(this->position, this->position + this->camFront,
+                             this->camTop);
+  }
+
+  // The event handling function.
+  void
+  Camera::onEvent(Event &event)
+  {
+    switch (event.getType())
+    {
+      case EventType::MouseScrolledEvent:
+        this->onMouseScroll(*(static_cast<MouseScrolledEvent*>(&event)));
+        break;
+      case EventType::WindowResizeEvent:
+        this->onWindowResize(*(static_cast<WindowResizeEvent*>(&event)));
+        break;
+      case EventType::KeyPressedEvent:
+        this->onKeyPress(*(static_cast<KeyPressedEvent*>(&event)));
+      default:
         break;
     }
-    // Recompute the view matrix if required.
-    if (recomputeView)
-      this->view = glm::lookAt(this->position, this->position + this->camFront,
-                               this->camTop);
   }
 
   void
-  Camera::mouseAction(GLFWwindow *window)
+  Camera::onMouseScroll(MouseScrolledEvent &mouseEvent)
   {
-    bool recomputeView = false;
+    // Fetch the application window for input polling.
+    Window* appWindow = Application::getInstance()->getWindow();
 
-    double mouseX, mouseY;
-    glfwGetCursorPos(window, &mouseX, &mouseY);
-    float dx = (float) this->lastMouseX - mouseX;
-    float dy = (float) this->lastMouseY - mouseY;
+    glm::vec2 offsets = mouseEvent.getOffset();
 
     switch (this->currentType)
     {
-      case FPS:
-        // Update the camera pointing vector if the mouse position has changed.
-        if (mouseX != this->lastMouseX || mouseY != this->lastMouseY)
-        {
-          recomputeView = true;
-
-          // Compute the yaw and pitch from mouse position.
-          this->yaw   += (this->sensitivity * (-dx));
-          this->pitch += (this->sensitivity * dy);
-
-          if (this->pitch > 89.0f)
-            this-> pitch = 89.0f;
-          if (this->pitch < -89.0f)
-            this->pitch = -89.0f;
-
-          // Compute the new front normal vector.
-          glm::vec3 temp;
-          temp[0]          = cos(glm::radians(this->yaw)) * cos(glm::radians(this->pitch));
-          temp[1]          = sin(glm::radians(this->pitch));
-          temp[2]          = sin(glm::radians(this->yaw)) * cos(glm::radians(this->pitch));
-          this->camFront   = glm::normalize(temp);
-
-          this->lastMouseX = mouseX;
-          this->lastMouseY = mouseY;
-        }
+      case EditorCameraType::Stationary:
+        if (offsets.y != 0.0 && appWindow->isKeyPressed(GLFW_KEY_LEFT_ALT))
+          this->cameraZoom(offsets);
         break;
-      case EDITOR:
-        // Poll for mouse input and see if a mouse button is pressed.
-        int lMBState = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT);
-        int rMBState = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT);
-
-        if ((lMBState == GLFW_PRESS || rMBState == GLFW_PRESS)
-            && this->firstClick == true
-            && glfwGetKey(window, GLFW_KEY_LEFT_ALT) == GLFW_PRESS)
-        {
-          // Activate camera motion mode.
-          if (mouseX != this->lastMouseX || mouseY != this->lastMouseY)
-          {
-            glfwSetCursor(window, this->hand);
-
-            this->firstClick = false;
-
-            this->lastMouseX = mouseX;
-            this->lastMouseY = mouseY;
-          }
-        }
-        else if (lMBState == GLFW_PRESS && this->firstClick == false
-                 && glfwGetKey(window, GLFW_KEY_LEFT_ALT) == GLFW_PRESS)
-        {
-          if (mouseX != this->lastMouseX || mouseY != this->lastMouseY)
-          {
-            // Update the camera matrix if the mouse is moving AND LMB is pressed.
-            recomputeView = true;
-
-            // Compute the rotation variables and matrix.
-            // This gimble locks. TODO figure out quaternions to do this properly.
-            glm::mat4 rot;
-            glm::vec3 camRight = glm::normalize(glm::cross(this->camFront, this->camTop));
-            rot = glm::rotate(glm::mat4(1.0f), glm::radians(dx), this->camTop);
-            rot = glm::rotate(rot, glm::radians(dy), camRight);
-            glm::mat4 rotNorm = glm::transpose(glm::inverse(rot));
-            this->position = glm::vec3(rot * glm::vec4(this->position, 1.0f));
-            this->camFront = glm::normalize(glm::vec3(rotNorm * glm::vec4(this->camFront, 0.0f)));
-            this->camTop   = glm::normalize(glm::vec3(rotNorm * glm::vec4(this->camTop, 0.0f)));
-
-            this->lastMouseX = mouseX;
-            this->lastMouseY = mouseY;
-          }
-        }
-        else if (rMBState == GLFW_PRESS && this->firstClick == false
-                 && glfwGetKey(window, GLFW_KEY_LEFT_ALT) == GLFW_PRESS)
-        {
-          if (mouseX != this->lastMouseX || mouseY != this->lastMouseY)
-          {
-            // Update the camera matrix if the mouse is moving AND LMB is pressed.
-            recomputeView = true;
-
-            // Compute the translation.
-            glm::mat4 transX, transY, transTot;
-            glm::vec3 camRight = glm::normalize(glm::cross(this->camFront, this->camTop))
-                                 * dx * this->sensitivity;
-            transX = glm::translate(glm::mat4(1.0f), camRight);
-            transY = glm::translate(glm::mat4(1.0f), this->camTop * dy * this->sensitivity);
-            transTot = transY * transX;
-            glm::mat4 transNorm = glm::transpose(glm::inverse(transTot));
-            this->position = glm::vec3(transTot * glm::vec4(this->position, 1.0f));
-            this->camFront = glm::vec3(transNorm * glm::vec4(this->camFront, 0.0f));
-
-            this->lastMouseX = mouseX;
-            this->lastMouseY = mouseY;
-          }
-        }
-        else if ((lMBState == GLFW_RELEASE || rMBState == GLFW_RELEASE) && this->firstClick == false)
-        {
-          this->firstClick = true;
-          glfwSetCursor(window, this->arrow);
-        }
+      default:
         break;
     }
-    // Recompute the view matrix if required.
-    if (recomputeView)
-      this->view = glm::lookAt(this->position, this->position + this->camFront,
-                               this->camTop);
   }
 
-  // Scroll callback.
   void
-  Camera::scrollAction(GLFWwindow *window, double xoffset, double yoffset)
+  Camera::onWindowResize(WindowResizeEvent &windowEvent)
   {
-    bool recomputeView = false;
 
-    // Timestep for camera movement.
-    this->currentTime = glfwGetTime();
-    this->dt = this->currentTime - this->lastTime;
-    this->lastTime = this->currentTime;
+  }
 
-    float cameraSpeed = 200 * ((float) yoffset) * this->scalarSpeed * this->dt;
+  void
+  Camera::onKeyPress(KeyPressedEvent &keyEvent)
+  {
+    // Fetch the application window for input polling.
+    Window* appWindow = Application::getInstance()->getWindow();
 
-    switch (this->currentType)
-    {
-      case FPS:
-        break;
-      case EDITOR:
-        if (yoffset > 0.0 && glfwGetKey(window, GLFW_KEY_LEFT_ALT) == GLFW_PRESS)
-        {
-          recomputeView = true;
-          this->position += this->camFront * cameraSpeed;
-        }
-        else if (yoffset < 0.0 && glfwGetKey(window, GLFW_KEY_LEFT_ALT) == GLFW_PRESS)
-        {
-          recomputeView = true;
-          this->position += this->camFront * cameraSpeed;
-        }
-        break;
-    }
-    // Recompute the view matrix if required.
-    if (recomputeView)
-      this->view = glm::lookAt(this->position, this->position + this->camFront,
-                               this->camTop);
+    int keyCode = keyEvent.getKeyCode();
+
+    if (keyCode == GLFW_KEY_P && appWindow->isKeyPressed(GLFW_KEY_LEFT_ALT))
+      this->swap();
   }
 
   // Swap the camera types.
   void
-  Camera::swap(GLFWwindow *window)
+  Camera::swap()
   {
     Logger* logs = Logger::getInstance();
+    Window* appWindow = Application::getInstance()->getWindow();
 
-    if (this->currentType == EDITOR)
+    if (this->currentType == EditorCameraType::Stationary)
     {
-      this->currentType = FPS;
-      glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-      logs->logMessage(LogMessage("Swapped camera to FPS.", true, false, false));
+      this->currentType = EditorCameraType::Free;
+      appWindow->setCursorCapture(true);
+      logs->logMessage(LogMessage("Swapped camera to free-form.", true, false, false));
     }
     else
     {
-      this->currentType = EDITOR;
-      glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-      logs->logMessage(LogMessage("Swapped camera to editor.", true, false, false));
+      this->currentType = EditorCameraType::Stationary;
+      appWindow->setCursorCapture(false);
+      logs->logMessage(LogMessage("Swapped camera to stationary.", true, false, false));
     }
 
-    double mouseX, mouseY;
-    glfwGetCursorPos(window, &mouseX, &mouseY);
-    this->lastMouseX = (float) mouseX;
-    this->lastMouseY = (float) mouseY;
+    glm::vec2 cursorPos = appWindow->getCursorPos();
+    this->lastMouseX = cursorPos.x;
+    this->lastMouseY = cursorPos.y;
   }
 
   // Update the projection matrix.

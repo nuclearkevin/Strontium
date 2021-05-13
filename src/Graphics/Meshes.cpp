@@ -12,8 +12,7 @@ namespace SciRenderer
     : loaded(false)
     , modelMatrix(glm::mat4(1.0f))
     , hasUVs(false)
-  {
-  }
+  { }
 
   Mesh::Mesh(const std::vector<Vertex> &vertices, const std::vector<GLuint> &indices)
     : loaded(true)
@@ -21,7 +20,11 @@ namespace SciRenderer
     , indices(indices)
     , modelMatrix(glm::mat4(1.0f))
     , hasUVs(false)
+  { }
+
+  Mesh::~Mesh()
   {
+    delete this->vArray;
   }
 
   // Loading function for .obj files.

@@ -232,32 +232,6 @@ namespace SciRenderer
     }
   	ImGui::End();
 
-    // The right sidebar.
-    ImGui::SetNextWindowPos(ImVec2(wSize.x - wSize.x * 16 / 64, 19));
-  	ImGui::SetNextWindowSize(ImVec2(wSize.x * 16 / 64, wSize.y), ImGuiCond_Always);
-  	ImGui::Begin("Right Sidebar", nullptr, this->sidebarFlags);
-    {
-      // Right sidebar contents.
-    }
-    ImGui::End();
-
-    // The log menu.
-    this->logBuffer += logs->getLastMessages();
-    ImGui::SetNextWindowPos(ImVec2(wSize.x * 16 / 64, wSize.y - wSize.x * 15 / 128 + 2));
-  	ImGui::SetNextWindowSize(ImVec2(wSize.x - wSize.x * 16 / 64 - wSize.x * 16 / 64,
-                                    wSize.x * 16 / 128), ImGuiCond_Always);
-    ImGui::Begin("Application Logs", nullptr, this->logFlags);
-    {
-      if (ImGui::Button("Clear Logs"))
-        this->logBuffer = "";
-      ImGui::BeginChild("LogText");
-      {
-        ImGui::Text(this->logBuffer.c_str());
-      }
-      ImGui::EndChild();
-    }
-    ImGui::End();
-
     if (openEnvironment)
       ImGui::OpenPopup("Load Equirectangular Map");
 

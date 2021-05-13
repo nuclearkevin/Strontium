@@ -38,7 +38,7 @@ namespace SciRenderer
     Mesh();
     Mesh(const std::vector<Vertex> &vertices, const std::vector<GLuint> &indices);
     // Destructor.
-    ~Mesh() = default;
+    ~Mesh();
 
     // Load data from a file.
     void loadOBJFile(const char* filepath, bool computeTBN = true);
