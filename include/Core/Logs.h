@@ -4,9 +4,6 @@
 // Macro include file.
 #include "SciRenderPCH.h"
 
-// Data structures for logging.
-#include <queue>
-
 namespace SciRenderer
 {
   // A struct to contain the parameters for a logged message.

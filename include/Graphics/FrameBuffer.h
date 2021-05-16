@@ -7,10 +7,6 @@
 #include "Graphics/Textures.h"
 #include "Graphics/Buffers.h"
 
-// STL includes.
-#include <unordered_map>
-#include <utility>
-
 namespace SciRenderer
 {
   // Framebuffer parameters.

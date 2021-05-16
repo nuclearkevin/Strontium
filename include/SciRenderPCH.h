@@ -15,6 +15,9 @@
 #include <stdarg.h>
 #include <string.h>
 #include <vector>
+#include <unordered_map>
+#include <queue>
+#include <utility>
 #include <chrono>
 
 // OpenGL includes.

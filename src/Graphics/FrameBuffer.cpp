@@ -111,7 +111,15 @@ namespace SciRenderer
                            newTex->textureID, 0);
     this->unbind();
 
-    this->clearFlags |= GL_COLOR_BUFFER_BIT;
+    // Setup the clear flags.
+    if (spec.target == FBOTargetParam::Depth)
+      this->clearFlags |= GL_DEPTH_BUFFER_BIT;
+    else if (spec.target == FBOTargetParam::Stencil)
+      this->clearFlags |=GL_STENCIL_BUFFER_BIT;
+    else if (spec.target == FBOTargetParam::DepthStencil)
+      this->clearFlags |= GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT;
+    else
+      this->clearFlags |= GL_COLOR_BUFFER_BIT;
 
     this->textureAttachments.insert({ spec.target, { spec, newTex } });
   }

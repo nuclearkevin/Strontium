@@ -15,7 +15,7 @@ namespace SciRenderer
   {
     glGenBuffers(1, &this->bufferID);
     glBindBuffer(GL_ARRAY_BUFFER, this->bufferID);
-    glBufferData(GL_ARRAY_BUFFER, dataSize, bufferData, static_cast<GLuint>(bufferType));
+    glBufferData(GL_ARRAY_BUFFER, dataSize, bufferData, static_cast<GLenum>(bufferType));
   }
 
   VertexBuffer::~VertexBuffer()
@@ -51,7 +51,7 @@ namespace SciRenderer
     glGenBuffers(1, &this->bufferID);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, this->bufferID);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLuint) * numIndices, bufferData,
-                 static_cast<GLuint>(bufferType));
+                 static_cast<GLenum>(bufferType));
   }
 
   IndexBuffer::~IndexBuffer()
@@ -86,10 +86,11 @@ namespace SciRenderer
   UniformBuffer::UniformBuffer(const unsigned &bufferSize, BufferType bufferType)
     : type(bufferType)
     , dataSize(bufferSize)
+    , filled(false)
   {
     glGenBuffers(1, &this->bufferID);
     glBindBuffer(GL_UNIFORM_BUFFER, this->bufferID);
-    glBufferData(GL_UNIFORM_BUFFER, bufferSize, nullptr, static_cast<GLuint>(bufferType));
+    glBufferData(GL_UNIFORM_BUFFER, bufferSize, nullptr, static_cast<GLenum>(bufferType));
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
   }
 
@@ -97,10 +98,11 @@ namespace SciRenderer
                                BufferType bufferType)
     : type(bufferType)
     , dataSize(dataSize)
+    , filled(true)
   {
     glGenBuffers(1, &this->bufferID);
     glBindBuffer(GL_UNIFORM_BUFFER, this->bufferID);
-    glBufferData(GL_UNIFORM_BUFFER, dataSize, nullptr, static_cast<GLuint>(bufferType));
+    glBufferData(GL_UNIFORM_BUFFER, dataSize, nullptr, static_cast<GLenum>(bufferType));
     glBufferSubData(GL_UNIFORM_BUFFER, 0, dataSize, bufferData);
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
   }
@@ -112,10 +114,10 @@ namespace SciRenderer
 
   // Bind/unbind the buffer.
   void
-  UniformBuffer::bindToPoint(GLuint point)
+  UniformBuffer::bindToPoint(const GLuint bindPoint)
   {
     glBindBuffer(GL_UNIFORM_BUFFER, this->bufferID);
-    glBindBufferBase(GL_UNIFORM_BUFFER, point, this->bufferID);
+    glBindBufferBase(GL_UNIFORM_BUFFER, bindPoint, this->bufferID);
   }
 
   void
@@ -144,6 +146,8 @@ namespace SciRenderer
     this->bind();
     glBufferSubData(GL_UNIFORM_BUFFER, start, newDataSize, newData);
     this->unbind();
+
+    this->filled = true;
   }
 
   RenderBuffer::RenderBuffer(GLuint width, GLuint height)
@@ -155,7 +159,7 @@ namespace SciRenderer
     glBindRenderbuffer(GL_RENDERBUFFER, this->bufferID);
 
     glRenderbufferStorage(GL_RENDERBUFFER,
-                          static_cast<GLuint>(RBOInternalFormat::DepthStencil),
+                          static_cast<GLenum>(RBOInternalFormat::DepthStencil),
                           width, height);
   }
 
@@ -168,7 +172,7 @@ namespace SciRenderer
     glGenRenderbuffers(1, &this->bufferID);
     glBindRenderbuffer(GL_RENDERBUFFER, this->bufferID);
 
-    glRenderbufferStorage(GL_RENDERBUFFER, static_cast<GLuint>(format),
+    glRenderbufferStorage(GL_RENDERBUFFER, static_cast<GLenum>(format),
                           width, height);
   }
 
@@ -187,5 +191,77 @@ namespace SciRenderer
   RenderBuffer::unbind()
   {
     glBindRenderbuffer(GL_RENDERBUFFER, 0);
+  }
+
+  //----------------------------------------------------------------------------
+  // Shader storage buffer here.
+  //----------------------------------------------------------------------------
+  ShaderStorageBuffer::ShaderStorageBuffer(const void* bufferData,
+                                           const unsigned &dataSize,
+                                           BufferType bufferType)
+    : filled(true)
+    , type(bufferType)
+    , dataSize(dataSize)
+  {
+    glGenBuffers(1, &this->bufferID);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->bufferID);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, dataSize, bufferData,
+                 static_cast<GLenum>(bufferType));
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+  }
+
+  ShaderStorageBuffer::ShaderStorageBuffer(const unsigned &bufferSize,
+                                           BufferType bufferType)
+    : filled(false)
+    , type(bufferType)
+    , dataSize(dataSize)
+  {
+    glGenBuffers(1, &this->bufferID);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->bufferID);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, dataSize, nullptr,
+                 static_cast<GLenum>(bufferType));
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+  }
+
+  ShaderStorageBuffer::~ShaderStorageBuffer()
+  {
+    glDeleteBuffers(1, &this->bufferID);
+  }
+
+  void
+  ShaderStorageBuffer::bind()
+  {
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->bufferID);
+  }
+
+  void
+  ShaderStorageBuffer::bindToPoint(const GLuint bindPoint)
+  {
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->bufferID);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, bindPoint, this->bufferID);
+  }
+
+  void
+  ShaderStorageBuffer::unbind()
+  {
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+  }
+
+  void
+  ShaderStorageBuffer::setData(GLuint start, GLuint newDataSize,
+                               const void* newData)
+  {
+    if (start + newDataSize > this->dataSize)
+    {
+      std::cout << "New data (" << newDataSize << ") at position " << start
+                << " exceeds the maximum buffer size of " << this->dataSize << "."
+                << std::endl;
+      return;
+    }
+    this->bind();
+    glBufferSubData(GL_SHADER_STORAGE_BUFFER, start, newDataSize, newData);
+    this->unbind();
+
+    this->filled = true;
   }
 }

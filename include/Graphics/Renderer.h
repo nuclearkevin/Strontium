@@ -26,22 +26,35 @@ namespace SciRenderer
     // Init the renderer object for drawing.
     void init(const std::string &vertPath, const std::string &fragPath);
 
+    //--------------------------------------------------------------------------
+    // Forward rendering setup.
+    //--------------------------------------------------------------------------
     // Draw the data given.
     void draw(VertexArray* data, Shader* program);
     void draw(Mesh* data, Shader* program, Camera* camera);
 
-    // Draw a populated framebuffer to a viewport (fullscreen quad).
-    void drawToViewPort(FrameBuffer* drawBuffer);
-
     // Draws a full screen quad with a shader program.
     void drawFSQ(Shader* program);
 
-    // Draw a texture to a viewport (fullscreen squad).
-    void debugDrawTex(GLuint texID);
+    //--------------------------------------------------------------------------
+    // Deferred rendering setup. WIP.
+    //--------------------------------------------------------------------------
+    // Begin the next frame.
+    void begin();
+
+    // Submit data to the render queue. TODO: Need to make this a material
+    // instead of a shader.
+    void submit(std::pair<Mesh*, Shader*> data);
+
+    // End the next frame. Empty the render queue and draw everything to the
+    // provided framebuffer.
+    void end(FrameBuffer* drawBuffer);
 
   private:
     // Renderer instance.
     static Renderer3D* instance;
+
+    std::queue<std::pair<Mesh*, Shader*>> renderQueue;
 
     // Shader to draw a texture to a screen.
     Shader* viewportProgram;
@@ -64,22 +77,25 @@ namespace SciRenderer
     };
   };
 
+  // Depth functions. Addition to this as they are required.
   enum class DepthFunctions
   {
     Less = GL_LESS,
     LEq = GL_LEQUAL
   };
 
+  // Render functions to glEnable. Adding to this as they are required.
   enum class RendererFunction
   {
-
+    DepthTest = GL_DEPTH_TEST,
+    CubeMapSeamless = GL_TEXTURE_CUBE_MAP_SEAMLESS
   };
 
   namespace RendererCommands
   {
     void enable(const RendererFunction &toEnable);
     void depthFunction(const DepthFunctions &function);
-    void setClearColour(const glm::vec4 &clearColour);
+    void setClearColour(const glm::vec4 &colour);
     void clear(const bool &clearColour = true, const bool &clearDepth = true,
                const bool &clearStencil = true);
     void setViewport(const glm::ivec2 topRight, const glm::ivec2 bottomLeft = glm::ivec2(0));

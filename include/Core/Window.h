@@ -16,8 +16,8 @@ namespace SciRenderer
 
     // Ask for a new window.
     static Window* getNewInstance(const std::string &name = "Editor Viewport",
-                                  const GLuint &width = 1600,
-                                  const GLuint &height = 900,
+                                  const GLuint &width = 1920,
+                                  const GLuint &height = 1080,
                                   const bool &debug = false,
                                   const bool &setVSync = true);
 

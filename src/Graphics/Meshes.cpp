@@ -12,6 +12,7 @@ namespace SciRenderer
     : loaded(false)
     , modelMatrix(glm::mat4(1.0f))
     , hasUVs(false)
+    , vArray(nullptr)
   { }
 
   Mesh::Mesh(const std::vector<Vertex> &vertices, const std::vector<GLuint> &indices)
@@ -20,6 +21,7 @@ namespace SciRenderer
     , indices(indices)
     , modelMatrix(glm::mat4(1.0f))
     , hasUVs(false)
+    , vArray(nullptr)
   { }
 
   Mesh::~Mesh()
@@ -348,24 +350,4 @@ namespace SciRenderer
              this->indices[i + 2]);
     }
   }
-
-  // Getters, yay. . .
-  std::vector<GLuint>&
-  Mesh::getIndices() {return this->indices;}
-
-  std::vector<Vertex>&
-  Mesh::getData() {return this->data;}
-
-  VertexArray*
-  Mesh::getVAO() {return this->vArray;}
-
-  glm::mat4
-  Mesh::getModelMatrix()
-  {return this->modelMatrix;}
-
-  bool
-  Mesh::isLoaded() {return this->loaded;}
-
-  bool
-  Mesh::hasVAO() {return this->vArray != nullptr;}
 }

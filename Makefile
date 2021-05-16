@@ -13,6 +13,7 @@ CORE_SOURCES 			 := $(wildcard $(SRC_DIR)Core/*.cpp)
 GRAPHICS_SOURCES   := $(wildcard $(SRC_DIR)Graphics/*.cpp)
 UTILS_SOURCES      := $(wildcard $(SRC_DIR)Utils/*.cpp)
 LAYERS_SOURCES     := $(wildcard $(SRC_DIR)Layers/*.cpp)
+GUI_SOURSES        := $(wildcard $(SRC_DIR)GuiElements/*.cpp)
 GLAD_SOURCES       := $(wildcard $(GLAD_DIR)*.c)
 IMGUI_SOURCES 	   := $(wildcard $(IMGUI_DIR)*.cpp)
 IMGUI_FB_SOURCES   := $(wildcard $(IMGUI_FB_DIR)*.cpp)
@@ -20,6 +21,7 @@ CORE_OBJECTS 			 := $(patsubst $(SRC_DIR)Core/%.cpp, $(OUTPUT_DIR)Core/%.o, $(CO
 GRAPHICS_OBJECTS   := $(patsubst $(SRC_DIR)Graphics/%.cpp, $(OUTPUT_DIR)Graphics/%.o, $(GRAPHICS_SOURCES))
 UTILS_OBJECTS      := $(patsubst $(SRC_DIR)Utils/%.cpp, $(OUTPUT_DIR)Utils/%.o, $(UTILS_SOURCES))
 LAYERS_OBJECTS     := $(patsubst $(SRC_DIR)Layers/%.cpp, $(OUTPUT_DIR)Layers/%.o, $(LAYERS_SOURCES))
+GUI_OBJECTS        := $(patsubst $(SRC_DIR)GuiElements/%.cpp, $(OUTPUT_DIR)GuiElements/%.o, $(GUI_SOURSES))
 GLAD_OBJECTS       := $(patsubst $(GLAD_DIR)%.c, $(OUTPUT_DIR)vendor/%.o, $(GLAD_SOURCES))
 IMGUI_OBJECTS      := $(patsubst $(IMGUI_DIR)%.cpp, $(OUTPUT_DIR)vendor/%.o, $(IMGUI_SOURCES))
 IMGUI_FB_OBJECTS   := $(patsubst $(IMGUI_FB_DIR)%.cpp, $(OUTPUT_DIR)vendor/%.o, $(IMGUI_FB_SOURCES))
@@ -28,7 +30,7 @@ makebuild: make_dir Application
 
 # Link everything together.
 Application: $(CORE_OBJECTS) $(LAYERS_OBJECTS) $(GRAPHICS_OBJECTS) $(UTILS_OBJECTS) \
-	$(GLAD_OBJECTS) $(IMGUI_FB_OBJECTS) $(IMGUI_OBJECTS)
+	$(GUI_OBJECTS) $(GLAD_OBJECTS) $(IMGUI_FB_OBJECTS) $(IMGUI_OBJECTS)
 	@echo Linking the application.
 	@$(COMPILE_FLAGS) -g -o Application $^ -ldl -lglfw
 
@@ -59,6 +61,7 @@ make_dir:
 	@mkdir -p bin/Graphics
 	@mkdir -p bin/Utils
 	@mkdir -p bin/Layers
+	@mkdir -p bin/GuiElements
 	@mkdir -p bin/vendor
 
 # Delete the contents of bin.
@@ -68,3 +71,4 @@ clean:
 	@rm ./bin/Utils/*.o
 	@rm ./bin/Graphics/*.o
 	@rm ./bin/Layers/*.o
+	@rm ./bin/GuiElements/*.o

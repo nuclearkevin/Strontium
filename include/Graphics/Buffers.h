@@ -7,7 +7,7 @@
 namespace SciRenderer
 {
   // Draw types.
-  enum class BufferType {Static = GL_STATIC_DRAW, Dynamic = GL_DYNAMIC_DRAW};
+  enum class BufferType { Static = GL_STATIC_DRAW, Dynamic = GL_DYNAMIC_DRAW };
 
   //----------------------------------------------------------------------------
   // Vertex buffer here.
@@ -86,20 +86,21 @@ namespace SciRenderer
     ~UniformBuffer();
 
     // Bind/unbind the buffer.
-    void bindToPoint(GLuint point);
     void bind();
+    void bindToPoint(const GLuint bindPoint);
     void unbind();
 
     // Set a specific part of the buffer data.
     void setData(GLuint start, GLuint newDataSize, const void* newData);
 
     inline GLuint getID() { return this->bufferID; }
+    inline bool hasData() { return this->filled; }
   protected:
     // OpenGL buffer ID.
     GLuint      bufferID;
 
     // If the buffer has data or not.
-    bool        hasData;
+    bool        filled;
 
     // Type of the buffer to prevent mismatching.
     BufferType  type;
@@ -127,6 +128,7 @@ namespace SciRenderer
     RenderBuffer(GLuint width, GLuint height, const RBOInternalFormat &format);
     ~RenderBuffer();
 
+    // Bind/unbind the buffer.
     void bind();
     void unbind();
 
@@ -139,5 +141,40 @@ namespace SciRenderer
     RBOInternalFormat format;
 
     GLuint width, height;
+  };
+
+  //----------------------------------------------------------------------------
+  // Shader storage buffer here.
+  //----------------------------------------------------------------------------
+  class ShaderStorageBuffer
+  {
+  public:
+    ShaderStorageBuffer(const void* bufferData, const unsigned &dataSize,
+                        BufferType bufferType);
+    ShaderStorageBuffer(const unsigned &bufferSize, BufferType bufferType);
+    ~ShaderStorageBuffer();
+
+    // Bind/unbind the buffer.
+    void bind();
+    void bindToPoint(const GLuint bindPoint);
+    void unbind();
+
+    // Set the data in a region of the buffer.
+    void setData(GLuint start, GLuint newDataSize, const void* newData);
+
+    inline GLuint getID() { return this->bufferID; }
+    inline bool hasData() { return this->filled; }
+  protected:
+    // OpenGL buffer ID.
+    GLuint bufferID;
+
+    // If the buffer has data or not.
+    bool filled;
+
+    // Type of the buffer to prevent mismatching.
+    BufferType type;
+
+    // The size of the data currently in the buffer.
+    GLuint dataSize;
   };
 }

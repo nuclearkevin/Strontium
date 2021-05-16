@@ -8,6 +8,7 @@
 #include "Core/Logs.h"
 #include "Graphics/Buffers.h"
 #include "Graphics/FrameBuffer.h"
+#include "Graphics/Compute.h"
 
 namespace SciRenderer
 {
@@ -30,16 +31,7 @@ namespace SciRenderer
 
   EnvironmentMap::~EnvironmentMap()
   {
-    if (this->erMap != nullptr)
-      Textures::deleteTexture(this->erMap);
-    if (this->skybox != nullptr)
-      Textures::deleteTexture(this->skybox);
-    if (this->irradiance != nullptr)
-      Textures::deleteTexture(this->irradiance);
-    if (this->specPrefilter != nullptr)
-      Textures::deleteTexture(this->specPrefilter);
-    if (this->brdfIntMap != nullptr)
-      Textures::deleteTexture(this->brdfIntMap);
+    this->unloadEnvironment();
   }
 
   // Load 6 textures from a file to generate a cubemap.
@@ -292,12 +284,12 @@ namespace SciRenderer
     for (unsigned i = 0; i < 6; i++)
     {
       if (isHDR)
-        glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB16F,
-                     width, height, 0, GL_RGB,
+        glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGBA16F,
+                     width, height, 0, GL_RGBA,
                      GL_FLOAT, nullptr);
       else
-        glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB,
-                     width, height, 0, GL_RGB,
+        glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGBA,
+                     width, height, 0, GL_RGBA,
                      GL_UNSIGNED_BYTE, nullptr);
     }
 
@@ -343,12 +335,13 @@ namespace SciRenderer
     auto end = std::chrono::steady_clock::now();
     std::chrono::duration<double> elapsed = end - start;
 
+
     logs->logMessage(LogMessage("Converted the equirectangular map to a cubemap"
                                 " (elapsed time: " + std::to_string(elapsed.count())
                                 + " s).", true, false, true));
   }
 
-  // Generate the diffuse irradiance map.
+  // Generate the diffuse irradiance map. Now with compute shaders!
   void
   EnvironmentMap::precomputeIrradiance(const GLuint &width, const GLuint &height,
                                        bool isHDR)
@@ -363,15 +356,6 @@ namespace SciRenderer
       return;
     }
     auto start = std::chrono::steady_clock::now();
-
-    FBOSpecification spec;
-    if (isHDR)
-      spec = FBOCommands::getFloatColourSpec(FBOTargetParam::Colour0);
-    else
-      spec = FBOCommands::getDefaultColourSpec(FBOTargetParam::Colour0);
-
-    FrameBuffer convoFBO = FrameBuffer(width, height);
-    convoFBO.attachRenderBuffer();
 
     // The resulting cubemap from the convolution process.
     this->irradiance = new CubeMap();
@@ -388,34 +372,15 @@ namespace SciRenderer
     glGenTextures(1, &this->irradiance->textureID);
     Textures::bindTexture(this->irradiance);
 
-    // A standard projection matrix, and 6 view matrices (one for each face of the
-    // cubemap).
-    glm::mat4 perspective = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 10.0f);
-    glm::mat4 views[6] =
-    {
-      glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.0f,  0.0f,  0.0f),
-                  glm::vec3(0.0f, -1.0f,  0.0f)),
-      glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(-1.0f,  0.0f,  0.0f),
-                  glm::vec3(0.0f, -1.0f,  0.0f)),
-      glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f,  1.0f,  0.0f),
-                  glm::vec3(0.0f,  0.0f,  1.0f)),
-      glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f,  0.0f),
-                  glm::vec3(0.0f,  0.0f, -1.0f)),
-      glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f,  0.0f,  1.0f),
-                  glm::vec3(0.0f, -1.0f,  0.0f)),
-      glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f,  0.0f, -1.0f),
-                  glm::vec3(0.0f, -1.0f,  0.0f))
-    };
-
     for (unsigned i = 0; i < 6; i++)
     {
       if (isHDR)
-        glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB16F,
-                     width, height, 0, GL_RGB,
+        glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGBA16F,
+                     width, height, 0, GL_RGBA,
                      GL_FLOAT, nullptr);
       else
-        glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB,
-                     width, height, 0, GL_RGB,
+        glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGBA,
+                     width, height, 0, GL_RGBA,
                      GL_UNSIGNED_BYTE, nullptr);
     }
 
@@ -425,40 +390,25 @@ namespace SciRenderer
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-    // The convolution program.
-    Shader convoProg = Shader("./res/shaders/pbr/diffuseConv.vs",
-                              "./res/shaders/pbr/diffuseConv.fs");
-    convoProg.addUniformSampler2D("environmentMap", 0);
-    Textures::bindTexture(this->skybox, 0);
+    // Convolution compute shader.
+    ComputeShader compTest = ComputeShader("./res/shaders/compute/diffuseConv.cs");
 
-    convoFBO.setViewport();
+    // Buffer to pass the sizes of the image to the compute shader.
+    glm::vec2 dimensions = glm::vec2((GLfloat) width, (GLfloat) height);
+    ShaderStorageBuffer sizeBuff = ShaderStorageBuffer(&dimensions,
+                                                       2 * sizeof(GLfloat),
+                                                       BufferType::Static);
+    sizeBuff.bindToPoint(2);
 
-    // Perform the convolution for each face of the cubemap.
-    for (unsigned i = 0; i < 6; i++)
-    {
-      convoProg.addUniformMatrix("vP", perspective * views[i], GL_FALSE);
-      spec.type = Textures::cubemapFaces[i];
-      convoFBO.attachCubeMapFace(spec, this->irradiance, false);
-      convoFBO.clear();
-      convoFBO.bind();
+    // Bind the skybox for reading by the compute shader.
+    glBindImageTexture(0, this->skybox->textureID, 0, GL_TRUE, 0, GL_READ_WRITE, GL_RGBA16F);
 
-      if (this->cube->hasVAO())
-        renderer->draw(this->cube->getVAO(), &convoProg);
-      else
-      {
-        this->cube->generateVAO(&convoProg);
-        if (this->cube->hasVAO())
-          renderer->draw(this->cube->getVAO(), &convoProg);
-      }
-    }
-    // Unbind the framebuffer now that we're done with it.
-    convoFBO.unbind();
+    // Bind the irradiance map for writing to by the compute shader.
+    glBindImageTexture(1, this->irradiance->textureID, 0, GL_TRUE, 0, GL_READ_WRITE, GL_RGBA16F);
 
-    // Unattach the texture so we don't delete it when getting rid of the framebuffer.
-    auto temp = convoFBO.unattachTexture2D(FBOTargetParam::Colour0);
-    // Delete it, since we already have the cubemap stored as a cubemap texture
-    // and this returns a 2D texture.
-    delete temp;
+    // Launch the compute shader!
+    compTest.bind();
+    compTest.launchCompute(glm::ivec3(width / 32, height / 32, 6));
 
     auto end = std::chrono::steady_clock::now();
     std::chrono::duration<double> elapsed = end - start;
@@ -470,7 +420,7 @@ namespace SciRenderer
 
   // Generate the specular map components. Computes the pre-filtered environment
   // map first, than the integration map second.
-  // TODO: Get this working with my FBO wrapper.
+  // TODO: Move this to compute shaders.
   void
   EnvironmentMap::precomputeSpecular(const GLuint &width, const GLuint &height,
                                      bool isHDR)

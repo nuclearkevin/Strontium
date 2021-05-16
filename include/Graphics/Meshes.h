@@ -64,14 +64,14 @@ namespace SciRenderer
     void setColour(const glm::vec3 &colour);
 
     // Getters.
-    std::vector<Vertex>&     getData();
-    std::vector<GLuint>&     getIndices();
-    VertexArray*             getVAO();
-    glm::mat4                getModelMatrix();
+    inline std::vector<Vertex>& getData() { return this->data; }
+    inline std::vector<GLuint>& getIndices() { return this->indices; }
+    inline VertexArray*         getVAO() { return this->vArray; }
+    inline glm::mat4            getModelMatrix() { return this->modelMatrix; }
 
     // Check for states.
-    bool                    hasVAO();
-    bool                    isLoaded();
+    inline bool hasVAO() { return this->vArray != nullptr; }
+    inline bool isLoaded() { return this->loaded; }
   protected:
     // Mesh properties.
     bool loaded;

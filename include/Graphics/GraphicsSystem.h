@@ -11,3 +11,4 @@
 #include "Graphics/Shaders.h"
 #include "Graphics/Textures.h"
 #include "Graphics/VertexArray.h"
+#include "Graphics/Compute.h"

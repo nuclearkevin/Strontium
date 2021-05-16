@@ -7,6 +7,7 @@
 #include "Layers/Layers.h"
 #include "Core/Events.h"
 #include "Graphics/GraphicsSystem.h"
+#include "GuiElements/EnvironmentWindow.h"
 
 // ImGui includes.
 #include "imgui/imgui.h"
@@ -30,6 +31,9 @@ namespace SciRenderer
     virtual void onUpdate(float dt) override;
 
   protected:
+    // The various external windows.
+    EnvironmentWindow enviSettings;
+
     // File handler objects.
     imgui_addons::ImGuiFileBrowser fileHandler;
 
@@ -40,27 +44,21 @@ namespace SciRenderer
     Camera* editorCam;
 
     // These need to move to the scene class when I get around to it.
-    EnvironmentMap* skybox;
     Mesh*           model;
 
     // This needs to move to a material class.
     Shader* 		    program;
 
-    // Members for the environment map.
-    bool usePBR;
-    bool drawIrrad;
-    bool drawFilter;
-    int mapRes;
-
     // Stuff for ImGui and the GUI.
     bool showPerf;
+    bool showEnvi;
+
     std::string logBuffer;
 
-    const ImGuiWindowFlags sidebarFlags = ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar;
+    ImVec2 editorSize;
 
+    const ImGuiWindowFlags sidebarFlags = ImGuiWindowFlags_NoCollapse;
     const ImGuiWindowFlags logFlags = 0;
-
     const ImGuiWindowFlags editorFlags = ImGuiWindowFlags_NoCollapse;
-
   };
 }

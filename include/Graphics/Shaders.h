@@ -18,10 +18,10 @@ namespace SciRenderer
     Shader(const std::string &vertPath, const std::string &fragPath);
     ~Shader();
 
-    // Forward declaration of the shader parser/compiler function.
+    // Shader parser/compiler function.
     void buildShader(int type, const char* filename);
 
-    // Forward declaration of the program linker function.
+    // Program linker function.
     void buildProgram(GLuint first, ...);
 
     // Bind/unbind the shader.
