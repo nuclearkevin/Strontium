@@ -145,9 +145,28 @@ namespace SciRenderer
     }
     else if (outTex->n == 3)
     {
+      // If its HDR, needs to be GL_RGBA16F instead of GL_RGB16F. Thanks OpenGL....
       if (isHDR)
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, outTex->width, outTex->height, 0,
-                     GL_RGB, GL_FLOAT, dataF);
+      {
+        float* dataFNew;
+        dataFNew = new float[outTex->width * outTex->height * 4];
+        GLuint offset = 0;
+
+        for (GLuint i = 0; i < (outTex->width * outTex->height * 4); i+=4)
+        {
+          // Copy over the data from the image loading.
+          dataFNew[i] = dataF[i - offset];
+          dataFNew[i + 1] = dataF[i + 1 - offset];
+          dataFNew[i + 2] = dataF[i + 2 - offset];
+          // Make the 4th component (alpha) equal to 1.0f. Could make this a param :thinking:.
+          dataFNew[i + 3] = 1.0f;
+          // Increment the offset to we don't segfault. :D
+          offset ++;
+        }
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, outTex->width, outTex->height, 0,
+                     GL_RGBA, GL_FLOAT, dataFNew);
+        stbi_image_free(dataFNew);
+      }
       else
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, outTex->width, outTex->height, 0,
                      GL_RGB, GL_UNSIGNED_BYTE, dataU);

@@ -1,6 +1,6 @@
 #version 440
 
-#define MAX_LOD 13.0
+#define MAX_MIP 4.0
 
 uniform samplerCube skybox;
 
@@ -19,7 +19,7 @@ layout(location = 0) out vec4 fragColour;
 
 void main()
 {
-  vec3 envColor = textureLod(skybox, fragIn.fTexCoords, roughness * MAX_LOD).rgb;
+  vec3 envColor = textureLod(skybox, fragIn.fTexCoords, roughness * MAX_MIP).rgb;
   envColor = envColor / (envColor + vec3(exposure));
   fragColour = vec4(pow(envColor, vec3(1.0 / gamma)), 1.0);
 }

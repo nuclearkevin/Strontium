@@ -1,14 +1,16 @@
 #version 440
 /*
- * A fragment shader to compute the integration component of the split-sum
- * approach for environmental specular lighting.
+ * A compute shader to integrate the BRDF function. Many thanks
+ * to http://alinloghin.com/articles/compute_ibl.html, some of the code here was
+ * adapted from their excellent article.
 */
 
 #define PI 3.141592654
 
-layout(location = 0) out vec2 fragColour;
+layout(local_size_x = 32, local_size_y = 32) in;
 
-in vec2 fTexCoords;
+// The output BRDF integration LUT.
+layout(rgba16f, binding = 3) writeonly uniform image2D brdfIntMap;
 
 // Schlick-Beckmann geometry function.
 float SBGeometry(float NdotV, float roughness);
@@ -19,17 +21,15 @@ vec2 Hammersley(uint i, uint N);
 // Importance sampling of the Smith-Schlick-Beckmann geometry function.
 vec3 SSBImportance(vec2 Xi, vec3 N, float roughness);
 
-// Total number of samples.
+// Total number of samples. Constant for now, might expose this later.
 const uint SAMPLE_COUNT = 1024u;
 
 void main()
 {
-  // Cosine of the angle between the view and normal vectors, horizontal axis of
-  // the lookup texture.
-  float NdotV = fTexCoords.x;
+  ivec2 invoke = ivec2(gl_GlobalInvocationID.xy);
 
-  // Roughness, vertical axis of the lookup texture.
-  float roughness = fTexCoords.y;
+  float NdotV = float(invoke.x) / 512.0;
+  float roughness = float(invoke.y) / 512.0;
 
   vec3 V;
   V.x = sqrt(1.0 - NdotV*NdotV);
@@ -41,7 +41,6 @@ void main()
 
   vec3 N = vec3(0.0, 0.0, 1.0);
 
-  const uint SAMPLE_COUNT = 1024u;
   for (uint i = 0u; i < SAMPLE_COUNT; ++i)
   {
       vec2 Xi = Hammersley(i, SAMPLE_COUNT);
@@ -66,7 +65,7 @@ void main()
   A /= float(SAMPLE_COUNT);
   B /= float(SAMPLE_COUNT);
 
-  fragColour = vec2(A, B);
+  imageStore(brdfIntMap, invoke, vec4(A, B, 0.0, 1.0));
 }
 
 // Schlick-Beckmann geometry function.

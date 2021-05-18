@@ -4,7 +4,7 @@
  * techniques. Uses textures for material properties.
  */
 #define PI 3.141592654
-#define MAX_MIP 13.0
+#define MAX_MIP 4.0
 #define MAX_NUM_UNIFORM_LIGHTS 8
 #define MAX_NUM_POINT_LIGHTS   8
 #define MAX_NUM_SPOT_LIGHTS    8
@@ -136,7 +136,7 @@ void main()
   frag.F0 = mix(vec3(0.04), frag.albedo, frag.metallic);
 
 	vec3 view = normalize(camera.position - fragIn.fPosition);
-  vec3 reflection = reflect(view, frag.normal);
+  vec3 reflection = reflect(-view, frag.normal);
 
   vec3 ks = SFresnelR(max(dot(frag.normal, view), 0.0), frag.F0, frag.roughness);
   vec3 kd = (vec3(1.0) - ks) * (1.0 - frag.roughness);

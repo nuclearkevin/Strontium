@@ -5,6 +5,17 @@
 
 namespace SciRenderer
 {
+  FrameBuffer::FrameBuffer()
+    : depthBuffer(nullptr)
+    , width(0)
+    , height(0)
+    , hasRenderBuffer(false)
+    , clearFlags(0)
+    , clearColour(glm::vec4(0.0f, 0.0f, 0.0f, 1.0f))
+  {
+    glGenFramebuffers(1, &this->bufferID);
+  }
+
   // Constructors and destructor.
   FrameBuffer::FrameBuffer(GLuint width, GLuint height)
     : depthBuffer(nullptr)
@@ -272,6 +283,22 @@ namespace SciRenderer
     }
   }
 
+  void
+  FrameBuffer::setDrawBuffers()
+  {
+    this->bind();
+    std::vector<GLenum> totalAttachments;
+    for (auto& pair : this->textureAttachments)
+    {
+      if (pair.first != FBOTargetParam::Depth && pair.first != FBOTargetParam::Stencil
+          && pair.first != FBOTargetParam::DepthStencil)
+        totalAttachments.push_back(static_cast<GLenum>(pair.first));
+    }
+    if (totalAttachments.size() >= 1)
+      glDrawBuffers(totalAttachments.size(), &totalAttachments[0]);
+    this->unbind();
+  }
+
   // Resize the framebuffer.
   void
   FrameBuffer::resize(GLuint width, GLuint height)
@@ -375,8 +402,8 @@ namespace SciRenderer
     FBOSpecification floatColour = FBOSpecification();
     floatColour.target = attach;
     floatColour.type = FBOTex2DParam::Texture2D;
-    floatColour.internal = TextureInternalFormats::RGB16f;
-    floatColour.format = TextureFormats::RGB;
+    floatColour.internal = TextureInternalFormats::RGBA16f;
+    floatColour.format = TextureFormats::RGBA;
     floatColour.dataType = TextureDataType::Floats;
     floatColour.sWrap = TextureWrapParams::Repeat;
     floatColour.tWrap = TextureWrapParams::Repeat;

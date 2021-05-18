@@ -6,15 +6,27 @@
 
 #define PI 3.141592654
 
-layout(location = 0) out vec4 fragColour;
+layout(local_size_x = 32, local_size_y = 32) in;
 
-in vec3 fPosition;
+// The environment map to prefilter.
+layout(binding = 0) uniform samplerCube environmentMap;
 
-uniform samplerCube environmentMap;
+// The output prefilter map.
+layout(rgba16f, binding = 1) writeonly uniform imageCube prefilterMap;
 
-uniform float roughness;
-uniform float resolution;
+// The required parameters.
+layout(std140, binding = 2) buffer paramBuff
+{
+  vec2 enviSize;
+  vec2 mipSize;
+  float roughness;
+  float resolution;
+};
 
+// Function for converting between image coordiantes and world coordiantes.
+vec3 cubeToWorld(ivec3 cubeCoord, vec2 cubeSize);
+// Function for converting between tangent coordinates and image coordiantes.
+ivec3 texToCube(vec3 texCoord, vec2 cubeSize);
 // Smith-Schlick-Beckmann geometry function.
 float SSBGeometry(vec3 N, vec3 H, float roughness);
 // Hammersley sequence pseudorandom number generator.
@@ -27,12 +39,14 @@ const uint SAMPLE_COUNT = 1024u;
 
 void main()
 {
-  vec3 N = normalize(fPosition);
+  ivec3 cubeCoord = ivec3(gl_GlobalInvocationID);
+  vec3 worldPos = cubeToWorld(cubeCoord, mipSize);
+  vec3 N = normalize(worldPos);
 
   vec3 prefilteredColor = vec3(0.0);
   float totalWeight = 0.0;
 
-  for(uint i = 0u; i < SAMPLE_COUNT; ++i)
+  for (uint i = 0u; i < SAMPLE_COUNT; ++i)
   {
     vec2 Xi = Hammersley(i, SAMPLE_COUNT);
     vec3 H = SSBImportance(Xi, N, roughness);
@@ -46,7 +60,6 @@ void main()
       float HdotV = max(dot(H, N), 0.0);
       float pdf = D * NdotH / (4.0 * HdotV) + 0.0001;
 
-      //float resolution = 512.0;
       float saTexel  = 4.0 * PI / (6.0 * resolution * resolution);
       float saSample = 1.0 / (float(SAMPLE_COUNT) * pdf + 0.0001);
 
@@ -59,7 +72,59 @@ void main()
 
   prefilteredColor = prefilteredColor / totalWeight;
 
-  fragColour = vec4(prefilteredColor, 1.0);
+  imageStore(prefilterMap, cubeCoord, vec4(prefilteredColor, 1.0));
+}
+
+// I need to figure out how to make these branchless one of these days...
+vec3 cubeToWorld(ivec3 cubeCoord, vec2 cubeSize)
+{
+  vec2 texCoord = vec2(cubeCoord.xy) / cubeSize;
+  texCoord = texCoord  * 2.0 - 1.0; // Swap to -1 -> +1
+  switch(cubeCoord.z)
+  {
+    case 0: return vec3(1.0, -texCoord.yx); // CUBE_MAP_POS_X
+    case 1: return vec3(-1.0, -texCoord.y, texCoord.x); // CUBE_MAP_NEG_X
+    case 2: return vec3(texCoord.x, 1.0, texCoord.y); // CUBE_MAP_POS_Y
+    case 3: return vec3(texCoord.x, -1.0, -texCoord.y); // CUBE_MAP_NEG_Y
+    case 4: return vec3(texCoord.x, -texCoord.y, 1.0); // CUBE_MAP_POS_Z
+    case 5: return vec3(-texCoord.xy, -1.0); // CUBE_MAP_NEG_Z
+  }
+  return vec3(0.0);
+}
+
+ivec3 texToCube(vec3 texCoord, vec2 cubeSize)
+{
+  vec3 abst = abs(texCoord);
+  texCoord /= max(max(abst.x, abst.y), abst.z);
+
+  float cubeFace;
+  vec2 uvCoord;
+  if (abst.x > abst.y && abst.x > abst.z)
+  {
+    // X major.
+    float negx = step(texCoord.x, 0.0);
+    uvCoord = mix(-texCoord.zy, vec2(texCoord.z, -texCoord.y), negx);
+    cubeFace = negx;
+  }
+  else if (abst.y > abst.z)
+  {
+    // Y major.
+    float negy = step(texCoord.y, 0.0);
+    uvCoord = mix(texCoord.xz, vec2(texCoord.x, -texCoord.z), negy);
+    cubeFace = 2.0 + negy;
+  }
+  else
+  {
+    // Z major.
+    float negz = step(texCoord.z, 0.0);
+    uvCoord = mix(vec2(texCoord.x, -texCoord.y), -texCoord.xy, negz);
+    cubeFace = 4.0 + negz;
+  }
+  uvCoord = (uvCoord + 1.0) * 0.5; // 0..1
+  uvCoord = uvCoord * cubeSize;
+  uvCoord = clamp(uvCoord, vec2(0.0), cubeSize - vec2(1.0));
+
+  return ivec3(ivec2(uvCoord), int(cubeFace));
 }
 
 // Smith-Schlick-Beckmann geometry function.

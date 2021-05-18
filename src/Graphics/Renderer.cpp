@@ -19,36 +19,20 @@ namespace SciRenderer
 
   Renderer3D::~Renderer3D()
   {
-    glDeleteBuffers(1, &this->viewportVBOID);
-    glDeleteVertexArrays(1, &this->viewportVAOID);
     delete this->viewportProgram;
   }
 
   // Initialize the renderer.
   void
-  Renderer3D::init(const std::string &vertPath, const std::string &fragPath)
+  Renderer3D::init(const GLuint width, const GLuint height)
   {
     // Initialize OpenGL parameters.
     RendererCommands::enable(RendererFunction::DepthTest);
     RendererCommands::enable(RendererFunction::CubeMapSeamless);
 
     // Initialize the vewport shader passthrough.
-    this->viewportProgram = new Shader(vertPath, fragPath);
-
-    // Setup the VAO for the full screen quad.
-    glGenVertexArrays(1, &this->viewportVAOID);
-    glGenBuffers(1, &this->viewportVBOID);
-    glBindVertexArray(this->viewportVAOID);
-    glBindBuffer(GL_ARRAY_BUFFER, this->viewportVBOID);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(this->viewport), &this->viewport,
-                 GL_STATIC_DRAW);
-
-    // Setup the shader program with the attributes.
-    this->viewportProgram->addAtribute("vPosition", VEC2, GL_FALSE, 4 * sizeof(float), 0);
-    this->viewportProgram->addAtribute("vTexCoords", VEC2, GL_FALSE, 4 * sizeof(float), 2 * sizeof(float));
-    this->viewportProgram->addUniformSampler2D("screenTexture", 0);
-    glBindVertexArray(0);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    this->viewportProgram = new Shader("./res/shaders/viewport.vs",
+                                       "./res/shaders/viewport.fs");
   }
 
   // Draw the data to the screen.
@@ -75,6 +59,7 @@ namespace SciRenderer
   	program->addUniformMatrix("model", model, GL_FALSE);
   	program->addUniformMatrix("mVP", modelViewPerspective, GL_FALSE);
   	program->addUniformMatrix("normalMat", normal, GL_FALSE);
+    program->addUniformVector("camera.position", camera->getCamPos());
 
     if (data->hasVAO())
       this->draw(data->getVAO(), program);
@@ -86,42 +71,13 @@ namespace SciRenderer
     }
   }
 
-  // Draws a full screen quad with a given program using whatever buffer is
-  // currently bound.
   void
-  Renderer3D::drawFSQ(Shader* program)
+  Renderer3D::draw(EnvironmentMap* environment, Camera* camera)
   {
-    program->bind();
-    glBindVertexArray(this->viewportVAOID);
-    glDrawArrays(GL_TRIANGLES, 0, 6);
-
-    glBindVertexArray(0);
-  }
-
-  //--------------------------------------------------------------------------
-  // Deferred rendering setup. WIP.
-  //--------------------------------------------------------------------------
-  // Begin the next frame.
-  void
-  Renderer3D::begin()
-  {
-
-  }
-
-  // Submit data to the render queue. TODO: Need to make this a material
-  // instead of a shader.
-  void
-  Renderer3D::submit(std::pair<Mesh*, Shader*> data)
-  {
-
-  }
-
-  // End the next frame. Empty the render queue and draw everything to the
-  // provided framebuffer.
-  void
-  Renderer3D::end(FrameBuffer* drawBuffer)
-  {
-
+    RendererCommands::depthFunction(DepthFunctions::LEq);
+    environment->configure(camera);
+    this->draw(environment->getCubeMesh()->getVAO(), environment->getCubeProg());
+    RendererCommands::depthFunction(DepthFunctions::Less);
   }
 
   void

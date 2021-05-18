@@ -74,7 +74,8 @@ namespace SciRenderer
   {
   public:
     // A constructor to generate a framebuffer at a particular location or any
-    // location.
+    // location. Default constructor sets the width and height to 0.
+    FrameBuffer();
     FrameBuffer(GLuint width, GLuint height);
     ~FrameBuffer();
 
@@ -94,6 +95,8 @@ namespace SciRenderer
 
     // Unattach a 2D texture. This won't delete the texture.
     Texture2D* unattachTexture2D(const FBOTargetParam &attachment);
+
+    void setDrawBuffers();
 
     // Update the framebuffer size.
     void resize(GLuint width, GLuint height);

@@ -201,23 +201,15 @@ namespace SciRenderer
     ImGui::Begin("Application Logs", nullptr, this->logFlags);
     {
       if (ImGui::Button("Clear Logs"))
+      {
         this->logBuffer = "";
+      }
       ImGui::BeginChild("LogText");
       {
         ImGui::Text(this->logBuffer.c_str());
       }
       ImGui::EndChild();
     }
-    ImGui::End();
-
-    // Left sidebar.
-  	ImGui::Begin("Left Sidebar", nullptr, this->sidebarFlags);
-    { }
-    ImGui::End();
-
-    // The right sidebar.
-  	ImGui::Begin("Right Sidebar", nullptr, this->sidebarFlags);
-    { }
     ImGui::End();
 
     // The performance window.
@@ -245,6 +237,9 @@ namespace SciRenderer
   void
   EditorLayer::onUpdate(float dt)
   {
+    // Get the renderer.
+    Renderer3D* renderer = Renderer3D::getInstance();
+
     // Update the size of the framebuffer to fit the editor window.
     glm::vec2 size = this->drawBuffer->getSize();
     if (this->editorSize.x != size.x || this->editorSize.y != size.y)
@@ -255,11 +250,8 @@ namespace SciRenderer
     }
 
     //--------------------------------------------------------------------------
-    // The draw loop.
+    // The drawing phase.
     //--------------------------------------------------------------------------
-    // Get the renderer.
-    Renderer3D* renderer = Renderer3D::getInstance();
-
     // Draw the scene.
     this->drawBuffer->clear();
   	this->drawBuffer->bind();
@@ -270,7 +262,7 @@ namespace SciRenderer
   	this->enviSettings.getEnvironmentMap()->bind(MapType::Integration, 2);
   	renderer->draw(this->model, this->program, this->editorCam);
 
-    this->enviSettings.getEnvironmentMap()->draw(this->editorCam);
+    renderer->draw(this->enviSettings.getEnvironmentMap(), this->editorCam);
   	this->drawBuffer->unbind();
 
     //--------------------------------------------------------------------------

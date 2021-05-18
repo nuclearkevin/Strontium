@@ -4,7 +4,7 @@
  * techniques. Uses textures for material properties.
  */
 #define PI 3.141592654
-#define MAX_MIP 13.0
+#define MAX_MIP 4.0
 #define MAX_NUM_UNIFORM_LIGHTS 8
 #define MAX_NUM_POINT_LIGHTS   8
 #define MAX_NUM_SPOT_LIGHTS    8
@@ -129,12 +129,12 @@ vec3 computeSL(SpotLight light, FragMaterial frag, vec3 viewDir);
 void main()
 {
 	FragMaterial frag;
-  frag.albedo = pow(texture(albedoMap, fragIn.fTexCoords).rgb, vec3(2.2));
-	frag.normal = fragIn.fTBN * (texture(normalMap, fragIn.fTexCoords).xyz * 2.0 - 1.0);
+  frag.albedo = pow(texture(albedoMap, fragIn.fTexCoords).rgb, vec3(2.2)); //
+	frag.normal = fragIn.fTBN * (texture(normalMap, fragIn.fTexCoords).xyz * 2.0 - 1.0); //
 	frag.metallic = texture(metallicMap, fragIn.fTexCoords).r;
 	frag.roughness = texture(roughnessMap, fragIn.fTexCoords).r;
 	frag.aOcclusion = texture(aOcclusionMap, fragIn.fTexCoords).r;
-  frag.position = fragIn.fPosition;
+  frag.position = fragIn.fPosition; //
   frag.F0 = mix(vec3(0.04), frag.albedo, frag.metallic);
 
 	vec3 view = normalize(camera.position - fragIn.fPosition);

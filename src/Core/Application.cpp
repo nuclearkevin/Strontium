@@ -34,7 +34,7 @@ namespace SciRenderer
 
     // Initialize the 3D renderer.
     Renderer3D* renderer = Renderer3D::getInstance();
-    renderer->init("./res/shaders/viewport.vs", "./res/shaders/viewport.fs");
+    renderer->init();
 
     this->imLayer = new ImGuiLayer();
     this->pushOverlay(this->imLayer);

@@ -14,7 +14,7 @@ namespace SciRenderer
     Depth = GL_DEPTH_COMPONENT, DepthStencil = GL_DEPTH_STENCIL,
     Depth24Stencil8 = GL_DEPTH24_STENCIL8, Red = GL_RED, RG = GL_RG,
     RGB = GL_RGB, RGBA = GL_RGBA, R16F = GL_R16F, RG16f = GL_RG16F,
-    RGB16f = GL_RGB16F
+    RGB16f = GL_RGB16F, RGBA16f = GL_RGBA16F
   };
   enum class TextureFormats
   {

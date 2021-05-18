@@ -5,12 +5,9 @@
 #include "SciRenderPCH.h"
 
 // Project includes.
-#include "Core/Logs.h"
 #include "Graphics/Meshes.h"
 #include "Graphics/Shaders.h"
-#include "Graphics/Renderer.h"
 #include "Graphics/Camera.h"
-#include "Graphics/Buffers.h"
 #include "Graphics/Textures.h"
 
 namespace SciRenderer
@@ -49,7 +46,7 @@ namespace SciRenderer
     void bind(const MapType &type, GLuint bindPoint);
 
     // Draw the skybox.
-    void draw(Camera* camera);
+    void configure(Camera* camera);
 
     // Generate the diffuse irradiance map.
     void precomputeIrradiance(const GLuint &width = 512, const GLuint &height = 512, bool isHDR = true);
@@ -63,6 +60,8 @@ namespace SciRenderer
     inline GLfloat& getGamma() { return this->gamma; }
     inline GLfloat& getExposure() { return this->exposure; }
     inline GLfloat& getRoughness() { return this->roughness; }
+    inline Mesh* getCubeMesh() { return this->cube; }
+    inline Shader* getCubeProg() { return this->cubeShader; }
     inline bool hasEqrMap() { return this->erMap != nullptr; }
     inline bool hasSkybox() { return this->skybox != nullptr; }
     inline bool hasIrradiance() { return this->irradiance != nullptr; }
@@ -90,7 +89,5 @@ namespace SciRenderer
     Shader*  cubeShader;
 
     Mesh*    cube;
-
-    static FBOTex2DParam faces[6];
   };
 }

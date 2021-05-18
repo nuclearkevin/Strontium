@@ -15,6 +15,7 @@ namespace SciRenderer
   {
   public:
     // Constructor and destructor.
+    Shader();
     Shader(const std::string &vertPath, const std::string &fragPath);
     ~Shader();
 

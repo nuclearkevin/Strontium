@@ -7,6 +7,13 @@
 namespace SciRenderer
 {
 	// Constructor and destructor.
+	Shader::Shader()
+	{
+		this->progID = glCreateProgram();
+		this->vertID = glCreateShader(GL_VERTEX_SHADER);
+		this->fragID = glCreateShader(GL_FRAGMENT_SHADER);
+	}
+
 	Shader::Shader(const std::string &vertPath, const std::string &fragPath)
 	{
 		this->buildShader(GL_VERTEX_SHADER, vertPath.c_str());

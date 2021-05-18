@@ -1,13 +1,8 @@
 #include "Graphics/EnvironmentMap.h"
 
-// Image loading include.
-#include "stb/stb_image.h"
-#include "stb/stb_image_write.h"
-
 // Project includes.
 #include "Core/Logs.h"
 #include "Graphics/Buffers.h"
-#include "Graphics/FrameBuffer.h"
 #include "Graphics/Compute.h"
 
 namespace SciRenderer
@@ -133,18 +128,8 @@ namespace SciRenderer
 
   // Draw the skybox.
   void
-  EnvironmentMap::draw(Camera* camera)
+  EnvironmentMap::configure(Camera* camera)
   {
-    Logger* logs = Logger::getInstance();
-    Renderer3D* renderer = Renderer3D::getInstance();
-
-    if (this->skybox == nullptr)
-    {
-      return;
-    }
-
-    glDepthFunc(GL_LEQUAL);
-
     glm::mat4 vP = camera->getProjMatrix() * glm::mat4(glm::mat3(camera->getViewMatrix()));
 
     this->cubeShader->bind();
@@ -158,19 +143,11 @@ namespace SciRenderer
 
     this->bind(this->currentEnvironment, 0);
 
-    if (this->cube->hasVAO())
-      renderer->draw(this->cube->getVAO(), this->cubeShader);
-    else
-    {
+    if (!this->cube->hasVAO())
       this->cube->generateVAO(this->cubeShader);
-      if (this->cube->hasVAO())
-        renderer->draw(this->cube->getVAO(), this->cubeShader);
-    }
-
-    glDepthFunc(GL_LESS);
   }
 
-  // Getters, I guess.
+  // Getters.
   GLuint
   EnvironmentMap::getTexID(const MapType &type)
   {
@@ -196,8 +173,7 @@ namespace SciRenderer
     return 0;
   }
 
-  // Load a 2D equirectangular map, than convert it to a cubemap.
-  // Assumes that the map is HDR by default.
+  // Load a 2D equirectangular map.
   void
   EnvironmentMap::loadEquirectangularMap(const std::string &filepath,
                                          const Texture2DParams &params,
@@ -216,12 +192,12 @@ namespace SciRenderer
     this->erMap = Textures::loadTexture2D(filepath, params, isHDR);
   }
 
+  // Convert the loaded equirectangular map to a cubemap.
   void
   EnvironmentMap::equiToCubeMap(const bool &isHDR, const GLuint &width,
                                 const GLuint &height)
   {
     Logger* logs = Logger::getInstance();
-    Renderer3D* renderer = Renderer3D::getInstance();
 
     // If we already have a cubemap of a given type, don't load another.
     if (this->skybox != nullptr)
@@ -238,15 +214,6 @@ namespace SciRenderer
     }
     auto start = std::chrono::steady_clock::now();
 
-    FBOSpecification spec;
-    if (isHDR)
-      spec = FBOCommands::getFloatColourSpec(FBOTargetParam::Colour0);
-    else
-      spec = FBOCommands::getDefaultColourSpec(FBOTargetParam::Colour0);
-
-    FrameBuffer equiFBO = FrameBuffer(width, height);
-    equiFBO.attachRenderBuffer();
-
     // The resulting cubemap from the conversion process.
     this->skybox = new CubeMap();
 
@@ -261,25 +228,6 @@ namespace SciRenderer
       this->skybox->height[i] = height;
       this->skybox->n[i]      = 3;
     }
-
-    // A standard projection matrix, and 6 view matrices (one for each face of the
-    // cubemap).
-    glm::mat4 perspective = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 10.0f);
-    glm::mat4 views[6] =
-    {
-      glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.0f,  0.0f,  0.0f),
-                  glm::vec3(0.0f, -1.0f,  0.0f)),
-      glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(-1.0f,  0.0f,  0.0f),
-                  glm::vec3(0.0f, -1.0f,  0.0f)),
-      glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f,  1.0f,  0.0f),
-                  glm::vec3(0.0f,  0.0f,  1.0f)),
-      glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f,  0.0f),
-                  glm::vec3(0.0f,  0.0f, -1.0f)),
-      glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f,  0.0f,  1.0f),
-                  glm::vec3(0.0f, -1.0f,  0.0f)),
-      glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f,  0.0f, -1.0f),
-                  glm::vec3(0.0f, -1.0f,  0.0f))
-    };
 
     for (unsigned i = 0; i < 6; i++)
     {
@@ -299,38 +247,30 @@ namespace SciRenderer
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-    Shader eqToCube = Shader("./res/shaders/pbr/equiconv.vs",
-                             "./res/shaders/pbr/equiconv.fs");
+    // The equirectangular to cubemap compute shader.
+    ComputeShader conversionShader = ComputeShader("./res/shaders/compute/equiConversion.cs");
 
-    eqToCube.addUniformSampler2D("equirectangularMap", 0);
-    Textures::bindTexture(this->erMap, 0);
-
-    equiFBO.setViewport();
-
-    // Perform the conversion for each face of the cubemap.
-    for (unsigned i = 0; i < 6; i++)
+    // Buffer to pass the sizes of the image to the compute shader.
+    struct
     {
-      eqToCube.addUniformMatrix("vP", perspective * views[i], GL_FALSE);
-      spec.type = Textures::cubemapFaces[i];
-      equiFBO.attachCubeMapFace(spec, this->skybox, false);
-      equiFBO.clear();
-      equiFBO.bind();
+      glm::vec2 equiSize;
+      glm::vec2 enviSize;
+    } dims;
+    dims.equiSize = glm::vec2(this->erMap->width, this->erMap->height);
+    dims.enviSize = glm::vec2(width, height);
+    ShaderStorageBuffer sizeBuff = ShaderStorageBuffer(&dims, sizeof(dims),
+                                                       BufferType::Static);
+    sizeBuff.bindToPoint(2);
 
-      if (this->cube->hasVAO())
-        renderer->draw(this->cube->getVAO(), &eqToCube);
-      else
-      {
-        this->cube->generateVAO(&eqToCube);
-        if (this->cube->hasVAO())
-          renderer->draw(this->cube->getVAO(), &eqToCube);
-      }
-    }
+    // Bind the equirectangular map for reading by the compute shader.
+    glBindImageTexture(0, this->erMap->textureID, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA16F);
 
-    // Unattach the texture so we don't delete it when getting rid of the framebuffer.
-    auto temp = equiFBO.unattachTexture2D(FBOTargetParam::Colour0);
-    // Delete it, since we already have the cubemap stored as a cubemap texture
-    // and this returns a 2D texture.
-    delete temp;
+    // Bind the irradiance map for writing to by the compute shader.
+    glBindImageTexture(1, this->skybox->textureID, 0, GL_TRUE, 0, GL_READ_WRITE, GL_RGBA16F);
+
+    // Launch the compute shader.
+    conversionShader.bind();
+    conversionShader.launchCompute(glm::ivec3(width / 32, height / 32, 6));
 
     auto end = std::chrono::steady_clock::now();
     std::chrono::duration<double> elapsed = end - start;
@@ -341,13 +281,12 @@ namespace SciRenderer
                                 + " s).", true, false, true));
   }
 
-  // Generate the diffuse irradiance map. Now with compute shaders!
+  // Generate the diffuse irradiance map.
   void
   EnvironmentMap::precomputeIrradiance(const GLuint &width, const GLuint &height,
                                        bool isHDR)
   {
     Logger* logs = Logger::getInstance();
-    Renderer3D* renderer = Renderer3D::getInstance();
 
     if (this->irradiance != nullptr)
     {
@@ -391,7 +330,7 @@ namespace SciRenderer
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
     // Convolution compute shader.
-    ComputeShader compTest = ComputeShader("./res/shaders/compute/diffuseConv.cs");
+    ComputeShader convolutionShader = ComputeShader("./res/shaders/compute/diffuseConv.cs");
 
     // Buffer to pass the sizes of the image to the compute shader.
     glm::vec2 dimensions = glm::vec2((GLfloat) width, (GLfloat) height);
@@ -401,14 +340,14 @@ namespace SciRenderer
     sizeBuff.bindToPoint(2);
 
     // Bind the skybox for reading by the compute shader.
-    glBindImageTexture(0, this->skybox->textureID, 0, GL_TRUE, 0, GL_READ_WRITE, GL_RGBA16F);
+    glBindImageTexture(0, this->skybox->textureID, 0, GL_TRUE, 0, GL_READ_ONLY, GL_RGBA16F);
 
     // Bind the irradiance map for writing to by the compute shader.
-    glBindImageTexture(1, this->irradiance->textureID, 0, GL_TRUE, 0, GL_READ_WRITE, GL_RGBA16F);
+    glBindImageTexture(1, this->irradiance->textureID, 0, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA16F);
 
-    // Launch the compute shader!
-    compTest.bind();
-    compTest.launchCompute(glm::ivec3(width / 32, height / 32, 6));
+    // Launch the compute shader.
+    convolutionShader.bind();
+    convolutionShader.launchCompute(glm::ivec3(width / 32, height / 32, 6));
 
     auto end = std::chrono::steady_clock::now();
     std::chrono::duration<double> elapsed = end - start;
@@ -419,8 +358,7 @@ namespace SciRenderer
   }
 
   // Generate the specular map components. Computes the pre-filtered environment
-  // map first, than the integration map second.
-  // TODO: Move this to compute shaders.
+  // map first, than integrates the BRDF and stores the result in an LUT.
   void
   EnvironmentMap::precomputeSpecular(const GLuint &width, const GLuint &height,
                                      bool isHDR)
@@ -435,48 +373,10 @@ namespace SciRenderer
       return;
     }
 
-    Renderer3D* renderer = Renderer3D::getInstance();
-
-    // The framebuffer and renderbuffer for drawing the pre-filter and
-    // integration textures.
-    GLuint specFBO, specRBO;
-
-    // Framebuffer to write the pre-filtered environment map to.
-    glGenFramebuffers(1, &specFBO);
-    glBindFramebuffer(GL_FRAMEBUFFER, specFBO);
-
-    // Render attach for the framebuffer.
-    glGenRenderbuffers(1, &specRBO);
-    glBindRenderbuffer(GL_RENDERBUFFER, specRBO);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24,
-                          width, height);
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
-                              GL_RENDERBUFFER, specRBO);
-
-    // A standard projection matrix, and 6 view matrices (one for each face of the
-    // cubemap).
-    glm::mat4 perspective = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 10.0f);
-    glm::mat4 views[6] =
-    {
-      glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.0f,  0.0f,  0.0f),
-                  glm::vec3(0.0f, -1.0f,  0.0f)),
-      glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(-1.0f,  0.0f,  0.0f),
-                  glm::vec3(0.0f, -1.0f,  0.0f)),
-      glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f,  1.0f,  0.0f),
-                  glm::vec3(0.0f,  0.0f,  1.0f)),
-      glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f,  0.0f),
-                  glm::vec3(0.0f,  0.0f, -1.0f)),
-      glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f,  0.0f,  1.0f),
-                  glm::vec3(0.0f, -1.0f,  0.0f)),
-      glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f,  0.0f, -1.0f),
-                  glm::vec3(0.0f, -1.0f,  0.0f))
-    };
-
     if (this->specPrefilter == nullptr)
     {
       //--------------------------------------------------------------------------
-      // The pre-filtered environment map component. This is hella slow,
-      // need to move it to compute shaders.
+      // The pre-filtered environment map component.
       //--------------------------------------------------------------------------
       auto start = std::chrono::steady_clock::now();
 
@@ -489,9 +389,12 @@ namespace SciRenderer
 
       for (unsigned i = 0; i < 6; i++)
       {
-        glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB,
-                     width, height, 0, GL_RGB,
-                     GL_UNSIGNED_BYTE, nullptr);
+        glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGBA16F,
+                     width, height, 0, GL_RGBA,
+                     GL_FLOAT, nullptr);
+        this->specPrefilter->width[i]  = width;
+        this->specPrefilter->height[i] = height;
+        this->specPrefilter->n[i]      = 3;
       }
 
       glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -502,56 +405,47 @@ namespace SciRenderer
 
       glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
 
-      // Compile and link the shader program used to generate the pre-filter map.
-      Shader specPrefilterProg = Shader("res/shaders/pbr/specPrefilter.vs",
-                                        "res/shaders/pbr/specPrefilter.fs");
-      specPrefilterProg.addUniformSampler2D("environmentMap", 0);
-      glActiveTexture(GL_TEXTURE0);
-      glBindTexture(GL_TEXTURE_CUBE_MAP, this->skybox->textureID);
+      // The specular prefilter compute shader.
+      ComputeShader filterShader = ComputeShader("./res/shaders/compute/specPrefilter.cs");
 
-      // Perform the pre-filter for each fact of the cubemap.
-      for (GLuint i = 0; i < 14; i++)
+      // A buffer with the parameters required for computing the prefilter.
+      struct
+      {
+        glm::vec2 enviSize;
+        glm::vec2 mipSize;
+        GLfloat roughness;
+        GLfloat resolution;
+      } params;
+      ShaderStorageBuffer paramBuff = ShaderStorageBuffer(sizeof(params),
+                                                          BufferType::Static);
+
+      // Bind the enviroment map which is to be prefiltered.
+      Textures::bindTexture(this->skybox, 0);
+
+      // Perform the pre-filter for each roughness level.
+      for (GLuint i = 0; i < 5; i++)
       {
         // Compute the current mip levels.
-        GLuint mipWidth  = (GLuint) ((float) width * std::pow(0.5f, i));
-        GLuint mipHeight = (GLuint) ((float) height * std::pow(0.5f, i));
+        GLuint mipWidth  = (GLuint) ((GLfloat) width * std::pow(0.5f, i));
+        GLuint mipHeight = (GLuint) ((GLfloat) height * std::pow(0.5f, i));
 
-        // Update the framebuffer to those levels.
-        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, mipWidth, mipHeight);
-        glViewport(0, 0, mipWidth, mipHeight);
+        float roughness = ((float) i) / ((float) (5 - 1));
 
-        float roughness = ((float) i) / ((float) (14 - 1));
-        specPrefilterProg.addUniformFloat("roughness", roughness);
+        // Bind the irradiance map for writing to by the compute shader.
+        glBindImageTexture(1, this->specPrefilter->textureID, i, GL_TRUE, 0,
+                           GL_WRITE_ONLY, GL_RGBA16F);
 
-        for (GLuint j = 0; j < 6; j++)
-        {
-          specPrefilterProg.addUniformMatrix("vP", perspective * views[j], GL_FALSE);
-          specPrefilterProg.addUniformFloat("resolution", this->skybox->width[j]);
-          glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
-                                 GL_TEXTURE_CUBE_MAP_POSITIVE_X + j,
-                                 this->specPrefilter->textureID, i);
-          glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        params.enviSize = glm::vec2((GLfloat) this->skybox->width[0],
+                                    (GLfloat) this->skybox->height[0]);
+        params.mipSize = glm::vec2((GLfloat) mipWidth, (GLfloat) mipHeight);
+        params.roughness = roughness;
+        params.resolution = this->skybox->width[0];
+        paramBuff.setData(0, sizeof(params), &params);
+        paramBuff.bindToPoint(2);
 
-          if (this->cube->hasVAO())
-            renderer->draw(this->cube->getVAO(), &specPrefilterProg);
-          else
-          {
-            this->cube->generateVAO(&specPrefilterProg);
-            if (this->cube->hasVAO())
-              renderer->draw(this->cube->getVAO(), &specPrefilterProg);
-          }
-        }
-      }
-
-      // Unbind the framebuffer now that we're done with it.
-      glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-      // Assign the texture sizes to the cubemap struct.
-      for (unsigned i = 0; i < 6; i++)
-      {
-        this->specPrefilter->width[i]  = width;
-        this->specPrefilter->height[i] = height;
-        this->specPrefilter->n[i]      = 3;
+        // Launch the compute.
+        filterShader.bind();
+        filterShader.launchCompute(glm::ivec3(mipWidth / 32, mipHeight / 32, 6));
       }
 
       auto end = std::chrono::steady_clock::now();
@@ -570,35 +464,27 @@ namespace SciRenderer
       auto start = std::chrono::steady_clock::now();
 
       this->brdfIntMap = new Texture2D();
+      this->brdfIntMap->width = 512;
+      this->brdfIntMap->height = 512;
 
       glGenTextures(1, &this->brdfIntMap->textureID);
       glBindTexture(GL_TEXTURE_2D, this->brdfIntMap->textureID);
-
-      glTexImage2D(GL_TEXTURE_2D, 0, GL_RG, width, height, 0, GL_RG,
-                   GL_UNSIGNED_BYTE, nullptr);
+      glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, 512, 512, 0,
+                   GL_RGBA, GL_FLOAT, nullptr);
 
       glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
       glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
       glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
       glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-      glBindFramebuffer(GL_FRAMEBUFFER, specFBO);
-      glBindRenderbuffer(GL_RENDERBUFFER, specRBO);
-      glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, width, height);
-      glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
-                             this->brdfIntMap->textureID, 0);
+      ComputeShader integrateBRDF = ComputeShader("./res/shaders/compute/integrateBRDF.cs");
 
-      // Shader program to compute the integration lookup texture.
-      Shader* intProg = new Shader("./res/shaders/pbr/brdfIntegration.vs",
-    												       "./res/shaders/pbr/brdfIntegration.fs");
+      // Bind the irradiance map for writing to by the compute shader.
+      glBindImageTexture(3, this->brdfIntMap->textureID, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);
 
-      glViewport(0, 0, width, height);
-      glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-      renderer->drawFSQ(intProg);
-      glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-      // Delete the shader object, we're done with it.
-      delete intProg;
+      // Launch the compute shader.
+      integrateBRDF.bind();
+      integrateBRDF.launchCompute(glm::ivec3(512 / 32, 512 / 32, 1));
 
       auto end = std::chrono::steady_clock::now();
       std::chrono::duration<double> elapsed = end - start;
@@ -607,9 +493,5 @@ namespace SciRenderer
                                   + std::to_string(elapsed.count()) + " s).", true,
                                   false, true));
     }
-
-    // Delete the frame and render buffers now that they've served their purpose.
-    glDeleteFramebuffers(1, &specFBO);
-    glDeleteRenderbuffers(1, &specRBO);
   }
 }
