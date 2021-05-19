@@ -1,5 +1,6 @@
-INCLUDE_FLAGS      := -I ./include -I ./vendor -I ./vendor/glm -I ./vendor/glad/include
+INCLUDE_FLAGS      := -I ./include -I ./vendor -I ./vendor/glm -I ./vendor/glad/include -I ./vendor/glfw/include/
 COMPILE_FLAGS      := g++ $(INCLUDE_FLAGS)
+GLFW_FLAGS         := -pthread ./vendor/glfw/src/libglfw3.a
 
 SRC_DIR 			     := ./src/
 GLAD_DIR           := ./vendor/glad/src/
@@ -32,7 +33,7 @@ makebuild: make_dir Application
 Application: $(CORE_OBJECTS) $(LAYERS_OBJECTS) $(GRAPHICS_OBJECTS) $(UTILS_OBJECTS) \
 	$(GUI_OBJECTS) $(GLAD_OBJECTS) $(IMGUI_FB_OBJECTS) $(IMGUI_OBJECTS)
 	@echo Linking the application.
-	@$(COMPILE_FLAGS) -g -o Application $^ -ldl -lglfw
+	@$(COMPILE_FLAGS) -g -o Application $^ -ldl $(GLFW_FLAGS)
 
 # Compile the graphics engine.
 $(OUTPUT_DIR)%.o: $(SRC_DIR)%.cpp
