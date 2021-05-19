@@ -250,7 +250,7 @@ namespace SciRenderer
     }
 
     //--------------------------------------------------------------------------
-    // The drawing phase.
+    // The drawing phase. TODO: Move the application to a deferred renderer.
     //--------------------------------------------------------------------------
     // Draw the scene.
     this->drawBuffer->clear();

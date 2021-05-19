@@ -1,5 +1,5 @@
-INCLUDE_FLAGS      := -I ./include -I ./vendor -I ./vendor/glm -I ./vendor/glad/include -I ./vendor/glfw/include/
-COMPILE_FLAGS      := g++ $(INCLUDE_FLAGS)
+INCLUDE_FLAGS      := -I ./include -I ./vendor -I ./vendor/glm -I ./vendor/glad/include -I ./vendor/entt/include -I ./vendor/glfw/include/
+COMPILE_FLAGS      := g++ $(INCLUDE_FLAGS) -std=c++17
 GLFW_FLAGS         := -pthread ./vendor/glfw/src/libglfw3.a
 
 SRC_DIR 			     := ./src/
@@ -14,14 +14,17 @@ CORE_SOURCES 			 := $(wildcard $(SRC_DIR)Core/*.cpp)
 GRAPHICS_SOURCES   := $(wildcard $(SRC_DIR)Graphics/*.cpp)
 UTILS_SOURCES      := $(wildcard $(SRC_DIR)Utils/*.cpp)
 LAYERS_SOURCES     := $(wildcard $(SRC_DIR)Layers/*.cpp)
+SCENE_SOURCES      := $(wildcard $(SRC_DIR)Scenes/*.cpp)
 GUI_SOURSES        := $(wildcard $(SRC_DIR)GuiElements/*.cpp)
 GLAD_SOURCES       := $(wildcard $(GLAD_DIR)*.c)
 IMGUI_SOURCES 	   := $(wildcard $(IMGUI_DIR)*.cpp)
 IMGUI_FB_SOURCES   := $(wildcard $(IMGUI_FB_DIR)*.cpp)
+
 CORE_OBJECTS 			 := $(patsubst $(SRC_DIR)Core/%.cpp, $(OUTPUT_DIR)Core/%.o, $(CORE_SOURCES))
 GRAPHICS_OBJECTS   := $(patsubst $(SRC_DIR)Graphics/%.cpp, $(OUTPUT_DIR)Graphics/%.o, $(GRAPHICS_SOURCES))
 UTILS_OBJECTS      := $(patsubst $(SRC_DIR)Utils/%.cpp, $(OUTPUT_DIR)Utils/%.o, $(UTILS_SOURCES))
 LAYERS_OBJECTS     := $(patsubst $(SRC_DIR)Layers/%.cpp, $(OUTPUT_DIR)Layers/%.o, $(LAYERS_SOURCES))
+SCENE_OBJECTS      := $(patsubst $(SRC_DIR)Scenes/%.cpp, $(OUTPUT_DIR)Scenes/%.o, $(SCENE_SOURCES))
 GUI_OBJECTS        := $(patsubst $(SRC_DIR)GuiElements/%.cpp, $(OUTPUT_DIR)GuiElements/%.o, $(GUI_SOURSES))
 GLAD_OBJECTS       := $(patsubst $(GLAD_DIR)%.c, $(OUTPUT_DIR)vendor/%.o, $(GLAD_SOURCES))
 IMGUI_OBJECTS      := $(patsubst $(IMGUI_DIR)%.cpp, $(OUTPUT_DIR)vendor/%.o, $(IMGUI_SOURCES))
@@ -30,8 +33,9 @@ IMGUI_FB_OBJECTS   := $(patsubst $(IMGUI_FB_DIR)%.cpp, $(OUTPUT_DIR)vendor/%.o, 
 makebuild: make_dir Application
 
 # Link everything together.
-Application: $(CORE_OBJECTS) $(LAYERS_OBJECTS) $(GRAPHICS_OBJECTS) $(UTILS_OBJECTS) \
-	$(GUI_OBJECTS) $(GLAD_OBJECTS) $(IMGUI_FB_OBJECTS) $(IMGUI_OBJECTS)
+Application: $(CORE_OBJECTS) $(LAYERS_OBJECTS) $(GRAPHICS_OBJECTS) $(SCENE_OBJECTS) \
+	$(UTILS_OBJECTS) $(GUI_OBJECTS) $(GLAD_OBJECTS) $(IMGUI_FB_OBJECTS) \
+	$(IMGUI_OBJECTS)
 	@echo Linking the application.
 	@$(COMPILE_FLAGS) -g -o Application $^ -ldl $(GLFW_FLAGS)
 
@@ -62,6 +66,7 @@ make_dir:
 	@mkdir -p bin/Graphics
 	@mkdir -p bin/Utils
 	@mkdir -p bin/Layers
+	@mkdir -p bin/Scenes
 	@mkdir -p bin/GuiElements
 	@mkdir -p bin/vendor
 
@@ -72,4 +77,5 @@ clean:
 	@rm ./bin/Utils/*.o
 	@rm ./bin/Graphics/*.o
 	@rm ./bin/Layers/*.o
+	@rm ./bin/Scenes/*.o
 	@rm ./bin/GuiElements/*.o
