@@ -29,8 +29,8 @@ namespace SciRenderer
     RendererCommands::enable(RendererFunction::CubeMapSeamless);
 
     // Initialize the vewport shader passthrough.
-    this->viewportProgram. = createShared<Shader>("./res/shaders/viewport.vs",
-                                                  "./res/shaders/viewport.fs");
+    this->viewportProgram = createShared<Shader>("./res/shaders/viewport.vs",
+                                                 "./res/shaders/viewport.fs");
   }
 
   // Draw the data to the screen.
