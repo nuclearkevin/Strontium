@@ -18,9 +18,7 @@ namespace SciRenderer
   }
 
   Renderer3D::~Renderer3D()
-  {
-    delete this->viewportProgram;
-  }
+  { }
 
   // Initialize the renderer.
   void
@@ -31,13 +29,13 @@ namespace SciRenderer
     RendererCommands::enable(RendererFunction::CubeMapSeamless);
 
     // Initialize the vewport shader passthrough.
-    this->viewportProgram = new Shader("./res/shaders/viewport.vs",
-                                       "./res/shaders/viewport.fs");
+    this->viewportProgram. = createShared<Shader>("./res/shaders/viewport.vs",
+                                                  "./res/shaders/viewport.fs");
   }
 
   // Draw the data to the screen.
   void
-  Renderer3D::draw(VertexArray* data, Shader* program)
+  Renderer3D::draw(Shared<VertexArray> data, Shared<Shader> program)
   {
     data->bind();
     program->bind();
@@ -49,7 +47,7 @@ namespace SciRenderer
   }
 
   void
-  Renderer3D::draw(Mesh* data, Shader* program, Camera* camera)
+  Renderer3D::draw(Shared<Mesh> data, Shared<Shader> program, Shared<Camera> camera)
   {
     program->bind();
     glm::mat4 model = data->getModelMatrix();
@@ -72,7 +70,7 @@ namespace SciRenderer
   }
 
   void
-  Renderer3D::draw(EnvironmentMap* environment, Camera* camera)
+  Renderer3D::draw(Shared<EnvironmentMap> environment, Shared<Camera> camera)
   {
     RendererCommands::depthFunction(DepthFunctions::LEq);
     environment->configure(camera);

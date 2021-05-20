@@ -1,6 +1,7 @@
-INCLUDE_FLAGS      := -I ./include -I ./vendor -I ./vendor/glm -I ./vendor/glad/include -I ./vendor/entt/include -I ./vendor/glfw/include/
+INCLUDE_FLAGS      := -I ./include -I ./vendor -I ./vendor/glm -I ./vendor/glad/include -I ./vendor/entt/include -I ./vendor/glfw/include/ -I ./vendor/assimp/include
 COMPILE_FLAGS      := g++ $(INCLUDE_FLAGS) -std=c++17
 GLFW_FLAGS         := -pthread ./vendor/glfw/src/libglfw3.a
+ASSIMP_FLAGS       := ./vendor/assimp/bin/libassimp.so
 
 SRC_DIR 			     := ./src/
 GLAD_DIR           := ./vendor/glad/src/
@@ -37,7 +38,7 @@ Application: $(CORE_OBJECTS) $(LAYERS_OBJECTS) $(GRAPHICS_OBJECTS) $(SCENE_OBJEC
 	$(UTILS_OBJECTS) $(GUI_OBJECTS) $(GLAD_OBJECTS) $(IMGUI_FB_OBJECTS) \
 	$(IMGUI_OBJECTS)
 	@echo Linking the application.
-	@$(COMPILE_FLAGS) -g -o Application $^ -ldl $(GLFW_FLAGS)
+	@$(COMPILE_FLAGS) -g -o Application $^ -ldl $(GLFW_FLAGS) $(ASSIMP_FLAGS)
 
 # Compile the graphics engine.
 $(OUTPUT_DIR)%.o: $(SRC_DIR)%.cpp

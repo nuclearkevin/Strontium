@@ -28,7 +28,7 @@ namespace SciRenderer
 
     // Getters.
     static inline Application* getInstance() { return Application::appInstance; }
-    inline Window* getWindow() { return this->appWindow; }
+    inline Shared<Window> getWindow() { return this->appWindow; }
 
   private:
     // The application instance.
@@ -47,7 +47,7 @@ namespace SciRenderer
     LayerCollection layerStack;
 
     // The main application window.
-    Window* appWindow;
+    Shared<Window> appWindow;
 
     // The ImGui layer. Implements the ImGui boilerplate behavior.
     ImGuiLayer* imLayer;

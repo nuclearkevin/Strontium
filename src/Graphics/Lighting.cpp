@@ -11,30 +11,24 @@ namespace SciRenderer
     , sLightCounter(0)
   {
     // Generate the light shader.
-    this->lightProgram = new Shader(vertPath, fragPath);
+    this->lightProgram = createShared<Shader>(vertPath, fragPath);
 
     // Load the light mesh.
-    this->lightMesh = new Mesh();
+    this->lightMesh = createShared<Mesh>();
     this->lightMesh->loadOBJFile(lightMeshPath, false);
     this->lightMesh->generateVAO(this->lightProgram);
 
     // Generate 3 uniform buffers for the lights.
-    this->ulightBuffer = new UniformBuffer(8 * sizeof(ShaderUL), BufferType::Static);
+    this->ulightBuffer = createShared<UniformBuffer>(8 * sizeof(ShaderUL), BufferType::Static);
     this->ulightBuffer->bindToPoint(1);
-    this->plightBuffer = new UniformBuffer(8 * sizeof(ShaderPL), BufferType::Static);
+    this->plightBuffer = createShared<UniformBuffer>(8 * sizeof(ShaderPL), BufferType::Static);
     this->plightBuffer->bindToPoint(2);
-    this->slightBuffer = new UniformBuffer(8 * sizeof(ShaderSL), BufferType::Static);
+    this->slightBuffer = createShared<UniformBuffer>(8 * sizeof(ShaderSL), BufferType::Static);
     this->slightBuffer->bindToPoint(3);
   }
 
   LightController::~LightController()
-  {
-    delete this->lightProgram;
-    delete this->lightMesh;
-    delete this->ulightBuffer;
-    delete this->plightBuffer;
-    delete this->slightBuffer;
-  }
+  { }
 
   glm::vec3*
   LightController::getAmbient()
@@ -91,7 +85,7 @@ namespace SciRenderer
 
   // Set the light uniforms in the lighting shader for the next frame.
   void
-  LightController::setLighting(Shader* lightingShader, Camera* camera)
+  LightController::setLighting(Shared<Shader> lightingShader, Shared<Camera> camera)
   {
     lightingShader->addUniformVector("ambientColour", this->ambient);
     lightingShader->addUniformVector("camera.position", camera->getCamPos());
@@ -186,7 +180,7 @@ namespace SciRenderer
 
   // Draw the light meshes.
   void
-  LightController::drawLightMeshes(Camera* camera)
+  LightController::drawLightMeshes(Shared<Camera> camera)
   {
     Renderer3D* renderer = Renderer3D::getInstance();
 

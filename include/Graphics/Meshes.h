@@ -5,11 +5,17 @@
 #include "SciRenderPCH.h"
 
 // Project includes.
+#include "Core/ApplicationBase.h"
 #include "Graphics/VertexArray.h"
 #include "Graphics/Shaders.h"
 
 // Tiny object loader!
 #include "tinyobjloader/tiny_obj_loader.h"
+
+// Assimp so more than just obj files can be loaded.
+#include <assimp/Importer.hpp>
+#include <assimp/scene.h>
+#include <assimp/postprocess.h>
 
 namespace SciRenderer
 {
@@ -25,12 +31,6 @@ namespace SciRenderer
     unsigned  id;
   };
 
-  struct Vertex2D
-  {
-    glm::vec2 position;
-    glm::vec2 uv;
-  };
-
   class Mesh
   {
   public:
@@ -43,7 +43,7 @@ namespace SciRenderer
     // Load data from a file.
     void loadOBJFile(const char* filepath, bool computeTBN = true);
     // Generate/delete the vertex array object.
-    void generateVAO(Shader* program);
+    void generateVAO(Shared<Shader> program);
     void deleteVAO();
     // Compute vertex and surface normals.
     void computeNormals();
@@ -66,7 +66,7 @@ namespace SciRenderer
     // Getters.
     inline std::vector<Vertex>& getData() { return this->data; }
     inline std::vector<GLuint>& getIndices() { return this->indices; }
-    inline VertexArray*         getVAO() { return this->vArray; }
+    inline Shared<VertexArray>  getVAO() { return this->vArray; }
     inline glm::mat4            getModelMatrix() { return this->modelMatrix; }
 
     // Check for states.
@@ -84,6 +84,6 @@ namespace SciRenderer
     std::string                      meshName;
 
     // Vertex array object for the mesh data.
-    VertexArray* vArray;
+    Shared<VertexArray> vArray;
   };
 }

@@ -5,6 +5,7 @@
 #include "SciRenderPCH.h"
 
 // Project includes.
+#include "Core/ApplicationBase.h"
 #include "Graphics/Buffers.h"
 
 namespace SciRenderer
@@ -13,7 +14,7 @@ namespace SciRenderer
   {
   public:
     // Constructors and destructor.
-    VertexArray(VertexBuffer* buffer);
+    VertexArray(Shared<VertexBuffer> buffer);
     VertexArray(const void* bufferData, const unsigned &dataSize,
                 BufferType bufferType);
     VertexArray();
@@ -24,12 +25,12 @@ namespace SciRenderer
     void unbind();
 
     // Replace the vertex buffer, also purges the index buffers for safety.
-    void setData(VertexBuffer* buffer);
+    void setData(Shared<VertexBuffer> buffer);
     void setData(const void* bufferData, const unsigned &dataSize,
                  BufferType bufferType);
 
     // Add an index buffer to the vertex array.
-    void addIndexBuffer(IndexBuffer* buffer);
+    void addIndexBuffer(Shared<IndexBuffer> buffer);
     void addIndexBuffer(const GLuint* bufferData, unsigned numIndices,
                         BufferType bufferType);
 
@@ -47,12 +48,12 @@ namespace SciRenderer
     GLuint                    arrayID;
 
     // Vertex buffer with the data to be associated with this vertex array.
-    VertexBuffer*             data;
+    Shared<VertexBuffer>      data;
 
     // Current index buffer for rendering.
-    IndexBuffer*              indices;
+    Shared<IndexBuffer>       indices;
 
     // Vector of index buffers for rendering purposes.
-    std::vector<IndexBuffer*> iBuffers;
+    std::vector<Shared<IndexBuffer>> iBuffers;
   };
 }

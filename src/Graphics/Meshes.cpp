@@ -25,9 +25,7 @@ namespace SciRenderer
   { }
 
   Mesh::~Mesh()
-  {
-    delete this->vArray;
-  }
+  { }
 
   // Loading function for .obj files.
   void
@@ -145,13 +143,13 @@ namespace SciRenderer
 
   // Generate a vertex array object associated with this mesh.
   void
-  Mesh::generateVAO(Shader* program)
+  Mesh::generateVAO(Shared<Shader> program)
   {
     if (!this->isLoaded())
       return;
-    this->vArray = new VertexArray(&(this->data[0]),
-                                   this->data.size() * sizeof(Vertex),
-                                   BufferType::Dynamic);
+    this->vArray = createShared<VertexArray>(&(this->data[0]),
+                                             this->data.size() * sizeof(Vertex),
+                                             BufferType::Dynamic);
     this->vArray->addIndexBuffer(&(this->indices[0]), this->indices.size(), BufferType::Dynamic);
 
   	program->addAtribute("vPosition", VEC4, GL_FALSE, sizeof(Vertex), 0);
@@ -160,13 +158,6 @@ namespace SciRenderer
     program->addAtribute("vTexCoord", VEC2, GL_FALSE, sizeof(Vertex), offsetof(Vertex, uv));
     program->addAtribute("vTangent", VEC3, GL_FALSE, sizeof(Vertex), offsetof(Vertex, tangent));
     program->addAtribute("vBitangent", VEC3, GL_FALSE, sizeof(Vertex), offsetof(Vertex, bitangent));
-  }
-
-  // Delete the vertex array object associated with this mesh.
-  void
-  Mesh::deleteVAO()
-  {
-    delete this->vArray;
   }
 
   // Helper function to bulk compute normals.

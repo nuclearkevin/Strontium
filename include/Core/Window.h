@@ -4,6 +4,7 @@
 #include "SciRenderPCH.h"
 
 // Project includes.
+#include "Core/ApplicationBase.h"
 #include "Graphics/GraphicsContext.h"
 
 namespace SciRenderer
@@ -12,14 +13,17 @@ namespace SciRenderer
   class Window
   {
   public:
+    Window(const std::string &name, const GLuint &width, const GLuint &height,
+           const bool &debug, const bool &setVSync);
+
     ~Window();
 
     // Ask for a new window.
-    static Window* getNewInstance(const std::string &name = "Editor Viewport",
-                                  const GLuint &width = 1920,
-                                  const GLuint &height = 1080,
-                                  const bool &debug = false,
-                                  const bool &setVSync = true);
+    static Shared<Window> getNewInstance(const std::string &name = "Editor Viewport",
+                                         const GLuint &width = 1920,
+                                         const GLuint &height = 1080,
+                                         const bool &debug = false,
+                                         const bool &setVSync = true);
 
     // Initialize/shutdown the window. Deals with the graphics context.
     void init();
@@ -52,9 +56,6 @@ namespace SciRenderer
     // A counter of window instances.
     static GLuint windowInstances;
   protected:
-    Window(const std::string &name, const GLuint &width, const GLuint &height,
-           const bool &debug, const bool &setVSync);
-
     bool initialized, isDebug, hasVSync;
 
     GLFWwindow* glfwWindowRef;

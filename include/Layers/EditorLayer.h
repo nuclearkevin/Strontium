@@ -4,6 +4,7 @@
 #include "SciRenderPCH.h"
 
 // Project includes.
+#include "Core/ApplicationBase.h"
 #include "Layers/Layers.h"
 #include "Core/Events.h"
 #include "Graphics/GraphicsSystem.h"
@@ -38,16 +39,16 @@ namespace SciRenderer
     imgui_addons::ImGuiFileBrowser fileHandler;
 
     // The framebuffer for the scene.
-    FrameBuffer*    drawBuffer;
+    Shared<FrameBuffer> drawBuffer;
 
     // Editor camera.
-    Camera* editorCam;
+    Shared<Camera> editorCam;
 
     // These need to move to the scene class when I get around to it.
-    Mesh*           model;
+    Shared<Mesh> model;
 
     // This needs to move to a material class.
-    Shader* 		    program;
+    Shared<Shader> program;
 
     // Stuff for ImGui and the GUI.
     bool showPerf;

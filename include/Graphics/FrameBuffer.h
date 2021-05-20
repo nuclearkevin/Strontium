@@ -4,6 +4,7 @@
 #include "SciRenderPCH.h"
 
 // Project includes.
+#include "Core/ApplicationBase.h"
 #include "Graphics/Textures.h"
 #include "Graphics/Buffers.h"
 
@@ -91,7 +92,7 @@ namespace SciRenderer
     void attachCubeMapFace(const FBOSpecification &spec, CubeMap* map,
                            const bool &removeTex = true, GLuint mip = 0);
     void attachRenderBuffer();
-    void attachRenderBuffer(RenderBuffer* buffer);
+    void attachRenderBuffer(Shared<RenderBuffer> buffer);
 
     // Unattach a 2D texture. This won't delete the texture.
     Texture2D* unattachTexture2D(const FBOTargetParam &attachment);
@@ -121,7 +122,7 @@ namespace SciRenderer
     GLuint       bufferID;
 
     std::unordered_map<FBOTargetParam, std::pair<FBOSpecification, Texture2D*>> textureAttachments;
-    RenderBuffer* depthBuffer;
+    Shared<RenderBuffer> depthBuffer;
 
     GLuint       width, height;
 

@@ -41,9 +41,6 @@ namespace SciRenderer
       Textures::deleteTexture(tex);
     }
 
-    if (this->depthBuffer != nullptr)
-      delete this->depthBuffer;
-
     // Actual buffer delete.
     glDeleteFramebuffers(1, &this->bufferID);
   }
@@ -234,7 +231,7 @@ namespace SciRenderer
     }
     this->bind();
 
-    this->depthBuffer = new RenderBuffer(this->width, this->height);
+    this->depthBuffer.reset(new RenderBuffer(this->width, this->height));
 
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT,
                               GL_RENDERBUFFER, this->depthBuffer->getID());
@@ -245,7 +242,7 @@ namespace SciRenderer
   }
 
   void
-  FrameBuffer::attachRenderBuffer(RenderBuffer* buffer)
+  FrameBuffer::attachRenderBuffer(Shared<RenderBuffer> buffer)
   {
     Logger* logs = Logger::getInstance();
 

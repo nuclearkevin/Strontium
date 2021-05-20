@@ -7,13 +7,6 @@ namespace SciRenderer
 {
   GLuint Window::windowInstances = 0;
 
-  Window* Window::getNewInstance(const std::string &name, const GLuint &width,
-                                 const GLuint &height, const bool &debug,
-                                 const bool &setVSync)
-  {
-    return new Window(name, width, height, debug, setVSync);
-  }
-
   Window::Window(const std::string &name, const GLuint &width,
                  const GLuint &height, const bool &debug, const bool &setVSync)
     : initialized(false)
@@ -28,6 +21,13 @@ namespace SciRenderer
               << width << "x" << height << "." << std::endl;
 
     this->init();
+  }
+
+  Shared<Window> Window::getNewInstance(const std::string &name, const GLuint &width,
+                                        const GLuint &height, const bool &debug,
+                                        const bool &setVSync)
+  {
+    return createShared<Window>(name, width, height, debug, setVSync);
   }
 
   Window::~Window()

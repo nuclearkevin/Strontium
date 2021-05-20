@@ -49,9 +49,6 @@ namespace SciRenderer
   		delete layer;
 		}
 
-    // Delete the application window.
-    delete this->appWindow;
-
     // Delete the application event dispatcher and logs.
     delete EventDispatcher::getInstance();
     delete Logger::getInstance();

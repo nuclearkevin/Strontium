@@ -5,6 +5,7 @@
 #include "SciRenderPCH.h"
 
 // Project includes.
+#include "Core/ApplicationBase.h"
 #include "Core/Events.h"
 
 namespace SciRenderer

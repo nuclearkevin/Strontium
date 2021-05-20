@@ -4,7 +4,7 @@
 namespace SciRenderer
 {
   // Constructors and destructors.
-  VertexArray::VertexArray(VertexBuffer* buffer)
+  VertexArray::VertexArray(Shared<VertexBuffer> buffer)
     : data(buffer)
     , indices(nullptr)
   {
@@ -16,7 +16,7 @@ namespace SciRenderer
   VertexArray::VertexArray(const void* bufferData, const unsigned &dataSize,
                            BufferType bufferType)
   {
-    this->data = new VertexBuffer(bufferData, dataSize, bufferType);
+    this->data = createShared<VertexBuffer>(bufferData, dataSize, bufferType);
     glGenVertexArrays(1, &this->arrayID);
   	glBindVertexArray(this->arrayID);
     this->data->bind();
@@ -59,7 +59,7 @@ namespace SciRenderer
 
   // Replace the vertex buffer, also purges the index buffers for safety.
   void
-  VertexArray::setData(VertexBuffer* buffer)
+  VertexArray::setData(Shared<VertexBuffer> buffer)
   {
     if (buffer != nullptr)
     {
@@ -74,16 +74,13 @@ namespace SciRenderer
   VertexArray::setData(const void* bufferData, const unsigned &dataSize,
                        BufferType bufferType)
   {
-    VertexBuffer* buffer = new VertexBuffer(bufferData, dataSize, bufferType);
-    this->data = buffer;
+    this->data.reset(new VertexBuffer(bufferData, dataSize, bufferType));
     this->data->bind();
-    this->indices = nullptr;
-    this->iBuffers.clear();
   }
 
   // Add an index buffer with its pointer.
   void
-  VertexArray::addIndexBuffer(IndexBuffer* buffer)
+  VertexArray::addIndexBuffer(Shared<IndexBuffer> buffer)
   {
     if (buffer != nullptr)
       this->iBuffers.push_back(buffer);
@@ -99,7 +96,7 @@ namespace SciRenderer
   VertexArray::addIndexBuffer(const GLuint* bufferData, unsigned numIndices,
                               BufferType bufferType)
   {
-    IndexBuffer* buffer = new IndexBuffer(bufferData, numIndices, bufferType);
+    Shared<IndexBuffer> buffer = createShared<IndexBuffer>(bufferData, numIndices, bufferType);
     if (buffer != nullptr)
       this->iBuffers.push_back(buffer);
     if (this->iBuffers.size() == 1 && buffer != nullptr)

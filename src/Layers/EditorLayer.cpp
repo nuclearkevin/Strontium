@@ -27,7 +27,7 @@ namespace SciRenderer
     // Fetch the width and height of the window and create a floating point
     // framebuffer.
     glm::ivec2 wDims = Application::getInstance()->getWindow()->getSize();
-    this->drawBuffer = new FrameBuffer((GLuint) wDims.x, (GLuint) wDims.y);
+    this->drawBuffer = createShared<FrameBuffer>((GLuint) wDims.x, (GLuint) wDims.y);
 
     // Fetch a default floating point FBO spec and attach it.
     auto cSpec = FBOCommands::getFloatColourSpec(FBOTargetParam::Colour0);
@@ -35,20 +35,20 @@ namespace SciRenderer
   	this->drawBuffer->attachRenderBuffer();
 
     // Load the shader and set the appropriate uniforms.
-    this->program = new Shader("./res/shaders/mesh.vs",
-  											 "./res/shaders/pbr/pbr.fs");
+    this->program = createShared<Shader>("./res/shaders/mesh.vs",
+  											                 "./res/shaders/pbr/pbr.fs");
   	this->program->addUniformSampler2D("irradianceMap", 0);
   	this->program->addUniformSampler2D("reflectanceMap", 1);
   	this->program->addUniformSampler2D("brdfLookUp", 2);
 
     // Load in a default model (bunny) as a test.
-    this->model = new Mesh();
-    this->model->loadOBJFile("./res/models/bunny.obj");
+    this->model = createShared<Mesh>();
+    this->model->loadOBJFile("./res/models/teapot.obj");
   	this->model->normalizeVertices();
 
     // Finally, the editor camera.
-    this->editorCam = new Camera(1920 / 2, 1080 / 2, glm::vec3 {0.0f, 1.0f, 4.0f},
-                                 EditorCameraType::Stationary);
+    this->editorCam = createShared<Camera>(1920 / 2, 1080 / 2, glm::vec3 {0.0f, 1.0f, 4.0f},
+                                           EditorCameraType::Stationary);
     this->editorCam->init(90.0f, 1.0f, 0.1f, 30.0f);
   }
 
@@ -57,11 +57,6 @@ namespace SciRenderer
   {
     // On detach methods for all the GUI elements.
     enviSettings.onDetach();
-
-    delete this->drawBuffer;
-    delete this->program;
-    delete this->editorCam;
-    delete this->model;
   }
 
   void

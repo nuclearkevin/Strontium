@@ -4,6 +4,7 @@
 #include "SciRenderPCH.h"
 
 // Project includes.
+#include "Core/ApplicationBase.h"
 #include "Graphics/Shaders.h"
 #include "Graphics/Renderer.h"
 #include "Graphics/Meshes.h"
@@ -153,8 +154,8 @@ namespace SciRenderer
     void addLight(const SpotLight& light, GLfloat scaleFactor);
 
     // Sets up the lights for rendering and draw the light meshes.
-    void setLighting(Shader* lightingShader, Camera* camera);
-    void drawLightMeshes(Camera* camera);
+    void setLighting(Shared<Shader> lightingShader, Shared<Camera> camera);
+    void drawLightMeshes(Shared<Camera> camera);
 
     // Remove a light from its lighting ID.
     void deleteLight(LightType type, GLuint lightID);
@@ -172,15 +173,15 @@ namespace SciRenderer
     std::vector<std::string> &getGuiLabel(LightType type);
   protected:
     // Program specifically for rendering the light source meshes.
-    Shader*                   lightProgram;
+    Shared<Shader>                   lightProgram;
 
     // Uniform buffers for the different light types.
-    UniformBuffer*            ulightBuffer;
-    UniformBuffer*            plightBuffer;
-    UniformBuffer*            slightBuffer;
+    Shared<UniformBuffer>            ulightBuffer;
+    Shared<UniformBuffer>            plightBuffer;
+    Shared<UniformBuffer>            slightBuffer;
 
     // The mesh for the lights.
-    Mesh*                     lightMesh;
+    Shared<Mesh>                    lightMesh;
 
     // The lights.
     glm::vec3                 ambient;

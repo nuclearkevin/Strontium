@@ -5,6 +5,7 @@
 #include "SciRenderPCH.h"
 
 // Project includes.
+#include "Core/ApplicationBase.h"
 #include "Graphics/VertexArray.h"
 #include "Graphics/Shaders.h"
 #include "Graphics/Meshes.h"
@@ -55,9 +56,9 @@ namespace SciRenderer
     // Forward rendering setup.
     //--------------------------------------------------------------------------
     // Draw the data given.
-    void draw(VertexArray* data, Shader* program);
-    void draw(Mesh* data, Shader* program, Camera* camera);
-    void draw(EnvironmentMap* environment, Camera* camera);
+    void draw(Shared<VertexArray> data, Shared<Shader> program);
+    void draw(Shared<Mesh> data, Shared<Shader> program, Shared<Camera> camera);
+    void draw(Shared<EnvironmentMap> environment, Shared<Camera> camera);
 
   private:
     // Renderer instance.
@@ -67,7 +68,7 @@ namespace SciRenderer
     RendererStorage deferredStorage;
 
     // Shader to draw a texture to a screen.
-    Shader* viewportProgram;
+    Shared<Shader> viewportProgram;
   };
 
   // Depth functions. Addition to this as they are required.

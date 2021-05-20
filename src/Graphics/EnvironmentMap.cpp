@@ -19,8 +19,8 @@ namespace SciRenderer
     , roughness(0.0f)
     , exposure(1.0f)
   {
-    this->cubeShader = new Shader(vertPath, fragPath);
-    this->cube = new Mesh();
+    this->cubeShader = createShared<Shader>(vertPath, fragPath);
+    this->cube = createShared<Mesh>();
     this->cube->loadOBJFile(cubeMeshPath, false);
   }
 
@@ -128,7 +128,7 @@ namespace SciRenderer
 
   // Draw the skybox.
   void
-  EnvironmentMap::configure(Camera* camera)
+  EnvironmentMap::configure(Shared<Camera> camera)
   {
     glm::mat4 vP = camera->getProjMatrix() * glm::mat4(glm::mat3(camera->getViewMatrix()));
 

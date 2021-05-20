@@ -59,7 +59,7 @@ namespace SciRenderer
     }
 
     // Fetch the application window for input polling.
-    Window* appWindow = Application::getInstance()->getWindow();
+    Shared<Window> appWindow = Application::getInstance()->getWindow();
     glm::vec2 mousePos = appWindow->getCursorPos();
     this->lastMouseX = mousePos.x;
     this->lastMouseY = mousePos.y;
@@ -70,7 +70,7 @@ namespace SciRenderer
   Camera::onUpdate(float dt)
   {
     // Fetch the application window for input polling.
-    Window* appWindow = Application::getInstance()->getWindow();
+    Shared<Window> appWindow = Application::getInstance()->getWindow();
 
     glm::vec2 mousePos = appWindow->getCursorPos();
 
@@ -189,7 +189,7 @@ namespace SciRenderer
   Camera::onMouseScroll(MouseScrolledEvent &mouseEvent)
   {
     // Fetch the application window for input polling.
-    Window* appWindow = Application::getInstance()->getWindow();
+    Shared<Window>appWindow = Application::getInstance()->getWindow();
 
     glm::vec2 offsets = mouseEvent.getOffset();
 
@@ -214,7 +214,7 @@ namespace SciRenderer
   Camera::onKeyPress(KeyPressedEvent &keyEvent)
   {
     // Fetch the application window for input polling.
-    Window* appWindow = Application::getInstance()->getWindow();
+    Shared<Window> appWindow = Application::getInstance()->getWindow();
 
     int keyCode = keyEvent.getKeyCode();
 
@@ -227,7 +227,7 @@ namespace SciRenderer
   Camera::swap()
   {
     Logger* logs = Logger::getInstance();
-    Window* appWindow = Application::getInstance()->getWindow();
+    Shared<Window> appWindow = Application::getInstance()->getWindow();
 
     if (this->currentType == EditorCameraType::Stationary)
     {

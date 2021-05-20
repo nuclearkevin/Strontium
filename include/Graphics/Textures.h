@@ -84,6 +84,11 @@ namespace SciRenderer
     int width;
     int height;
     int n;
+
+    ~Texture2D()
+    {
+
+    };
   };
 
   // Struct to store a cube map.
@@ -93,6 +98,11 @@ namespace SciRenderer
     int width[6];
     int height[6];
     int n[6];
+
+    ~CubeMap()
+    {
+
+    };
   };
 
   //----------------------------------------------------------------------------

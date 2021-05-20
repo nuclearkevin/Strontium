@@ -15,9 +15,9 @@ namespace SciRenderer
   EnvironmentWindow::onAttach()
   {
     // Initialize the PBR skybox.
-  	this->skybox = new EnvironmentMap("./res/shaders/pbr/pbrSkybox.vs",
-  													          "./res/shaders/pbr/pbrSkybox.fs",
-  															      "./res/models/cube.obj");
+  	this->skybox = createShared<EnvironmentMap>("./res/shaders/pbr/pbrSkybox.vs",
+  													                    "./res/shaders/pbr/pbrSkybox.fs",
+  															                "./res/models/cube.obj");
   	this->skybox->loadEquirectangularMap("./res/textures/hdr_environments/checkers.hdr");
   	this->skybox->equiToCubeMap();
   	this->skybox->precomputeIrradiance();
@@ -26,9 +26,7 @@ namespace SciRenderer
 
   void
   EnvironmentWindow::onDetach()
-  {
-    delete this->skybox;
-  }
+  { }
 
   void
   EnvironmentWindow::onImGuiRender()

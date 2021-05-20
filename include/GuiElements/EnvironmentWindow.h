@@ -4,6 +4,7 @@
 #include "SciRenderPCH.h"
 
 // Project includes.
+#include "Core/ApplicationBase.h"
 #include "Core/Events.h"
 #include "Graphics/GraphicsSystem.h"
 
@@ -29,13 +30,13 @@ namespace SciRenderer
     void onEvent(Event &event);
 
     // Get the environment map.
-    inline EnvironmentMap* getEnvironmentMap() { return this->skybox; }
+    inline Shared<EnvironmentMap> getEnvironmentMap() { return this->skybox; }
   protected:
     // File handler objects.
     imgui_addons::ImGuiFileBrowser fileHandler;
 
     // The environment map.
-    EnvironmentMap* skybox;
+    Shared<EnvironmentMap> skybox;
 
     // Members for the environment map.
     bool usePBR;
