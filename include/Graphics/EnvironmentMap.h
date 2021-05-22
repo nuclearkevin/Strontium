@@ -74,11 +74,11 @@ namespace SciRenderer
 
     inline void setDrawingType(MapType type) { this->currentEnvironment = type; }
   protected:
-    Texture2D* erMap;
-    CubeMap*   skybox;
-    CubeMap*   irradiance;
-    CubeMap*   specPrefilter;
-    Texture2D* brdfIntMap;
+    Shared<Texture2D> erMap;
+    Shared<CubeMap>   skybox;
+    Shared<CubeMap>   irradiance;
+    Shared<CubeMap>   specPrefilter;
+    Shared<Texture2D> brdfIntMap;
 
     MapType   currentEnvironment;
 

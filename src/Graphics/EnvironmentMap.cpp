@@ -52,15 +52,30 @@ namespace SciRenderer
   EnvironmentMap::unloadEnvironment()
   {
     if (this->erMap != nullptr)
+    {
       Textures::deleteTexture(this->erMap);
+      this->erMap = Shared<Texture2D>(nullptr);
+    }
     if (this->skybox != nullptr)
+    {
       Textures::deleteTexture(this->skybox);
+      this->skybox = Shared<CubeMap>(nullptr);
+    }
     if (this->irradiance != nullptr)
+    {
       Textures::deleteTexture(this->irradiance);
+      this->irradiance = Shared<CubeMap>(nullptr);
+    }
     if (this->specPrefilter != nullptr)
+    {
       Textures::deleteTexture(this->specPrefilter);
+      this->specPrefilter = Shared<CubeMap>(nullptr);
+    }
     if (this->brdfIntMap != nullptr)
+    {
       Textures::deleteTexture(this->brdfIntMap);
+      this->brdfIntMap = Shared<Texture2D>(nullptr);
+    }
   }
 
   // Bind/unbind a specific cubemap.
@@ -215,7 +230,7 @@ namespace SciRenderer
     auto start = std::chrono::steady_clock::now();
 
     // The resulting cubemap from the conversion process.
-    this->skybox = new CubeMap();
+    this->skybox = createShared<CubeMap>();
 
     // Generate and bind a cubemap texture.
     glGenTextures(1, &this->skybox->textureID);
@@ -297,7 +312,7 @@ namespace SciRenderer
     auto start = std::chrono::steady_clock::now();
 
     // The resulting cubemap from the convolution process.
-    this->irradiance = new CubeMap();
+    this->irradiance = createShared<CubeMap>();
 
     // Assign the texture sizes to the cubemap struct.
     for (unsigned i = 0; i < 6; i++)
@@ -381,7 +396,7 @@ namespace SciRenderer
       auto start = std::chrono::steady_clock::now();
 
       // The resulting cubemap from the environment pre-filter.
-      this->specPrefilter = new CubeMap();
+      this->specPrefilter = createShared<CubeMap>();
 
       // Generate the pre-filter texture.
       glGenTextures(1, &this->specPrefilter->textureID);
@@ -463,7 +478,7 @@ namespace SciRenderer
       //--------------------------------------------------------------------------
       auto start = std::chrono::steady_clock::now();
 
-      this->brdfIntMap = new Texture2D();
+      this->brdfIntMap = createShared<Texture2D>();
       this->brdfIntMap->width = 512;
       this->brdfIntMap->height = 512;
 

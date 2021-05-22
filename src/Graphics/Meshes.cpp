@@ -141,6 +141,18 @@ namespace SciRenderer
     this->loaded = true;
   }
 
+  void
+  Mesh::generateVAO()
+  {
+    if (!this->isLoaded())
+      return;
+    this->vArray = createShared<VertexArray>(&(this->data[0]),
+                                             this->data.size() * sizeof(Vertex),
+                                             BufferType::Dynamic);
+    this->vArray->addIndexBuffer(&(this->indices[0]), this->indices.size(),
+                                 BufferType::Dynamic);
+  }
+
   // Generate a vertex array object associated with this mesh.
   void
   Mesh::generateVAO(Shared<Shader> program)

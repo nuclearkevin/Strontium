@@ -34,15 +34,16 @@ namespace SciRenderer
   class Mesh
   {
   public:
-    // Constructors.
+    // Constructors. Second one may come in handy for generic geometrical primitives.
     Mesh();
     Mesh(const std::vector<Vertex> &vertices, const std::vector<GLuint> &indices);
-    // Destructor.
+
     ~Mesh();
 
     // Load data from a file.
     void loadOBJFile(const char* filepath, bool computeTBN = true);
     // Generate/delete the vertex array object.
+    void generateVAO();
     void generateVAO(Shared<Shader> program);
     void deleteVAO();
     // Compute vertex and surface normals.

@@ -65,7 +65,7 @@ namespace SciRenderer
   {
     Logger* logs = Logger::getInstance();
 
-    Texture2D* newTex = new Texture2D();
+    Shared<Texture2D> newTex = createShared<Texture2D>();
 
     newTex->width = this->width;
     newTex->height = this->height;
@@ -81,7 +81,6 @@ namespace SciRenderer
     else
     {
       std::cout << "Unknown format, failed to attach." << std::endl;
-      delete newTex;
       return;
     }
 
@@ -133,7 +132,7 @@ namespace SciRenderer
   }
 
   void
-  FrameBuffer::attachTexture2D(const FBOSpecification &spec, Texture2D* tex,
+  FrameBuffer::attachTexture2D(const FBOSpecification &spec, Shared<Texture2D> &tex,
                                const bool &removeTex)
   {
     Logger* logs = Logger::getInstance();
@@ -169,7 +168,7 @@ namespace SciRenderer
   }
 
   void
-  FrameBuffer::attachCubeMapFace(const FBOSpecification &spec, CubeMap* map,
+  FrameBuffer::attachCubeMapFace(const FBOSpecification &spec, Shared<CubeMap> &map,
                                  const bool &removeTex, GLuint mip)
   {
     Logger* logs = Logger::getInstance();
@@ -204,7 +203,7 @@ namespace SciRenderer
       this->textureAttachments.erase(targetLoc);
     }
 
-    Texture2D* tex = new Texture2D();
+    Shared<Texture2D> tex = createShared<Texture2D>();
     tex->textureID = map->textureID;
     tex->width = this->width;
     tex->height = this->height;
@@ -231,7 +230,7 @@ namespace SciRenderer
     }
     this->bind();
 
-    this->depthBuffer.reset(new RenderBuffer(this->width, this->height));
+    this->depthBuffer = createShared<RenderBuffer>(this->width, this->height);
 
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT,
                               GL_RENDERBUFFER, this->depthBuffer->getID());
@@ -264,7 +263,7 @@ namespace SciRenderer
   }
 
   // Unattach the texture and return it (if it exists).
-  Texture2D*
+  Shared<Texture2D>
   FrameBuffer::unattachTexture2D(const FBOTargetParam &attachment)
   {
     auto targetLoc = this->textureAttachments.find(attachment);

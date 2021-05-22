@@ -87,15 +87,15 @@ namespace SciRenderer
 
     // Methods for texture/buffer generation and attachment.
     void attachTexture2D(const FBOSpecification &spec, const bool &removeTex = true);
-    void attachTexture2D(const FBOSpecification &spec, Texture2D* tex,
+    void attachTexture2D(const FBOSpecification &spec, Shared<Texture2D> &tex,
                          const bool &removeTex = true);
-    void attachCubeMapFace(const FBOSpecification &spec, CubeMap* map,
+    void attachCubeMapFace(const FBOSpecification &spec, Shared<CubeMap> &map,
                            const bool &removeTex = true, GLuint mip = 0);
     void attachRenderBuffer();
     void attachRenderBuffer(Shared<RenderBuffer> buffer);
 
     // Unattach a 2D texture. This won't delete the texture.
-    Texture2D* unattachTexture2D(const FBOTargetParam &attachment);
+    Shared<Texture2D> unattachTexture2D(const FBOTargetParam &attachment);
 
     void setDrawBuffers();
 
@@ -121,7 +121,7 @@ namespace SciRenderer
   protected:
     GLuint       bufferID;
 
-    std::unordered_map<FBOTargetParam, std::pair<FBOSpecification, Texture2D*>> textureAttachments;
+    std::unordered_map<FBOTargetParam, std::pair<FBOSpecification, Shared<Texture2D>>> textureAttachments;
     Shared<RenderBuffer> depthBuffer;
 
     GLuint       width, height;

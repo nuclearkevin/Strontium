@@ -3,8 +3,8 @@
 // Macro include file.
 #include "SciRenderPCH.h"
 
-// STL includes.
-#include <unordered_map>
+// Project includes.
+#include "Core/ApplicationBase.h"
 
 namespace SciRenderer
 {
@@ -133,8 +133,8 @@ namespace SciRenderer
     GLuint getTexID(const std::string &texName);
   protected:
     // Store the textures in a map for fast access.
-    std::unordered_map<std::string, Texture2D*> textures;
-    std::vector<std::string>                    texNames;
+    std::unordered_map<std::string, Shared<Texture2D>> textures;
+    std::vector<std::string>                           texNames;
   };
 
   //----------------------------------------------------------------------------
@@ -144,28 +144,28 @@ namespace SciRenderer
   namespace Textures
   {
     // Read textures from disk.
-    Texture2D* loadTexture2D(const std::string &filepath,
-                             Texture2DParams params = Texture2DParams(),
-                             bool isHDR = false);
-    CubeMap* loadTextureCubeMap(const std::vector<std::string> &filenames,
-                                const TextureCubeMapParams &params = TextureCubeMapParams(),
-                                const bool &isHDR = false);
+    Shared<Texture2D> loadTexture2D(const std::string &filepath,
+                                    Texture2DParams params = Texture2DParams(),
+                                    bool isHDR = false);
+    Shared<CubeMap> loadTextureCubeMap(const std::vector<std::string> &filenames,
+                                       const TextureCubeMapParams &params = TextureCubeMapParams(),
+                                       const bool &isHDR = false);
 
     // Write textures to disk.
-    void writeTexture2D(Texture2D* outTex);
-    void writeTextureCubeMap(CubeMap* outTex);
+    void writeTexture2D(Shared<Texture2D> &outTex);
+    void writeTextureCubeMap(Shared<CubeMap> &outTex);
 
     // Delete a texture and set the raw pointer to nullptr;
-    void deleteTexture(Texture2D* &tex);
-    void deleteTexture(CubeMap* &tex);
+    void deleteTexture(Shared<Texture2D> &tex);
+    void deleteTexture(Shared<CubeMap> &tex);
 
     // Bind a texture.
-    void bindTexture(Texture2D* tex);
-    void bindTexture(CubeMap* tex);
+    void bindTexture(Shared<Texture2D> &tex);
+    void bindTexture(Shared<CubeMap> &tex);
 
     // Bind a texture to a specific binding point.
-    void bindTexture(Texture2D* tex, GLuint bindPoint);
-    void bindTexture(CubeMap* tex, GLuint bindPoint);
+    void bindTexture(Shared<Texture2D> &tex, GLuint bindPoint);
+    void bindTexture(Shared<CubeMap> &tex, GLuint bindPoint);
 
     // Unbind a texture.
     void unbindTexture2D();

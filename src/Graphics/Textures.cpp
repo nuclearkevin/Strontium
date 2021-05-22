@@ -14,9 +14,9 @@ namespace SciRenderer
   Texture2DController::~Texture2DController()
   {
     // Frees all the textures from GPU memory when deleted.
-    for (auto& name : this->texNames)
+    for (auto& pair : this->textures)
     {
-      Texture2D* temp = this->textures[name];
+      Shared<Texture2D> temp = pair.second;
       glDeleteTextures(1, &temp->textureID);
     }
     this->textures.clear();
@@ -30,7 +30,7 @@ namespace SciRenderer
                                    Texture2DParams params,
                                    bool isHDR)
   {
-    Texture2D* newTex = Textures::loadTexture2D(filepath, params, isHDR);
+    Shared<Texture2D> newTex = Textures::loadTexture2D(filepath, params, isHDR);
 
     // Push the texture to an unordered map.
     this->textures.insert({ texName, newTex });
@@ -75,14 +75,14 @@ namespace SciRenderer
   //----------------------------------------------------------------------------
   // Misc. functions for texture manipulation.
   //----------------------------------------------------------------------------
-  Texture2D*
+  Shared<Texture2D>
   Textures::loadTexture2D(const std::string &filepath,
                           Texture2DParams params, bool isHDR)
   {
     Logger* logs = Logger::getInstance();
 
     // Struct for the texture information.
-    Texture2D* outTex = new Texture2D();
+    Shared<Texture2D> outTex = createShared<Texture2D>();
 
     // The data.
     float* dataF;
@@ -108,8 +108,6 @@ namespace SciRenderer
                                   true, false, true));
       stbi_image_free(dataU);
       glDeleteTextures(1, &outTex->textureID);
-      delete outTex;
-      return nullptr;
     }
     else if (!dataF && isHDR)
     {
@@ -117,8 +115,6 @@ namespace SciRenderer
                                   true, false, true));
       stbi_image_free(dataF);
       glDeleteTextures(1, &outTex->textureID);
-      delete outTex;
-      return nullptr;
     }
 
     // Generate a 2D texture. Currently supports both bytes and floating point
@@ -205,7 +201,7 @@ namespace SciRenderer
     return outTex;
   }
 
-  CubeMap*
+  Shared<CubeMap>
   Textures::loadTextureCubeMap(const std::vector<std::string> &filenames,
                                const TextureCubeMapParams &params,
                                const bool &isHDR)
@@ -223,7 +219,7 @@ namespace SciRenderer
     bool successful = true;
     unsigned char *data;
 
-    CubeMap* outMap = new CubeMap();
+    Shared<CubeMap> outMap = createShared<CubeMap>();
     glGenTextures(1, &outMap->textureID);
     glBindTexture(GL_TEXTURE_CUBE_MAP, outMap->textureID);
 
@@ -254,8 +250,6 @@ namespace SciRenderer
     if (!successful)
     {
       glDeleteTextures(1, &outMap->textureID);
-      delete outMap;
-      return nullptr;
     }
     else
     {
@@ -275,43 +269,39 @@ namespace SciRenderer
   // Write textures to disk.
   // TODO: Finish these. Non-critical for functionality though.
   void
-  Textures::writeTexture2D(Texture2D* outTex)
+  Textures::writeTexture2D(Shared<Texture2D> &outTex)
   {
 
   }
 
   void
-  Textures::writeTextureCubeMap(CubeMap* outTex)
+  Textures::writeTextureCubeMap(Shared<CubeMap> &outTex)
   {
 
   }
 
   // Delete a texture and set the raw pointer to nullptr;
   void
-  Textures::deleteTexture(Texture2D* &tex)
+  Textures::deleteTexture(Shared<Texture2D> &tex)
   {
     glDeleteTextures(1, &tex->textureID);
-    delete tex;
-    tex = nullptr;
   }
 
   void
-  Textures::deleteTexture(CubeMap* &tex)
+  Textures::deleteTexture(Shared<CubeMap> &tex)
   {
     glDeleteTextures(1, &tex->textureID);
-    delete tex;
-    tex = nullptr;
   }
 
   // Bind a texture.
   void
-  Textures::bindTexture(Texture2D* tex)
+  Textures::bindTexture(Shared<Texture2D> &tex)
   {
     glBindTexture(GL_TEXTURE_2D, tex->textureID);
   }
 
   void
-  Textures::bindTexture(CubeMap* tex)
+  Textures::bindTexture(Shared<CubeMap> &tex)
   {
     glBindTexture(GL_TEXTURE_CUBE_MAP, tex->textureID);
   }
@@ -330,14 +320,14 @@ namespace SciRenderer
 
   // Bind a texture to a specific binding point.
   void
-  Textures::bindTexture(Texture2D* tex, GLuint bindPoint)
+  Textures::bindTexture(Shared<Texture2D> &tex, GLuint bindPoint)
   {
     glActiveTexture(GL_TEXTURE0 + bindPoint);
     glBindTexture(GL_TEXTURE_2D, tex->textureID);
   }
 
   void
-  Textures::bindTexture(CubeMap* tex, GLuint bindPoint)
+  Textures::bindTexture(Shared<CubeMap> &tex, GLuint bindPoint)
   {
     glActiveTexture(GL_TEXTURE0 + bindPoint);
     glBindTexture(GL_TEXTURE_CUBE_MAP, tex->textureID);
