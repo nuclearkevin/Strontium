@@ -29,51 +29,28 @@ namespace SciRenderer
     this->unloadEnvironment();
   }
 
-  // Load 6 textures from a file to generate a cubemap.
-  void
-  EnvironmentMap::loadCubeMap(const std::vector<std::string> &filenames,
-                              const TextureCubeMapParams &params,
-                              const bool &isHDR)
-  {
-    Logger* logs = Logger::getInstance();
-
-    // If we already have a cubemap of a given type, don't load another.
-    if (this->skybox != nullptr)
-    {
-      logs->logMessage(LogMessage("This environment map already has a skybox "
-                                  "cubemap.", true, false, true));
-      return;
-    }
-    this->skybox = Textures::loadTextureCubeMap(filenames, params, isHDR);
-  }
-
   // Unload all the textures associated from this environment.
   void
   EnvironmentMap::unloadEnvironment()
   {
     if (this->erMap != nullptr)
     {
-      Textures::deleteTexture(this->erMap);
       this->erMap = Shared<Texture2D>(nullptr);
     }
     if (this->skybox != nullptr)
     {
-      Textures::deleteTexture(this->skybox);
       this->skybox = Shared<CubeMap>(nullptr);
     }
     if (this->irradiance != nullptr)
     {
-      Textures::deleteTexture(this->irradiance);
       this->irradiance = Shared<CubeMap>(nullptr);
     }
     if (this->specPrefilter != nullptr)
     {
-      Textures::deleteTexture(this->specPrefilter);
       this->specPrefilter = Shared<CubeMap>(nullptr);
     }
     if (this->brdfIntMap != nullptr)
     {
-      Textures::deleteTexture(this->brdfIntMap);
       this->brdfIntMap = Shared<Texture2D>(nullptr);
     }
   }
@@ -86,23 +63,23 @@ namespace SciRenderer
     {
       case MapType::Equirectangular:
         if (this->erMap != nullptr)
-          Textures::bindTexture(this->erMap);
+          this->erMap->bind();
         break;
       case MapType::Skybox:
         if (this->skybox != nullptr)
-          Textures::bindTexture(this->skybox);
+          this->skybox->bind();
         break;
       case MapType::Irradiance:
         if (this->irradiance != nullptr)
-          Textures::bindTexture(this->irradiance);
+          this->irradiance->bind();
         break;
       case MapType::Prefilter:
         if (this->specPrefilter != nullptr)
-          Textures::bindTexture(this->specPrefilter);
+          this->specPrefilter->bind();
         break;
       case MapType::Integration:
         if (this->brdfIntMap != nullptr)
-          Textures::bindTexture(this->brdfIntMap);
+          this->brdfIntMap->bind();
         break;
     }
   }
@@ -120,23 +97,23 @@ namespace SciRenderer
     {
       case MapType::Equirectangular:
         if (this->erMap != nullptr)
-          Textures::bindTexture(this->erMap, bindPoint);
+          this->erMap->bind(bindPoint);
         break;
       case MapType::Skybox:
         if (this->skybox != nullptr)
-          Textures::bindTexture(this->skybox, bindPoint);
+          this->skybox->bind(bindPoint);
         break;
       case MapType::Irradiance:
         if (this->irradiance != nullptr)
-          Textures::bindTexture(this->irradiance, bindPoint);
+          this->irradiance->bind(bindPoint);
         break;
       case MapType::Prefilter:
         if (this->specPrefilter != nullptr)
-          Textures::bindTexture(this->specPrefilter, bindPoint);
+          this->specPrefilter->bind(bindPoint);
         break;
       case MapType::Integration:
         if (this->brdfIntMap != nullptr)
-          Textures::bindTexture(this->brdfIntMap, bindPoint);
+          this->brdfIntMap->bind(bindPoint);
         break;
     }
   }
@@ -170,19 +147,19 @@ namespace SciRenderer
     {
       case MapType::Equirectangular:
         if (this->erMap != nullptr)
-          return this->erMap->textureID;
+          return this->erMap->getID();
       case MapType::Skybox:
         if (this->skybox != nullptr)
-          return this->skybox->textureID;
+          return this->skybox->getID();
       case MapType::Irradiance:
         if (this->irradiance != nullptr)
-          return this->irradiance->textureID;
+          return this->irradiance->getID();
       case MapType::Prefilter:
         if (this->specPrefilter != nullptr)
-          return this->specPrefilter->textureID;
+          return this->specPrefilter->getID();
       case MapType::Integration:
         if (this->brdfIntMap != nullptr)
-          return this->brdfIntMap->textureID;
+          return this->brdfIntMap->getID();
     }
 
     return 0;
@@ -232,10 +209,6 @@ namespace SciRenderer
     // The resulting cubemap from the conversion process.
     this->skybox = createShared<CubeMap>();
 
-    // Generate and bind a cubemap texture.
-    glGenTextures(1, &this->skybox->textureID);
-    Textures::bindTexture(this->skybox);
-
     // Assign the texture sizes to the cubemap struct.
     for (unsigned i = 0; i < 6; i++)
     {
@@ -278,10 +251,10 @@ namespace SciRenderer
     sizeBuff.bindToPoint(2);
 
     // Bind the equirectangular map for reading by the compute shader.
-    glBindImageTexture(0, this->erMap->textureID, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA16F);
+    glBindImageTexture(0, this->erMap->getID(), 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA16F);
 
     // Bind the irradiance map for writing to by the compute shader.
-    glBindImageTexture(1, this->skybox->textureID, 0, GL_TRUE, 0, GL_READ_WRITE, GL_RGBA16F);
+    glBindImageTexture(1, this->skybox->getID(), 0, GL_TRUE, 0, GL_READ_WRITE, GL_RGBA16F);
 
     // Launch the compute shader.
     conversionShader.bind();
@@ -322,10 +295,6 @@ namespace SciRenderer
       this->irradiance->n[i]      = 3;
     }
 
-    // Generate and bind a cubemap textue to slot 0.
-    glGenTextures(1, &this->irradiance->textureID);
-    Textures::bindTexture(this->irradiance);
-
     for (unsigned i = 0; i < 6; i++)
     {
       if (isHDR)
@@ -355,10 +324,10 @@ namespace SciRenderer
     sizeBuff.bindToPoint(2);
 
     // Bind the skybox for reading by the compute shader.
-    glBindImageTexture(0, this->skybox->textureID, 0, GL_TRUE, 0, GL_READ_ONLY, GL_RGBA16F);
+    glBindImageTexture(0, this->skybox->getID(), 0, GL_TRUE, 0, GL_READ_ONLY, GL_RGBA16F);
 
     // Bind the irradiance map for writing to by the compute shader.
-    glBindImageTexture(1, this->irradiance->textureID, 0, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA16F);
+    glBindImageTexture(1, this->irradiance->getID(), 0, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA16F);
 
     // Launch the compute shader.
     convolutionShader.bind();
@@ -398,10 +367,6 @@ namespace SciRenderer
       // The resulting cubemap from the environment pre-filter.
       this->specPrefilter = createShared<CubeMap>();
 
-      // Generate the pre-filter texture.
-      glGenTextures(1, &this->specPrefilter->textureID);
-      glBindTexture(GL_TEXTURE_CUBE_MAP, this->specPrefilter->textureID);
-
       for (unsigned i = 0; i < 6; i++)
       {
         glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGBA16F,
@@ -435,7 +400,7 @@ namespace SciRenderer
                                                           BufferType::Static);
 
       // Bind the enviroment map which is to be prefiltered.
-      Textures::bindTexture(this->skybox, 0);
+      this->skybox->bind(0);
 
       // Perform the pre-filter for each roughness level.
       for (GLuint i = 0; i < 5; i++)
@@ -447,7 +412,7 @@ namespace SciRenderer
         float roughness = ((float) i) / ((float) (5 - 1));
 
         // Bind the irradiance map for writing to by the compute shader.
-        glBindImageTexture(1, this->specPrefilter->textureID, i, GL_TRUE, 0,
+        glBindImageTexture(1, this->specPrefilter->getID(), i, GL_TRUE, 0,
                            GL_WRITE_ONLY, GL_RGBA16F);
 
         params.enviSize = glm::vec2((GLfloat) this->skybox->width[0],
@@ -482,8 +447,6 @@ namespace SciRenderer
       this->brdfIntMap->width = 512;
       this->brdfIntMap->height = 512;
 
-      glGenTextures(1, &this->brdfIntMap->textureID);
-      glBindTexture(GL_TEXTURE_2D, this->brdfIntMap->textureID);
       glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, 512, 512, 0,
                    GL_RGBA, GL_FLOAT, nullptr);
 
@@ -495,7 +458,7 @@ namespace SciRenderer
       ComputeShader integrateBRDF = ComputeShader("./res/shaders/compute/integrateBRDF.cs");
 
       // Bind the irradiance map for writing to by the compute shader.
-      glBindImageTexture(3, this->brdfIntMap->textureID, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);
+      glBindImageTexture(3, this->brdfIntMap->getID(), 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);
 
       // Launch the compute shader.
       integrateBRDF.bind();

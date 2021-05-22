@@ -43,6 +43,13 @@ namespace SciRenderer
   {
     Nearest = GL_NEAREST, Linear = GL_LINEAR
   };
+  enum class TextureType
+  {
+    Tex2 = GL_TEXTURE_2D,
+    PosX = GL_TEXTURE_CUBE_MAP_POSITIVE_X, NegX = GL_TEXTURE_CUBE_MAP_NEGATIVE_X,
+    PosY = GL_TEXTURE_CUBE_MAP_POSITIVE_Y, NegY = GL_TEXTURE_CUBE_MAP_NEGATIVE_Y,
+    PosZ = GL_TEXTURE_CUBE_MAP_POSITIVE_Z, NegZ = GL_TEXTURE_CUBE_MAP_NEGATIVE_Z
+  };
 
   // Parameters for loading textures.
   struct Texture2DParams
@@ -77,64 +84,58 @@ namespace SciRenderer
     { };
   };
 
-  // Struct to store texture information.
-  struct Texture2D
+  //----------------------------------------------------------------------------
+  // 2D textures.
+  //----------------------------------------------------------------------------
+  class Texture2D
   {
-    GLuint textureID;
+  public:
+    Texture2D();
+    Texture2D(const GLuint &width, const GLuint &height, const GLuint &n,
+              const Texture2DParams &params = Texture2DParams());
+    ~Texture2D();
+
     int width;
     int height;
     int n;
+    Texture2DParams params;
 
-    ~Texture2D()
-    {
+    // Bind/unbind the texture.
+    void bind();
+    void bind(GLuint bindPoint);
+    void unbind();
+    void unbind(GLuint bindPoint);
 
-    };
+    inline GLuint& getID() { return this->textureID; }
+  private:
+    GLuint textureID;
   };
 
-  // Struct to store a cube map.
-  struct CubeMap
+  //----------------------------------------------------------------------------
+  // Cubemap textures.
+  //----------------------------------------------------------------------------
+  class CubeMap
   {
-    GLuint textureID;
+  public:
+    CubeMap();
+    CubeMap(const GLuint &width, const GLuint &height, const GLuint &n,
+            const TextureCubeMapParams &params = TextureCubeMapParams());
+    ~CubeMap();
+
     int width[6];
     int height[6];
     int n[6];
+    TextureCubeMapParams params;
 
-    ~CubeMap()
-    {
-
-    };
-  };
-
-  //----------------------------------------------------------------------------
-  // 2D texture controller.
-  //----------------------------------------------------------------------------
-  class Texture2DController
-  {
-  public:
-    Texture2DController() = default;
-    ~Texture2DController();
-
-    // Load a texture from a file into the texture handler.
-    void loadFomFile(const std::string &filepath, const std::string &texName,
-                     Texture2DParams params = Texture2DParams(),
-                     bool isHDR = false);
-
-    // Deletes a texture given its name.
-    void deleteTexture(const std::string &texName);
-
-    // Bind/unbind a texture.
-    void bind(const std::string &texName);
+    // Bind/unbind the texture.
+    void bind();
+    void bind(GLuint bindPoint);
     void unbind();
+    void unbind(GLuint bindPoint);
 
-    // Binds a texture to a point.
-    void bindToPoint(const std::string &texName, GLuint bindPoint);
-
-    // Get a texture ID.
-    GLuint getTexID(const std::string &texName);
-  protected:
-    // Store the textures in a map for fast access.
-    std::unordered_map<std::string, Shared<Texture2D>> textures;
-    std::vector<std::string>                           texNames;
+    inline GLuint& getID() { return this->textureID; }
+  private:
+    GLuint textureID;
   };
 
   //----------------------------------------------------------------------------
@@ -145,7 +146,7 @@ namespace SciRenderer
   {
     // Read textures from disk.
     Shared<Texture2D> loadTexture2D(const std::string &filepath,
-                                    Texture2DParams params = Texture2DParams(),
+                                    const Texture2DParams &params = Texture2DParams(),
                                     bool isHDR = false);
     Shared<CubeMap> loadTextureCubeMap(const std::vector<std::string> &filenames,
                                        const TextureCubeMapParams &params = TextureCubeMapParams(),
@@ -154,21 +155,5 @@ namespace SciRenderer
     // Write textures to disk.
     void writeTexture2D(Shared<Texture2D> &outTex);
     void writeTextureCubeMap(Shared<CubeMap> &outTex);
-
-    // Delete a texture and set the raw pointer to nullptr;
-    void deleteTexture(Shared<Texture2D> &tex);
-    void deleteTexture(Shared<CubeMap> &tex);
-
-    // Bind a texture.
-    void bindTexture(Shared<Texture2D> &tex);
-    void bindTexture(Shared<CubeMap> &tex);
-
-    // Bind a texture to a specific binding point.
-    void bindTexture(Shared<Texture2D> &tex, GLuint bindPoint);
-    void bindTexture(Shared<CubeMap> &tex, GLuint bindPoint);
-
-    // Unbind a texture.
-    void unbindTexture2D();
-    void unbindCubeMap();
   }
 }

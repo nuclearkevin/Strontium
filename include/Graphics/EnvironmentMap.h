@@ -22,11 +22,6 @@ namespace SciRenderer
                    const char* cubeMeshPath);
     ~EnvironmentMap();
 
-    // Load 6 textures from a file to generate a cubemap.
-    void loadCubeMap(const std::vector<std::string> &filenames,
-                     const TextureCubeMapParams &params = TextureCubeMapParams(),
-                     const bool &isHDR = false);
-
     // Load a 2D equirectangular map. Assumes that the map is HDR by default.
     void loadEquirectangularMap(const std::string &filepath,
                                 const Texture2DParams &params = Texture2DParams(),

@@ -9,67 +9,129 @@
 namespace SciRenderer
 {
   //----------------------------------------------------------------------------
-  // 2D texture controller.
+  // 2D textures.
   //----------------------------------------------------------------------------
-  Texture2DController::~Texture2DController()
+  Texture2D::Texture2D()
   {
-    // Frees all the textures from GPU memory when deleted.
-    for (auto& pair : this->textures)
-    {
-      Shared<Texture2D> temp = pair.second;
-      glDeleteTextures(1, &temp->textureID);
-    }
-    this->textures.clear();
-    this->texNames.clear();
+    glGenTextures(1, &this->getID());
+    glBindTexture(GL_TEXTURE_2D, this->getID());
   }
 
-  // Load a texture from a file into the texture handler.
-  void
-  Texture2DController::loadFomFile(const std::string &filepath,
-                                   const std::string &texName,
-                                   Texture2DParams params,
-                                   bool isHDR)
+  Texture2D::Texture2D(const GLuint &width, const GLuint &height, const GLuint &n,
+                       const Texture2DParams &params)
+    : width(width)
+    , height(height)
+    , n(n)
+    , params(params)
   {
-    Shared<Texture2D> newTex = Textures::loadTexture2D(filepath, params, isHDR);
+    glGenTextures(1, &this->getID());
+    glBindTexture(GL_TEXTURE_2D, this->getID());
 
-    // Push the texture to an unordered map.
-    this->textures.insert({ texName, newTex });
-    this->texNames.push_back(texName);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S,
+                    static_cast<GLint>(params.sWrap));
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T,
+                    static_cast<GLint>(params.tWrap));
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
+                    static_cast<GLint>(params.minFilter));
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER,
+                    static_cast<GLint>(params.maxFilter));
   }
 
-  // Deletes a texture given its name.
-  void
-  Texture2DController::deleteTexture(const std::string &texName)
+  Texture2D::~Texture2D()
   {
-    this->textures.erase(texName);
-  }
-
-  // Bind/unbind a texture.
-  void
-  Texture2DController::bind(const std::string &texName)
-  {
-    glBindTexture(GL_TEXTURE_2D, this->textures.at(texName)->textureID);
+    glDeleteTextures(1, &this->getID());
   }
 
   void
-  Texture2DController::unbind()
+  Texture2D::bind()
+  {
+    glBindTexture(GL_TEXTURE_2D, this->getID());
+  }
+
+  void
+  Texture2D::bind(GLuint bindPoint)
+  {
+    glActiveTexture(GL_TEXTURE0 + bindPoint);
+    glBindTexture(GL_TEXTURE_2D, this->getID());
+  }
+
+  void
+  Texture2D::unbind()
   {
     glBindTexture(GL_TEXTURE_2D, 0);
   }
 
-  // Binds a texture to a point.
   void
-  Texture2DController::bindToPoint(const std::string &texName, GLuint bindPoint)
+  Texture2D::unbind(GLuint bindPoint)
   {
     glActiveTexture(GL_TEXTURE0 + bindPoint);
-    glBindTexture(GL_TEXTURE_2D, this->textures.at(texName)->textureID);
+    glBindTexture(GL_TEXTURE_2D, 0);
   }
 
-  // Get a texture ID.
-  GLuint
-  Texture2DController::getTexID(const std::string &texName)
+  //----------------------------------------------------------------------------
+  // Cubemap textures.
+  //----------------------------------------------------------------------------
+  CubeMap::CubeMap()
   {
-    return this->textures.at(texName)->textureID;
+    glGenTextures(1, &this->getID());
+    glBindTexture(GL_TEXTURE_CUBE_MAP, this->getID());
+  }
+
+  CubeMap::CubeMap(const GLuint &width, const GLuint &height, const GLuint &n,
+                   const TextureCubeMapParams &params)
+    : params(params)
+  {
+    for (GLuint i = 0; i < 6; i++)
+    {
+      this->width[i] = width;
+      this->height[i] = height;
+      this->n[i] = n;
+    }
+
+    glGenTextures(1, &this->getID());
+    glBindTexture(GL_TEXTURE_CUBE_MAP, this->getID());
+
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S,
+                    static_cast<GLint>(params.sWrap));
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T,
+                    static_cast<GLint>(params.tWrap));
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R,
+                    static_cast<GLint>(params.rWrap));
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER,
+                    static_cast<GLint>(params.minFilter));
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER,
+                    static_cast<GLint>(params.maxFilter));
+  }
+
+  CubeMap::~CubeMap()
+  {
+    glDeleteTextures(1, &this->getID());
+  }
+
+  void
+  CubeMap::bind()
+  {
+    glBindTexture(GL_TEXTURE_CUBE_MAP, this->getID());
+  }
+
+  void
+  CubeMap::bind(GLuint bindPoint)
+  {
+    glActiveTexture(GL_TEXTURE0 + bindPoint);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, this->getID());
+  }
+
+  void
+  CubeMap::unbind()
+  {
+    glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
+  }
+
+  void
+  CubeMap::unbind(GLuint bindPoint)
+  {
+    glActiveTexture(GL_TEXTURE0 + bindPoint);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
   }
 
   //----------------------------------------------------------------------------
@@ -77,29 +139,22 @@ namespace SciRenderer
   //----------------------------------------------------------------------------
   Shared<Texture2D>
   Textures::loadTexture2D(const std::string &filepath,
-                          Texture2DParams params, bool isHDR)
+                          const Texture2DParams &params, bool isHDR)
   {
     Logger* logs = Logger::getInstance();
-
-    // Struct for the texture information.
-    Shared<Texture2D> outTex = createShared<Texture2D>();
 
     // The data.
     float* dataF;
     unsigned char* dataU;
 
-    // Generate and bind the GPU texture.
-    glGenTextures(1, &outTex->textureID);
-    glBindTexture(GL_TEXTURE_2D, outTex->textureID);
+    int width, height, n;
 
     // Load the texture.
     stbi_set_flip_vertically_on_load(true);
     if (isHDR)
-      dataF = stbi_loadf(filepath.c_str(), &outTex->width,
-                         &outTex->height, &outTex->n, 0);
+      dataF = stbi_loadf(filepath.c_str(), &width, &height, &n, 0);
     else
-      dataU = stbi_load(filepath.c_str(), &outTex->width,
-                        &outTex->height, &outTex->n, 0);
+      dataU = stbi_load(filepath.c_str(), &width, &height, &n, 0);;
 
     // Something went wrong while loading, abort.
     if (!dataU && !isHDR)
@@ -107,35 +162,37 @@ namespace SciRenderer
       logs->logMessage(LogMessage("Failed to load image at: " + filepath + ".",
                                   true, false, true));
       stbi_image_free(dataU);
-      glDeleteTextures(1, &outTex->textureID);
     }
     else if (!dataF && isHDR)
     {
       logs->logMessage(LogMessage("Failed to load HDR image at: " + filepath + ".",
                                   true, false, true));
       stbi_image_free(dataF);
-      glDeleteTextures(1, &outTex->textureID);
     }
+
+    // The loaded texture.
+    Shared<Texture2D> outTex = createShared<Texture2D>(width, height, n, params);
+    outTex->bind();
 
     // Generate a 2D texture. Currently supports both bytes and floating point
     // HDR images!
     if (outTex->n == 1)
     {
       if (isHDR)
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_R16F, outTex->width, outTex->height, 0,
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_R16F, width, height, 0,
                      GL_RED, GL_FLOAT, dataF);
       else
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, outTex->width, outTex->height, 0,
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, width, height, 0,
                      GL_RED, GL_UNSIGNED_BYTE, dataU);
       glGenerateMipmap(GL_TEXTURE_2D);
     }
     else if (outTex->n == 2)
     {
       if (isHDR)
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RG16F, outTex->width, outTex->height, 0,
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RG16F, width, height, 0,
                      GL_RG, GL_FLOAT, dataF);
       else
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RG, outTex->width, outTex->height, 0,
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RG, width, height, 0,
                      GL_RG, GL_UNSIGNED_BYTE, dataU);
       glGenerateMipmap(GL_TEXTURE_2D);
     }
@@ -145,10 +202,10 @@ namespace SciRenderer
       if (isHDR)
       {
         float* dataFNew;
-        dataFNew = new float[outTex->width * outTex->height * 4];
+        dataFNew = new float[width * height * 4];
         GLuint offset = 0;
 
-        for (GLuint i = 0; i < (outTex->width * outTex->height * 4); i+=4)
+        for (GLuint i = 0; i < (width * height * 4); i+=4)
         {
           // Copy over the data from the image loading.
           dataFNew[i] = dataF[i - offset];
@@ -159,30 +216,25 @@ namespace SciRenderer
           // Increment the offset to we don't segfault. :D
           offset ++;
         }
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, outTex->width, outTex->height, 0,
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, width, height, 0,
                      GL_RGBA, GL_FLOAT, dataFNew);
         stbi_image_free(dataFNew);
       }
       else
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, outTex->width, outTex->height, 0,
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0,
                      GL_RGB, GL_UNSIGNED_BYTE, dataU);
       glGenerateMipmap(GL_TEXTURE_2D);
     }
     else if (outTex->n == 4)
     {
       if (isHDR)
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, outTex->width, outTex->height, 0,
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, width, height, 0,
                      GL_RGBA, GL_FLOAT, dataF);
       else
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, outTex->width, outTex->height, 0,
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0,
                      GL_RGBA, GL_UNSIGNED_BYTE, dataU);
       glGenerateMipmap(GL_TEXTURE_2D);
     }
-
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, static_cast<GLint>(params.sWrap));
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, static_cast<GLint>(params.tWrap));
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, static_cast<GLint>(params.minFilter));
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, static_cast<GLint>(params.maxFilter));
 
     // Free memory.
     if (isHDR)
@@ -220,8 +272,6 @@ namespace SciRenderer
     unsigned char *data;
 
     Shared<CubeMap> outMap = createShared<CubeMap>();
-    glGenTextures(1, &outMap->textureID);
-    glBindTexture(GL_TEXTURE_CUBE_MAP, outMap->textureID);
 
     stbi_set_flip_vertically_on_load(false);
 
@@ -247,17 +297,14 @@ namespace SciRenderer
       }
     }
 
-    if (!successful)
-    {
-      glDeleteTextures(1, &outMap->textureID);
-    }
-    else
+    if (successful)
     {
       glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, static_cast<GLint>(params.sWrap));
       glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, static_cast<GLint>(params.tWrap));
       glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, static_cast<GLint>(params.rWrap));
       glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, static_cast<GLint>(params.minFilter));
       glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, static_cast<GLint>(params.maxFilter));
+      outMap->params = params;
 
       logs->logMessage(LogMessage("Cubemap texture successfully loaded.",
                                   true, false, false));
@@ -278,58 +325,5 @@ namespace SciRenderer
   Textures::writeTextureCubeMap(Shared<CubeMap> &outTex)
   {
 
-  }
-
-  // Delete a texture and set the raw pointer to nullptr;
-  void
-  Textures::deleteTexture(Shared<Texture2D> &tex)
-  {
-    glDeleteTextures(1, &tex->textureID);
-  }
-
-  void
-  Textures::deleteTexture(Shared<CubeMap> &tex)
-  {
-    glDeleteTextures(1, &tex->textureID);
-  }
-
-  // Bind a texture.
-  void
-  Textures::bindTexture(Shared<Texture2D> &tex)
-  {
-    glBindTexture(GL_TEXTURE_2D, tex->textureID);
-  }
-
-  void
-  Textures::bindTexture(Shared<CubeMap> &tex)
-  {
-    glBindTexture(GL_TEXTURE_CUBE_MAP, tex->textureID);
-  }
-
-  // Unbind a texture.
-  void
-  Textures::unbindTexture2D()
-  {
-    glBindTexture(GL_TEXTURE_2D, 0);
-  }
-
-  void Textures::unbindCubeMap()
-  {
-    glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
-  }
-
-  // Bind a texture to a specific binding point.
-  void
-  Textures::bindTexture(Shared<Texture2D> &tex, GLuint bindPoint)
-  {
-    glActiveTexture(GL_TEXTURE0 + bindPoint);
-    glBindTexture(GL_TEXTURE_2D, tex->textureID);
-  }
-
-  void
-  Textures::bindTexture(Shared<CubeMap> &tex, GLuint bindPoint)
-  {
-    glActiveTexture(GL_TEXTURE0 + bindPoint);
-    glBindTexture(GL_TEXTURE_CUBE_MAP, tex->textureID);
   }
 }

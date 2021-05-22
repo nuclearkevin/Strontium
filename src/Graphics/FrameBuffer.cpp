@@ -31,15 +31,7 @@ namespace SciRenderer
   FrameBuffer::~FrameBuffer()
   {
     // Delete the texture attachments.
-    for (auto& pair : this->textureAttachments)
-    {
-      auto tex = pair.second.second;
-
-      if (tex == nullptr)
-        continue;
-
-      Textures::deleteTexture(tex);
-    }
+    this->textureAttachments.clear();
 
     // Actual buffer delete.
     glDeleteFramebuffers(1, &this->bufferID);
@@ -90,15 +82,8 @@ namespace SciRenderer
     // the new target.
     auto targetLoc = this->textureAttachments.find(spec.target);
     if (targetLoc != this->textureAttachments.end())
-    {
-      if (removeTex)
-        Textures::deleteTexture(targetLoc->second.second);
       this->textureAttachments.erase(targetLoc);
-    }
 
-
-    glGenTextures(1, &newTex->textureID);
-    glBindTexture(static_cast<GLuint>(spec.type), newTex->textureID);
     glTexImage2D(static_cast<GLuint>(spec.type), 0,
                  static_cast<GLuint>(spec.internal), this->width, this->height, 0,
                  static_cast<GLuint>(spec.format),
@@ -115,7 +100,7 @@ namespace SciRenderer
 
     glFramebufferTexture2D(GL_FRAMEBUFFER, static_cast<GLuint>(spec.target),
                            static_cast<GLuint>(spec.type),
-                           newTex->textureID, 0);
+                           newTex->getID(), 0);
     this->unbind();
 
     // Setup the clear flags.
@@ -149,16 +134,12 @@ namespace SciRenderer
     // the new target.
     auto targetLoc = this->textureAttachments.find(spec.target);
     if (targetLoc != this->textureAttachments.end())
-    {
-      if (removeTex)
-        Textures::deleteTexture(targetLoc->second.second);
       this->textureAttachments.erase(targetLoc);
-    }
 
 
     glFramebufferTexture2D(GL_FRAMEBUFFER, static_cast<GLuint>(spec.target),
                            static_cast<GLuint>(spec.type),
-                           tex->textureID, 0);
+                           tex->getID(), 0);
 
     this->unbind();
 
@@ -197,20 +178,16 @@ namespace SciRenderer
     // the new target.
     auto targetLoc = this->textureAttachments.find(spec.target);
     if (targetLoc != this->textureAttachments.end())
-    {
-      if (removeTex)
-        Textures::deleteTexture(targetLoc->second.second);
       this->textureAttachments.erase(targetLoc);
-    }
 
     Shared<Texture2D> tex = createShared<Texture2D>();
-    tex->textureID = map->textureID;
+    tex->getID() = map->getID();
     tex->width = this->width;
     tex->height = this->height;
 
     glFramebufferTexture2D(GL_FRAMEBUFFER, static_cast<GLuint>(spec.target),
                            static_cast<GLuint>(spec.type),
-                           tex->textureID, mip);
+                           tex->getID(), mip);
     this->unbind();
 
     this->clearFlags |= GL_COLOR_BUFFER_BIT;
@@ -311,7 +288,7 @@ namespace SciRenderer
       if (tex == nullptr)
         continue;
 
-      Textures::bindTexture(tex);
+      tex->bind();
       glTexImage2D(static_cast<GLuint>(spec.type), 0,
                    static_cast<GLuint>(spec.internal), this->width, this->height, 0,
                    static_cast<GLuint>(spec.format),
@@ -346,7 +323,7 @@ namespace SciRenderer
   GLuint
   FrameBuffer::getAttachID(const FBOTargetParam &attachment)
   {
-    return this->textureAttachments.at(attachment).second->textureID;
+    return this->textureAttachments.at(attachment).second->getID();
   }
 
   void

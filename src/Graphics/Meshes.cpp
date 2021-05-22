@@ -29,13 +29,13 @@ namespace SciRenderer
 
   // Loading function for .obj files.
   void
-  Mesh::loadOBJFile(const char* filepath, bool computeTBN)
+  Mesh::loadOBJFile(const std::string &filepath, bool computeTBN)
   {
     tinyobj::ObjReader objReader;
     tinyobj::ObjReaderConfig readerConfig;
     readerConfig.mtl_search_path = "";
 
-    if (!objReader.ParseFromFile(filepath, readerConfig))
+    if (!objReader.ParseFromFile(filepath.c_str(), readerConfig))
     {
       if (!objReader.Error().empty())
       {
