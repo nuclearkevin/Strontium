@@ -5,8 +5,8 @@
 
 // Project includes.
 #include "Core/ApplicationBase.h"
-#include "Core/Events.h"
-#include "Graphics/GraphicsSystem.h"
+#include "Scenes/Scene.h"
+#include "Scenes/Entity.h"
 
 // ImGui includes.
 #include "imgui/imgui.h"
@@ -17,31 +17,29 @@
 
 namespace SciRenderer
 {
-  class EnvironmentWindow
+  // A scene graph window for viewing a graph.
+  class SceneGraphWindow
   {
   public:
-    EnvironmentWindow();
-    ~EnvironmentWindow();
+    SceneGraphWindow() = default;
+    ~SceneGraphWindow() = default;
 
     void onAttach();
     void onDetach();
-    void onImGuiRender(bool &isOpen);
+    void onImGuiRender(bool &isOpen, Shared<Scene> activeScene);
     void onUpdate(float dt);
     void onEvent(Event &event);
 
-    // Get the environment map.
-    inline Shared<EnvironmentMap> getEnvironmentMap() { return this->skybox; }
   private:
     // File handler objects.
     imgui_addons::ImGuiFileBrowser fileHandler;
 
-    // The environment map.
-    Shared<EnvironmentMap> skybox;
+    bool openModel;
 
-    // Members for the environment map.
-    bool usePBR;
-    bool drawIrrad;
-    bool drawFilter;
-    int mapRes;
+    // Functions for UI.
+    void drawEntityNode(Entity entity, Shared<Scene> activeScene);
+    void drawComponentNodes();
+
+    Entity selectedEntity;
   };
 }

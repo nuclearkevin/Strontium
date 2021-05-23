@@ -4,6 +4,7 @@
 #include "SciRenderPCH.h"
 
 // Project includes.
+#include "Graphics/GraphicsSystem.h"
 #include "Scenes/Components.h"
 
 // Entity component system include.
@@ -11,14 +12,22 @@
 
 namespace SciRenderer
 {
+  class Entity;
+
   class Scene
   {
   public:
     Scene();
     ~Scene();
 
+    Entity createEntity(const std::string& name = "New Entity");
+    void deleteEntity(Entity entity);
+
+    void onUpdate(float dt, Shared<Camera> sceneCamera);
   protected:
     entt::registry sceneECS;
 
+    friend class Entity;
+    friend class SceneGraphWindow;
   };
 }

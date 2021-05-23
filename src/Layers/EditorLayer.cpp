@@ -9,7 +9,11 @@ namespace SciRenderer
   EditorLayer::EditorLayer()
     : Layer("Editor Layer")
     , logBuffer("")
-  { }
+    , meshAssets(AssetManager<Mesh>::getManager())
+    , shaderCache(AssetManager<Shader>::getManager())
+  {
+
+  }
 
   EditorLayer::~EditorLayer()
   { }
@@ -19,10 +23,12 @@ namespace SciRenderer
   {
     this->showPerf = true;
     this->showEnvi = true;
+    this->showSceneGraph = true;
     this->editorSize = ImVec2(0, 0);
 
     // On attach methods for all the GUI elements.
     enviSettings.onAttach();
+    sceneSettings.onAttach();
 
     // Fetch the width and height of the window and create a floating point
     // framebuffer.
@@ -34,17 +40,29 @@ namespace SciRenderer
     this->drawBuffer->attachTexture2D(cSpec);
   	this->drawBuffer->attachRenderBuffer();
 
-    // Load the shader and set the appropriate uniforms.
-    this->program = createShared<Shader>("./res/shaders/mesh.vs",
-  											                 "./res/shaders/pbr/pbr.fs");
-  	this->program->addUniformSampler2D("irradianceMap", 0);
-  	this->program->addUniformSampler2D("reflectanceMap", 1);
-  	this->program->addUniformSampler2D("brdfLookUp", 2);
+    // Load the shader into a cache and set the appropriate uniforms.
+    Shared<Shader> program = createShared<Shader>("./res/shaders/mesh.vs",
+                                                  "./res/shaders/pbr/pbr.fs");
+    this->shaderCache->attachAsset("pbr", program);
+  	program->addUniformSampler2D("irradianceMap", 0);
+  	program->addUniformSampler2D("reflectanceMap", 1);
+  	program->addUniformSampler2D("brdfLookUp", 2);
 
-    // Load in a default model (bunny) as a test.
-    this->model = createShared<Mesh>();
-    this->model->loadOBJFile("./res/models/teapot.obj");
-  	this->model->normalizeVertices();
+    // Setup stuff for the scene.
+    currentScene = createShared<Scene>();
+    /*
+    // Temporary, testing only -------------------------------------------------
+    auto entity = currentScene->createEntity("Teapot");
+    entity.addComponent<RenderableComponent>
+      (meshAssets->loadAssetFile("./res/models/teapot.obj", "teapot"), program);
+    entity.addComponent<TransformComponent>();
+    entity = currentScene->createEntity("Bunny");
+    entity.addComponent<RenderableComponent>
+      (meshAssets->loadAssetFile("./res/models/bunny.obj", "bunny"), program);
+    entity.addComponent<TransformComponent>
+      (glm::vec3(6.0f, 0.0f, 0.0f), glm::vec3(0.0), glm::vec3(25.0f));
+    //--------------------------------------------------------------------------
+    */
 
     // Finally, the editor camera.
     this->editorCam = createShared<Camera>(1920 / 2, 1080 / 2, glm::vec3 {0.0f, 1.0f, 4.0f},
@@ -57,6 +75,54 @@ namespace SciRenderer
   {
     // On detach methods for all the GUI elements.
     enviSettings.onDetach();
+    sceneSettings.onDetach();
+  }
+
+  // On event for the layer.
+  void
+  EditorLayer::onEvent(Event &event)
+  {
+    this->editorCam->onEvent(event);
+  }
+
+  // On update for the layer.
+  void
+  EditorLayer::onUpdate(float dt)
+  {
+    // Get the renderer.
+    Renderer3D* renderer = Renderer3D::getInstance();
+
+    // Update the size of the framebuffer to fit the editor window.
+    glm::vec2 size = this->drawBuffer->getSize();
+    if (this->editorSize.x != size.x || this->editorSize.y != size.y)
+    {
+      if (this->editorSize.x >= 1.0f && this->editorSize.y >= 1.0f)
+        this->editorCam->updateProj(90.0f, editorSize.x / editorSize.y, 0.1f, 30.0f);
+      this->drawBuffer->resize(this->editorSize.x, this->editorSize.y);
+    }
+
+    //--------------------------------------------------------------------------
+    // The drawing phase. TODO: Move the application to a deferred renderer.
+    //--------------------------------------------------------------------------
+    // Draw the scene.
+    this->drawBuffer->clear();
+    this->drawBuffer->bind();
+    this->drawBuffer->setViewport();
+
+    this->enviSettings.getEnvironmentMap()->bind(MapType::Irradiance, 0);
+    this->enviSettings.getEnvironmentMap()->bind(MapType::Prefilter, 1);
+    this->enviSettings.getEnvironmentMap()->bind(MapType::Integration, 2);
+
+    // Update the scene.
+    currentScene->onUpdate(dt, this->editorCam);
+
+    renderer->draw(this->enviSettings.getEnvironmentMap(), this->editorCam);
+    this->drawBuffer->unbind();
+
+    //--------------------------------------------------------------------------
+    // Update the editor camera.
+    //--------------------------------------------------------------------------
+    this->editorCam->onUpdate(dt);
   }
 
   void
@@ -108,8 +174,8 @@ namespace SciRenderer
     bool openObjMenu = false;
 
     // On ImGui render methods for all the GUI elements.
-    if (this->showEnvi)
-      enviSettings.onImGuiRender();
+    enviSettings.onImGuiRender(this->showEnvi);
+    sceneSettings.onImGuiRender(this->showSceneGraph, this->currentScene);
 
   	if (ImGui::BeginMainMenuBar())
   	{
@@ -219,50 +285,5 @@ namespace SciRenderer
 
     // MUST KEEP THIS. Docking window end.
     ImGui::End();
-  }
-
-  // On event for the laryer.
-  void
-  EditorLayer::onEvent(Event &event)
-  {
-    this->editorCam->onEvent(event);
-  }
-
-  // On update for the layer.
-  void
-  EditorLayer::onUpdate(float dt)
-  {
-    // Get the renderer.
-    Renderer3D* renderer = Renderer3D::getInstance();
-
-    // Update the size of the framebuffer to fit the editor window.
-    glm::vec2 size = this->drawBuffer->getSize();
-    if (this->editorSize.x != size.x || this->editorSize.y != size.y)
-    {
-      if (this->editorSize.x >= 1.0f && this->editorSize.y >= 1.0f)
-        this->editorCam->updateProj(90.0f, editorSize.x / editorSize.y, 0.1f, 30.0f);
-      this->drawBuffer->resize(this->editorSize.x, this->editorSize.y);
-    }
-
-    //--------------------------------------------------------------------------
-    // The drawing phase. TODO: Move the application to a deferred renderer.
-    //--------------------------------------------------------------------------
-    // Draw the scene.
-    this->drawBuffer->clear();
-  	this->drawBuffer->bind();
-  	this->drawBuffer->setViewport();
-
-    this->enviSettings.getEnvironmentMap()->bind(MapType::Irradiance, 0);
-  	this->enviSettings.getEnvironmentMap()->bind(MapType::Prefilter, 1);
-  	this->enviSettings.getEnvironmentMap()->bind(MapType::Integration, 2);
-  	renderer->draw(this->model, this->program, this->editorCam);
-
-    renderer->draw(this->enviSettings.getEnvironmentMap(), this->editorCam);
-  	this->drawBuffer->unbind();
-
-    //--------------------------------------------------------------------------
-    // Update the editor camera.
-    //--------------------------------------------------------------------------
-    this->editorCam->onUpdate(dt);
   }
 }

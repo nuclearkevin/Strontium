@@ -5,10 +5,14 @@
 
 // Project includes.
 #include "Core/ApplicationBase.h"
-#include "Layers/Layers.h"
 #include "Core/Events.h"
+#include "Core/AssetManager.h"
+#include "Layers/Layers.h"
 #include "Graphics/GraphicsSystem.h"
+#include "Scenes/Scene.h"
+#include "Scenes/Entity.h"
 #include "GuiElements/EnvironmentWindow.h"
+#include "GuiElements/SceneGraphWindow.h"
 
 // ImGui includes.
 #include "imgui/imgui.h"
@@ -32,30 +36,27 @@ namespace SciRenderer
     virtual void onUpdate(float dt) override;
 
   protected:
-    // The various external windows.
-    EnvironmentWindow enviSettings;
+    // Asset managers for the different assets loaded in.
+    Shared<AssetManager<Mesh>> meshAssets;
+    Shared<AssetManager<Shader>> shaderCache;
 
-    // File handler objects.
-    imgui_addons::ImGuiFileBrowser fileHandler;
-
+    // The current scene.
+    Shared<Scene> currentScene;
     // The framebuffer for the scene.
     Shared<FrameBuffer> drawBuffer;
-
     // Editor camera.
     Shared<Camera> editorCam;
 
-    // These need to move to the scene class when I get around to it.
-    Shared<Mesh> model;
-
-    // This needs to move to a material class.
-    Shared<Shader> program;
-
+    // The various external windows.
+    EnvironmentWindow enviSettings;
+    SceneGraphWindow sceneSettings;
+    // File handler objects.
+    imgui_addons::ImGuiFileBrowser fileHandler;
     // Stuff for ImGui and the GUI.
     bool showPerf;
     bool showEnvi;
-
+    bool showSceneGraph;
     std::string logBuffer;
-
     ImVec2 editorSize;
 
     const ImGuiWindowFlags sidebarFlags = ImGuiWindowFlags_NoCollapse;

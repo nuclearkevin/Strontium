@@ -5,6 +5,7 @@
 
 // Project includes.
 #include "Graphics/Meshes.h"
+#include "Graphics/Textures.h"
 
 namespace SciRenderer
 {
@@ -32,6 +33,11 @@ namespace SciRenderer
          << component.description;
       return os;
     }
+
+    operator std::string()
+    {
+      return "Name: " + name + "\n" + "Description: " + description;
+    }
   };
 
   // Entity transform component.
@@ -40,6 +46,7 @@ namespace SciRenderer
     glm::vec3 translation;
     glm::vec3 rotation;
     glm::vec3 scale; // Euler angles. Pitch = x, yaw = y, roll = z.
+    GLfloat scaleFactor;
 
     TransformComponent(const TransformComponent&) = default;
 
@@ -47,6 +54,7 @@ namespace SciRenderer
       : translation(glm::vec3(0.0f))
       , rotation(glm::vec3(0.0f))
       , scale(glm::vec3(1.0f))
+      , scaleFactor(1.0f)
     { }
 
     TransformComponent(const glm::vec3 &translation, const glm::vec3 &rotation,
@@ -54,28 +62,49 @@ namespace SciRenderer
       : translation(translation)
       , rotation(rotation)
       , scale(scale)
+      , scaleFactor(1.0f)
     { }
 
     // Cast to glm::mat4 for easy multiplication.
     operator glm::mat4()
     {
       return glm::translate(glm::mat4(1.0f), translation)
-             * glm::toMat4(glm::quat(rotation)) * glm::scale(scale);
+             * glm::toMat4(glm::quat(rotation)) * glm::scale(scale * scaleFactor);
     }
   };
 
-  // Entity mesh component.
-  struct MeshComponent
+  // Renderable component. This is the component which is passed to the renderer
+  // alongside the transform component.
+  struct RenderableComponent
   {
-    Mesh* mesh;
+    Shared<Mesh> mesh;
+
+    // TODO: Move these two to a material class and pass a material shared ptr instead.
+    Shared<Shader> shader;
+    std::vector<Shared<Texture2D>> textures;
+
+    RenderableComponent(const RenderableComponent&) = default;
+
+    RenderableComponent(const Shared<Mesh> &mesh, const Shared<Shader> &shader,
+                        const std::vector<Shared<Texture2D>> &textures)
+      : mesh(mesh)
+      , shader(shader)
+      , textures(textures)
+    { }
+
+    RenderableComponent(const Shared<Mesh> &mesh, const Shared<Shader> &shader)
+      : mesh(mesh)
+      , shader(shader)
+    { }
+
+    operator Shared<Mesh>()
+    {
+      return mesh;
+    }
+
+    operator Shared<Shader>()
+    {
+      return shader;
+    }
   };
-
-  // Entity material component. TODO: figure out material system and come back
-  // to this.
-  struct MaterialComponent
-  {
-    Shader* shader; // This is temporary.
-  };
-
-
 }

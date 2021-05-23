@@ -1,0 +1,140 @@
+#pragma once
+
+// Macro include file.
+#include "SciRenderPCH.h"
+
+// Project includes.
+#include "Core/ApplicationBase.h"
+#include "Graphics/Meshes.h"
+#include "Graphics/Textures.h"
+
+namespace SciRenderer
+{
+  // A class to handle asset creation, destruction and file loading.
+  template <class T>
+  class AssetManager
+  {
+  public:
+    ~AssetManager() = default;
+
+    // Get an asset manager instance.
+    static AssetManager<T>* getManager()
+    {
+      if (instance == nullptr)
+      {
+        std:: cout << "got" << std::endl;
+        instance = new AssetManager<T>();
+        return instance;
+      }
+      else
+      {
+        return instance;
+      }
+    }
+
+    // Attach an asset to the manager.
+    void attachAsset(const std::string &name, Shared<T> asset)
+    {
+      this->assetNames.push_back(name);
+      this->assetStorage.insert({ name, asset });
+    }
+
+    // This be broken.... TODO: fix
+    // Create an asset without loading it from a file.
+    template <typename ... Args>
+    Shared<T> createAsset(Args ... args, const std::string &name)
+    {
+      Shared<T> out = createShared<T>(std::forward<Args>(args)...);
+      this->assetNames.push_back(name);
+      this->assetStorage.insert({ name, out });
+      return out;
+    }
+
+    // Load an asset. MUST DECLARE TEMPLATE SPECIALIZATIONS IN THE HEADER FILE.
+    Shared<T> loadAssetFile(const std::string &filepath, const std::string &name);
+
+    // Get the asset reference.
+    Shared<T> getAsset(const std::string &name) { return this->assetStorage.at(name); }
+
+    // Delete the asset.
+    void deleteAsset(const std::string &name)
+    {
+      this->assetStorage.erase(name);
+
+      auto loc = std::find(this->assetNames.begin(), this->assetNames.end(), name);
+      if (loc != this->assetNames.end())
+        this->assetNames.erase(loc);
+    }
+
+    // Get a reference to the asset name storage.
+    inline std::vector<std::string>& getStorage() { return this->assetNames; }
+  private:
+    AssetManager() = default;
+
+    static AssetManager<T>* instance;
+
+    std::unordered_map<std::string, Shared<T>> assetStorage;
+    std::vector<std::string> assetNames;
+  };
+
+  template <typename T>
+  AssetManager<T>* AssetManager<T>::instance = nullptr;
+
+  //----------------------------------------------------------------------------
+  // Template specializations for specific asset types go here.
+  //----------------------------------------------------------------------------
+  template class AssetManager<Mesh>;
+  template class AssetManager<Texture2D>;
+  template class AssetManager<CubeMap>;
+
+  template <typename T>
+  Shared<T>
+  AssetManager<T>::loadAssetFile(const std::string &filepath, const std::string &name)
+  {
+    std::cout << "Behavior undefined!" << std::endl;
+  }
+
+  template <>
+  Shared<Mesh>
+  AssetManager<Mesh>::loadAssetFile(const std::string &filepath, const std::string &name)
+  {
+    Shared<Mesh> loadable = createShared<Mesh>();
+    loadable->loadOBJFile(filepath);
+    this->assetStorage.insert({ name, loadable });
+    this->assetNames.push_back(name);
+    return loadable;
+  }
+
+  template <>
+  Shared<Texture2D>
+  AssetManager<Texture2D>::loadAssetFile(const std::string &filepath, const std::string &name)
+  {
+    Shared<Texture2D> loadable = Textures::loadTexture2D(filepath);
+    this->assetStorage.insert({ name, loadable });
+    this->assetNames.push_back(name);
+    return loadable;
+  }
+
+  // Can only do .jpg files so far. TODO: Make this better.
+  template <>
+  Shared<CubeMap>
+  AssetManager<CubeMap>::loadAssetFile(const std::string &filepath, const std::string &name)
+  {
+    std::vector<std::string> sFaces = { "/posX", "/negX", "/posY", "/negY", "/posZ", "/negZ" };
+    std::vector<std::string> cFaces;
+    std::string temp;
+
+    // Load each face of a cubemap.
+    for (GLuint i = 0; i < 6; i++)
+    {
+      temp = filepath;
+      temp += sFaces[i] + ".jpg";
+      cFaces.push_back(temp);
+    }
+    Shared<CubeMap> loadable = Textures::loadTextureCubeMap(cFaces);
+
+    this->assetStorage.insert({ name, loadable });
+    this->assetNames.push_back(name);
+    return loadable;
+  }
+}

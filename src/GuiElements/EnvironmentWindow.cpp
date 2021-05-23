@@ -29,11 +29,11 @@ namespace SciRenderer
   { }
 
   void
-  EnvironmentWindow::onImGuiRender()
+  EnvironmentWindow::onImGuiRender(bool &isOpen)
   {
     bool openEnvironment = false;
 
-    ImGui::Begin("Environment", nullptr);
+    ImGui::Begin("Environment", &isOpen);
     if (!this->skybox->hasSkybox())
     {
       if (ImGui::Button("Load Equirectangular Map"))
