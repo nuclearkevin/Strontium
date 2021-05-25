@@ -49,10 +49,10 @@ namespace SciRenderer
                      GLboolean normalized, unsigned size, unsigned stride);
 
     // Getters.
-    GLuint getShaderID();
+    GLuint getShaderID() { return this->progID; }
 
     // Forward declaration of the shader debug function.
-    void dumpProgram(GLuint program, char* description);
+    void dumpProgram(char* description);
   protected:
       GLuint progID;
       GLuint vertID;

@@ -53,21 +53,21 @@ namespace SciRenderer
     // Getters.
     GLuint getTexID(const MapType &type);
 
-    inline GLfloat& getGamma() { return this->gamma; }
-    inline GLfloat& getExposure() { return this->exposure; }
-    inline GLfloat& getRoughness() { return this->roughness; }
-    inline Shared<Mesh> getCubeMesh() { return this->cube; }
-    inline Shared<Shader> getCubeProg() { return this->cubeShader; }
-    inline bool hasEqrMap() { return this->erMap != nullptr; }
-    inline bool hasSkybox() { return this->skybox != nullptr; }
-    inline bool hasIrradiance() { return this->irradiance != nullptr; }
-    inline bool hasPrefilter() { return this->specPrefilter != nullptr; }
-    inline bool hasIntegration() { return this->brdfIntMap != nullptr; }
-    inline bool drawingSkybox() { return this->currentEnvironment == MapType::Skybox; }
-    inline bool drawingIrrad() { return this->currentEnvironment == MapType::Irradiance; }
-    inline bool drawingFilter() { return this->currentEnvironment == MapType::Prefilter; }
+    GLfloat& getGamma() { return this->gamma; }
+    GLfloat& getExposure() { return this->exposure; }
+    GLfloat& getRoughness() { return this->roughness; }
+    Shared<Mesh> getCubeMesh() { return this->cube; }
+    Shared<Shader> getCubeProg() { return this->cubeShader; }
+    bool hasEqrMap() { return this->erMap != nullptr; }
+    bool hasSkybox() { return this->skybox != nullptr; }
+    bool hasIrradiance() { return this->irradiance != nullptr; }
+    bool hasPrefilter() { return this->specPrefilter != nullptr; }
+    bool hasIntegration() { return this->brdfIntMap != nullptr; }
+    bool drawingSkybox() { return this->currentEnvironment == MapType::Skybox; }
+    bool drawingIrrad() { return this->currentEnvironment == MapType::Irradiance; }
+    bool drawingFilter() { return this->currentEnvironment == MapType::Prefilter; }
 
-    inline void setDrawingType(MapType type) { this->currentEnvironment = type; }
+    void setDrawingType(MapType type) { this->currentEnvironment = type; }
   protected:
     Shared<Texture2D> erMap;
     Shared<CubeMap>   skybox;

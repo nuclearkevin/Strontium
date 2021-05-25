@@ -1,9 +1,7 @@
-//Header includes.
 #include "Graphics/Meshes.h"
 
-// OpenGL includes.
-#include "glm/gtc/quaternion.hpp"
-#include "glm/gtx/quaternion.hpp"
+// Project includes.
+#include "Core/Logs.h"
 
 namespace SciRenderer
 {
@@ -31,6 +29,8 @@ namespace SciRenderer
   void
   Mesh::loadOBJFile(const std::string &filepath, bool computeTBN)
   {
+    Logger* logs = Logger::getInstance();
+
     tinyobj::ObjReader objReader;
     tinyobj::ObjReaderConfig readerConfig;
     readerConfig.mtl_search_path = "";
@@ -41,6 +41,8 @@ namespace SciRenderer
       {
         std::cerr << "Error loading file (" << filepath << "): "
                   << objReader.Error() << std::endl;
+        logs->logMessage(LogMessage("Error loading file (" + filepath + "): "
+                                    + objReader.Error(), true, false, true));
       }
     }
 
@@ -74,11 +76,7 @@ namespace SciRenderer
     // Compute the normal vectors if the obj has none.
     vertexOffset = 0;
     if (attrib.normals.size() == 0)
-    {
-      std::cout << "Computing vertex normals...";
       this->computeNormals();
-      std::cout << " Done!" << std::endl;
-    }
     else if (attrib.normals.size() > 0)
     {
       glm::vec3 temp;
@@ -132,12 +130,9 @@ namespace SciRenderer
     }
 
     if (computeTBN)
-    {
-      std::cout << "Computing vertex tangents and bitangents...";
       this->computeTBN();
-      std::cout << " Done!" << std::endl;
-    }
 
+    this->filepath = filepath;
     this->loaded = true;
   }
 
@@ -219,6 +214,7 @@ namespace SciRenderer
     }
   }
 
+  // Helper function to bulk compute tangents and bitangents.
   void
   Mesh::computeTBN()
   {
@@ -257,69 +253,6 @@ namespace SciRenderer
       this->data[this->indices[i + 1]].bitangent += bitangent;
       this->data[this->indices[i + 2]].bitangent += bitangent;
     }
-  }
-
-  // Helper function to linearly scale each vertex to the screenspace.
-  void
-  Mesh::normalizeVertices()
-  {
-    // Computing scaling factor.
-    GLfloat maxX = 0.0f;
-    GLfloat maxY = 0.0f;
-    GLfloat maxZ = 0.0f;
-
-    GLfloat scale;
-
-    // Loop over the vertices and find the maximum vertex components.
-    for (auto &vertex : this->data)
-    {
-      maxX = std::max(vertex.position.x, maxX);
-      maxY = std::max(vertex.position.y, maxY);
-      maxZ = std::max(vertex.position.z, maxZ);
-    }
-
-    scale = std::max(maxX, maxY);
-    scale = std::max(scale, maxZ);
-
-    // Scale each component of the vertices.
-    for (auto &vertex : this->data)
-    {
-      vertex.position[0] = vertex.position[0] * (1 / scale);
-      vertex.position[1] = vertex.position[1] * (1 / scale);
-      vertex.position[2] = vertex.position[2] * (1 / scale);
-    }
-  }
-
-  void
-  Mesh::setModelMatrix(const glm::mat4& model)
-  {
-    this->modelMatrix = model;
-  }
-
-  // Methods for controlling the model matrix.
-  void
-  Mesh::moveMesh(const glm::vec3 &direction)
-  {
-    this->modelMatrix = glm::translate(this->modelMatrix, direction);
-  }
-
-  void
-  Mesh::rotateMesh(const GLfloat &angle, const glm::vec3 &axis)
-  {
-    this->modelMatrix = glm::rotate(this->modelMatrix, angle, axis);
-  }
-
-  void
-  Mesh::rotateMesh(const glm::vec3 &eulerAngles)
-  {
-    glm::quat rot = glm::quat(eulerAngles);
-    this->modelMatrix = glm::toMat4(rot) * this->modelMatrix;
-  }
-
-  void
-  Mesh::scaleMesh(const GLfloat &scale)
-  {
-    this->modelMatrix = glm::scale(this->modelMatrix, glm::vec3(scale, scale, scale));
   }
 
   void

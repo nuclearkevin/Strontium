@@ -106,7 +106,7 @@ namespace SciRenderer
     void unbind();
     void unbind(GLuint bindPoint);
 
-    inline GLuint& getID() { return this->textureID; }
+    GLuint& getID() { return this->textureID; }
   private:
     GLuint textureID;
   };
@@ -133,7 +133,7 @@ namespace SciRenderer
     void unbind();
     void unbind(GLuint bindPoint);
 
-    inline GLuint& getID() { return this->textureID; }
+    GLuint& getID() { return this->textureID; }
   private:
     GLuint textureID;
   };

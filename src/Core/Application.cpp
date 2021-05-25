@@ -1,7 +1,6 @@
 #include "Core/Application.h"
 
 // Project includes.
-#include "Graphics/Renderer.h"
 #include "Core/Events.h"
 #include "Core/Logs.h"
 
@@ -15,6 +14,8 @@ namespace SciRenderer
     , running(true)
     , isMinimized(false)
     , lastTime(0.0f)
+    , meshAssets(AssetManager<Mesh>::getManager())
+    , shaderCache(AssetManager<Shader>::getManager())
   {
     if (Application::appInstance != nullptr)
     {

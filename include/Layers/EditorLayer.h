@@ -36,10 +36,6 @@ namespace SciRenderer
     virtual void onUpdate(float dt) override;
 
   protected:
-    // Asset managers for the different assets loaded in.
-    Shared<AssetManager<Mesh>> meshAssets;
-    Shared<AssetManager<Shader>> shaderCache;
-
     // The current scene.
     Shared<Scene> currentScene;
     // The framebuffer for the scene.

@@ -9,8 +9,6 @@ namespace SciRenderer
   EditorLayer::EditorLayer()
     : Layer("Editor Layer")
     , logBuffer("")
-    , meshAssets(AssetManager<Mesh>::getManager())
-    , shaderCache(AssetManager<Shader>::getManager())
   {
 
   }
@@ -25,6 +23,8 @@ namespace SciRenderer
     this->showEnvi = true;
     this->showSceneGraph = true;
     this->editorSize = ImVec2(0, 0);
+
+    auto shaderCache = AssetManager<Shader>::getManager();
 
     // On attach methods for all the GUI elements.
     enviSettings.onAttach();
@@ -43,26 +43,13 @@ namespace SciRenderer
     // Load the shader into a cache and set the appropriate uniforms.
     Shared<Shader> program = createShared<Shader>("./res/shaders/mesh.vs",
                                                   "./res/shaders/pbr/pbr.fs");
-    this->shaderCache->attachAsset("pbr", program);
+    shaderCache->attachAsset("pbr", program);
   	program->addUniformSampler2D("irradianceMap", 0);
   	program->addUniformSampler2D("reflectanceMap", 1);
   	program->addUniformSampler2D("brdfLookUp", 2);
 
     // Setup stuff for the scene.
-    currentScene = createShared<Scene>();
-    /*
-    // Temporary, testing only -------------------------------------------------
-    auto entity = currentScene->createEntity("Teapot");
-    entity.addComponent<RenderableComponent>
-      (meshAssets->loadAssetFile("./res/models/teapot.obj", "teapot"), program);
-    entity.addComponent<TransformComponent>();
-    entity = currentScene->createEntity("Bunny");
-    entity.addComponent<RenderableComponent>
-      (meshAssets->loadAssetFile("./res/models/bunny.obj", "bunny"), program);
-    entity.addComponent<TransformComponent>
-      (glm::vec3(6.0f, 0.0f, 0.0f), glm::vec3(0.0), glm::vec3(25.0f));
-    //--------------------------------------------------------------------------
-    */
+    this->currentScene = createShared<Scene>();
 
     // Finally, the editor camera.
     this->editorCam = createShared<Camera>(1920 / 2, 1080 / 2, glm::vec3 {0.0f, 1.0f, 4.0f},
@@ -175,7 +162,8 @@ namespace SciRenderer
 
     // On ImGui render methods for all the GUI elements.
     enviSettings.onImGuiRender(this->showEnvi);
-    sceneSettings.onImGuiRender(this->showSceneGraph, this->currentScene);
+    if (this->showSceneGraph)
+      sceneSettings.onImGuiRender(this->showSceneGraph, this->currentScene);
 
   	if (ImGui::BeginMainMenuBar())
   	{
@@ -227,6 +215,10 @@ namespace SciRenderer
           if (ImGui::MenuItem("Show Environment Map Menu"))
           {
             this->showEnvi = true;
+          }
+          if (ImGui::MenuItem("Show Scene Graph Menu"))
+          {
+            this->showSceneGraph = true;
           }
           ImGui::EndMenu();
         }

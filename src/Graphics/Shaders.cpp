@@ -41,6 +41,7 @@ namespace SciRenderer
 		glUseProgram(0);
 	}
 
+	// Build and validate a shader program. TODO: Move away from C to C++.
 	void
 	Shader::buildShader(int type, const char* filename)
 	{
@@ -81,6 +82,7 @@ namespace SciRenderer
 		}
 	}
 
+	// Link the shader program together. TODO: Move away from C to C++.
 	void
 	Shader::buildProgram(GLuint first, ...)
 	{
@@ -219,59 +221,53 @@ namespace SciRenderer
 	{
 		this->bind();
 		GLuint attribPos = glGetAttribLocation(this->progID, attribName);
+		// Cast to long first to avoid a compiler warning on 64 bit systems.
 		glVertexAttribPointer(attribPos, type, GL_FLOAT, normalized, size,
-													(void*)stride);
+													(void*) (unsigned long) stride);
 		glEnableVertexAttribArray(attribPos);
 	}
 
-	// Getters, yay. . .
-	GLuint
-	Shader::getShaderID() {return this->progID;}
-
-	// Debug method to dump the shader program.
+	// Debug method to dump the shader program. TODO: Move away from C to C++.
 	void
-	Shader::dumpProgram(GLuint program, char* description)
+	Shader::dumpProgram(char* description)
 	{
 		char name[256];
 		GLsizei length;
 		GLint size;
 		GLenum type;
-		int uniforms;
-		int attributes;
-		int shaders;
-		int i;
+		int uniforms, attributes, shaders;
 
-		printf("Information for shader: %s\n",description);
+		printf("Information for shader: %s\n", description);
 
-		if (!glIsProgram(program))
+		if (!glIsProgram(this->progID))
 		{
-			printf("not a valid shader program\n");
+			printf("Not a valid shader program!\n");
 			return;
 		}
 
-		glGetProgramiv(program, GL_ATTACHED_SHADERS, &shaders);
-		printf("Number of shaders: %d\n",shaders);
+		glGetProgramiv(this->progID, GL_ATTACHED_SHADERS, &shaders);
+		printf("Number of shaders: %d\n", shaders);
 
-		glGetProgramiv(program,GL_ACTIVE_UNIFORMS,&uniforms);
-		printf("uniforms: %d\n",uniforms);
+		glGetProgramiv(this->progID, GL_ACTIVE_UNIFORMS, &uniforms);
+		printf("Number of uniforms: %d\n", uniforms);
 
-		for (i=0; i<uniforms; i++)
+		for (unsigned i = 0; i < uniforms; i++)
 		{
-			glGetActiveUniform(program, i, 256, &length ,&size ,&type, name);
-			printf("  name: %s\n",name);
+			glGetActiveUniform(this->progID, i, 256, &length, &size, &type, name);
+			printf("  Name: %s\n", name);
 		}
 
-		glGetProgramiv(program,GL_ACTIVE_ATTRIBUTES,&attributes);
-		printf("attributes: %d\n",attributes);
+		glGetProgramiv(this->progID, GL_ACTIVE_ATTRIBUTES, &attributes);
+		printf("Attributes: %d\n", attributes);
 
-		for (i=0; i<attributes; i++)
+		for (unsigned i = 0; i < attributes; i++)
 		{
-			glGetActiveAttrib(program, i, 256, &length, &size, &type, name);
-			printf("  name: %s\n",name);
+			glGetActiveAttrib(this->progID, i, 256, &length, &size, &type, name);
+			printf("  Name: %s\n", name);
 		}
 	}
 
-  // Read in the shader source code.
+  // Read in the shader source code. TODO: Move away from C to C++.
 	char*
 	Shader::readShaderFile(const char* filename)
 	{

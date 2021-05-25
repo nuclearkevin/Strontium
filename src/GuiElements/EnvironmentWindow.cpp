@@ -5,7 +5,7 @@ namespace SciRenderer
   EnvironmentWindow::EnvironmentWindow()
     : drawIrrad(false)
     , drawFilter(false)
-    , mapRes(512)
+    , mapRes(2048)
   { }
 
   EnvironmentWindow::~EnvironmentWindow()
@@ -76,7 +76,7 @@ namespace SciRenderer
       ImGui::Text("Preview:");
       ImGui::Image((ImTextureID) this->skybox->getTexID(MapType::Equirectangular),
                    ImVec2(360, 180), ImVec2(0, 1), ImVec2(1, 0));
-      ImGui::SliderInt("Environment Resolution", &this->mapRes, 512, 2048);
+      ImGui::SliderInt("Environment Resolution", &this->mapRes, 2048, 4096);
       if (ImGui::Button("Generate Skybox"))
       {
         this->skybox->equiToCubeMap(true, this->mapRes, this->mapRes);
@@ -92,7 +92,7 @@ namespace SciRenderer
       {
         if (ImGui::Button("Generate Irradiance Map"))
         {
-          this->skybox->precomputeIrradiance(256, 256, true);
+          this->skybox->precomputeIrradiance(512, 512, true);
         }
       }
       else

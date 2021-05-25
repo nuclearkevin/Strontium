@@ -24,7 +24,7 @@ namespace SciRenderer
     auto bind()   -> void;
     auto unbind() -> void;
 
-    inline GLuint getID() { return this->bufferID; }
+    GLuint getID() { return this->bufferID; }
   protected:
     // OpenGL buffer ID.
     GLuint      bufferID;
@@ -57,7 +57,7 @@ namespace SciRenderer
     // Getters.
     auto getCount() -> unsigned;
 
-    inline GLuint getID() { return this->bufferID; }
+    GLuint getID() { return this->bufferID; }
   protected:
     // OpenGL buffer ID.
     GLuint        bufferID;
@@ -93,8 +93,8 @@ namespace SciRenderer
     // Set a specific part of the buffer data.
     void setData(GLuint start, GLuint newDataSize, const void* newData);
 
-    inline GLuint getID() { return this->bufferID; }
-    inline bool hasData() { return this->filled; }
+    GLuint getID() { return this->bufferID; }
+    bool hasData() { return this->filled; }
   protected:
     // OpenGL buffer ID.
     GLuint      bufferID;
@@ -132,9 +132,9 @@ namespace SciRenderer
     void bind();
     void unbind();
 
-    inline GLuint getID() { return this->bufferID; }
-    inline RBOInternalFormat getFormat() { return this->format; }
-    inline glm::vec2 getSize() { return glm::vec2(this->width, this->height); }
+    GLuint getID() { return this->bufferID; }
+    RBOInternalFormat getFormat() { return this->format; }
+    glm::vec2 getSize() { return glm::vec2(this->width, this->height); }
   protected:
     GLuint bufferID;
 
@@ -162,8 +162,8 @@ namespace SciRenderer
     // Set the data in a region of the buffer.
     void setData(GLuint start, GLuint newDataSize, const void* newData);
 
-    inline GLuint getID() { return this->bufferID; }
-    inline bool hasData() { return this->filled; }
+    GLuint getID() { return this->bufferID; }
+    bool hasData() { return this->filled; }
   protected:
     // OpenGL buffer ID.
     GLuint bufferID;

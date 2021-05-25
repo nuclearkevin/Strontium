@@ -83,18 +83,39 @@ namespace SciRenderer
     Shared<Shader> shader;
     std::vector<Shared<Texture2D>> textures;
 
+    // Names so we can fetch the assets easily.
+    std::string meshName;
+    std::string meshPath;
+    std::string shaderName;
+
     RenderableComponent(const RenderableComponent&) = default;
 
+    RenderableComponent()
+      : meshName("")
+      , meshPath("")
+      , shaderName("")
+    { }
+
     RenderableComponent(const Shared<Mesh> &mesh, const Shared<Shader> &shader,
-                        const std::vector<Shared<Texture2D>> &textures)
+                        const std::vector<Shared<Texture2D>> &textures,
+                        const std::string &meshName, const std::string &meshPath,
+                        const std::string &shaderName)
       : mesh(mesh)
       , shader(shader)
       , textures(textures)
+      , meshName(meshName)
+      , meshPath(meshPath)
+      , shaderName(shaderName)
     { }
 
-    RenderableComponent(const Shared<Mesh> &mesh, const Shared<Shader> &shader)
+    RenderableComponent(const Shared<Mesh> &mesh, const Shared<Shader> &shader,
+                        const std::string &meshName, const std::string &meshPath,
+                        const std::string &shaderName)
       : mesh(mesh)
       , shader(shader)
+      , meshName(meshName)
+      , meshPath(meshPath)
+      , shaderName(shaderName)
     { }
 
     operator Shared<Mesh>()
@@ -105,6 +126,11 @@ namespace SciRenderer
     operator Shared<Shader>()
     {
       return shader;
+    }
+
+    operator bool()
+    {
+      return mesh != nullptr && shader != nullptr;
     }
   };
 }

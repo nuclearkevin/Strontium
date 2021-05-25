@@ -33,7 +33,7 @@ void main()
 
 	gl_Position = mVP * vPosition;
   vertOut.fPosition = (model * vPosition).xyz;
-	vertOut.fNormal = N;
+	vertOut.fNormal = normalMat * vNormal;
 	vertOut.fColour = vColour;
 	vertOut.fTexCoords = vTexCoord;
 	vertOut.fTBN = mat3(T, B, N);

@@ -34,11 +34,16 @@ namespace SciRenderer
     // File handler objects.
     imgui_addons::ImGuiFileBrowser fileHandler;
 
-    bool openModel;
+    bool attachMesh;
+    bool propsWindow;
+
+    std::string selectedMesh;
 
     // Functions for UI.
     void drawEntityNode(Entity entity, Shared<Scene> activeScene);
     void drawComponentNodes();
+    void drawPropsWindow();
+    void drawMeshWindow();
 
     Entity selectedEntity;
   };

@@ -47,29 +47,6 @@ namespace SciRenderer
   }
 
   void
-  Renderer3D::draw(Shared<Mesh> data, Shared<Shader> program, Shared<Camera> camera)
-  {
-    program->bind();
-    glm::mat4 model = data->getModelMatrix();
-  	glm::mat3 normal = glm::transpose(glm::inverse(glm::mat3(model)));
-  	glm::mat4 modelViewPerspective = camera->getProjMatrix() * camera->getViewMatrix() * model;
-
-  	program->addUniformMatrix("model", model, GL_FALSE);
-  	program->addUniformMatrix("mVP", modelViewPerspective, GL_FALSE);
-  	program->addUniformMatrix("normalMat", normal, GL_FALSE);
-    program->addUniformVector("camera.position", camera->getCamPos());
-
-    if (data->hasVAO())
-      this->draw(data->getVAO(), program);
-    else
-    {
-      data->generateVAO(program);
-      if (data->hasVAO())
-        this->draw(data->getVAO(), program);
-    }
-  }
-
-  void
   Renderer3D::draw(Shared<Mesh> data, Shared<Shader> program, const glm::mat4 &model,
                    Shared<Camera> camera)
   {

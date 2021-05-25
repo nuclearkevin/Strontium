@@ -36,7 +36,8 @@ namespace SciRenderer
     for (auto entity : drawables)
     {
       auto [transform, renderable] = drawables.get<TransformComponent, RenderableComponent>(entity);
-      renderer->draw(renderable, renderable, transform, sceneCamera);
+      if (renderable)
+        renderer->draw(renderable, renderable, transform, sceneCamera);
     }
   }
 }

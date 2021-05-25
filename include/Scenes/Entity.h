@@ -13,6 +13,9 @@ namespace SciRenderer
 {
   // Entity class, which wraps up the entt ECS functionality to make it easier
   // to use.
+  // This is heavily inspired by the work done in Hazel, a 2D game engine by
+  // TheCherno.
+  // https://github.com/TheCherno/Hazel/blob/master/Hazel/src/Hazel/Scene/Entity.h
   class Entity
   {
   public:

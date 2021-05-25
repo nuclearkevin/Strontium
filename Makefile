@@ -1,5 +1,5 @@
 INCLUDE_FLAGS      := -I ./include -I ./vendor -I ./vendor/glm -I ./vendor/glad/include -I ./vendor/entt/include -I ./vendor/glfw/include/ -I ./vendor/assimp/include
-COMPILE_FLAGS      := g++ $(INCLUDE_FLAGS) -std=c++17
+COMPILE_FLAGS      := g++ $(INCLUDE_FLAGS) -std=c++2a
 GLFW_FLAGS         := -pthread ./vendor/glfw/src/libglfw3.a
 ASSIMP_FLAGS       := ./vendor/assimp/bin/libassimp.so
 

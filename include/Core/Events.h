@@ -23,8 +23,8 @@ namespace SciRenderer
     Event(const EventType &type, const std::string &eventName = "Default event");
     virtual ~Event() = default;
 
-    inline EventType getType() { return this->type; }
-    inline std::string getName() { return this->name; }
+    EventType getType() { return this->type; }
+    std::string getName() { return this->name; }
 
     static void deleteEvent(Event* &event);
   protected:

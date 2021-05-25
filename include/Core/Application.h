@@ -4,9 +4,13 @@
 #include "SciRenderPCH.h"
 
 // Project includes.
-#include "Layers/Layers.h"
+#include "Core/ApplicationBase.h"
 #include "Core/Window.h"
+#include "Core/AssetManager.h"
+#include "Layers/Layers.h"
 #include "Layers/ImGuiLayer.h"
+#include "Graphics/Renderer.h"
+#include "Graphics/GraphicsSystem.h"
 
 int main(int argc, char** argv);
 
@@ -27,15 +31,12 @@ namespace SciRenderer
     void close();
 
     // Getters.
-    static inline Application* getInstance() { return Application::appInstance; }
-    inline Shared<Window> getWindow() { return this->appWindow; }
+    static Application* getInstance() { return Application::appInstance; }
+    Shared<Window> getWindow() { return this->appWindow; }
 
   private:
     // The application instance.
     static Application* appInstance;
-
-    // The main function.
-    friend int ::main(int argc, char** argv);
 
     // Determines if the application should continue to run or not.
     bool running, isMinimized;
@@ -55,7 +56,13 @@ namespace SciRenderer
     // The last frame time.
     float lastTime;
 
+    // Asset managers for the different assets loaded in.
+    Unique<AssetManager<Mesh>> meshAssets;
+    Unique<AssetManager<Shader>> shaderCache;
   private:
+    // The main function.
+    friend int ::main(int argc, char** argv);
+
     // Functions for application behavior.
     void run();
     void dispatchEvents();

@@ -5,6 +5,7 @@
 
 // Project includes.
 #include "Core/ApplicationBase.h"
+#include "Core/Logs.h"
 #include "Graphics/Meshes.h"
 #include "Graphics/Textures.h"
 
@@ -22,7 +23,6 @@ namespace SciRenderer
     {
       if (instance == nullptr)
       {
-        std:: cout << "got" << std::endl;
         instance = new AssetManager<T>();
         return instance;
       }
@@ -32,11 +32,17 @@ namespace SciRenderer
       }
     }
 
+    // Check to see if the map has an asset.
+    bool hasAsset(const std::string &name) { return this->assetStorage.contains(name); }
+
     // Attach an asset to the manager.
     void attachAsset(const std::string &name, Shared<T> asset)
     {
-      this->assetNames.push_back(name);
-      this->assetStorage.insert({ name, asset });
+      if (!this->hasAsset(name))
+      {
+        this->assetNames.push_back(name);
+        this->assetStorage.insert({ name, asset });
+      }
     }
 
     // This be broken.... TODO: fix
@@ -67,7 +73,7 @@ namespace SciRenderer
     }
 
     // Get a reference to the asset name storage.
-    inline std::vector<std::string>& getStorage() { return this->assetNames; }
+    std::vector<std::string>& getStorage() { return this->assetNames; }
   private:
     AssetManager() = default;
 
@@ -98,10 +104,18 @@ namespace SciRenderer
   Shared<Mesh>
   AssetManager<Mesh>::loadAssetFile(const std::string &filepath, const std::string &name)
   {
+    if (this->hasAsset(name))
+      return this->assetStorage.at(name);
+
     Shared<Mesh> loadable = createShared<Mesh>();
     loadable->loadOBJFile(filepath);
     this->assetStorage.insert({ name, loadable });
     this->assetNames.push_back(name);
+
+    Logger* logs = Logger::getInstance();
+    logs->logMessage(LogMessage("Asset loaded at the path " + filepath +
+                                " with the name " + name + ".", true, false, true));
+
     return loadable;
   }
 
@@ -109,9 +123,16 @@ namespace SciRenderer
   Shared<Texture2D>
   AssetManager<Texture2D>::loadAssetFile(const std::string &filepath, const std::string &name)
   {
+    if (this->hasAsset(name))
+      return this->assetStorage.at(name);
     Shared<Texture2D> loadable = Textures::loadTexture2D(filepath);
     this->assetStorage.insert({ name, loadable });
     this->assetNames.push_back(name);
+
+    Logger* logs = Logger::getInstance();
+    logs->logMessage(LogMessage("Asset loaded at the path " + filepath +
+                                " with the name " + name + ".", true, false, true));
+
     return loadable;
   }
 
@@ -120,6 +141,9 @@ namespace SciRenderer
   Shared<CubeMap>
   AssetManager<CubeMap>::loadAssetFile(const std::string &filepath, const std::string &name)
   {
+    if (this->hasAsset(name))
+      return this->assetStorage.at(name);
+
     std::vector<std::string> sFaces = { "/posX", "/negX", "/posY", "/negY", "/posZ", "/negZ" };
     std::vector<std::string> cFaces;
     std::string temp;
@@ -135,6 +159,11 @@ namespace SciRenderer
 
     this->assetStorage.insert({ name, loadable });
     this->assetNames.push_back(name);
+
+    Logger* logs = Logger::getInstance();
+    logs->logMessage(LogMessage("Asset loaded at the path " + filepath +
+                                " with the name " + name + ".", true, false, true));
+
     return loadable;
   }
 }

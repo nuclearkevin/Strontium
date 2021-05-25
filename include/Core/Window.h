@@ -41,13 +41,13 @@ namespace SciRenderer
     void setCursorCapture(const bool &active);
 
     // Get the GLFW window pointer.
-    inline GLFWwindow* getWindowPtr() { return this->glfwWindowRef; }
+    GLFWwindow* getWindowPtr() { return this->glfwWindowRef; }
     // Get the window size.
-    inline glm::ivec2 getSize() { return glm::ivec2(this->properties.width, this->properties.height); }
+    glm::ivec2 getSize() { return glm::ivec2(this->properties.width, this->properties.height); }
     // Get the cursor position.
     glm::vec2 getCursorPos();
     // Get the graphics context info.
-    inline std::string getContextInfo() { return this->glContext->getContextInfo(); }
+    std::string getContextInfo() { return this->glContext->getContextInfo(); }
 
     // Check to see if a button / key is pressed.
     bool isMouseClicked(const int &button);

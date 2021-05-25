@@ -89,7 +89,7 @@ namespace SciRenderer
         GLfloat dy = this->lastMouseY - mousePos.y;
 
         // Compute the yaw and pitch from mouse position.
-        this->yaw   += (this->sensitivity * (dx));
+        this->yaw   += (this->sensitivity * dx);
         this->pitch += (this->sensitivity * dy);
 
         if (this->pitch > 89.0f)

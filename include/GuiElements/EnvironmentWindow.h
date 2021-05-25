@@ -30,7 +30,7 @@ namespace SciRenderer
     void onEvent(Event &event);
 
     // Get the environment map.
-    inline Shared<EnvironmentMap> getEnvironmentMap() { return this->skybox; }
+    Shared<EnvironmentMap> getEnvironmentMap() { return this->skybox; }
   private:
     // File handler objects.
     imgui_addons::ImGuiFileBrowser fileHandler;

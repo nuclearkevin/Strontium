@@ -110,7 +110,7 @@ namespace SciRenderer
     GLuint getRenderBufferID();
 
     // Get the size of the framebuffer.
-    inline glm::vec2 getSize() { return glm::vec2(this->width, this->height); }
+    glm::vec2 getSize() { return glm::vec2(this->width, this->height); }
 
     // Clear the buffer.
     void clear();

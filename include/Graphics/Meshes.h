@@ -24,7 +24,7 @@ namespace SciRenderer
   {
     glm::vec4 position;
     glm::vec3 normal;
-    glm::vec3 colour;
+    glm::vec3 colour; // TODO: Consider moving colours out of the vertex struct. Large change required though.
     glm::vec2 uv;
     glm::vec3 tangent;
     glm::vec3 bitangent;
@@ -50,29 +50,21 @@ namespace SciRenderer
     void computeNormals();
     // Compute the tangents and bitangents.
     void computeTBN();
-    // Normalize the vertices to the screenspace (-1 -> 1).
-    void normalizeVertices();
     // Debug function to dump to the console.
     void dumpMeshData();
-    // Set the model matrix for positioning the model.
-    void setModelMatrix(const glm::mat4& model);
 
-    // Various functions to abstract the vector math of moving meshes.
-    void moveMesh(const glm::vec3 &direction);
-    void rotateMesh(const GLfloat &angle, const glm::vec3 &axis);
-    void rotateMesh(const glm::vec3 &eulerAngles);
-    void scaleMesh(const GLfloat &scale);
+    // Set the mesh colour. TODO: Move to a material class.
     void setColour(const glm::vec3 &colour);
 
     // Getters.
-    inline std::vector<Vertex>& getData() { return this->data; }
-    inline std::vector<GLuint>& getIndices() { return this->indices; }
-    inline Shared<VertexArray>  getVAO() { return this->vArray; }
-    inline glm::mat4            getModelMatrix() { return this->modelMatrix; }
+    std::vector<Vertex>& getData() { return this->data; }
+    std::vector<GLuint>& getIndices() { return this->indices; }
+    Shared<VertexArray>  getVAO() { return this->vArray; }
+    std::string getFilepath() { return this->filepath; }
 
     // Check for states.
-    inline bool hasVAO() { return this->vArray != nullptr; }
-    inline bool isLoaded() { return this->loaded; }
+    bool hasVAO() { return this->vArray != nullptr; }
+    bool isLoaded() { return this->loaded; }
   protected:
     // Mesh properties.
     bool loaded;
@@ -82,7 +74,7 @@ namespace SciRenderer
     glm::mat4                        modelMatrix;
     bool                             hasUVs;
 
-    std::string                      meshName;
+    std::string                      filepath;
 
     // Vertex array object for the mesh data.
     Shared<VertexArray> vArray;
