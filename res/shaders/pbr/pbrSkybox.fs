@@ -5,7 +5,6 @@
 uniform samplerCube skybox;
 
 uniform float gamma = 2.2;
-uniform float exposure = 1.0;
 
 uniform float roughness = 0.0;
 
@@ -20,6 +19,6 @@ layout(location = 0) out vec4 fragColour;
 void main()
 {
   vec3 envColor = textureLod(skybox, fragIn.fTexCoords, roughness * MAX_MIP).rgb;
-  envColor = envColor / (envColor + vec3(exposure));
+  envColor = envColor / (envColor + vec3(1.0));
   fragColour = vec4(pow(envColor, vec3(1.0 / gamma)), 1.0);
 }

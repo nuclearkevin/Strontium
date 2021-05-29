@@ -8,7 +8,7 @@
 namespace SciRenderer
 {
   // Constructors.
-  Camera::Camera(float xCenter, float yCenter, EditorCameraType type)
+  Camera::Camera(GLfloat xCenter, GLfloat yCenter, EditorCameraType type)
     : position(glm::vec3 { 0.0f, 0.0f, 0.0f })
     , camFront(glm::vec3 { 0.0f, 0.0f, -1.0f })
     , camTop(glm::vec3 { 0.0f, 1.0f, 0.0f })
@@ -25,7 +25,7 @@ namespace SciRenderer
                              this->camTop);
   }
 
-  Camera::Camera(float xCenter, float yCenter, const glm::vec3 &initPosition,
+  Camera::Camera(GLfloat xCenter, GLfloat yCenter, const glm::vec3 &initPosition,
                  EditorCameraType type)
     : position(initPosition)
     , camFront(glm::vec3 { 0.0f, 0.0f, -1.0f })
@@ -63,6 +63,11 @@ namespace SciRenderer
     glm::vec2 mousePos = appWindow->getCursorPos();
     this->lastMouseX = mousePos.x;
     this->lastMouseY = mousePos.y;
+
+    this->horFOV = fov;
+    this->near = near;
+    this->far = far;
+    this->aspect = aspect;
   }
 
   // On update function for the camera.
@@ -107,7 +112,7 @@ namespace SciRenderer
         //----------------------------------------------------------------------
         // Handles the keyboard input component.
         //----------------------------------------------------------------------
-        float cameraSpeed = this->scalarSpeed * dt;
+        GLfloat cameraSpeed = this->scalarSpeed * dt;
 
         // Move the camera position (Space Engineers styled camera).
         if (appWindow->isKeyPressed(GLFW_KEY_W))
@@ -158,7 +163,7 @@ namespace SciRenderer
   void
   Camera::cameraZoom(glm::vec2 offsets)
   {
-    float cameraSpeed = 0.02 * (offsets.y) * this->scalarSpeed;
+    GLfloat cameraSpeed = 0.02 * (offsets.y) * this->scalarSpeed;
 
     this->position += this->camFront * cameraSpeed;
 
@@ -252,6 +257,11 @@ namespace SciRenderer
   Camera::updateProj(GLfloat fov, GLfloat aspect, GLfloat near, GLfloat far)
   {
     this->proj = glm::perspective(glm::radians(fov), aspect, near, far);
+
+    this->horFOV = fov;
+    this->near = near;
+    this->far = far;
+    this->aspect = aspect;
   }
 
   // Fetch the view/projection matrix of the camera.

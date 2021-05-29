@@ -16,10 +16,28 @@ namespace SciRenderer
 
 	Shader::Shader(const std::string &vertPath, const std::string &fragPath)
 	{
+		// Build the shader from source.
 		this->buildShader(GL_VERTEX_SHADER, vertPath.c_str());
 		this->buildShader(GL_FRAGMENT_SHADER, fragPath.c_str());
 		this->buildProgram(this->vertID, this->fragID, 0);
 		glUseProgram(this->progID);
+
+		// Reflect the shader and gather a list of uniforms.
+		this->shaderInfoString = this->dumpProgram();
+
+		char name[256];
+		GLsizei length;
+		GLint size;
+		GLenum type;
+		int uniforms;
+
+		// Generates a list of uniforms based on their name and type. 
+		glGetProgramiv(this->progID, GL_ACTIVE_UNIFORMS, &uniforms);
+		for (unsigned i = 0; i < uniforms; i++)
+		{
+			glGetActiveUniform(this->progID, i, 256, &length, &size, &type, name);
+			this->uniforms.insert({ name, enumToUniform(type) });
+		}
 	}
 
 	Shader::~Shader()
@@ -216,20 +234,20 @@ namespace SciRenderer
 
 	// Vertex attribute setters.
 	void
-	Shader::addAtribute(const char* attribName, GLVectorType type,
+	Shader::addAtribute(const char* attribName, AttribType type,
 											GLboolean normalized, unsigned size, unsigned stride)
 	{
 		this->bind();
 		GLuint attribPos = glGetAttribLocation(this->progID, attribName);
 		// Cast to long first to avoid a compiler warning on 64 bit systems.
-		glVertexAttribPointer(attribPos, type, GL_FLOAT, normalized, size,
-													(void*) (unsigned long) stride);
+		glVertexAttribPointer(attribPos, static_cast<GLint>(type), GL_FLOAT,
+													normalized, size, (void*) (unsigned long) stride);
 		glEnableVertexAttribArray(attribPos);
 	}
 
-	// Debug method to dump the shader program. TODO: Move away from C to C++.
-	void
-	Shader::dumpProgram(char* description)
+	// Debug method to dump the shader program.
+	std::string
+	Shader::dumpProgram()
 	{
 		char name[256];
 		GLsizei length;
@@ -237,33 +255,93 @@ namespace SciRenderer
 		GLenum type;
 		int uniforms, attributes, shaders;
 
-		printf("Information for shader: %s\n", description);
+		std::string output = "";
 
 		if (!glIsProgram(this->progID))
 		{
-			printf("Not a valid shader program!\n");
-			return;
+			output += "Not a valid shader program!";
+			return output;
 		}
 
 		glGetProgramiv(this->progID, GL_ATTACHED_SHADERS, &shaders);
-		printf("Number of shaders: %d\n", shaders);
+		output += "Number of attached shaders: ";
+		output += std::to_string(shaders);
+		output += "\n";
 
 		glGetProgramiv(this->progID, GL_ACTIVE_UNIFORMS, &uniforms);
-		printf("Number of uniforms: %d\n", uniforms);
+		output += "Number of active uniforms: ";
+		output += std::to_string(uniforms);
+		output += "\n";
 
 		for (unsigned i = 0; i < uniforms; i++)
 		{
 			glGetActiveUniform(this->progID, i, 256, &length, &size, &type, name);
-			printf("  Name: %s\n", name);
+			output += "    Name: ";
+			output += name;
+			output += " (";
+			output += enumToString(type);
+			output += ")";
+			output += "\n";
 		}
 
 		glGetProgramiv(this->progID, GL_ACTIVE_ATTRIBUTES, &attributes);
-		printf("Attributes: %d\n", attributes);
+		output += "Number of active attributes: ";
+		output += std::to_string(attributes);
+		output += "\n";
 
 		for (unsigned i = 0; i < attributes; i++)
 		{
 			glGetActiveAttrib(this->progID, i, 256, &length, &size, &type, name);
-			printf("  Name: %s\n", name);
+			output += "    Name: ";
+			output += name;
+			output += " (";
+			output += enumToString(type);
+			output += ")";
+			output += "\n";
+		}
+
+		return output;
+	}
+
+	// Convert an enum to a string to make shader validation and material
+	// properties easier to do. TODO: Add more uniforms and attributes.
+	std::string
+	Shader::enumToString(GLenum sEnum)
+	{
+		switch (sEnum)
+		{
+			case GL_FLOAT: return "float";
+			case GL_FLOAT_VEC2: return "vec2";
+			case GL_FLOAT_VEC3: return "vec3";
+			case GL_FLOAT_VEC4: return "vec4";
+			case GL_FLOAT_MAT3: return "mat3";
+			case GL_FLOAT_MAT4: return "mat4";
+			case GL_SAMPLER_1D: return "sampler1D";
+			case GL_SAMPLER_2D: return "sampler2D";
+			case GL_SAMPLER_3D: return "sampler3D";
+			case GL_SAMPLER_CUBE: return "samplerCube";
+
+			default: return "????";
+		}
+	}
+
+	UniformType
+	Shader::enumToUniform(GLenum sEnum)
+	{
+		switch (sEnum)
+		{
+			case GL_FLOAT: return UniformType::Float;
+			case GL_FLOAT_VEC2: return UniformType::Vec2;
+			case GL_FLOAT_VEC3: return UniformType::Vec3;
+			case GL_FLOAT_VEC4: return UniformType::Vec4;
+			case GL_FLOAT_MAT3: return UniformType::Mat3;
+			case GL_FLOAT_MAT4: return UniformType::Mat4;
+			case GL_SAMPLER_1D: return UniformType::Sampler1D;
+			case GL_SAMPLER_2D: return UniformType::Sampler2D;
+			case GL_SAMPLER_3D: return UniformType::Sampler3D;
+			case GL_SAMPLER_CUBE: return UniformType::SamplerCube;
+
+			default: return UniformType::Unknown;
 		}
 	}
 

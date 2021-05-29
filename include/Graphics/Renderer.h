@@ -9,6 +9,7 @@
 #include "Graphics/VertexArray.h"
 #include "Graphics/Shaders.h"
 #include "Graphics/Meshes.h"
+#include "Graphics/Model.h"
 #include "Graphics/Camera.h"
 #include "Graphics/FrameBuffer.h"
 #include "Graphics/EnvironmentMap.h"
@@ -56,8 +57,9 @@ namespace SciRenderer
     // Forward rendering setup.
     //--------------------------------------------------------------------------
     // Draw the data given.
-    void draw(Shared<VertexArray> data, Shared<Shader> program);
-    void draw(Shared<Mesh> data, Shared<Shader> program, const glm::mat4 &model, Shared<Camera> camera);
+    void draw(VertexArray* data, Shader* program);
+    void draw(Shared<Mesh> data, Shader* program, const glm::mat4 &model, Shared<Camera> camera);
+    void draw(Model* data, Shader* program, const glm::mat4 &model, Shared<Camera> camera);
     void draw(Shared<EnvironmentMap> environment, Shared<Camera> camera);
 
   private:
@@ -68,7 +70,7 @@ namespace SciRenderer
     RendererStorage deferredStorage;
 
     // Shader to draw a texture to a screen.
-    Shared<Shader> viewportProgram;
+    Shader* viewportProgram;
   };
 
   // Depth functions. Addition to this as they are required.

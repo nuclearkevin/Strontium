@@ -137,7 +137,7 @@ namespace SciRenderer
   //----------------------------------------------------------------------------
   // Misc. functions for texture manipulation.
   //----------------------------------------------------------------------------
-  Shared<Texture2D>
+  Texture2D*
   Textures::loadTexture2D(const std::string &filepath,
                           const Texture2DParams &params, bool isHDR)
   {
@@ -171,7 +171,7 @@ namespace SciRenderer
     }
 
     // The loaded texture.
-    Shared<Texture2D> outTex = createShared<Texture2D>(width, height, n, params);
+    Texture2D* outTex = new Texture2D(width, height, n, params);
     outTex->bind();
 
     // Generate a 2D texture. Currently supports both bytes and floating point
@@ -253,7 +253,7 @@ namespace SciRenderer
     return outTex;
   }
 
-  Shared<CubeMap>
+  CubeMap*
   Textures::loadTextureCubeMap(const std::vector<std::string> &filenames,
                                const TextureCubeMapParams &params,
                                const bool &isHDR)
@@ -271,7 +271,7 @@ namespace SciRenderer
     bool successful = true;
     unsigned char *data;
 
-    Shared<CubeMap> outMap = createShared<CubeMap>();
+    CubeMap* outMap = new CubeMap();
 
     stbi_set_flip_vertically_on_load(false);
 

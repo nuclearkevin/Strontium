@@ -19,6 +19,7 @@ namespace SciRenderer
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
     io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
+    io.ConfigDragClickToInputText = true;
 
     // Set ImGui to dark mode, because why would we not?
     ImGui::StyleColorsDark();

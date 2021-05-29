@@ -3,6 +3,9 @@
 // Project includes.
 #include "Core/Application.h"
 #include "Core/Logs.h"
+#include "GuiElements/Styles.h"
+#include "GuiElements/SceneGraphWindow.h"
+#include "GuiElements/CameraWindow.h"
 
 namespace SciRenderer
 {
@@ -10,25 +13,24 @@ namespace SciRenderer
     : Layer("Editor Layer")
     , logBuffer("")
   {
-
+    // TODO: Serialize these into application settings. YAML.cpp?
+    this->showPerf = true;
+    this->editorSize = ImVec2(0, 0);
   }
 
   EditorLayer::~EditorLayer()
-  { }
+  {
+    for (auto& pair : this->windows)
+      delete pair.second;
+  }
 
   void
   EditorLayer::onAttach()
   {
-    this->showPerf = true;
-    this->showEnvi = true;
-    this->showSceneGraph = true;
-    this->editorSize = ImVec2(0, 0);
-
+    // Fetch the asset caches and managers.
     auto shaderCache = AssetManager<Shader>::getManager();
 
-    // On attach methods for all the GUI elements.
-    enviSettings.onAttach();
-    sceneSettings.onAttach();
+    Styles::setDefaultTheme();
 
     // Fetch the width and height of the window and create a floating point
     // framebuffer.
@@ -41,28 +43,32 @@ namespace SciRenderer
   	this->drawBuffer->attachRenderBuffer();
 
     // Load the shader into a cache and set the appropriate uniforms.
-    Shared<Shader> program = createShared<Shader>("./res/shaders/mesh.vs",
-                                                  "./res/shaders/pbr/pbr.fs");
-    shaderCache->attachAsset("pbr", program);
+    Shader* program = new Shader ("./res/shaders/mesh.vs",
+                                  "./res/shaders/pbr/pbr.fs");
+    shaderCache->attachAsset("pbr_shader", program);
   	program->addUniformSampler2D("irradianceMap", 0);
   	program->addUniformSampler2D("reflectanceMap", 1);
   	program->addUniformSampler2D("brdfLookUp", 2);
 
     // Setup stuff for the scene.
     this->currentScene = createShared<Scene>();
+    auto ambient = this->currentScene->createEntity("Ambient Light");
+    ambient.addComponent<AmbientComponent>("./res/textures/hdr_environments/pink_sunrise_4k.hdr");
 
     // Finally, the editor camera.
-    this->editorCam = createShared<Camera>(1920 / 2, 1080 / 2, glm::vec3 {0.0f, 1.0f, 4.0f},
+    this->editorCam = createShared<Camera>(1920 / 2, 1080 / 2, glm::vec3 { 0.0f, 1.0f, 4.0f },
                                            EditorCameraType::Stationary);
-    this->editorCam->init(90.0f, 1.0f, 0.1f, 30.0f);
+    this->editorCam->init(90.0f, 1.0f, 0.1f, 200.0f);
+
+    // All the windows!
+    this->windows.push_back(std::make_pair(true, new SceneGraphWindow()));
+    this->windows.push_back(std::make_pair(true, new CameraWindow(this->editorCam)));
   }
 
   void
   EditorLayer::onDetach()
   {
-    // On detach methods for all the GUI elements.
-    enviSettings.onDetach();
-    sceneSettings.onDetach();
+
   }
 
   // On event for the layer.
@@ -70,12 +76,18 @@ namespace SciRenderer
   EditorLayer::onEvent(Event &event)
   {
     this->editorCam->onEvent(event);
+
+    for (auto& pair : this->windows)
+      pair.second->onEvent(event);
   }
 
   // On update for the layer.
   void
   EditorLayer::onUpdate(float dt)
   {
+    for (auto& pair : this->windows)
+      pair.second->onUpdate(dt);
+
     // Get the renderer.
     Renderer3D* renderer = Renderer3D::getInstance();
 
@@ -96,14 +108,9 @@ namespace SciRenderer
     this->drawBuffer->bind();
     this->drawBuffer->setViewport();
 
-    this->enviSettings.getEnvironmentMap()->bind(MapType::Irradiance, 0);
-    this->enviSettings.getEnvironmentMap()->bind(MapType::Prefilter, 1);
-    this->enviSettings.getEnvironmentMap()->bind(MapType::Integration, 2);
-
     // Update the scene.
     currentScene->onUpdate(dt, this->editorCam);
 
-    renderer->draw(this->enviSettings.getEnvironmentMap(), this->editorCam);
     this->drawBuffer->unbind();
 
     //--------------------------------------------------------------------------
@@ -158,12 +165,10 @@ namespace SciRenderer
 
 		style.WindowMinSize.x = minWinSizeX;
 
-    bool openObjMenu = false;
-
     // On ImGui render methods for all the GUI elements.
-    enviSettings.onImGuiRender(this->showEnvi);
-    if (this->showSceneGraph)
-      sceneSettings.onImGuiRender(this->showSceneGraph, this->currentScene);
+    for (auto& pair : this->windows)
+      if (pair.first == true)
+        pair.second->onImGuiRender(pair.first, this->currentScene);
 
   	if (ImGui::BeginMainMenuBar())
   	{
@@ -212,13 +217,13 @@ namespace SciRenderer
           {
             this->showPerf = true;
           }
-          if (ImGui::MenuItem("Show Environment Map Menu"))
-          {
-            this->showEnvi = true;
-          }
           if (ImGui::MenuItem("Show Scene Graph Menu"))
           {
-            this->showSceneGraph = true;
+            this->windows[0].first = true;
+          }
+          if (ImGui::MenuItem("Show Camera Menu"))
+          {
+            this->windows[1].first = true;
           }
           ImGui::EndMenu();
         }
@@ -236,7 +241,7 @@ namespace SciRenderer
     ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
-    ImGui::Begin("Editor Viewport", nullptr, this->editorFlags);
+    ImGui::Begin("Editor Viewport", nullptr, ImGuiWindowFlags_NoCollapse);
     {
       ImGui::BeginChild("EditorRender");
         {
@@ -251,7 +256,7 @@ namespace SciRenderer
 
     // The log menu.
     this->logBuffer += logs->getLastMessages();
-    ImGui::Begin("Application Logs", nullptr, this->logFlags);
+    ImGui::Begin("Application Logs", nullptr);
     {
       if (ImGui::Button("Clear Logs"))
       {

@@ -11,8 +11,7 @@
 #include "Graphics/GraphicsSystem.h"
 #include "Scenes/Scene.h"
 #include "Scenes/Entity.h"
-#include "GuiElements/EnvironmentWindow.h"
-#include "GuiElements/SceneGraphWindow.h"
+#include "GuiElements/GuiWindow.h"
 
 // ImGui includes.
 #include "imgui/imgui.h"
@@ -44,19 +43,12 @@ namespace SciRenderer
     Shared<Camera> editorCam;
 
     // The various external windows.
-    EnvironmentWindow enviSettings;
-    SceneGraphWindow sceneSettings;
-    // File handler objects.
-    imgui_addons::ImGuiFileBrowser fileHandler;
+    std::vector<std::pair<bool, GuiWindow*>> windows;
+
     // Stuff for ImGui and the GUI.
     bool showPerf;
-    bool showEnvi;
     bool showSceneGraph;
     std::string logBuffer;
     ImVec2 editorSize;
-
-    const ImGuiWindowFlags sidebarFlags = ImGuiWindowFlags_NoCollapse;
-    const ImGuiWindowFlags logFlags = 0;
-    const ImGuiWindowFlags editorFlags = ImGuiWindowFlags_NoCollapse;
   };
 }

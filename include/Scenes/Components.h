@@ -6,6 +6,7 @@
 // Project includes.
 #include "Graphics/Meshes.h"
 #include "Graphics/Textures.h"
+#include "Graphics/EnvironmentMap.h"
 
 namespace SciRenderer
 {
@@ -77,11 +78,10 @@ namespace SciRenderer
   // alongside the transform component.
   struct RenderableComponent
   {
-    Shared<Mesh> mesh;
+    Model* model;
 
     // TODO: Move these two to a material class and pass a material shared ptr instead.
-    Shared<Shader> shader;
-    std::vector<Shared<Texture2D>> textures;
+    Shader* shader;
 
     // Names so we can fetch the assets easily.
     std::string meshName;
@@ -96,41 +96,82 @@ namespace SciRenderer
       , shaderName("")
     { }
 
-    RenderableComponent(const Shared<Mesh> &mesh, const Shared<Shader> &shader,
-                        const std::vector<Shared<Texture2D>> &textures,
+    RenderableComponent(Model* model, Shader* shader,
                         const std::string &meshName, const std::string &meshPath,
                         const std::string &shaderName)
-      : mesh(mesh)
-      , shader(shader)
-      , textures(textures)
-      , meshName(meshName)
-      , meshPath(meshPath)
-      , shaderName(shaderName)
-    { }
-
-    RenderableComponent(const Shared<Mesh> &mesh, const Shared<Shader> &shader,
-                        const std::string &meshName, const std::string &meshPath,
-                        const std::string &shaderName)
-      : mesh(mesh)
+      : model(model)
       , shader(shader)
       , meshName(meshName)
       , meshPath(meshPath)
       , shaderName(shaderName)
     { }
 
-    operator Shared<Mesh>()
+    operator Model*() { return model; }
+    operator Shader*() { return shader; }
+    operator bool() { return model != nullptr && shader != nullptr; }
+  };
+
+  // This is an IBL ambient light component. TODO: Finish and overhaul environment maps.
+  struct AmbientComponent
+  {
+    Shared<EnvironmentMap> ambient;
+
+    // Environment map properties.
+    GLfloat roughness;
+    GLfloat gamma;
+    GLfloat ambientFactor;
+
+    bool drawingMips;
+
+    AmbientComponent(const AmbientComponent&) = default;
+
+    AmbientComponent()
+      : roughness(0.0f)
+      , gamma(2.2f)
+      , ambientFactor(1.0f)
+      , drawingMips(false)
     {
-      return mesh;
+      ambient = createShared<EnvironmentMap>("./res/models/cube.obj");
     }
 
-    operator Shared<Shader>()
+    AmbientComponent(Shared<EnvironmentMap> map)
+      : ambient(map)
+      , roughness(0.0f)
+      , gamma(2.2f)
+      , ambientFactor(1.0f)
+      , drawingMips(false)
+    { }
+
+    AmbientComponent(const std::string &iblImagePath)
+      : roughness(0.0f)
+      , gamma(2.2f)
+      , ambientFactor(1.0f)
+      , drawingMips(false)
     {
-      return shader;
+      ambient = createShared<EnvironmentMap>("./res/models/cube.obj");
+      ambient->loadEquirectangularMap(iblImagePath);
+      ambient->equiToCubeMap(true, 2048, 2048);
+      ambient->precomputeIrradiance(512, 512, true);
+      ambient->precomputeSpecular(2048, 2048, true);
     }
 
-    operator bool()
-    {
-      return mesh != nullptr && shader != nullptr;
-    }
+    operator bool() { return ambient != nullptr; }
+    operator Shared<EnvironmentMap>() { return ambient; }
+  };
+
+  // TODO: Finish these when done the deferred renderer.
+  struct DirectionalLightComponent
+  {
+
+  };
+
+  struct PointLightComponent
+  {
+
+  };
+
+  struct SpotLightComponent
+  {
+
   };
 }

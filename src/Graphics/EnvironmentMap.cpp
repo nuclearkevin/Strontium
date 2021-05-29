@@ -2,13 +2,13 @@
 
 // Project includes.
 #include "Core/Logs.h"
+#include "Core/AssetManager.h"
 #include "Graphics/Buffers.h"
 #include "Graphics/Compute.h"
 
 namespace SciRenderer
 {
-  EnvironmentMap::EnvironmentMap(const char* vertPath, const char* fragPath,
-                                 const char* cubeMeshPath)
+  EnvironmentMap::EnvironmentMap(const std::string &cubeMeshPath)
     : erMap(nullptr)
     , skybox(nullptr)
     , irradiance(nullptr)
@@ -17,11 +17,15 @@ namespace SciRenderer
     , currentEnvironment(MapType::Skybox)
     , gamma(2.2f)
     , roughness(0.0f)
-    , exposure(1.0f)
+    , filepath("")
   {
-    this->cubeShader = createShared<Shader>(vertPath, fragPath);
-    this->cube = createShared<Mesh>();
-    this->cube->loadOBJFile(cubeMeshPath, false);
+    auto modelManager = AssetManager<Model>::getManager();
+    auto shaderCache = AssetManager<Shader>::getManager();
+
+    this->cubeShader = new Shader("./res/shaders/pbr/pbrSkybox.vs", "./res/shaders/pbr/pbrSkybox.fs");
+    shaderCache->attachAsset("skybox_shader", this->cubeShader);
+
+    this->cube = modelManager->loadAssetFile(cubeMeshPath, "skyboxcube.obj");
   }
 
   EnvironmentMap::~EnvironmentMap()
@@ -128,15 +132,17 @@ namespace SciRenderer
     this->cubeShader->addUniformMatrix("vP", vP, GL_FALSE);
     this->cubeShader->addUniformSampler2D("skybox", 0);
     this->cubeShader->addUniformFloat("gamma", this->gamma);
-    this->cubeShader->addUniformFloat("exposure", this->exposure);
 
     if (this->currentEnvironment == MapType::Prefilter)
       this->cubeShader->addUniformFloat("roughness", this->roughness);
 
     this->bind(this->currentEnvironment, 0);
 
-    if (!this->cube->hasVAO())
-      this->cube->generateVAO(this->cubeShader);
+    for (auto& submeshes : this->cube->getSubmeshes())
+    {
+      if (!submeshes->hasVAO())
+        submeshes->generateVAO(this->cubeShader);
+    }
   }
 
   // Getters.
@@ -181,7 +187,8 @@ namespace SciRenderer
       return;
     }
 
-    this->erMap = Textures::loadTexture2D(filepath, params, isHDR);
+    this->erMap = Shared<Texture2D>(Textures::loadTexture2D(filepath, params, isHDR));
+    this->filepath = filepath;
   }
 
   // Convert the loaded equirectangular map to a cubemap.
@@ -232,7 +239,7 @@ namespace SciRenderer
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
     // The equirectangular to cubemap compute shader.
@@ -267,6 +274,8 @@ namespace SciRenderer
     logs->logMessage(LogMessage("Converted the equirectangular map to a cubemap"
                                 " (elapsed time: " + std::to_string(elapsed.count())
                                 + " s).", true, false, true));
+    this->skybox->bind();
+    glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
   }
 
   // Generate the diffuse irradiance map.

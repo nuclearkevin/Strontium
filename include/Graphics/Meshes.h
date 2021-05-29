@@ -1,4 +1,3 @@
-// Include guard.
 #pragma once
 
 // Macro include file.
@@ -7,18 +6,13 @@
 // Project includes.
 #include "Core/ApplicationBase.h"
 #include "Graphics/VertexArray.h"
+#include "Graphics/Textures.h"
 #include "Graphics/Shaders.h"
-
-// Tiny object loader!
-#include "tinyobjloader/tiny_obj_loader.h"
-
-// Assimp so more than just obj files can be loaded.
-#include <assimp/Importer.hpp>
-#include <assimp/scene.h>
-#include <assimp/postprocess.h>
 
 namespace SciRenderer
 {
+  class Model;
+
   // Vertex datatypes to store vertex attributes.
   struct Vertex
   {
@@ -34,22 +28,17 @@ namespace SciRenderer
   class Mesh
   {
   public:
-    // Constructors. Second one may come in handy for generic geometrical primitives.
-    Mesh();
-    Mesh(const std::vector<Vertex> &vertices, const std::vector<GLuint> &indices);
+    // Mesh class. Must be loaded in as a part of a parent model.
+    Mesh(const std::vector<Vertex> &vertices, const std::vector<GLuint> &indices,
+         const std::vector<Texture2D> &textures, Model* parent);
 
     ~Mesh();
 
-    // Load data from a file.
-    void loadOBJFile(const std::string &filepath, bool computeTBN = true);
     // Generate/delete the vertex array object.
     void generateVAO();
-    void generateVAO(Shared<Shader> program);
+    void generateVAO(Shader* program);
+
     void deleteVAO();
-    // Compute vertex and surface normals.
-    void computeNormals();
-    // Compute the tangents and bitangents.
-    void computeTBN();
     // Debug function to dump to the console.
     void dumpMeshData();
 
@@ -59,7 +48,7 @@ namespace SciRenderer
     // Getters.
     std::vector<Vertex>& getData() { return this->data; }
     std::vector<GLuint>& getIndices() { return this->indices; }
-    Shared<VertexArray>  getVAO() { return this->vArray; }
+    VertexArray*  getVAO() { return this->vArray.get(); }
     std::string getFilepath() { return this->filepath; }
 
     // Check for states.
@@ -70,13 +59,15 @@ namespace SciRenderer
     bool loaded;
     std::vector<Vertex>              data;
     std::vector<GLuint>              indices;
-    std::vector<tinyobj::material_t> materials;
     glm::mat4                        modelMatrix;
     bool                             hasUVs;
 
     std::string                      filepath;
+    std::string                      name;
+
+    Model* parent;
 
     // Vertex array object for the mesh data.
-    Shared<VertexArray> vArray;
+    Unique<VertexArray> vArray;
   };
 }

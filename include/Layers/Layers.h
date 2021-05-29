@@ -13,7 +13,6 @@ namespace SciRenderer
   class Layer
   {
   public:
-    // Constructor-destructor pair.
     Layer(const std::string &layerName);
     virtual ~Layer();
 

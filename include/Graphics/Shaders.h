@@ -9,7 +9,15 @@
 
 namespace SciRenderer
 {
-  enum GLVectorType { VEC4 = 4, VEC3 = 3, VEC2 = 2};
+  enum class AttribType { Vec4 = 4, Vec3 = 3, Vec2 = 2};
+  enum class UniformType
+  {
+    Float = GL_FLOAT, Vec2 = GL_FLOAT_VEC2, Vec3 = GL_FLOAT_VEC3,
+    Vec4 = GL_FLOAT_VEC4, Mat3 = GL_FLOAT_MAT3, Mat4 = GL_FLOAT_MAT4,
+    Sampler1D = GL_SAMPLER_1D, Sampler2D = GL_SAMPLER_2D,
+    Sampler3D = GL_SAMPLER_3D, SamplerCube = GL_SAMPLER_CUBE,
+    Unknown
+  };
 
   class Shader
   {
@@ -45,19 +53,29 @@ namespace SciRenderer
     void addUniformSampler2D(const char* uniformName, GLuint texID);
 
     // Setters for vertex attributes.
-    void addAtribute(const char* attribName, GLVectorType type,
+    void addAtribute(const char* attribName, AttribType type,
                      GLboolean normalized, unsigned size, unsigned stride);
+
+    // Shader dumb method, returns a string with all of the shader properties.
+    std::string dumpProgram();
 
     // Getters.
     GLuint getShaderID() { return this->progID; }
+    std::string& getInfoString() { return this->shaderInfoString; }
+    std::unordered_map<std::string, UniformType>& getUniforms() { return this->uniforms; }
+    std::vector<std::string>& getUniformNames() { return this->uniformNames; }
 
-    // Forward declaration of the shader debug function.
-    void dumpProgram(char* description);
+    // Convert GLenums to strings.
+    static std::string enumToString(GLenum sEnum);
+    static UniformType enumToUniform(GLenum sEnum);
   protected:
-      GLuint progID;
-      GLuint vertID;
-      GLuint fragID;
+    GLuint progID;
+    GLuint vertID;
+    GLuint fragID;
 
+    std::string shaderInfoString;
+    std::unordered_map<std::string, UniformType> uniforms;
+    std::vector<std::string> uniformNames;
   private:
       char *readShaderFile(const char* filename);
   };

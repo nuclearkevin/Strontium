@@ -7,6 +7,10 @@
 *.jpg
 *.tga
 *.hdr
+*.fbx
+*.FBX
+*.tbscene
+*.psd
 
 # Ignore the ignore of important model files.
 !bunny.obj

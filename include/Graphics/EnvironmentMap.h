@@ -6,7 +6,7 @@
 
 // Project includes.
 #include "Core/ApplicationBase.h"
-#include "Graphics/Meshes.h"
+#include "Graphics/Model.h"
 #include "Graphics/Shaders.h"
 #include "Graphics/Camera.h"
 #include "Graphics/Textures.h"
@@ -18,8 +18,7 @@ namespace SciRenderer
   class EnvironmentMap
   {
   public:
-    EnvironmentMap(const char* vertPath, const char* fragPath,
-                   const char* cubeMeshPath);
+    EnvironmentMap(const std::string &cubeMeshPath);
     ~EnvironmentMap();
 
     // Load a 2D equirectangular map. Assumes that the map is HDR by default.
@@ -54,10 +53,10 @@ namespace SciRenderer
     GLuint getTexID(const MapType &type);
 
     GLfloat& getGamma() { return this->gamma; }
-    GLfloat& getExposure() { return this->exposure; }
     GLfloat& getRoughness() { return this->roughness; }
-    Shared<Mesh> getCubeMesh() { return this->cube; }
-    Shared<Shader> getCubeProg() { return this->cubeShader; }
+    Model* getCubeMesh() { return this->cube; }
+    Shader* getCubeProg() { return this->cubeShader; }
+    std::string getFilepath() { return this->filepath; }
     bool hasEqrMap() { return this->erMap != nullptr; }
     bool hasSkybox() { return this->skybox != nullptr; }
     bool hasIrradiance() { return this->irradiance != nullptr; }
@@ -75,15 +74,16 @@ namespace SciRenderer
     Shared<CubeMap>   specPrefilter;
     Shared<Texture2D> brdfIntMap;
 
+    std::string filepath;
+
     MapType   currentEnvironment;
 
     // Tone-mapped parameters.
-    GLfloat   exposure;
     GLfloat   gamma;
     GLfloat   roughness;
 
-    Shared<Shader>  cubeShader;
+    Shader*  cubeShader;
 
-    Shared<Mesh>    cube;
+    Model*    cube;
   };
 }

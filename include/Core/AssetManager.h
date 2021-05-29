@@ -7,6 +7,7 @@
 #include "Core/ApplicationBase.h"
 #include "Core/Logs.h"
 #include "Graphics/Meshes.h"
+#include "Graphics/Model.h"
 #include "Graphics/Textures.h"
 
 namespace SciRenderer
@@ -36,31 +37,20 @@ namespace SciRenderer
     bool hasAsset(const std::string &name) { return this->assetStorage.contains(name); }
 
     // Attach an asset to the manager.
-    void attachAsset(const std::string &name, Shared<T> asset)
+    void attachAsset(const std::string &name, T* asset)
     {
       if (!this->hasAsset(name))
       {
         this->assetNames.push_back(name);
-        this->assetStorage.insert({ name, asset });
+        this->assetStorage.insert({ name, Unique<T>(asset) });
       }
     }
 
-    // This be broken.... TODO: fix
-    // Create an asset without loading it from a file.
-    template <typename ... Args>
-    Shared<T> createAsset(Args ... args, const std::string &name)
-    {
-      Shared<T> out = createShared<T>(std::forward<Args>(args)...);
-      this->assetNames.push_back(name);
-      this->assetStorage.insert({ name, out });
-      return out;
-    }
-
     // Load an asset. MUST DECLARE TEMPLATE SPECIALIZATIONS IN THE HEADER FILE.
-    Shared<T> loadAssetFile(const std::string &filepath, const std::string &name);
+    T* loadAssetFile(const std::string &filepath, const std::string &name);
 
     // Get the asset reference.
-    Shared<T> getAsset(const std::string &name) { return this->assetStorage.at(name); }
+    T* getAsset(const std::string &name) { return this->assetStorage.at(name).get(); }
 
     // Delete the asset.
     void deleteAsset(const std::string &name)
@@ -79,7 +69,7 @@ namespace SciRenderer
 
     static AssetManager<T>* instance;
 
-    std::unordered_map<std::string, Shared<T>> assetStorage;
+    std::unordered_map<std::string, Unique<T>> assetStorage;
     std::vector<std::string> assetNames;
   };
 
@@ -89,27 +79,28 @@ namespace SciRenderer
   //----------------------------------------------------------------------------
   // Template specializations for specific asset types go here.
   //----------------------------------------------------------------------------
-  template class AssetManager<Mesh>;
+  template class AssetManager<Model>;
   template class AssetManager<Texture2D>;
   template class AssetManager<CubeMap>;
 
   template <typename T>
-  Shared<T>
+  T*
   AssetManager<T>::loadAssetFile(const std::string &filepath, const std::string &name)
   {
     std::cout << "Behavior undefined!" << std::endl;
+    return nullptr;
   }
 
   template <>
-  Shared<Mesh>
-  AssetManager<Mesh>::loadAssetFile(const std::string &filepath, const std::string &name)
+  Model*
+  AssetManager<Model>::loadAssetFile(const std::string &filepath, const std::string &name)
   {
     if (this->hasAsset(name))
-      return this->assetStorage.at(name);
+      return this->assetStorage.at(name).get();
 
-    Shared<Mesh> loadable = createShared<Mesh>();
-    loadable->loadOBJFile(filepath);
-    this->assetStorage.insert({ name, loadable });
+    Model* loadable = new Model();
+    loadable->loadModel(filepath);
+    this->assetStorage.insert({ name, Unique<Model>(loadable) });
     this->assetNames.push_back(name);
 
     Logger* logs = Logger::getInstance();
@@ -120,13 +111,14 @@ namespace SciRenderer
   }
 
   template <>
-  Shared<Texture2D>
+  Texture2D*
   AssetManager<Texture2D>::loadAssetFile(const std::string &filepath, const std::string &name)
   {
     if (this->hasAsset(name))
-      return this->assetStorage.at(name);
-    Shared<Texture2D> loadable = Textures::loadTexture2D(filepath);
-    this->assetStorage.insert({ name, loadable });
+      return this->assetStorage.at(name).get();
+
+    Texture2D* loadable = Textures::loadTexture2D(filepath);
+    this->assetStorage.insert({ name, Unique<Texture2D>(loadable) });
     this->assetNames.push_back(name);
 
     Logger* logs = Logger::getInstance();
@@ -138,11 +130,11 @@ namespace SciRenderer
 
   // Can only do .jpg files so far. TODO: Make this better.
   template <>
-  Shared<CubeMap>
+  CubeMap*
   AssetManager<CubeMap>::loadAssetFile(const std::string &filepath, const std::string &name)
   {
     if (this->hasAsset(name))
-      return this->assetStorage.at(name);
+      return this->assetStorage.at(name).get();
 
     std::vector<std::string> sFaces = { "/posX", "/negX", "/posY", "/negY", "/posZ", "/negZ" };
     std::vector<std::string> cFaces;
@@ -155,9 +147,9 @@ namespace SciRenderer
       temp += sFaces[i] + ".jpg";
       cFaces.push_back(temp);
     }
-    Shared<CubeMap> loadable = Textures::loadTextureCubeMap(cFaces);
+    CubeMap* loadable = Textures::loadTextureCubeMap(cFaces);
 
-    this->assetStorage.insert({ name, loadable });
+    this->assetStorage.insert({ name, Unique<CubeMap>(loadable) });
     this->assetNames.push_back(name);
 
     Logger* logs = Logger::getInstance();

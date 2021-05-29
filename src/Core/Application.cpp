@@ -15,6 +15,7 @@ namespace SciRenderer
     , isMinimized(false)
     , lastTime(0.0f)
     , meshAssets(AssetManager<Mesh>::getManager())
+    , modelAssets(AssetManager<Model>::getManager())
     , shaderCache(AssetManager<Shader>::getManager())
   {
     if (Application::appInstance != nullptr)

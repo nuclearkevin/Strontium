@@ -58,6 +58,7 @@ namespace SciRenderer
 
     // Asset managers for the different assets loaded in.
     Unique<AssetManager<Mesh>> meshAssets;
+    Unique<AssetManager<Model>> modelAssets;
     Unique<AssetManager<Shader>> shaderCache;
   private:
     // The main function.

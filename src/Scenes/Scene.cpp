@@ -32,12 +32,37 @@ namespace SciRenderer
     // Get the renderer.
     Renderer3D* renderer = Renderer3D::getInstance();
 
+    // Get all the skyboxes (there should only be one per ECS).
+    auto skyboxes = this->sceneECS.view<AmbientComponent>();
+    for (auto entity : skyboxes)
+    {
+      auto skybox = skyboxes.get<AmbientComponent>(entity);
+      if (skybox)
+      {
+        skybox.ambient->bind(MapType::Irradiance, 0);
+        skybox.ambient->bind(MapType::Prefilter, 1);
+        skybox.ambient->bind(MapType::Integration, 2);
+        skybox.ambient->getGamma() = skybox.gamma;
+        skybox.ambient->getRoughness() = skybox.roughness;
+      }
+    }
+
+    // Group together the transform and renderable components.
     auto drawables = this->sceneECS.group<TransformComponent>(entt::get<RenderableComponent>);
     for (auto entity : drawables)
     {
+      // Draw all the renderables with transforms.
       auto [transform, renderable] = drawables.get<TransformComponent, RenderableComponent>(entity);
       if (renderable)
         renderer->draw(renderable, renderable, transform, sceneCamera);
+    }
+
+    for (auto entity : skyboxes)
+    {
+      // Draw the skybox.
+      auto skybox = skyboxes.get<AmbientComponent>(entity);
+      if (skybox)
+        renderer->draw(skybox, sceneCamera);
     }
   }
 }

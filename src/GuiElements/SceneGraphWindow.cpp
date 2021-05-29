@@ -5,19 +5,25 @@
 
 // Project includes.
 #include "Core/AssetManager.h"
+#include "GuiElements/Styles.h"
+
+// ImGui includes.
+#include "imgui/imgui.h"
+#include "imgui/imgui_internal.h"
+#include "imgui/imgui_impl_glfw.h"
+#include "imgui/imgui_impl_opengl3.h"
 
 namespace SciRenderer
 {
-  void
-  SceneGraphWindow::onAttach()
-  {
-    this->attachMesh = false;
-    this->propsWindow = true;
-    this->selectedMesh = "";
-  }
+  SceneGraphWindow::SceneGraphWindow()
+    : GuiWindow()
+    , attachMesh(false)
+    , attachEnvi(false)
+    , propsWindow(true)
+    , selectedMesh("")
+  { }
 
-  void
-  SceneGraphWindow::onDetach()
+  SceneGraphWindow::~SceneGraphWindow()
   { }
 
   void
@@ -55,13 +61,13 @@ namespace SciRenderer
       if (ImGui::MenuItem("Create New Debug Bunny"))
       {
         auto shaderCache = AssetManager<Shader>::getManager();
-        auto meshAssets = AssetManager<Mesh>::getManager();
+        auto modelAssets = AssetManager<Model>::getManager();
 
 				auto bunny = activeScene->createEntity();
         bunny.addComponent<TransformComponent>();
         bunny.addComponent<RenderableComponent>
-          (meshAssets->loadAssetFile("./res/models/bunny.obj", "bunny.obj"),
-           shaderCache->getAsset("pbr"), "bunny.obj", "./res/models/bunny.obj", "pbr");
+          (modelAssets->loadAssetFile("./res/models/bunny.obj", "bunny.obj"),
+           shaderCache->getAsset("pbr_shader"), "bunny.obj", "./res/models/bunny.obj", "pbr_shader");
 
         auto& tag = bunny.getComponent<NameComponent>();
         tag.name = "Debug Bunny";
@@ -83,6 +89,8 @@ namespace SciRenderer
       this->drawPropsWindow();
     if (this->attachMesh)
       this->drawMeshWindow();
+    if (this->attachEnvi)
+      this->drawEnviWindow();
   }
 
   void
@@ -111,14 +119,15 @@ namespace SciRenderer
     if (ImGui::IsItemClicked())
       this->selectedEntity = entity;
 
-    // Menu with entity properties.
+    // Menu with entity properties. Allows the addition and deletion of
+    // components, copying of the entity and deletion of the entity.
     bool entityDeleted = false;
     if (ImGui::BeginPopupContextItem())
     {
       this->selectedEntity = entity;
       if (ImGui::BeginMenu("Attach Component"))
       {
-        if (!entity.hasComponent<TransformComponent>())
+        if (!this->selectedEntity.hasComponent<TransformComponent>())
         {
           if (ImGui::MenuItem("Transform Component"))
             this->selectedEntity.addComponent<TransformComponent>();
@@ -132,7 +141,7 @@ namespace SciRenderer
           ImGui::PopStyleVar();
         }
 
-        if (!entity.hasComponent<RenderableComponent>())
+        if (!this->selectedEntity.hasComponent<RenderableComponent>())
         {
           if (ImGui::MenuItem("Renderable Component"))
             this->attachMesh = true;
@@ -146,12 +155,28 @@ namespace SciRenderer
           ImGui::PopStyleVar();
         }
 
+        // For now, only allow a single AmbientComponent per scene.
+        if (!this->selectedEntity.hasComponent<AmbientComponent>()
+            && activeScene->sceneECS.size<AmbientComponent>() == 0)
+        {
+          if (ImGui::MenuItem("Ambient Light Component"))
+            this->selectedEntity.addComponent<AmbientComponent>();
+        }
+        else
+        {
+          ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+          ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
+          ImGui::MenuItem("Ambient Light Component");
+          ImGui::PopItemFlag();
+          ImGui::PopStyleVar();
+        }
+
         ImGui::EndMenu();
       }
 
       if (ImGui::BeginMenu("Remove Component"))
       {
-        if (entity.hasComponent<TransformComponent>())
+        if (this->selectedEntity.hasComponent<TransformComponent>())
         {
           if (ImGui::MenuItem("Transform Component"))
             this->selectedEntity.removeComponent<TransformComponent>();
@@ -165,7 +190,7 @@ namespace SciRenderer
           ImGui::PopStyleVar();
         }
 
-        if (entity.hasComponent<RenderableComponent>())
+        if (this->selectedEntity.hasComponent<RenderableComponent>())
         {
           if (ImGui::MenuItem("Renderable Component"))
             this->selectedEntity.removeComponent<RenderableComponent>();
@@ -175,6 +200,20 @@ namespace SciRenderer
           ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
           ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
           ImGui::MenuItem("Renderable Component");
+          ImGui::PopItemFlag();
+          ImGui::PopStyleVar();
+        }
+
+        if (this->selectedEntity.hasComponent<AmbientComponent>())
+        {
+          if (ImGui::MenuItem("Ambient Light Component"))
+            this->selectedEntity.removeComponent<AmbientComponent>();
+        }
+        else
+        {
+          ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+          ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
+          ImGui::MenuItem("Ambient Light Component");
           ImGui::PopItemFlag();
           ImGui::PopStyleVar();
         }
@@ -228,6 +267,7 @@ namespace SciRenderer
     }
   }
 
+  // Function for drawing sub-entities and components of an entity.
   void
   SceneGraphWindow::drawComponentNodes()
   {
@@ -269,35 +309,13 @@ namespace SciRenderer
         {
           auto& tTranslation = this->selectedEntity.getComponent<TransformComponent>().translation;
           auto& tRotation = this->selectedEntity.getComponent<TransformComponent>().rotation;
+          auto& tShear = this->selectedEntity.getComponent<TransformComponent>().scale;
           auto& tScale = this->selectedEntity.getComponent<TransformComponent>().scaleFactor;
 
-          ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4, 4));
-          ImGui::PushMultiItemsWidths(3, ImGui::CalcItemWidth());
-          ImGui::DragFloat("##tX", &tTranslation.x, 0.1f, 0.0f, 0.0f, "%.2f");
-          ImGui::PopItemWidth();
-          ImGui::SameLine();
-          ImGui::DragFloat("##tY", &tTranslation.y, 0.1f, 0.0f, 0.0f, "%.2f");
-          ImGui::PopItemWidth();
-          ImGui::SameLine();
-          ImGui::DragFloat("##tZ", &tTranslation.z, 0.1f, 0.0f, 0.0f, "%.2f");
-          ImGui::PopItemWidth();
-          ImGui::SameLine();
-          ImGui::Text("Translation");
-
-          ImGui::PushMultiItemsWidths(3, ImGui::CalcItemWidth());
-          ImGui::DragFloat("##rX", &tRotation.x, 0.1f, 0.0f, 0.0f, "%.2f");
-          ImGui::PopItemWidth();
-          ImGui::SameLine();
-          ImGui::DragFloat("##rY", &tRotation.y, 0.1f, 0.0f, 0.0f, "%.2f");
-          ImGui::PopItemWidth();
-          ImGui::SameLine();
-          ImGui::DragFloat("##rZ", &tRotation.z, 0.1f, 0.0f, 0.0f, "%.2f");
-          ImGui::PopItemWidth();
-          ImGui::SameLine();
-          ImGui::Text("Rotation");
-
-          ImGui::DragFloat("Scale", &tScale, 0.1f, 0.0f, 0.0f, "%.2f");
-          ImGui::PopStyleVar();
+          Styles::drawVec3Controls("Translation", glm::vec3(0.0f), tTranslation);
+          Styles::drawVec3Controls("Rotation", glm::vec3(0.0f), tRotation);
+          Styles::drawVec3Controls("Shear", glm::vec3(0.0f), tShear);
+          Styles::drawFloatControl("Scale", 1.0f, tScale);
         }
       }
 
@@ -306,12 +324,37 @@ namespace SciRenderer
         if (ImGui::CollapsingHeader("Renderable Component"))
         {
           auto& rComponent = this->selectedEntity.getComponent<RenderableComponent>();
+
           ImGui::Text((std::string("Mesh: ") + rComponent.meshName).c_str());
           ImGui::Text((std::string("    Path: ") + rComponent.meshPath).c_str());
-          ImGui::Text((std::string("Shader: ") + rComponent.shaderName).c_str());
-
           if (ImGui::Button("Select New Mesh"))
             this->attachMesh = true;
+
+          ImGui::Text((std::string("Shader: ") + rComponent.shaderName).c_str());
+          ImGui::Text((std::string("Shader Info: ") + rComponent.shader->getInfoString()).c_str());
+        }
+      }
+
+      if (this->selectedEntity.hasComponent<AmbientComponent>())
+      {
+        if (ImGui::CollapsingHeader("Ambient Light Component"))
+        {
+          auto& ambient = this->selectedEntity.getComponent<AmbientComponent>();
+          if (ImGui::Button("Load New Environment"))
+            this->attachEnvi = true;
+
+          if (ambient.ambient->hasEqrMap())
+          {
+            ImGui::Checkbox("Draw Blurred", &ambient.drawingMips);
+            if (ambient.drawingMips)
+            {
+              ImGui::SliderFloat("Roughness", &ambient.roughness, 0.0f, 1.0f);
+              ambient.ambient->setDrawingType(MapType::Prefilter);
+            }
+            else
+              ambient.ambient->setDrawingType(MapType::Skybox);
+            ImGui::DragFloat("Gamma", &ambient.gamma, 0.1f, 0.0f, 10.0f, "%.2f");
+          }
         }
       }
     }
@@ -325,7 +368,7 @@ namespace SciRenderer
     bool openModelDialog = false;
 
     // Get the asset caches.
-    auto meshAssets = AssetManager<Mesh>::getManager();
+    auto modelAssets = AssetManager<Model>::getManager();
     auto shaderCache = AssetManager<Shader>::getManager();
 
     ImGui::Begin("Mesh Assets", &this->attachMesh);
@@ -338,15 +381,15 @@ namespace SciRenderer
     ImGui::SameLine();
     if (this->selectedMesh != "")
     {
-      if (ImGui::Button("Use Selected##selectedModelbutton"))
+      if (ImGui::Button("Use Selected Mesh##selectedModelbutton"))
       {
-        // Remove the mesh component if it has one.
+        // If it already has a mesh component, just modify the existing one.
         if (this->selectedEntity.hasComponent<RenderableComponent>())
         {
           auto& renderable = this->selectedEntity.getComponent<RenderableComponent>();
-          renderable.mesh = meshAssets->getAsset(this->selectedMesh);
+          renderable.model = modelAssets->getAsset(this->selectedMesh);
           renderable.meshName = this->selectedMesh;
-          renderable.meshPath = renderable.mesh->getFilepath();
+          renderable.meshPath = renderable.model->getFilepath();
 
           this->attachMesh = false;
           this->selectedMesh = "";
@@ -354,8 +397,8 @@ namespace SciRenderer
         else
         {
           this->selectedEntity.addComponent<RenderableComponent>
-            (meshAssets->getAsset(this->selectedMesh), shaderCache->getAsset("pbr"),
-             this->selectedMesh, meshAssets->getAsset(this->selectedMesh)->getFilepath(), "pbr");
+            (modelAssets->getAsset(this->selectedMesh), shaderCache->getAsset("pbr_shader"),
+             this->selectedMesh, modelAssets->getAsset(this->selectedMesh)->getFilepath(), "pbr_shader");
 
           this->attachMesh = false;
           this->selectedMesh = "";
@@ -366,13 +409,13 @@ namespace SciRenderer
     {
       ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
       ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
-      ImGui::Button("Use Selected##selectedModelbutton");
+      ImGui::Button("Use Selected Mesh##selectedModelbutton");
       ImGui::PopItemFlag();
       ImGui::PopStyleVar();
     }
 
     // Loop over all the loaded models and display each for selection.
-    for (auto& name : meshAssets->getStorage())
+    for (auto& name : modelAssets->getStorage())
     {
       ImGuiTreeNodeFlags flags = ((this->selectedMesh == name) ? ImGuiTreeNodeFlags_Selected : 0);
       flags |= ImGuiTreeNodeFlags_NoTreePushOnOpen | ImGuiTreeNodeFlags_OpenOnArrow
@@ -386,25 +429,26 @@ namespace SciRenderer
     ImGui::End();
 
     // Load in a model and give it to the entity as a renderable component
-    // alongside the PBR shader.
+    // alongside the pbr_shader shader.
     if (openModelDialog)
       ImGui::OpenPopup("Load Mesh");
 
     if (this->fileHandler.showFileDialog("Load Mesh",
-        imgui_addons::ImGuiFileBrowser::DialogMode::OPEN, ImVec2(700, 310), ".obj"))
+        imgui_addons::ImGuiFileBrowser::DialogMode::OPEN, ImVec2(700, 310), ".obj,.FBX,.fbx"))
     {
       auto shaderCache = AssetManager<Shader>::getManager();
-      auto meshAssets = AssetManager<Mesh>::getManager();
+      auto modelAssets = AssetManager<Model>::getManager();
 
       std::string name = this->fileHandler.selected_fn;
       std::string path = this->fileHandler.selected_path;
 
+      // If it already has a mesh component, just modify the existing one.
       if (this->selectedEntity.hasComponent<RenderableComponent>())
       {
         auto& renderable = this->selectedEntity.getComponent<RenderableComponent>();
-        renderable.mesh = meshAssets->loadAssetFile(path, name);
+        renderable.model = modelAssets->loadAssetFile(path, name);
         renderable.meshName = name;
-        renderable.meshPath = renderable.mesh->getFilepath();
+        renderable.meshPath = renderable.model->getFilepath();
 
         this->attachMesh = false;
         this->selectedMesh = "";
@@ -412,11 +456,46 @@ namespace SciRenderer
       else
       {
         this->selectedEntity.addComponent<RenderableComponent>
-          (meshAssets->loadAssetFile(path, name), shaderCache->getAsset("pbr"), name, path, "pbr");
+          (modelAssets->loadAssetFile(path, name), shaderCache->getAsset("pbr_shader"), name, path, "pbr_shader");
 
         this->attachMesh = false;
         this->selectedMesh = "";
       }
+    }
+  }
+
+  void
+  SceneGraphWindow::drawEnviWindow()
+  {
+    bool openEnviDialog = false;
+
+    ImGui::OpenPopup("Load Environment Map");
+
+    if (this->fileHandler.showFileDialog("Load Environment Map",
+        imgui_addons::ImGuiFileBrowser::DialogMode::OPEN, ImVec2(700, 310), ".hdr"))
+    {
+      std::string name = this->fileHandler.selected_fn;
+      std::string path = this->fileHandler.selected_path;
+
+      auto& ambient = this->selectedEntity.getComponent<AmbientComponent>();
+
+      if (ambient.ambient->hasEqrMap())
+      {
+        ambient.ambient->unloadEnvironment();
+        ambient.ambient->loadEquirectangularMap(path);
+        ambient.ambient->equiToCubeMap(true, 2048, 2048);
+        ambient.ambient->precomputeIrradiance(512, 512, true);
+        ambient.ambient->precomputeSpecular(2048, 2048, true);
+      }
+      else
+      {
+        ambient.ambient->loadEquirectangularMap(path);
+        ambient.ambient->equiToCubeMap(true, 2048, 2048);
+        ambient.ambient->precomputeIrradiance(512, 512, true);
+        ambient.ambient->precomputeSpecular(2048, 2048, true);
+      }
+
+      this->attachEnvi = false;
     }
   }
 }

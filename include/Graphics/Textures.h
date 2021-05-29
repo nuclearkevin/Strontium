@@ -145,12 +145,12 @@ namespace SciRenderer
   namespace Textures
   {
     // Read textures from disk.
-    Shared<Texture2D> loadTexture2D(const std::string &filepath,
-                                    const Texture2DParams &params = Texture2DParams(),
-                                    bool isHDR = false);
-    Shared<CubeMap> loadTextureCubeMap(const std::vector<std::string> &filenames,
-                                       const TextureCubeMapParams &params = TextureCubeMapParams(),
-                                       const bool &isHDR = false);
+    Texture2D* loadTexture2D(const std::string &filepath,
+                             const Texture2DParams &params = Texture2DParams(),
+                             bool isHDR = false);
+    CubeMap* loadTextureCubeMap(const std::vector<std::string> &filenames,
+                                const TextureCubeMapParams &params = TextureCubeMapParams(),
+                                const bool &isHDR = false);
 
     // Write textures to disk.
     void writeTexture2D(Shared<Texture2D> &outTex);

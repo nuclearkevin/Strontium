@@ -1,5 +1,8 @@
 #include "Graphics/Renderer.h"
 
+// Project includes.
+#include "Core/AssetManager.h"
+
 namespace SciRenderer
 {
   Renderer3D* Renderer3D::instance = nullptr;
@@ -29,13 +32,15 @@ namespace SciRenderer
     RendererCommands::enable(RendererFunction::CubeMapSeamless);
 
     // Initialize the vewport shader passthrough.
-    this->viewportProgram = createShared<Shader>("./res/shaders/viewport.vs",
-                                                 "./res/shaders/viewport.fs");
+    auto shaderCache = AssetManager<Shader>::getManager();
+    this->viewportProgram = new Shader("./res/shaders/viewport.vs",
+                                       "./res/shaders/viewport.fs");
+    shaderCache->attachAsset("fsq_shader", this->viewportProgram);
   }
 
   // Draw the data to the screen.
   void
-  Renderer3D::draw(Shared<VertexArray> data, Shared<Shader> program)
+  Renderer3D::draw(VertexArray* data, Shader* program)
   {
     data->bind();
     program->bind();
@@ -46,8 +51,9 @@ namespace SciRenderer
     program->unbind();
   }
 
+  // Draw a mesh to the screen.
   void
-  Renderer3D::draw(Shared<Mesh> data, Shared<Shader> program, const glm::mat4 &model,
+  Renderer3D::draw(Shared<Mesh> data, Shader* program, const glm::mat4 &model,
                    Shared<Camera> camera)
   {
     program->bind();
@@ -69,12 +75,26 @@ namespace SciRenderer
     }
   }
 
+  // Draw a model to the screen (it just draws all the submeshes associated with the model).
+  void
+  Renderer3D::draw(Model* data, Shader* program, const glm::mat4 &model,
+                   Shared<Camera> camera)
+  {
+    for (auto& submesh : data->getSubmeshes())
+      this->draw(submesh, program, model, camera);
+  }
+
+  // Draw an environment map to the screen. Draws all the submeshes associated
+  // with the cube model.
   void
   Renderer3D::draw(Shared<EnvironmentMap> environment, Shared<Camera> camera)
   {
     RendererCommands::depthFunction(DepthFunctions::LEq);
     environment->configure(camera);
-    this->draw(environment->getCubeMesh()->getVAO(), environment->getCubeProg());
+
+    for (auto& submesh : environment->getCubeMesh()->getSubmeshes())
+      this->draw(submesh->getVAO(), environment->getCubeProg());
+
     RendererCommands::depthFunction(DepthFunctions::Less);
   }
 

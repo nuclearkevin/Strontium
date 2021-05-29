@@ -16,8 +16,8 @@ namespace SciRenderer
   {
   public:
     // Constructors.
-    Camera(float xCenter, float yCenter, EditorCameraType type);
-    Camera(float xCenter, float yCenter, const glm::vec3 &initPosition,
+    Camera(GLfloat xCenter, GLfloat yCenter, EditorCameraType type);
+    Camera(GLfloat xCenter, GLfloat yCenter, const glm::vec3 &initPosition,
            EditorCameraType type);
 
     // Destructor.
@@ -50,6 +50,14 @@ namespace SciRenderer
     glm::vec3 getCamPos();
     glm::vec3 getCamFront();
 
+    // Get the perspective parameters.
+    GLfloat& getHorFOV() { return this->horFOV; }
+    GLfloat& getNear() { return this->near; }
+    GLfloat& getFar() { return this->far; }
+    GLfloat& getAspect() { return this->aspect; }
+
+    GLfloat& getSpeed() { return this->scalarSpeed; }
+    GLfloat& getSens() { return this->sensitivity; }
   protected:
     // Event handling functions.
     void onMouseScroll(MouseScrolledEvent &mouseEvent);
@@ -66,18 +74,22 @@ namespace SciRenderer
     glm::mat4   proj;
 
     // Time steps to normalize camera movement to frame time.
-    float       lastTime;
+    GLfloat       lastTime;
 
     // Previous x and y coords of the mouse, plus a boolean to detect if the app
     // just launched.
-    float       lastMouseX;
-    float       lastMouseY;
+    GLfloat       lastMouseX;
+    GLfloat       lastMouseY;
 
     // FPS/free camera variables.
-    float       yaw;
-    float       pitch;
-    const float scalarSpeed = 2.5f;
-    const float sensitivity = 0.1f;
+    GLfloat       yaw;
+    GLfloat       pitch;
+    GLfloat       horFOV;
+    GLfloat       near;
+    GLfloat       far;
+    GLfloat       aspect;
+    GLfloat       scalarSpeed = 2.5f;
+    GLfloat       sensitivity = 0.1f;
 
     EditorCameraType  currentType;
 
