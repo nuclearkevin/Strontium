@@ -312,10 +312,18 @@ namespace SciRenderer
           auto& tShear = this->selectedEntity.getComponent<TransformComponent>().scale;
           auto& tScale = this->selectedEntity.getComponent<TransformComponent>().scaleFactor;
 
+          glm::vec3 tEulerRotation = glm::vec3(glm::degrees(tRotation.x),
+                                               glm::degrees(tRotation.y),
+                                               glm::degrees(tRotation.z));
+
           Styles::drawVec3Controls("Translation", glm::vec3(0.0f), tTranslation);
-          Styles::drawVec3Controls("Rotation", glm::vec3(0.0f), tRotation);
+          Styles::drawVec3Controls("Rotation", glm::vec3(0.0f), tEulerRotation);
           Styles::drawVec3Controls("Shear", glm::vec3(0.0f), tShear);
           Styles::drawFloatControl("Scale", 1.0f, tScale);
+
+          tRotation = glm::vec3(glm::radians(tEulerRotation.x),
+                                glm::radians(tEulerRotation.y),
+                                glm::radians(tEulerRotation.z));
         }
       }
 

@@ -1,5 +1,7 @@
 #include "GuiElements/Styles.h"
 
+#include <sstream>
+
 namespace SciRenderer
 {
   namespace Styles
@@ -133,7 +135,7 @@ namespace SciRenderer
 
     void
     drawVec3Controls(const std::string &label, glm::vec3 resetValue,
-                     glm::vec3& param)
+                     glm::vec3& param, GLfloat offset, GLfloat speed)
     {
       ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4, 4));
       ImGui::PushMultiItemsWidths(4, ImGui::CalcItemWidth());
@@ -144,17 +146,17 @@ namespace SciRenderer
       ImGui::PopStyleColor(3);
 
       ImGui::SameLine();
-      ImGui::DragFloat((std::string("##x") + label).c_str(), &param.x, 0.1f,
+      ImGui::DragFloat((std::string("##x") + label).c_str(), &param.x, speed,
                        0.0f, 0.0f, "%.2f");
       ImGui::PopItemWidth();
 
       ImGui::SameLine();
-      ImGui::DragFloat((std::string("##y") + label).c_str(), &param.y, 0.1f,
+      ImGui::DragFloat((std::string("##y") + label).c_str(), &param.y, speed,
                        0.0f, 0.0f, "%.2f");
       ImGui::PopItemWidth();
 
       ImGui::SameLine();
-      ImGui::DragFloat((std::string("##z") + label).c_str(), &param.z, 0.1f,
+      ImGui::DragFloat((std::string("##z") + label).c_str(), &param.z, speed,
                        0.0f, 0.0f, "%.2f");
       ImGui::PopItemWidth();
 
@@ -165,7 +167,7 @@ namespace SciRenderer
 
     void
     drawVec2Controls(const std::string &label, glm::vec2 resetValue,
-                     glm::vec2& param)
+                     glm::vec2& param, GLfloat offset, GLfloat speed)
     {
       ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4, 4));
       ImGui::PushMultiItemsWidths(3, ImGui::CalcItemWidth());
@@ -178,11 +180,11 @@ namespace SciRenderer
       ImGui::PopStyleColor(3);
 
       ImGui::SameLine();
-      ImGui::DragFloat((std::string("##x") + label).c_str(), &param.x, 0.1f,
+      ImGui::DragFloat((std::string("##x") + label).c_str(), &param.x, speed,
                        0.0f, 0.0f, "%.2f");
       ImGui::PopItemWidth();
       ImGui::SameLine();
-      ImGui::DragFloat((std::string("##y") + label).c_str(), &param.y, 0.1f,
+      ImGui::DragFloat((std::string("##y") + label).c_str(), &param.y, speed,
                        0.0f, 0.0f, "%.2f");
       ImGui::PopItemWidth();
       ImGui::SameLine();
@@ -192,7 +194,7 @@ namespace SciRenderer
 
     void
     drawFloatControl(const std::string &label, GLfloat resetValue,
-                     GLfloat& param)
+                     GLfloat& param, GLfloat offset, GLfloat speed)
     {
       ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4, 4));
       setButtonColour(ImVec4{ 0.8f, 0.1f, 0.15f, 1.0f },
@@ -203,8 +205,8 @@ namespace SciRenderer
       ImGui::PopStyleColor(3);
 
       ImGui::SameLine();
-      ImGui::PushItemWidth(ImGui::CalcItemWidth() * 3.0 / 4.0 - 4.0);
-      ImGui::DragFloat((std::string("##x") + label).c_str(), &param, 0.1f, 0.0f,
+      ImGui::PushItemWidth(ImGui::CalcItemWidth() * 3.0 / 4.0 - offset);
+      ImGui::DragFloat((std::string("##x") + label).c_str(), &param, speed, 0.0f,
                        0.0f, "%.2f");
       ImGui::PopItemWidth();
 
@@ -254,6 +256,34 @@ namespace SciRenderer
 
       return ImVec4(((GLfloat) r) / 255.0f, ((GLfloat) g) / 255.0f,
                     ((GLfloat) b) / 255.0f, ((GLfloat) a) / 255.0f);
+    }
+
+    std::string
+    colourToHex(const ImVec4 &colour)
+    {
+      int r = (int) (colour.x * 255.0f);
+      int g = (int) (colour.y * 255.0f);
+      int b = (int) (colour.z * 255.0f);
+      int a = (int) (colour.w * 255.0f);
+
+      unsigned long out = ((r & 0xff) << 24) + ((g & 0xff) << 16) + ((b & 0xff) << 8) + (a & 0xff);
+      std::stringstream stream;
+      stream << "#" << std::hex << out;
+      return std::string(stream.str());
+    }
+
+    std::string
+    colourToHex(const glm::vec4 &colour)
+    {
+      int r = (int) (colour.r * 255.0f);
+      int g = (int) (colour.g * 255.0f);
+      int b = (int) (colour.b * 255.0f);
+      int a = (int) (colour.a * 255.0f);
+
+      unsigned long out = ((r & 0xff) << 24) + ((g & 0xff) << 16) + ((b & 0xff) << 8) + (a & 0xff);
+      std::stringstream stream;
+      stream << "#" << std::hex << out;
+      return std::string(stream.str());
     }
   }
 }

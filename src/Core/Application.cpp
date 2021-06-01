@@ -14,7 +14,7 @@ namespace SciRenderer
     , running(true)
     , isMinimized(false)
     , lastTime(0.0f)
-    , meshAssets(AssetManager<Mesh>::getManager())
+    , texture2DAssets(AssetManager<Texture2D>::getManager())
     , modelAssets(AssetManager<Model>::getManager())
     , shaderCache(AssetManager<Shader>::getManager())
   {

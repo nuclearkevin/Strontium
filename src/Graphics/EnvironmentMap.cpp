@@ -39,23 +39,23 @@ namespace SciRenderer
   {
     if (this->erMap != nullptr)
     {
-      this->erMap = Shared<Texture2D>(nullptr);
+      this->erMap = Unique<Texture2D>(nullptr);
     }
     if (this->skybox != nullptr)
     {
-      this->skybox = Shared<CubeMap>(nullptr);
+      this->skybox = Unique<CubeMap>(nullptr);
     }
     if (this->irradiance != nullptr)
     {
-      this->irradiance = Shared<CubeMap>(nullptr);
+      this->irradiance = Unique<CubeMap>(nullptr);
     }
     if (this->specPrefilter != nullptr)
     {
-      this->specPrefilter = Shared<CubeMap>(nullptr);
+      this->specPrefilter = Unique<CubeMap>(nullptr);
     }
     if (this->brdfIntMap != nullptr)
     {
-      this->brdfIntMap = Shared<Texture2D>(nullptr);
+      this->brdfIntMap = Unique<Texture2D>(nullptr);
     }
   }
 
@@ -174,20 +174,9 @@ namespace SciRenderer
   // Load a 2D equirectangular map.
   void
   EnvironmentMap::loadEquirectangularMap(const std::string &filepath,
-                                         const Texture2DParams &params,
-                                         const bool &isHDR)
+                                         const Texture2DParams &params)
   {
-    Logger* logs = Logger::getInstance();
-
-    // If we already have an equirectangular map, don't load another.
-    if (this->erMap != nullptr)
-    {
-      logs->logMessage(LogMessage("This environment map already has an "
-                                  "equirectangular map.", true, false, true));
-      return;
-    }
-
-    this->erMap = Shared<Texture2D>(Textures::loadTexture2D(filepath, params, isHDR));
+    this->erMap = Unique<Texture2D>(Texture2D::loadTexture2D(filepath, params, false));
     this->filepath = filepath;
   }
 
@@ -198,23 +187,10 @@ namespace SciRenderer
   {
     Logger* logs = Logger::getInstance();
 
-    // If we already have a cubemap of a given type, don't load another.
-    if (this->skybox != nullptr)
-    {
-      logs->logMessage(LogMessage("This environment map already has a skybox "
-                                  "cubemap.", true, false, true));
-      return;
-    }
-    if (this->erMap == nullptr)
-    {
-      logs->logMessage(LogMessage("No equirectangular map attached! Cannot "
-                                  "generate a cubemap.", true, false, true));
-      return;
-    }
     auto start = std::chrono::steady_clock::now();
 
     // The resulting cubemap from the conversion process.
-    this->skybox = createShared<CubeMap>();
+    this->skybox = createUnique<CubeMap>();
 
     // Assign the texture sizes to the cubemap struct.
     for (unsigned i = 0; i < 6; i++)
@@ -285,16 +261,10 @@ namespace SciRenderer
   {
     Logger* logs = Logger::getInstance();
 
-    if (this->irradiance != nullptr)
-    {
-      logs->logMessage(LogMessage("This environment map already has an irradiance "
-                                  "map.", true, false, true));
-      return;
-    }
     auto start = std::chrono::steady_clock::now();
 
     // The resulting cubemap from the convolution process.
-    this->irradiance = createShared<CubeMap>();
+    this->irradiance = createUnique<CubeMap>();
 
     // Assign the texture sizes to the cubemap struct.
     for (unsigned i = 0; i < 6; i++)
@@ -358,14 +328,6 @@ namespace SciRenderer
   {
     Logger* logs = Logger::getInstance();
 
-    if (this->specPrefilter != nullptr && this->brdfIntMap != nullptr)
-    {
-      logs->logMessage(LogMessage("This environment map already has the required "
-                                  "specular map and lookup texture.",
-                                  true, false, true));
-      return;
-    }
-
     if (this->specPrefilter == nullptr)
     {
       //--------------------------------------------------------------------------
@@ -374,7 +336,7 @@ namespace SciRenderer
       auto start = std::chrono::steady_clock::now();
 
       // The resulting cubemap from the environment pre-filter.
-      this->specPrefilter = createShared<CubeMap>();
+      this->specPrefilter = createUnique<CubeMap>();
 
       for (unsigned i = 0; i < 6; i++)
       {
@@ -452,7 +414,7 @@ namespace SciRenderer
       //--------------------------------------------------------------------------
       auto start = std::chrono::steady_clock::now();
 
-      this->brdfIntMap = createShared<Texture2D>();
+      this->brdfIntMap = createUnique<Texture2D>();
       this->brdfIntMap->width = 512;
       this->brdfIntMap->height = 512;
 

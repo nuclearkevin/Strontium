@@ -91,7 +91,10 @@ namespace SciRenderer
   {
   public:
     static Texture2D* createMonoColour(const glm::vec4 &colour, const Texture2DParams &params
-                                       = Texture2DParams());
+                                       = Texture2DParams(), bool cache = true);
+
+    static Texture2D* loadTexture2D(const std::string &filepath, const Texture2DParams &params
+                                    = Texture2DParams(), bool cache = true);
 
     Texture2D();
     Texture2D(const GLuint &width, const GLuint &height, const GLuint &n,
@@ -140,23 +143,4 @@ namespace SciRenderer
   private:
     GLuint textureID;
   };
-
-  //----------------------------------------------------------------------------
-  // Misc. functions for texture manipulation. Wrapped in the Textures
-  // namespace. TODO: Move to the texture classes as static functions.
-  //----------------------------------------------------------------------------
-  namespace Textures
-  {
-    // Read textures from disk.
-    Texture2D* loadTexture2D(const std::string &filepath,
-                             const Texture2DParams &params = Texture2DParams(),
-                             bool isHDR = false);
-    CubeMap* loadTextureCubeMap(const std::vector<std::string> &filenames,
-                                const TextureCubeMapParams &params = TextureCubeMapParams(),
-                                const bool &isHDR = false);
-
-    // Write textures to disk.
-    void writeTexture2D(Shared<Texture2D> &outTex);
-    void writeTextureCubeMap(Shared<CubeMap> &outTex);
-  }
 }

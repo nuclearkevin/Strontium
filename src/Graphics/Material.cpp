@@ -38,10 +38,7 @@ namespace SciRenderer
   { }
 
   Material::~Material()
-  {
-    for (auto& pair : this->textures)
-      delete pair.second;
-  }
+  { }
 
   void
   Material::configure()

@@ -57,8 +57,8 @@ namespace SciRenderer
     float lastTime;
 
     // Asset managers for the different assets loaded in.
-    Unique<AssetManager<Mesh>> meshAssets;
     Unique<AssetManager<Model>> modelAssets;
+    Unique<AssetManager<Texture2D>> texture2DAssets;
     Unique<AssetManager<Shader>> shaderCache;
   private:
     // The main function.

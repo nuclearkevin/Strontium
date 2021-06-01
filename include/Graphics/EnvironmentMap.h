@@ -23,8 +23,7 @@ namespace SciRenderer
 
     // Load a 2D equirectangular map. Assumes that the map is HDR by default.
     void loadEquirectangularMap(const std::string &filepath,
-                                const Texture2DParams &params = Texture2DParams(),
-                                const bool &isHDR = true);
+                                const Texture2DParams &params = Texture2DParams());
 
     // Convert an equirectangular map to a cubemap.
     void equiToCubeMap(const bool &isHDR = true, const GLuint &width = 512,
@@ -68,11 +67,11 @@ namespace SciRenderer
 
     void setDrawingType(MapType type) { this->currentEnvironment = type; }
   protected:
-    Shared<Texture2D> erMap;
-    Shared<CubeMap>   skybox;
-    Shared<CubeMap>   irradiance;
-    Shared<CubeMap>   specPrefilter;
-    Shared<Texture2D> brdfIntMap;
+    Unique<Texture2D> erMap;
+    Unique<CubeMap>   skybox;
+    Unique<CubeMap>   irradiance;
+    Unique<CubeMap>   specPrefilter;
+    Unique<Texture2D> brdfIntMap;
 
     std::string filepath;
 
