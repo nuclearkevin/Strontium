@@ -44,11 +44,8 @@ namespace SciRenderer
 
     // Load the shader into a cache and set the appropriate uniforms.
     Shader* program = new Shader ("./res/shaders/mesh.vs",
-                                  "./res/shaders/pbr/pbr.fs");
+                                  "./res/shaders/pbr/pbrTex.fs");
     shaderCache->attachAsset("pbr_shader", program);
-  	program->addUniformSampler2D("irradianceMap", 0);
-  	program->addUniformSampler2D("reflectanceMap", 1);
-  	program->addUniformSampler2D("brdfLookUp", 2);
 
     // Setup stuff for the scene.
     this->currentScene = createShared<Scene>();
@@ -246,7 +243,7 @@ namespace SciRenderer
       ImGui::BeginChild("EditorRender");
         {
           this->editorSize = ImGui::GetWindowSize();
-          ImGui::Image((ImTextureID) this->drawBuffer->getAttachID(FBOTargetParam::Colour0),
+          ImGui::Image((ImTextureID) (unsigned long) this->drawBuffer->getAttachID(FBOTargetParam::Colour0),
                        this->editorSize, ImVec2(0, 1), ImVec2(1, 0));
         }
       ImGui::EndChild();

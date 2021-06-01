@@ -57,6 +57,10 @@ namespace SciRenderer
                    Shared<Camera> camera)
   {
     program->bind();
+
+    auto material = data->getMat();
+    material->configure();
+
   	glm::mat3 normal = glm::transpose(glm::inverse(glm::mat3(model)));
   	glm::mat4 modelViewPerspective = camera->getProjMatrix() * camera->getViewMatrix() * model;
 
@@ -77,11 +81,11 @@ namespace SciRenderer
 
   // Draw a model to the screen (it just draws all the submeshes associated with the model).
   void
-  Renderer3D::draw(Model* data, Shader* program, const glm::mat4 &model,
+  Renderer3D::draw(Model* data, const glm::mat4 &model,
                    Shared<Camera> camera)
   {
-    for (auto& submesh : data->getSubmeshes())
-      this->draw(submesh, program, model, camera);
+    for (auto& pair : data->getSubmeshes())
+      this->draw(pair.second, pair.second->getMat()->getShader(), model, camera);
   }
 
   // Draw an environment map to the screen. Draws all the submeshes associated
@@ -92,8 +96,8 @@ namespace SciRenderer
     RendererCommands::depthFunction(DepthFunctions::LEq);
     environment->configure(camera);
 
-    for (auto& submesh : environment->getCubeMesh()->getSubmeshes())
-      this->draw(submesh->getVAO(), environment->getCubeProg());
+    for (auto& pair : environment->getCubeMesh()->getSubmeshes())
+      this->draw(pair.second->getVAO(), environment->getCubeProg());
 
     RendererCommands::depthFunction(DepthFunctions::Less);
   }

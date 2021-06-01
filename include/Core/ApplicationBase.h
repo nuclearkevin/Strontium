@@ -8,9 +8,7 @@
 
 namespace SciRenderer
 {
-  // This is heavily inspired by the work done in Hazel, a 2D game engine by
-  // TheCherno.
-  // https://github.com/TheCherno/Hazel/blob/master/Hazel/src/Hazel/Core/Base.h
+  // Rewrapping smart pointers to make using them easier.
   template <typename T>
   using Shared = std::shared_ptr<T>;
 

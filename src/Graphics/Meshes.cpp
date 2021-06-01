@@ -5,14 +5,15 @@
 
 namespace SciRenderer
 {
-  Mesh::Mesh(const std::vector<Vertex> &vertices, const std::vector<GLuint> &indices,
-             const std::vector<Texture2D> &textures, Model* parent)
+  Mesh::Mesh(const std::string &name, const std::vector<Vertex> &vertices,
+             const std::vector<GLuint> &indices, Model* parent)
     : loaded(true)
     , data(vertices)
     , indices(indices)
-    , modelMatrix(glm::mat4(1.0f))
     , hasUVs(false)
     , vArray(nullptr)
+    , meshMat(new Material())
+    , name(name)
   { }
 
   Mesh::~Mesh()
@@ -23,7 +24,7 @@ namespace SciRenderer
   {
     if (!this->isLoaded())
       return;
-      
+
     this->vArray = createUnique<VertexArray>(&(this->data[0]), this->data.size() * sizeof(Vertex), BufferType::Dynamic);
     this->vArray->addIndexBuffer(&(this->indices[0]), this->indices.size(),  BufferType::Dynamic);
   }

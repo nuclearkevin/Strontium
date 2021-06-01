@@ -80,9 +80,6 @@ namespace SciRenderer
   {
     Model* model;
 
-    // TODO: Move these two to a material class and pass a material shared ptr instead.
-    Shader* shader;
-
     // Names so we can fetch the assets easily.
     std::string meshName;
     std::string meshPath;
@@ -96,19 +93,16 @@ namespace SciRenderer
       , shaderName("")
     { }
 
-    RenderableComponent(Model* model, Shader* shader,
-                        const std::string &meshName, const std::string &meshPath,
-                        const std::string &shaderName)
+    RenderableComponent(Model* model, const std::string &meshName,
+                        const std::string &meshPath, const std::string &shaderName)
       : model(model)
-      , shader(shader)
       , meshName(meshName)
       , meshPath(meshPath)
       , shaderName(shaderName)
     { }
 
     operator Model*() { return model; }
-    operator Shader*() { return shader; }
-    operator bool() { return model != nullptr && shader != nullptr; }
+    operator bool() { return model != nullptr; }
   };
 
   // This is an IBL ambient light component. TODO: Finish and overhaul environment maps.

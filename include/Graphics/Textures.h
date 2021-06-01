@@ -90,6 +90,9 @@ namespace SciRenderer
   class Texture2D
   {
   public:
+    static Texture2D* createMonoColour(const glm::vec4 &colour, const Texture2DParams &params
+                                       = Texture2DParams());
+
     Texture2D();
     Texture2D(const GLuint &width, const GLuint &height, const GLuint &n,
               const Texture2DParams &params = Texture2DParams());
@@ -140,7 +143,7 @@ namespace SciRenderer
 
   //----------------------------------------------------------------------------
   // Misc. functions for texture manipulation. Wrapped in the Textures
-  // namespace.
+  // namespace. TODO: Move to the texture classes as static functions.
   //----------------------------------------------------------------------------
   namespace Textures
   {

@@ -6,9 +6,7 @@
 // Project includes.
 #include "Core/ApplicationBase.h"
 #include "Core/Logs.h"
-#include "Graphics/Meshes.h"
 #include "Graphics/Model.h"
-#include "Graphics/Textures.h"
 
 namespace SciRenderer
 {
@@ -80,8 +78,6 @@ namespace SciRenderer
   // Template specializations for specific asset types go here.
   //----------------------------------------------------------------------------
   template class AssetManager<Model>;
-  template class AssetManager<Texture2D>;
-  template class AssetManager<CubeMap>;
 
   template <typename T>
   T*
@@ -101,55 +97,6 @@ namespace SciRenderer
     Model* loadable = new Model();
     loadable->loadModel(filepath);
     this->assetStorage.insert({ name, Unique<Model>(loadable) });
-    this->assetNames.push_back(name);
-
-    Logger* logs = Logger::getInstance();
-    logs->logMessage(LogMessage("Asset loaded at the path " + filepath +
-                                " with the name " + name + ".", true, false, true));
-
-    return loadable;
-  }
-
-  template <>
-  Texture2D*
-  AssetManager<Texture2D>::loadAssetFile(const std::string &filepath, const std::string &name)
-  {
-    if (this->hasAsset(name))
-      return this->assetStorage.at(name).get();
-
-    Texture2D* loadable = Textures::loadTexture2D(filepath);
-    this->assetStorage.insert({ name, Unique<Texture2D>(loadable) });
-    this->assetNames.push_back(name);
-
-    Logger* logs = Logger::getInstance();
-    logs->logMessage(LogMessage("Asset loaded at the path " + filepath +
-                                " with the name " + name + ".", true, false, true));
-
-    return loadable;
-  }
-
-  // Can only do .jpg files so far. TODO: Make this better.
-  template <>
-  CubeMap*
-  AssetManager<CubeMap>::loadAssetFile(const std::string &filepath, const std::string &name)
-  {
-    if (this->hasAsset(name))
-      return this->assetStorage.at(name).get();
-
-    std::vector<std::string> sFaces = { "/posX", "/negX", "/posY", "/negY", "/posZ", "/negZ" };
-    std::vector<std::string> cFaces;
-    std::string temp;
-
-    // Load each face of a cubemap.
-    for (GLuint i = 0; i < 6; i++)
-    {
-      temp = filepath;
-      temp += sFaces[i] + ".jpg";
-      cFaces.push_back(temp);
-    }
-    CubeMap* loadable = Textures::loadTextureCubeMap(cFaces);
-
-    this->assetStorage.insert({ name, Unique<CubeMap>(loadable) });
     this->assetNames.push_back(name);
 
     Logger* logs = Logger::getInstance();

@@ -20,6 +20,9 @@ namespace SciRenderer
     , attachMesh(false)
     , attachEnvi(false)
     , propsWindow(true)
+    , showShaderInfo(false)
+    , showMaterialInfo(false)
+    , showTextures(true)
     , selectedMesh("")
   { }
 
@@ -66,14 +69,11 @@ namespace SciRenderer
 				auto bunny = activeScene->createEntity();
         bunny.addComponent<TransformComponent>();
         bunny.addComponent<RenderableComponent>
-          (modelAssets->loadAssetFile("./res/models/bunny.obj", "bunny.obj"),
-           shaderCache->getAsset("pbr_shader"), "bunny.obj", "./res/models/bunny.obj", "pbr_shader");
+          (modelAssets->loadAssetFile("./res/models/bunnyNew.obj", "bunnyNew.obj"),
+           "bunnyNew.obj", "./res/models/bunnyNew.obj", "pbr_shader");
 
         auto& tag = bunny.getComponent<NameComponent>();
         tag.name = "Debug Bunny";
-
-        auto& transform = bunny.getComponent<TransformComponent>();
-        transform.scaleFactor = 10.0f;
       }
 
 			ImGui::EndPopup();
@@ -330,8 +330,9 @@ namespace SciRenderer
           if (ImGui::Button("Select New Mesh"))
             this->attachMesh = true;
 
-          ImGui::Text((std::string("Shader: ") + rComponent.shaderName).c_str());
-          ImGui::Text((std::string("Shader Info: ") + rComponent.shader->getInfoString()).c_str());
+          ImGui::Checkbox("Show Material Window", &this->showMaterialInfo);
+          ImGui::SameLine();
+          ImGui::Checkbox("Show Shader Info", &this->showShaderInfo);
         }
       }
 
@@ -340,8 +341,10 @@ namespace SciRenderer
         if (ImGui::CollapsingHeader("Ambient Light Component"))
         {
           auto& ambient = this->selectedEntity.getComponent<AmbientComponent>();
-          if (ImGui::Button("Load New Environment"))
+          if(ImGui::Button("Load New Environment"))
+          {
             this->attachEnvi = true;
+          }
 
           if (ambient.ambient->hasEqrMap())
           {
@@ -359,6 +362,104 @@ namespace SciRenderer
       }
     }
     ImGui::End();
+
+    this->drawShaderInfoWindow();
+    this->drawMaterialWindow();
+  }
+
+  // Draw the material info in a separate window to avoid cluttering.
+  void
+  SceneGraphWindow::drawMaterialWindow()
+  {
+    if (this->showMaterialInfo && this->selectedEntity)
+    {
+      if (this->selectedEntity.hasComponent<RenderableComponent>())
+      {
+        auto& rComponent = this->selectedEntity.getComponent<RenderableComponent>();
+        for (auto& pair : rComponent.model->getSubmeshes())
+        {
+          ImGui::Begin("Materials", &this->showMaterialInfo);
+          if (ImGui::CollapsingHeader((pair.first + "##" + std::to_string((unsigned long) pair.second.get())).c_str()))
+          {
+            auto& uAlbedo = pair.second->getMat()->getAlbedo();
+            auto& uMetallic = pair.second->getMat()->getMetallic();
+            auto& uRoughness = pair.second->getMat()->getRoughness();
+            auto& uAO = pair.second->getMat()->getAO();
+
+            ImGui::Checkbox("Show Textures", &this->showTextures);
+            auto& useMultiples = pair.second->getMat()->useMultiples();
+            ImGui::Checkbox("Use Constant Material Parameters", &useMultiples);
+
+            if (useMultiples)
+            {
+              ImGui::Text("Constants");
+              ImGui::ColorEdit3("Albedo", &uAlbedo.r);
+              ImGui::SliderFloat("Metallic", &uMetallic, 0.0f, 1.0f);
+              ImGui::SliderFloat("Roughness", &uRoughness, 0.0f, 1.0f);
+              ImGui::SliderFloat("AO", &uAO, 0.0f, 1.0f);
+            }
+
+            if (this->showTextures)
+            {
+              // Draw all the associated texture maps for the entity.
+              ImGui::Image((ImTextureID) (unsigned long) pair.second->getMat()->getTexture(MaterialTexType::Albedo)->getID(),
+                           ImVec2(64, 64), ImVec2(0, 1), ImVec2(1, 0));
+              ImGui::SameLine();
+              ImGui::Text("Albedo Map");
+
+              ImGui::Image((ImTextureID) (unsigned long) pair.second->getMat()->getTexture(MaterialTexType::Metallic)->getID(),
+                           ImVec2(64, 64), ImVec2(0, 1), ImVec2(1, 0));
+              ImGui::SameLine();
+              ImGui::Text("Metallic Map");
+
+              ImGui::Image((ImTextureID) (unsigned long) pair.second->getMat()->getTexture(MaterialTexType::Roughness)->getID(),
+                           ImVec2(64, 64), ImVec2(0, 1), ImVec2(1, 0));
+              ImGui::SameLine();
+              ImGui::Text("Roughness Map");
+
+              ImGui::Image((ImTextureID) (unsigned long) pair.second->getMat()->getTexture(MaterialTexType::Normal)->getID(),
+                           ImVec2(64, 64), ImVec2(0, 1), ImVec2(1, 0));
+              ImGui::SameLine();
+              ImGui::Text("Normal Map");
+
+              ImGui::Image((ImTextureID) (unsigned long) pair.second->getMat()->getTexture(MaterialTexType::AO)->getID(),
+                           ImVec2(64, 64), ImVec2(0, 1), ImVec2(1, 0));
+              ImGui::SameLine();
+              ImGui::Text("AO Map");
+            }
+          }
+          ImGui::End();
+        }
+      }
+      else
+        this->showShaderInfo = false;
+    }
+  }
+
+  // Draw the renderable component shader information. Its in another window
+  // to make things easier to view.
+  void
+  SceneGraphWindow::drawShaderInfoWindow()
+  {
+    if (this->showShaderInfo && this->selectedEntity)
+    {
+      if (this->selectedEntity.hasComponent<RenderableComponent>())
+      {
+        auto& rComponent = this->selectedEntity.getComponent<RenderableComponent>();
+        for (auto& pair : rComponent.model->getSubmeshes())
+        {
+          ImGui::Begin("Shader Info", &this->showShaderInfo);
+          if (ImGui::CollapsingHeader(pair.first.c_str()))
+          {
+            //ImGui::Text((std::string("Shader: ") + pair.second->getMat()->getShader()).c_str());
+            ImGui::Text((std::string("Shader Info: ") + pair.second->getMat()->getShader()->getInfoString()).c_str());
+          }
+          ImGui::End();
+        }
+      }
+      else
+        this->showShaderInfo = false;
+    }
   }
 
   // Draw the mesh selection window.
@@ -397,8 +498,8 @@ namespace SciRenderer
         else
         {
           this->selectedEntity.addComponent<RenderableComponent>
-            (modelAssets->getAsset(this->selectedMesh), shaderCache->getAsset("pbr_shader"),
-             this->selectedMesh, modelAssets->getAsset(this->selectedMesh)->getFilepath(), "pbr_shader");
+            (modelAssets->getAsset(this->selectedMesh), this->selectedMesh,
+             modelAssets->getAsset(this->selectedMesh)->getFilepath(), "pbr_shader");
 
           this->attachMesh = false;
           this->selectedMesh = "";
@@ -456,7 +557,7 @@ namespace SciRenderer
       else
       {
         this->selectedEntity.addComponent<RenderableComponent>
-          (modelAssets->loadAssetFile(path, name), shaderCache->getAsset("pbr_shader"), name, path, "pbr_shader");
+          (modelAssets->loadAssetFile(path, name), name, path, "pbr_shader");
 
         this->attachMesh = false;
         this->selectedMesh = "";
@@ -467,9 +568,8 @@ namespace SciRenderer
   void
   SceneGraphWindow::drawEnviWindow()
   {
-    bool openEnviDialog = false;
-
-    ImGui::OpenPopup("Load Environment Map");
+    if (this->attachEnvi)
+      ImGui::OpenPopup("Load Environment Map");
 
     if (this->fileHandler.showFileDialog("Load Environment Map",
         imgui_addons::ImGuiFileBrowser::DialogMode::OPEN, ImVec2(700, 310), ".hdr"))

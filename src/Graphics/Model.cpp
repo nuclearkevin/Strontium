@@ -2,6 +2,7 @@
 
 // Project includes.
 #include "Core/Logs.h"
+#include "Graphics/Material.h"
 
 namespace SciRenderer
 {
@@ -64,7 +65,6 @@ namespace SciRenderer
   {
     std::vector<Vertex> meshVertices;
     std::vector<GLuint> meshIndicies;
-    std::vector<Texture2D> meshTextures;
 
     // Get the positions.
     if (mesh->HasPositions())
@@ -104,7 +104,7 @@ namespace SciRenderer
       }
     }
 
-    // Get the colours, but only supporting a single colour channel for now.
+    // Load the vertex colours in as white. TODO: Load actual vertex colours.
     {
       glm::vec3 temp = glm::vec3(1.0f);
       for (GLuint i = 0; i < mesh->mNumVertices; i++)
@@ -123,16 +123,6 @@ namespace SciRenderer
         {
           temp.x = mesh->mTextureCoords[0][i].x;
           temp.y = mesh->mTextureCoords[0][i].y;
-
-          meshVertices[i].uv = temp;
-        }
-
-        // Just in case not all the vertices had texture coords, loop over the
-        // rest and assign 0.0f.
-        for (GLuint i = mesh->mNumUVComponents[0]; i < mesh->mNumVertices; i++)
-        {
-          temp.x = 0.0f;
-          temp.y = 0.0f;
 
           meshVertices[i].uv = temp;
         }
@@ -167,7 +157,10 @@ namespace SciRenderer
         meshIndicies.push_back(face.mIndices[j]);
     }
 
-    this->subMeshes.push_back(createShared<Mesh>(meshVertices, meshIndicies, meshTextures, this));
+    std::string meshName = std::string(mesh->mName.C_Str());
+
+    this->subMeshes.push_back(std::pair
+      (meshName, createShared<Mesh>(meshName, meshVertices, meshIndicies, this)));
 
     this->loaded = true;
   }

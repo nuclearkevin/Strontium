@@ -18,17 +18,16 @@ This project is not intended to be a high performance rendering engine, but rath
 
 ## Building SciRender
 SciRender builds using GNU make. Additionally, GLFW requires CMake and the `xorg-dev` packages. Assimp also requires CMake. Ensure you have these dependencies installed before building SciRender, which can be done with the steps below:
-```bash 
+```bash
 # Clone the project and initialize submodules.
 git clone https://github.com/ksawatzky777/SciRender.git --recursive
-git submodule init
 # Build glfw.
 cd SciRender/vendor/glfw
 cmake .
 make
 # Build Assimp.
 cd ../assimp
-cmake CMakeLists.txt 
+cmake CMakeLists.txt
 cmake --build .
 # Build SciRender
 cd ../..

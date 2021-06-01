@@ -26,10 +26,9 @@ out VERT_OUT
 void main()
 {
 	// Tangent to world matrix calculation.
-	vec3 T = normalize(vec3(model * vec4(vTangent, 0.0)));
-	vec3 N = normalize(vec3(model * vec4(vNormal, 0.0)));
-	T = normalize(T - dot(T, N) * N);
-	vec3 B = cross(N, T);
+	vec3 T = normalize(vec3(normalMat * vTangent));
+	vec3 B = normalize(vec3(normalMat * vBitangent));
+	vec3 N = normalize(vec3(normalMat * vNormal));
 
 	gl_Position = mVP * vPosition;
   vertOut.fPosition = (model * vPosition).xyz;

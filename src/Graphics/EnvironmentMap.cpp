@@ -138,10 +138,10 @@ namespace SciRenderer
 
     this->bind(this->currentEnvironment, 0);
 
-    for (auto& submeshes : this->cube->getSubmeshes())
+    for (auto& pair : this->cube->getSubmeshes())
     {
-      if (!submeshes->hasVAO())
-        submeshes->generateVAO(this->cubeShader);
+      if (!pair.second->hasVAO())
+        pair.second->generateVAO(this->cubeShader);
     }
   }
 

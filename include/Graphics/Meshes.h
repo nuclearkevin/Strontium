@@ -6,8 +6,8 @@
 // Project includes.
 #include "Core/ApplicationBase.h"
 #include "Graphics/VertexArray.h"
-#include "Graphics/Textures.h"
 #include "Graphics/Shaders.h"
+#include "Graphics/Material.h"
 
 namespace SciRenderer
 {
@@ -29,8 +29,8 @@ namespace SciRenderer
   {
   public:
     // Mesh class. Must be loaded in as a part of a parent model.
-    Mesh(const std::vector<Vertex> &vertices, const std::vector<GLuint> &indices,
-         const std::vector<Texture2D> &textures, Model* parent);
+    Mesh(const std::string &name, const std::vector<Vertex> &vertices,
+         const std::vector<GLuint> &indices, Model* parent);
 
     ~Mesh();
 
@@ -49,7 +49,9 @@ namespace SciRenderer
     std::vector<Vertex>& getData() { return this->data; }
     std::vector<GLuint>& getIndices() { return this->indices; }
     VertexArray*  getVAO() { return this->vArray.get(); }
+    Material* getMat() { return this->meshMat.get(); }
     std::string getFilepath() { return this->filepath; }
+    std::string getName() { return this->name; }
 
     // Check for states.
     bool hasVAO() { return this->vArray != nullptr; }
@@ -59,7 +61,6 @@ namespace SciRenderer
     bool loaded;
     std::vector<Vertex>              data;
     std::vector<GLuint>              indices;
-    glm::mat4                        modelMatrix;
     bool                             hasUVs;
 
     std::string                      filepath;
@@ -69,5 +70,7 @@ namespace SciRenderer
 
     // Vertex array object for the mesh data.
     Unique<VertexArray> vArray;
+    // The mesh material.
+    Unique<Material> meshMat;
   };
 }

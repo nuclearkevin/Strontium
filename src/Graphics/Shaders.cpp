@@ -31,12 +31,12 @@ namespace SciRenderer
 		GLenum type;
 		int uniforms;
 
-		// Generates a list of uniforms based on their name and type. 
+		// Generates a list of uniforms based on their name and type.
 		glGetProgramiv(this->progID, GL_ACTIVE_UNIFORMS, &uniforms);
 		for (unsigned i = 0; i < uniforms; i++)
 		{
 			glGetActiveUniform(this->progID, i, 256, &length, &size, &type, name);
-			this->uniforms.insert({ name, enumToUniform(type) });
+			this->uniforms.push_back({ name, enumToUniform(type) });
 		}
 	}
 

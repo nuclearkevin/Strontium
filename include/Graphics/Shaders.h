@@ -62,7 +62,7 @@ namespace SciRenderer
     // Getters.
     GLuint getShaderID() { return this->progID; }
     std::string& getInfoString() { return this->shaderInfoString; }
-    std::unordered_map<std::string, UniformType>& getUniforms() { return this->uniforms; }
+    std::vector<std::pair<std::string, UniformType>>& getUniforms() { return this->uniforms; }
     std::vector<std::string>& getUniformNames() { return this->uniformNames; }
 
     // Convert GLenums to strings.
@@ -74,7 +74,7 @@ namespace SciRenderer
     GLuint fragID;
 
     std::string shaderInfoString;
-    std::unordered_map<std::string, UniformType> uniforms;
+    std::vector<std::pair<std::string, UniformType>> uniforms;
     std::vector<std::string> uniformNames;
   private:
       char *readShaderFile(const char* filename);

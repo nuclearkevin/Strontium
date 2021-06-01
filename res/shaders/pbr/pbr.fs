@@ -37,7 +37,7 @@ in VERT_OUT
 uniform Camera camera;
 
 // Uniforms for PBR textures.
-uniform float roughness = 0.5;
+uniform float roughness = 0.8;
 uniform float metallic = 0.0;
 uniform float aOcclusion = 1.0;
 
@@ -73,7 +73,6 @@ void main()
 	vec3 view = normalize(fragIn.fPosition - camera.position);
   vec3 reflection = reflect(view, frag.normal);
 
-  // Janky fix to deal with smoothshading on flat planes.
   float nDotV = max(dot(frag.normal, -view), 0.0);
   vec3 ks = SFresnelR(nDotV, frag.F0, frag.roughness);
   vec3 kd = (vec3(1.0) - ks) * (1.0 - frag.roughness);

@@ -39,9 +39,9 @@ namespace SciRenderer
       auto skybox = skyboxes.get<AmbientComponent>(entity);
       if (skybox)
       {
-        skybox.ambient->bind(MapType::Irradiance, 0);
-        skybox.ambient->bind(MapType::Prefilter, 1);
-        skybox.ambient->bind(MapType::Integration, 2);
+        skybox.ambient->bind(MapType::Irradiance, 5);
+        skybox.ambient->bind(MapType::Prefilter, 6);
+        skybox.ambient->bind(MapType::Integration, 7);
         skybox.ambient->getGamma() = skybox.gamma;
         skybox.ambient->getRoughness() = skybox.roughness;
       }
@@ -54,7 +54,7 @@ namespace SciRenderer
       // Draw all the renderables with transforms.
       auto [transform, renderable] = drawables.get<TransformComponent, RenderableComponent>(entity);
       if (renderable)
-        renderer->draw(renderable, renderable, transform, sceneCamera);
+        renderer->draw(renderable, transform, sceneCamera);
     }
 
     for (auto entity : skyboxes)

@@ -1,9 +1,10 @@
+#include "Graphics/Textures.h"
+
 // Image loading include.
 #include "stb/stb_image.h"
 #include "stb/stb_image_write.h"
 
 // Project includes.
-#include "Graphics/Textures.h"
 #include "Core/Logs.h"
 
 namespace SciRenderer
@@ -11,6 +12,23 @@ namespace SciRenderer
   //----------------------------------------------------------------------------
   // 2D textures.
   //----------------------------------------------------------------------------
+  Texture2D*
+  Texture2D::createMonoColour(const glm::vec4 &colour, const Texture2DParams &params)
+  {
+    float* data = new float[4];
+    data[0] = colour.r;
+    data[1] = colour.g;
+    data[2] = colour.b;
+    data[3] = colour.a;
+
+    Texture2D* outTex = new Texture2D(1, 1, 4, params);
+    outTex->bind();
+
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, 1, 1, 0,
+                 GL_RGBA, GL_FLOAT, data);
+    return outTex;
+  }
+
   Texture2D::Texture2D()
   {
     glGenTextures(1, &this->getID());

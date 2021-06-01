@@ -59,7 +59,7 @@ namespace SciRenderer
     // Draw the data given.
     void draw(VertexArray* data, Shader* program);
     void draw(Shared<Mesh> data, Shader* program, const glm::mat4 &model, Shared<Camera> camera);
-    void draw(Model* data, Shader* program, const glm::mat4 &model, Shared<Camera> camera);
+    void draw(Model* data, const glm::mat4 &model, Shared<Camera> camera);
     void draw(Shared<EnvironmentMap> environment, Shared<Camera> camera);
 
   private:
