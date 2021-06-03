@@ -70,7 +70,7 @@ namespace SciRenderer
 
     // Vertex array object for the mesh data.
     Unique<VertexArray> vArray;
-    // The mesh material.
+    // The mesh material. TODO: Move this to the renderable component?
     Unique<Material> meshMat;
   };
 }

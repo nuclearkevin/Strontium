@@ -43,6 +43,7 @@ namespace SciRenderer
     this->filepath = filepath;
 
     this->processNode(scene->mRootNode, scene);
+    this->loaded = true;
   }
 
   // Recursively process all the nodes in the mesh.
@@ -113,19 +114,23 @@ namespace SciRenderer
 
 
     // Get the UV's, but only supporting a single UV channel for now.
-    if (mesh->GetNumUVChannels() > 0)
+    if (mesh->mTextureCoords[0])
     {
-      if (mesh->HasTextureCoords(0))
+      // Loop over the texture coords and assign them.
+      glm::vec2 temp;
+      for (GLuint i = 0; i < mesh->mNumVertices; i++)
       {
-        // Loop over the texture coords and assign them.
-        glm::vec2 temp;
-        for (GLuint i = 0; i < mesh->mNumUVComponents[0]; i++)
-        {
-          temp.x = mesh->mTextureCoords[0][i].x;
-          temp.y = mesh->mTextureCoords[0][i].y;
+        temp.x = mesh->mTextureCoords[0][i].x;
+        temp.y = mesh->mTextureCoords[0][i].y;
 
-          meshVertices[i].uv = temp;
-        }
+        meshVertices[i].uv = temp;
+      }
+    }
+    else
+    {
+      for (GLuint i = 0; i < mesh->mNumVertices; i++)
+      {
+        meshVertices[i].uv = glm::vec2(0.0f);
       }
     }
 
@@ -157,11 +162,28 @@ namespace SciRenderer
         meshIndicies.push_back(face.mIndices[j]);
     }
 
-    std::string meshName = std::string(mesh->mName.C_Str());
+    // Load in the supported material textures. Currently only loads one of each type.
+    // TODO: Finish me!
+    // TODO: Add the option for multiple textures of each type.
+    /*
+    if (mesh->mMaterialIndex >= 0)
+    {
+      // Find the directory so textures can be loaded properly.
+      std::string directory = this->filepath.substr(0, this->filepath.find_last_of("/"));
 
+      aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
+
+      std::cout << "Albedo " << material->GetTextureCount(aiTextureType_DIFFUSE) << std::endl;
+      std::cout << "Metallic " << material->GetTextureCount(aiTextureType_SPECULAR) << std::endl;
+      std::cout << "Normal " << material->GetTextureCount(aiTextureType_NORMALS) << std::endl;
+      std::cout << "Roughness " << material->GetTextureCount(aiTextureType_SHININESS) << std::endl;
+      std::cout << "AO " << material->GetTextureCount(aiTextureType_AMBIENT_OCCLUSION) << std::endl;
+      std::cout << directory << std::endl;
+    }
+    */
+
+    std::string meshName = std::string(mesh->mName.C_Str());
     this->subMeshes.push_back(std::pair
       (meshName, createShared<Mesh>(meshName, meshVertices, meshIndicies, this)));
-
-    this->loaded = true;
   }
 }

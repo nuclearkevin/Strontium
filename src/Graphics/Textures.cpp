@@ -24,10 +24,11 @@ namespace SciRenderer
     Texture2D* outTex;
     if (cache)
     {
-      if (!textureCache->hasAsset(Styles::colourToHex(colour)))
+      if (!textureCache->hasAsset("Monocolour texture: " + Styles::colourToHex(colour)))
       {
         outTex = new Texture2D(1, 1, 4, params);
-        textureCache->attachAsset(Styles::colourToHex(colour), outTex);
+        textureCache->attachAsset("Monocolour texture: "
+                                  + Styles::colourToHex(colour), outTex);
 
         logs->logMessage(LogMessage("Generated monocolour texture: " +
                                     Styles::colourToHex(colour) + ".",
@@ -35,14 +36,13 @@ namespace SciRenderer
       }
       else
       {
-        logs->logMessage(LogMessage("Fetched monocolour texture: " +
-                                    Styles::colourToHex(colour) + ".",
-                                    true, false, true));
-        return textureCache->getAsset(Styles::colourToHex(colour));
+        return textureCache->getAsset("Monocolour texture: "
+                                      + Styles::colourToHex(colour));
       }
     }
     else
       outTex = new Texture2D(1, 1, 4, params);
+
     outTex->bind();
 
     float* data = new float[4];
@@ -102,7 +102,11 @@ namespace SciRenderer
         textureCache->attachAsset(filepath, outTex);
       }
       else
+      {
+        logs->logMessage(LogMessage("Fetched texture at: " + filepath + ".",
+                                    true, false, true));
         return textureCache->getAsset(filepath);
+      }
     }
     else
       outTex = new Texture2D(width, height, n, params);
@@ -172,17 +176,12 @@ namespace SciRenderer
 
     // Free memory.
     if (isHDR)
-    {
       stbi_image_free(dataF);
-      logs->logMessage(LogMessage("HDR 2D Texture successfully loaded.",
-                                  true, false, false));
-    }
     else
-    {
       stbi_image_free(dataU);
-      logs->logMessage(LogMessage("Non-HDR 2D Texture successfully loaded.",
-                                  true, false, false));
-    }
+
+    logs->logMessage(LogMessage("Loaded texture at: " + filepath + ".",
+                                true, false, true));
 
     return outTex;
   }

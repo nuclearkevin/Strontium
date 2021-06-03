@@ -269,7 +269,7 @@ namespace SciRenderer
       unsigned long out = ((r & 0xff) << 24) + ((g & 0xff) << 16) + ((b & 0xff) << 8) + (a & 0xff);
       std::stringstream stream;
       stream << "#" << std::hex << out;
-      return std::string(stream.str());
+      return std::string(stream.str()).substr(0, 9);
     }
 
     std::string
@@ -283,7 +283,7 @@ namespace SciRenderer
       unsigned long out = ((r & 0xff) << 24) + ((g & 0xff) << 16) + ((b & 0xff) << 8) + (a & 0xff);
       std::stringstream stream;
       stream << "#" << std::hex << out;
-      return std::string(stream.str());
+      return std::string(stream.str()).substr(0, 9);
     }
   }
 }

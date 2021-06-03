@@ -39,9 +39,9 @@ namespace SciRenderer
       auto skybox = skyboxes.get<AmbientComponent>(entity);
       if (skybox)
       {
-        skybox.ambient->bind(MapType::Irradiance, 5);
-        skybox.ambient->bind(MapType::Prefilter, 6);
-        skybox.ambient->bind(MapType::Integration, 7);
+        skybox.ambient->bind(MapType::Irradiance, 0);
+        skybox.ambient->bind(MapType::Prefilter, 1);
+        skybox.ambient->bind(MapType::Integration, 2);
         skybox.ambient->getGamma() = skybox.gamma;
         skybox.ambient->getRoughness() = skybox.roughness;
       }

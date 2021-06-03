@@ -50,7 +50,7 @@ namespace SciRenderer
     void addUniformFloat(const char* uniformName, GLfloat value);
     void addUniformUInt(const char* uniformName, GLuint value);
 
-    void addUniformSampler2D(const char* uniformName, GLuint texID);
+    void addUniformSampler(const char* uniformName, GLuint texID);
 
     // Setters for vertex attributes.
     void addAtribute(const char* attribName, AttribType type,

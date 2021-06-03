@@ -225,7 +225,7 @@ namespace SciRenderer
 
 	// Set a texture sampler.
 	void
-	Shader::addUniformSampler2D(const char* uniformName, GLuint texID)
+	Shader::addUniformSampler(const char* uniformName, GLuint texID)
 	{
 		this->bind();
 		GLuint uniLoc = glGetUniformLocation(this->progID, uniformName);

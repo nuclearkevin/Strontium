@@ -48,7 +48,10 @@ namespace SciRenderer
     T* loadAssetFile(const std::string &filepath, const std::string &name);
 
     // Get the asset reference.
-    T* getAsset(const std::string &name) { return this->assetStorage.at(name).get(); }
+    T* getAsset(const std::string &name)
+    {
+      return this->assetStorage.at(name).get();
+    }
 
     // Delete the asset.
     void deleteAsset(const std::string &name)

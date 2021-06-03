@@ -130,7 +130,7 @@ namespace SciRenderer
 
     this->cubeShader->bind();
     this->cubeShader->addUniformMatrix("vP", vP, GL_FALSE);
-    this->cubeShader->addUniformSampler2D("skybox", 0);
+    this->cubeShader->addUniformSampler("skybox", 0);
     this->cubeShader->addUniformFloat("gamma", this->gamma);
 
     if (this->currentEnvironment == MapType::Prefilter)

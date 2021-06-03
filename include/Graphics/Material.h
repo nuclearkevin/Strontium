@@ -16,48 +16,83 @@ namespace SciRenderer
     PBR, Specular, Unknown
   };
 
-  // Surface maps.
-  enum class MaterialTexType
-  {
-    Albedo, Metallic, Roughness, Normal, AO, Unknown
-  };
-
   class Material
   {
   public:
     Material(MaterialType type = MaterialType::PBR);
-    Material(MaterialType type, const std::vector<std::pair<MaterialTexType, Texture2D*>> &textures);
+    Material(MaterialType type, const std::vector<std::pair<std::string, Texture2D*>> &sampler2Ds);
     ~Material();
 
     // Attach a texture.
-    void attachTexture(Texture2D* tex, const MaterialTexType &type);
+    void attachTexture(Texture2D* tex, const std::string &name);
 
     // Prepare for drawing.
     void configure();
 
     // Check to see if the material has a texture of a certain type.
-    bool hasTexture(MaterialTexType type);
+    bool hasTexture(const std::string &name);
 
+    // Get the shader type.
     MaterialType& getType() { return this->type; }
-    Shader* getShader() { return this->program; }
-    Texture2D* getTexture(MaterialTexType type);
 
-    glm::vec3& getAlbedo() { return this->uAlbedo; }
-    GLfloat& getMetallic() { return this->uMetallic; }
-    GLfloat& getRoughness() { return this->uRoughness; }
-    GLfloat& getAO() { return this->uAO; }
+    // Get the shader program.
+    Shader* getShader() { return this->program; }
+
+    // Get the shader data.
+    GLfloat& getFloat(const std::string &name)
+    {
+      auto loc = pairGet<GLfloat>(this->floats, name);
+      return loc->second;
+    };
+    glm::vec2& getVec2(const std::string &name)
+    {
+      auto loc = pairGet<glm::vec2>(this->vec2s, name);
+      return loc->second;
+    };
+    glm::vec3& getVec3(const std::string &name)
+    {
+      auto loc = pairGet<glm::vec3>(this->vec3s, name);
+      return loc->second;
+    };
+    Texture2D* getTexture(const std::string &name);
+
     bool& useMultiples() { return this->useUMultiples; }
   private:
     MaterialType type;
 
-    std::vector<std::pair<MaterialTexType, Texture2D*>> textures;
+    // The shader and shader data.
     Shader* program;
-
-    glm::vec3 uAlbedo;
-    GLfloat uMetallic;
-    GLfloat uRoughness;
-    GLfloat uAO;
+    std::vector<std::pair<std::string, GLfloat>> floats;
+    std::vector<std::pair<std::string, glm::vec2>> vec2s;
+    std::vector<std::pair<std::string, glm::vec3>> vec3s;
+    std::vector<std::pair<std::string, Texture2D*>> sampler2Ds;
 
     bool useUMultiples;
+
+    // Searching functions.
+    template <typename T>
+    bool pairSearch(const std::vector<std::pair<std::string, T>> &list, const std::string &name)
+    {
+      auto loc = std::find_if(list.begin(), list.end(),
+                              [&name](const std::pair<std::string, T> &pair)
+      {
+        return pair.first == name;
+      });
+
+      return loc != list.end();
+    }
+
+    template <typename T>
+    std::vector<std::pair<std::string, T>>::iterator
+    pairGet(std::vector<std::pair<std::string, T>> &list, const std::string &name)
+    {
+      auto loc = std::find_if(list.begin(), list.end(),
+                              [&name](const std::pair<std::string, T> &pair)
+      {
+        return pair.first == name;
+      });
+
+      return loc;
+    }
   };
 }

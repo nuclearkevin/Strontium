@@ -7,34 +7,43 @@ namespace SciRenderer
 {
   Material::Material(MaterialType type)
     : type(type)
-    , uAlbedo(1.0f)
-    , uMetallic(1.0f)
-    , uRoughness(1.0f)
-    , uAO(1.0f)
     , useUMultiples(false)
   {
     auto shaderCache = AssetManager<Shader>::getManager();
     switch (type)
     {
-      case MaterialType::PBR: this->program = shaderCache->getAsset("pbr_shader"); break;
-      case MaterialType::Specular: this->program = shaderCache->getAsset("specular_shader"); break;
-      default: this->program = nullptr; break;
-    }
+      case MaterialType::PBR:
+      {
+        this->program = shaderCache->getAsset("pbr_shader");
 
-    this->textures.push_back(std::make_pair(MaterialTexType::Albedo, Texture2D::createMonoColour(glm::vec4(1.0f))));
-    this->textures.push_back(std::make_pair(MaterialTexType::Metallic, Texture2D::createMonoColour(glm::vec4(1.0f))));
-    this->textures.push_back(std::make_pair(MaterialTexType::Roughness, Texture2D::createMonoColour(glm::vec4(1.0f))));
-    this->textures.push_back(std::make_pair(MaterialTexType::Normal, Texture2D::createMonoColour(glm::vec4(0.5f, 0.5f, 1.0f, 1.0f))));
-    this->textures.push_back(std::make_pair(MaterialTexType::AO, Texture2D::createMonoColour(glm::vec4(1.0f))));
+        this->sampler2Ds.push_back(std::make_pair("albedoMap", Texture2D::createMonoColour(glm::vec4(1.0f))));
+        this->sampler2Ds.push_back(std::make_pair("metallicMap", Texture2D::createMonoColour(glm::vec4(1.0f))));
+        this->sampler2Ds.push_back(std::make_pair("roughnessMap", Texture2D::createMonoColour(glm::vec4(1.0f))));
+        this->sampler2Ds.push_back(std::make_pair("normalMap", Texture2D::createMonoColour(glm::vec4(0.5f, 0.5f, 1.0f, 1.0f))));
+        this->sampler2Ds.push_back(std::make_pair("aOcclusionMap", Texture2D::createMonoColour(glm::vec4(1.0f))));
+
+        this->vec3s.push_back(std::pair("uAlbedo", glm::vec3(1.0f)));
+        this->floats.push_back(std::pair("uMetallic", 1.0f));
+        this->floats.push_back(std::pair("uRoughness", 1.0f));
+        this->floats.push_back(std::pair("uAO", 1.0f));
+        break;
+      }
+      case MaterialType::Specular:
+      {
+        this->program = shaderCache->getAsset("specular_shader");
+        break;
+      }
+      default:
+      {
+        this->program = nullptr;
+        break;
+      }
+    }
   }
 
-  Material::Material(MaterialType type, const std::vector<std::pair<MaterialTexType, Texture2D*>> &textures)
+  Material::Material(MaterialType type, const std::vector<std::pair<std::string, Texture2D*>> &sampler2Ds)
     : type(type)
-    , textures(textures)
-    , uAlbedo(1.0f)
-    , uMetallic(1.0f)
-    , uRoughness(1.0f)
-    , uAO(1.0f)
+    , sampler2Ds(sampler2Ds)
   { }
 
   Material::~Material()
@@ -47,62 +56,38 @@ namespace SciRenderer
     {
       case MaterialType::PBR:
       {
-        for (auto& pair : this->textures)
-        {
-          switch (pair.first)
-          {
-            case MaterialTexType::Albedo:
-            {
-              this->program->addUniformSampler2D("albedoMap", 0);
-              pair.second->bind(0);
-              break;
-            }
-            case MaterialTexType::Metallic:
-            {
-              this->program->addUniformSampler2D("metallicMap", 1);
-              pair.second->bind(1);
-              break;
-            }
-            case MaterialTexType::Roughness:
-            {
-              this->program->addUniformSampler2D("roughnessMap", 2);
-              pair.second->bind(2);
-              break;
-            }
-            case MaterialTexType::Normal:
-            {
-              this->program->addUniformSampler2D("normalMap", 3);
-              pair.second->bind(3);
-              break;
-            }
-            case MaterialTexType::AO:
-            {
-              this->program->addUniformSampler2D("aOcclusionMap", 4);
-              pair.second->bind(4);
-              break;
-            }
-            default:
-              break;
-          }
-        }
-        this->program->addUniformSampler2D("irradianceMap", 5);
-      	this->program->addUniformSampler2D("reflectanceMap", 6);
-      	this->program->addUniformSampler2D("brdfLookUp", 7);
+        unsigned int samplerCount = 0;
 
-        if (this->useUMultiples)
+        // Bind the PBR maps first.
+        this->program->addUniformSampler("irradianceMap", 0);
+      	this->program->addUniformSampler("reflectanceMap", 1);
+      	this->program->addUniformSampler("brdfLookUp", 2);
+
+        // Increase the sampler count to compensate.
+        samplerCount += 3;
+
+        // Loop over 2D textures and assign them.
+        for (auto& pair : this->sampler2Ds)
         {
-          this->program->addUniformVector("uAlbedo", this->uAlbedo);
-          this->program->addUniformFloat("uMetallic", this->uMetallic);
-          this->program->addUniformFloat("uRoughness", this->uRoughness);
-          this->program->addUniformFloat("uAO", this->uAO);
+          this->program->addUniformSampler(pair.first.c_str(), samplerCount);
+          pair.second->bind(samplerCount);
+
+          samplerCount++;
         }
-        else
-        {
-          this->program->addUniformVector("uAlbedo", glm::vec3(1.0f));
-          this->program->addUniformFloat("uMetallic", 1.0f);
-          this->program->addUniformFloat("uRoughness", 1.0f);
-          this->program->addUniformFloat("uAO", 1.0f);
-        }
+
+        // TODO: Do other sampler types (1D textures, 3D textures, cubemaps).
+        // Loop over the floats and assign them.
+        for (auto& pair : this->floats)
+          this->program->addUniformFloat(pair.first.c_str(), pair.second);
+
+        // Loop over the vec2s and assign them.
+        for (auto& pair : this->vec2s)
+          this->program->addUniformVector(pair.first.c_str(), pair.second);
+
+        // Loop over the vec3s and assign them.
+        for (auto& pair : this->vec3s)
+          this->program->addUniformVector(pair.first.c_str(), pair.second);
+
         break;
       }
       case MaterialType::Specular:
@@ -115,15 +100,11 @@ namespace SciRenderer
   }
 
   Texture2D*
-  Material::getTexture(MaterialTexType type)
+  Material::getTexture(const std::string &name)
   {
-    auto loc = std::find_if(this->textures.begin(), this->textures.end(),
-                            [&type](const std::pair<MaterialTexType, Texture2D*> &pair)
-    {
-      return pair.first == type;
-    });
+    auto loc = this->pairGet<Texture2D*>(this->sampler2Ds, name);
 
-    if (loc != this->textures.end())
+    if (loc != this->sampler2Ds.end())
       return loc->second;
     else
       return nullptr;
@@ -131,22 +112,23 @@ namespace SciRenderer
 
   // Attach a texture.
   void
-  Material::attachTexture(Texture2D* tex, const MaterialTexType &type)
+  Material::attachTexture(Texture2D* tex, const std::string &name)
   {
-    if (!this->hasTexture(type))
-      this->textures.push_back(std::pair(type, tex));
+    if (!this->hasTexture(name))
+      this->sampler2Ds.push_back(std::pair(name, tex));
+    else
+    {
+      auto loc = this->pairGet<Texture2D*>(this->sampler2Ds, name);
+
+      this->sampler2Ds.erase(loc);
+      this->sampler2Ds.push_back(std::pair(name, tex));
+    }
   }
 
   // Check to see if the material has a texture of a certain type.
   bool
-  Material::hasTexture(MaterialTexType type)
+  Material::hasTexture(const std::string &name)
   {
-    auto loc = std::find_if(this->textures.begin(), this->textures.end(),
-                            [&type](const std::pair<MaterialTexType, Texture2D*> &pair)
-    {
-      return pair.first == type;
-    });
-
-    return loc != this->textures.end();
+    return this->pairSearch<Texture2D*>(this->sampler2Ds, name);
   }
 }

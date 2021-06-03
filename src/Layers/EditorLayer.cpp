@@ -261,7 +261,10 @@ namespace SciRenderer
       }
       ImGui::BeginChild("LogText");
       {
+        auto size = ImGui::GetWindowSize();
+        ImGui::PushTextWrapPos(size.x);
         ImGui::Text(this->logBuffer.c_str());
+        ImGui::PopTextWrapPos();
       }
       ImGui::EndChild();
     }
@@ -271,9 +274,12 @@ namespace SciRenderer
     if (this->showPerf)
     {
       ImGui::Begin("Performance Window", &this->showPerf);
+      auto size = ImGui::GetWindowSize();
+      ImGui::PushTextWrapPos(size.x);
       ImGui::Text(Application::getInstance()->getWindow()->getContextInfo().c_str());
       ImGui::Text("Application averaging %.3f ms/frame (%.1f FPS)",
                   1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+      ImGui::PopTextWrapPos();
       ImGui::End();
     }
 

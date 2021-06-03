@@ -21,9 +21,8 @@ namespace SciRenderer
     , attachEnvi(false)
     , propsWindow(true)
     , showShaderInfo(false)
-    , showMaterialInfo(false)
-    , showTextures(true)
-    , selectedMesh("")
+    , showMaterialInfo(true)
+    , selectedString("")
   { }
 
   SceneGraphWindow::~SceneGraphWindow()
@@ -91,6 +90,10 @@ namespace SciRenderer
       this->drawMeshWindow();
     if (this->attachEnvi)
       this->drawEnviWindow();
+    if (this->showShaderInfo)
+      this->drawShaderInfoWindow();
+    if (this->showMaterialInfo)
+      this->drawMaterialWindow();
   }
 
   void
@@ -318,7 +321,7 @@ namespace SciRenderer
 
           Styles::drawVec3Controls("Translation", glm::vec3(0.0f), tTranslation);
           Styles::drawVec3Controls("Rotation", glm::vec3(0.0f), tEulerRotation);
-          Styles::drawVec3Controls("Shear", glm::vec3(0.0f), tShear);
+          Styles::drawVec3Controls("Shear", glm::vec3(1.0f), tShear);
           Styles::drawFloatControl("Scale", 1.0f, tScale);
 
           tRotation = glm::vec3(glm::radians(tEulerRotation.x),
@@ -370,9 +373,6 @@ namespace SciRenderer
       }
     }
     ImGui::End();
-
-    this->drawShaderInfoWindow();
-    this->drawMaterialWindow();
   }
 
   // Draw the material info in a separate window to avoid cluttering.
@@ -389,53 +389,68 @@ namespace SciRenderer
           ImGui::Begin("Materials", &this->showMaterialInfo);
           if (ImGui::CollapsingHeader((pair.first + "##" + std::to_string((unsigned long) pair.second.get())).c_str()))
           {
-            auto& uAlbedo = pair.second->getMat()->getAlbedo();
-            auto& uMetallic = pair.second->getMat()->getMetallic();
-            auto& uRoughness = pair.second->getMat()->getRoughness();
-            auto& uAO = pair.second->getMat()->getAO();
+            auto& uAlbedo = pair.second->getMat()->getVec3("uAlbedo");
+            auto& uMetallic = pair.second->getMat()->getFloat("uMetallic");
+            auto& uRoughness = pair.second->getMat()->getFloat("uRoughness");
+            auto& uAO = pair.second->getMat()->getFloat("uAO");
 
-            ImGui::Checkbox("Show Textures", &this->showTextures);
-            auto& useMultiples = pair.second->getMat()->useMultiples();
-            ImGui::Checkbox("Use Constant Material Parameters", &useMultiples);
+            static bool showTexWindow = false;
+            static std::string selectedType;
+            std::string selectedMeshName = pair.first;
 
-            if (useMultiples)
+            // Draw all the associated texture maps for the entity.
+            ImGui::Text("Albedo Map");
+            if (ImGui::ImageButton((ImTextureID) (unsigned long) pair.second->getMat()->getTexture("albedoMap")->getID(),
+                         ImVec2(64, 64), ImVec2(0, 1), ImVec2(1, 0)))
             {
-              ImGui::Text("Constants");
-              ImGui::ColorEdit3("Albedo", &uAlbedo.r);
-              ImGui::SliderFloat("Metallic", &uMetallic, 0.0f, 1.0f);
-              ImGui::SliderFloat("Roughness", &uRoughness, 0.0f, 1.0f);
-              ImGui::SliderFloat("AO", &uAO, 0.0f, 1.0f);
+              showTexWindow = true;
+              selectedType = "albedoMap";
+            }
+            ImGui::SameLine();
+            ImGui::ColorEdit3("##Albedo", &uAlbedo.r);
+
+            ImGui::Text("Metallic Map");
+            if (ImGui::ImageButton((ImTextureID) (unsigned long) pair.second->getMat()->getTexture("metallicMap")->getID(),
+                         ImVec2(64, 64), ImVec2(0, 1), ImVec2(1, 0)))
+            {
+              showTexWindow = true;
+              selectedType = "metallicMap";
+            }
+            ImGui::SameLine();
+            ImGui::SliderFloat("##Metallic", &uMetallic, 0.0f, 1.0f);
+
+            ImGui::Text("Roughness Map");
+            if (ImGui::ImageButton((ImTextureID) (unsigned long) pair.second->getMat()->getTexture("roughnessMap")->getID(),
+                         ImVec2(64, 64), ImVec2(0, 1), ImVec2(1, 0)))
+            {
+              showTexWindow = true;
+              selectedType = "roughnessMap";
+            }
+            ImGui::SameLine();
+            ImGui::SliderFloat("##Roughness", &uRoughness, 0.0f, 1.0f);
+
+            ImGui::Text("Ambient Occlusion Map");
+            if (ImGui::ImageButton((ImTextureID) (unsigned long) pair.second->getMat()->getTexture("aOcclusionMap")->getID(),
+                         ImVec2(64, 64), ImVec2(0, 1), ImVec2(1, 0)))
+            {
+              showTexWindow = true;
+              selectedType = "aOcclusionMap";
+            }
+            ImGui::SameLine();
+            ImGui::SliderFloat("##AO", &uAO, 0.0f, 1.0f);
+
+            ImGui::Text("Normal Map");
+            if (ImGui::ImageButton((ImTextureID) (unsigned long) pair.second->getMat()->getTexture("normalMap")->getID(),
+                         ImVec2(64, 64), ImVec2(0, 1), ImVec2(1, 0)))
+            {
+              showTexWindow = true;
+              selectedType = "normalMap";
             }
 
-            if (this->showTextures)
-            {
-              // Draw all the associated texture maps for the entity.
-              ImGui::Image((ImTextureID) (unsigned long) pair.second->getMat()->getTexture(MaterialTexType::Albedo)->getID(),
-                           ImVec2(64, 64), ImVec2(0, 1), ImVec2(1, 0));
-              ImGui::SameLine();
-              ImGui::Text("Albedo Map");
-
-              ImGui::Image((ImTextureID) (unsigned long) pair.second->getMat()->getTexture(MaterialTexType::Metallic)->getID(),
-                           ImVec2(64, 64), ImVec2(0, 1), ImVec2(1, 0));
-              ImGui::SameLine();
-              ImGui::Text("Metallic Map");
-
-              ImGui::Image((ImTextureID) (unsigned long) pair.second->getMat()->getTexture(MaterialTexType::Roughness)->getID(),
-                           ImVec2(64, 64), ImVec2(0, 1), ImVec2(1, 0));
-              ImGui::SameLine();
-              ImGui::Text("Roughness Map");
-
-              ImGui::Image((ImTextureID) (unsigned long) pair.second->getMat()->getTexture(MaterialTexType::Normal)->getID(),
-                           ImVec2(64, 64), ImVec2(0, 1), ImVec2(1, 0));
-              ImGui::SameLine();
-              ImGui::Text("Normal Map");
-
-              ImGui::Image((ImTextureID) (unsigned long) pair.second->getMat()->getTexture(MaterialTexType::AO)->getID(),
-                           ImVec2(64, 64), ImVec2(0, 1), ImVec2(1, 0));
-              ImGui::SameLine();
-              ImGui::Text("AO Map");
-            }
+            if (showTexWindow)
+              this->drawTextureWindow(selectedType, pair.second.get(), showTexWindow);
           }
+
           ImGui::End();
         }
       }
@@ -458,10 +473,8 @@ namespace SciRenderer
         {
           ImGui::Begin("Shader Info", &this->showShaderInfo);
           if (ImGui::CollapsingHeader(pair.first.c_str()))
-          {
-            //ImGui::Text((std::string("Shader: ") + pair.second->getMat()->getShader()).c_str());
-            ImGui::Text((std::string("Shader Info: ") + pair.second->getMat()->getShader()->getInfoString()).c_str());
-          }
+            ImGui::Text((std::string("Shader Info: ") +
+                        pair.second->getMat()->getShader()->getInfoString()).c_str());
           ImGui::End();
         }
       }
@@ -474,7 +487,7 @@ namespace SciRenderer
   void
   SceneGraphWindow::drawMeshWindow()
   {
-    bool openModelDialog = false;
+    bool openModelDialogue = false;
 
     // Get the asset caches.
     auto modelAssets = AssetManager<Model>::getManager();
@@ -484,62 +497,46 @@ namespace SciRenderer
 
     // Button to load in a new mesh asset.
     if (ImGui::Button("Load New Mesh"))
-      openModelDialog = true;
-
-    // Button to use one of the loaded meshes for the renderable component.
-    ImGui::SameLine();
-    if (this->selectedMesh != "")
-    {
-      if (ImGui::Button("Use Selected Mesh##selectedModelbutton"))
-      {
-        // If it already has a mesh component, just modify the existing one.
-        if (this->selectedEntity.hasComponent<RenderableComponent>())
-        {
-          auto& renderable = this->selectedEntity.getComponent<RenderableComponent>();
-          renderable.model = modelAssets->getAsset(this->selectedMesh);
-          renderable.meshName = this->selectedMesh;
-          renderable.meshPath = renderable.model->getFilepath();
-
-          this->attachMesh = false;
-          this->selectedMesh = "";
-        }
-        else
-        {
-          this->selectedEntity.addComponent<RenderableComponent>
-            (modelAssets->getAsset(this->selectedMesh), this->selectedMesh,
-             modelAssets->getAsset(this->selectedMesh)->getFilepath(), "pbr_shader");
-
-          this->attachMesh = false;
-          this->selectedMesh = "";
-        }
-      }
-    }
-    else
-    {
-      ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
-      ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
-      ImGui::Button("Use Selected Mesh##selectedModelbutton");
-      ImGui::PopItemFlag();
-      ImGui::PopStyleVar();
-    }
+      openModelDialogue = true;
 
     // Loop over all the loaded models and display each for selection.
     for (auto& name : modelAssets->getStorage())
     {
-      ImGuiTreeNodeFlags flags = ((this->selectedMesh == name) ? ImGuiTreeNodeFlags_Selected : 0);
+      ImGuiTreeNodeFlags flags = ((this->selectedString == name) ? ImGuiTreeNodeFlags_Selected : 0);
       flags |= ImGuiTreeNodeFlags_NoTreePushOnOpen | ImGuiTreeNodeFlags_OpenOnArrow
             | ImGuiTreeNodeFlags_Bullet;
 
       bool opened = ImGui::TreeNodeEx((void*) (sizeof(char) * name.size()), flags, name.c_str());
 
-      if (ImGui::IsItemClicked())
-        this->selectedMesh = name;
+      if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(0))
+      {
+        // If it already has a mesh component, just modify the existing one.
+        if (this->selectedEntity.hasComponent<RenderableComponent>())
+        {
+          auto& renderable = this->selectedEntity.getComponent<RenderableComponent>();
+          renderable.model = modelAssets->getAsset(name);
+          renderable.meshName = name;
+          renderable.meshPath = renderable.model->getFilepath();
+
+          this->attachMesh = false;
+          this->selectedString = "";
+        }
+        else
+        {
+          this->selectedEntity.addComponent<RenderableComponent>
+            (modelAssets->getAsset(name), name,
+             modelAssets->getAsset(name)->getFilepath(), "pbr_shader");
+
+          this->attachMesh = false;
+          this->selectedString = "";
+        }
+      }
     }
     ImGui::End();
 
     // Load in a model and give it to the entity as a renderable component
     // alongside the pbr_shader shader.
-    if (openModelDialog)
+    if (openModelDialogue)
       ImGui::OpenPopup("Load Mesh");
 
     if (this->fileHandler.showFileDialog("Load Mesh",
@@ -560,7 +557,7 @@ namespace SciRenderer
         renderable.meshPath = renderable.model->getFilepath();
 
         this->attachMesh = false;
-        this->selectedMesh = "";
+        this->selectedString = "";
       }
       else
       {
@@ -568,9 +565,12 @@ namespace SciRenderer
           (modelAssets->loadAssetFile(path, name), name, path, "pbr_shader");
 
         this->attachMesh = false;
-        this->selectedMesh = "";
+        this->selectedString = "";
       }
     }
+
+    if (!this->attachMesh)
+      this->selectedString = "";
   }
 
   void
@@ -605,5 +605,68 @@ namespace SciRenderer
 
       this->attachEnvi = false;
     }
+  }
+
+  // Texture selection window.
+  void
+  SceneGraphWindow::drawTextureWindow(const std::string &type, Mesh* submesh, bool &isOpen)
+  {
+    auto textureCache = AssetManager<Texture2D>::getManager();
+
+    bool openTextureDialoge = false;
+
+    ImGui::Begin("Select Texture", &isOpen);
+
+    if (ImGui::Button("Load New Texture"))
+      openTextureDialoge = true;
+
+    for (auto& name : textureCache->getStorage())
+    {
+      ImGuiTreeNodeFlags flags = ((this->selectedString == name) ? ImGuiTreeNodeFlags_Selected : 0);
+      flags |= ImGuiTreeNodeFlags_NoTreePushOnOpen | ImGuiTreeNodeFlags_OpenOnArrow
+            | ImGuiTreeNodeFlags_Bullet | ImGuiTreeNodeFlags_OpenOnDoubleClick;
+
+      auto texture = textureCache->getAsset(name);
+      ImGui::Image((ImTextureID) (unsigned long) texture->getID(),
+                   ImVec2(64, 64), ImVec2(0, 1), ImVec2(1, 0));
+
+      if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(0))
+      {
+        submesh->getMat()->attachTexture(texture, type);
+        isOpen = false;
+        this->selectedString = "";
+      }
+
+      ImGui::SameLine();
+      bool opened = ImGui::TreeNodeEx((void*) (sizeof(char) * name.size()), flags, name.c_str());
+
+      if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(0))
+      {
+        submesh->getMat()->attachTexture(texture, type);
+        isOpen = false;
+        this->selectedString = "";
+      }
+    }
+    ImGui::End();
+
+    // Load in a new texture and attach it to the material.
+    if (openTextureDialoge)
+      ImGui::OpenPopup("Load Texture");
+
+    if (this->fileHandler.showFileDialog("Load Texture",
+        imgui_addons::ImGuiFileBrowser::DialogMode::OPEN, ImVec2(700, 310), ".jpg,.tga,.png"))
+    {
+      std::string name = this->fileHandler.selected_fn;
+      std::string path = this->fileHandler.selected_path;
+
+      Texture2D* tex = Texture2D::loadTexture2D(path);
+
+      submesh->getMat()->attachTexture(tex, type);
+      isOpen = false;
+      this->selectedString = "";
+    }
+
+    if (!isOpen)
+      this->selectedString = "";
   }
 }
