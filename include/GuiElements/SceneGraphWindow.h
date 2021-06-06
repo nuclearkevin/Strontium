@@ -33,7 +33,6 @@ namespace SciRenderer
     bool attachMesh;
     bool attachEnvi;
     bool propsWindow;
-    bool showShaderInfo;
     bool showMaterialInfo;
 
     // A string buffer for the selected mesh.
@@ -44,10 +43,10 @@ namespace SciRenderer
     void drawComponentNodes(); // TODO: Implement this
     void drawPropsWindow();
     void drawMaterialWindow();
-    void drawShaderInfoWindow();
+    void drawShaderInfoWindow(bool &isOpen);
     void drawMeshWindow();
     void drawEnviWindow();
-    void drawTextureWindow(const std::string &type, Mesh* submesh, bool &isOpen);
+    void drawTextureWindow(const std::string &type, Shared<Mesh> submesh, bool &isOpen);
 
     Entity selectedEntity;
   };

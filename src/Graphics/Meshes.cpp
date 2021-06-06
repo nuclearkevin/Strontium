@@ -12,7 +12,6 @@ namespace SciRenderer
     , indices(indices)
     , hasUVs(false)
     , vArray(nullptr)
-    , meshMat(new Material())
     , name(name)
   { }
 

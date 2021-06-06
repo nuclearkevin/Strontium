@@ -5,7 +5,7 @@
 
 // Project includes.
 #include "Graphics/Meshes.h"
-#include "Graphics/Textures.h"
+#include "Graphics/Material.h"
 #include "Graphics/EnvironmentMap.h"
 
 namespace SciRenderer
@@ -78,30 +78,31 @@ namespace SciRenderer
   // alongside the transform component.
   struct RenderableComponent
   {
+    // A model and a collection of materials for the model's submeshes.
     Model* model;
+    ModelMaterial materials;
 
     // Names so we can fetch the assets easily.
     std::string meshName;
-    std::string meshPath;
-    std::string shaderName;
 
     RenderableComponent(const RenderableComponent&) = default;
 
     RenderableComponent()
       : meshName("")
-      , meshPath("")
-      , shaderName("")
     { }
 
-    RenderableComponent(Model* model, const std::string &meshName,
-                        const std::string &meshPath, const std::string &shaderName)
+    RenderableComponent(Model* model, const std::string &meshName)
       : model(model)
       , meshName(meshName)
-      , meshPath(meshPath)
-      , shaderName(shaderName)
-    { }
+    {
+      for (auto& pair : model->getSubmeshes())
+      {
+        materials.attachMesh(pair.second);
+      }
+    }
 
     operator Model*() { return model; }
+    operator ModelMaterial&() { return materials; }
     operator bool() { return model != nullptr; }
   };
 

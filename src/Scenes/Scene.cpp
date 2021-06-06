@@ -29,9 +29,6 @@ namespace SciRenderer
   void
   Scene::onUpdate(float dt, Shared<Camera> sceneCamera)
   {
-    // Get the renderer.
-    Renderer3D* renderer = Renderer3D::getInstance();
-
     // Get all the skyboxes (there should only be one per ECS).
     auto skyboxes = this->sceneECS.view<AmbientComponent>();
     for (auto entity : skyboxes)
@@ -54,7 +51,7 @@ namespace SciRenderer
       // Draw all the renderables with transforms.
       auto [transform, renderable] = drawables.get<TransformComponent, RenderableComponent>(entity);
       if (renderable)
-        renderer->draw(renderable, transform, sceneCamera);
+        Renderer3D::draw(renderable, renderable, transform, sceneCamera);
     }
 
     for (auto entity : skyboxes)
@@ -62,7 +59,7 @@ namespace SciRenderer
       // Draw the skybox.
       auto skybox = skyboxes.get<AmbientComponent>(entity);
       if (skybox)
-        renderer->draw(skybox, sceneCamera);
+        Renderer3D::draw(skybox, sceneCamera);
     }
   }
 }

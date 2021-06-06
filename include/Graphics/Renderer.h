@@ -10,67 +10,49 @@
 #include "Graphics/Shaders.h"
 #include "Graphics/Meshes.h"
 #include "Graphics/Model.h"
+#include "Graphics/Material.h"
 #include "Graphics/Camera.h"
 #include "Graphics/FrameBuffer.h"
 #include "Graphics/EnvironmentMap.h"
 
 namespace SciRenderer
 {
-  struct RendererStorage
-  {
-    // Size of the buffers.
-    GLuint width;
-    GLuint height;
-
-    // The required buffers for processing.
-    FrameBuffer geometryPass;
-    FrameBuffer lightingPass;
-
-    // The required shaders for processing.
-    Shader geometryShader;
-    Shader lightingShader;
-
-    // The renderer queue (stores the models and materials).
-    std::vector<std::pair<Mesh*, Shader*>> renderQueue;
-
-    // TODO: Add lighting queue with light volumes. Uniform lights are tricky...
-
-    // Other components of a PBR scene.
-    Camera* sceneCam;
-    EnvironmentMap* currentEnvironment;
-  };
-
   // Singleton 3D rendering class.
-  class Renderer3D
+  namespace Renderer3D
   {
-  public:
-    // Destructor.
-    ~Renderer3D();
+    struct RendererStorage
+    {
+      // Size of the buffers.
+      GLuint width;
+      GLuint height;
 
-    // Get the renderer instance.
-    static Renderer3D* getInstance();
+      // The required buffers for processing.
+      FrameBuffer geometryPass;
+      FrameBuffer lightingPass;
+
+      // The required shaders for processing.
+      Shader geometryShader;
+      Shader lightingShader;
+
+      // The renderer queue (stores the models and materials).
+      std::vector<std::pair<Mesh*, Shader*>> renderQueue;
+
+      // Other components of a PBR scene.
+      Camera* sceneCam;
+      EnvironmentMap* currentEnvironment;
+    };
 
     // Init the renderer for drawing.
     void init(const GLuint width = 1600, const GLuint height = 900);
+    void shutdown();
 
     //--------------------------------------------------------------------------
     // Forward rendering setup.
     //--------------------------------------------------------------------------
     // Draw the data given.
     void draw(VertexArray* data, Shader* program);
-    void draw(Shared<Mesh> data, Shader* program, const glm::mat4 &model, Shared<Camera> camera);
-    void draw(Model* data, const glm::mat4 &model, Shared<Camera> camera);
+    void draw(Model* data, ModelMaterial &materials, const glm::mat4 &model, Shared<Camera> camera);
     void draw(Shared<EnvironmentMap> environment, Shared<Camera> camera);
-
-  private:
-    // Renderer instance.
-    static Renderer3D* instance;
-
-    // Renderer storage.
-    RendererStorage deferredStorage;
-
-    // Shader to draw a texture to a screen.
-    Shader* viewportProgram;
   };
 
   // Depth functions. Addition to this as they are required.

@@ -7,7 +7,6 @@
 #include "Core/ApplicationBase.h"
 #include "Graphics/VertexArray.h"
 #include "Graphics/Shaders.h"
-#include "Graphics/Material.h"
 
 namespace SciRenderer
 {
@@ -49,9 +48,8 @@ namespace SciRenderer
     std::vector<Vertex>& getData() { return this->data; }
     std::vector<GLuint>& getIndices() { return this->indices; }
     VertexArray*  getVAO() { return this->vArray.get(); }
-    Material* getMat() { return this->meshMat.get(); }
-    std::string getFilepath() { return this->filepath; }
-    std::string getName() { return this->name; }
+    std::string& getFilepath() { return this->filepath; }
+    std::string& getName() { return this->name; }
 
     // Check for states.
     bool hasVAO() { return this->vArray != nullptr; }
@@ -70,7 +68,5 @@ namespace SciRenderer
 
     // Vertex array object for the mesh data.
     Unique<VertexArray> vArray;
-    // The mesh material. TODO: Move this to the renderable component?
-    Unique<Material> meshMat;
   };
 }

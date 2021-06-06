@@ -85,9 +85,6 @@ namespace SciRenderer
     for (auto& pair : this->windows)
       pair.second->onUpdate(dt);
 
-    // Get the renderer.
-    Renderer3D* renderer = Renderer3D::getInstance();
-
     // Update the size of the framebuffer to fit the editor window.
     glm::vec2 size = this->drawBuffer->getSize();
     if (this->editorSize.x != size.x || this->editorSize.y != size.y)

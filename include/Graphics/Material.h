@@ -7,6 +7,8 @@
 #include "Core/ApplicationBase.h"
 #include "Graphics/Shaders.h"
 #include "Graphics/Textures.h"
+#include "Graphics/Meshes.h"
+#include "Utils/Utilities.h"
 
 namespace SciRenderer
 {
@@ -16,6 +18,7 @@ namespace SciRenderer
     PBR, Specular, Unknown
   };
 
+  // Individual material class to hold shaders and shader data.
   class Material
   {
   public:
@@ -24,13 +27,13 @@ namespace SciRenderer
     ~Material();
 
     // Attach a texture.
-    void attachTexture(Texture2D* tex, const std::string &name);
+    void attachTexture2D(Texture2D* tex, const std::string &name);
 
     // Prepare for drawing.
     void configure();
 
     // Check to see if the material has a texture of a certain type.
-    bool hasTexture(const std::string &name);
+    bool hasTexture2D(const std::string &name);
 
     // Get the shader type.
     MaterialType& getType() { return this->type; }
@@ -41,22 +44,24 @@ namespace SciRenderer
     // Get the shader data.
     GLfloat& getFloat(const std::string &name)
     {
-      auto loc = pairGet<GLfloat>(this->floats, name);
+      auto loc = Utilities::pairGet<std::string, GLfloat>(this->floats, name);
       return loc->second;
     };
     glm::vec2& getVec2(const std::string &name)
     {
-      auto loc = pairGet<glm::vec2>(this->vec2s, name);
+      auto loc = Utilities::pairGet<std::string, glm::vec2>(this->vec2s, name);
       return loc->second;
     };
     glm::vec3& getVec3(const std::string &name)
     {
-      auto loc = pairGet<glm::vec3>(this->vec3s, name);
+      auto loc = Utilities::pairGet<std::string, glm::vec3>(this->vec3s, name);
       return loc->second;
     };
-    Texture2D* getTexture(const std::string &name);
+    Texture2D* getTexture2D(const std::string &name);
 
-    bool& useMultiples() { return this->useUMultiples; }
+    // Operator overloading makes this nice and easy.
+    operator Shader*() { return this->program; }
+
   private:
     MaterialType type;
 
@@ -66,33 +71,21 @@ namespace SciRenderer
     std::vector<std::pair<std::string, glm::vec2>> vec2s;
     std::vector<std::pair<std::string, glm::vec3>> vec3s;
     std::vector<std::pair<std::string, Texture2D*>> sampler2Ds;
+  };
 
-    bool useUMultiples;
+  // Macro material which holds all the individual material objects for each
+  // submesh of a model.
+  class ModelMaterial
+  {
+  public:
+    ModelMaterial() = default;
+    ~ModelMaterial() = default;
 
-    // Searching functions.
-    template <typename T>
-    bool pairSearch(const std::vector<std::pair<std::string, T>> &list, const std::string &name)
-    {
-      auto loc = std::find_if(list.begin(), list.end(),
-                              [&name](const std::pair<std::string, T> &pair)
-      {
-        return pair.first == name;
-      });
+    void attachMesh(Shared<Mesh> mesh, MaterialType type = MaterialType::PBR);
+    void attachModel(Model* model, MaterialType type = MaterialType::PBR);
 
-      return loc != list.end();
-    }
-
-    template <typename T>
-    std::vector<std::pair<std::string, T>>::iterator
-    pairGet(std::vector<std::pair<std::string, T>> &list, const std::string &name)
-    {
-      auto loc = std::find_if(list.begin(), list.end(),
-                              [&name](const std::pair<std::string, T> &pair)
-      {
-        return pair.first == name;
-      });
-
-      return loc;
-    }
+    Material* getMaterial(Shared<Mesh> mesh);
+  private:
+    std::vector<std::pair<Shared<Mesh>, Material>> materials;
   };
 }

@@ -7,7 +7,6 @@ namespace SciRenderer
 {
   Material::Material(MaterialType type)
     : type(type)
-    , useUMultiples(false)
   {
     auto shaderCache = AssetManager<Shader>::getManager();
     switch (type)
@@ -97,28 +96,27 @@ namespace SciRenderer
       case MaterialType::Unknown:
         break;
     }
+
+    this->program->bind();
   }
 
   Texture2D*
-  Material::getTexture(const std::string &name)
+  Material::getTexture2D(const std::string &name)
   {
-    auto loc = this->pairGet<Texture2D*>(this->sampler2Ds, name);
+    auto loc = Utilities::pairGet<std::string, Texture2D*>(this->sampler2Ds, name);
 
-    if (loc != this->sampler2Ds.end())
-      return loc->second;
-    else
-      return nullptr;
+    return loc->second;
   }
 
   // Attach a texture.
   void
-  Material::attachTexture(Texture2D* tex, const std::string &name)
+  Material::attachTexture2D(Texture2D* tex, const std::string &name)
   {
-    if (!this->hasTexture(name))
+    if (!this->hasTexture2D(name))
       this->sampler2Ds.push_back(std::pair(name, tex));
     else
     {
-      auto loc = this->pairGet<Texture2D*>(this->sampler2Ds, name);
+      auto loc = Utilities::pairGet<std::string, Texture2D*>(this->sampler2Ds, name);
 
       this->sampler2Ds.erase(loc);
       this->sampler2Ds.push_back(std::pair(name, tex));
@@ -127,8 +125,27 @@ namespace SciRenderer
 
   // Check to see if the material has a texture of a certain type.
   bool
-  Material::hasTexture(const std::string &name)
+  Material::hasTexture2D(const std::string &name)
   {
-    return this->pairSearch<Texture2D*>(this->sampler2Ds, name);
+    return Utilities::pairSearch<std::string, Texture2D*>(this->sampler2Ds, name);
+  }
+
+  // Attach a mesh-material pair.
+  void
+  ModelMaterial::attachMesh(Shared<Mesh> mesh, MaterialType type)
+  {
+    this->materials.push_back(std::make_pair(mesh, Material(type)));
+  }
+
+  // Get a material given the mesh.
+  Material*
+  ModelMaterial::getMaterial(Shared<Mesh> mesh)
+  {
+    auto loc = Utilities::pairGet<Shared<Mesh>, Material>(this->materials, mesh);
+
+    if (loc != this->materials.end())
+      return &loc->second;
+
+    return nullptr;
   }
 }

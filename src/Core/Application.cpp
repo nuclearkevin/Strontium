@@ -35,8 +35,7 @@ namespace SciRenderer
     this->appWindow = Window::getNewInstance(this->name);
 
     // Initialize the 3D renderer.
-    Renderer3D* renderer = Renderer3D::getInstance();
-    renderer->init();
+    Renderer3D::init();
 
     this->imLayer = new ImGuiLayer();
     this->pushOverlay(this->imLayer);
