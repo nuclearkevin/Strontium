@@ -1,8 +1,9 @@
 // This file contains some shader code developed by Dr. Mark Green at OTU. It
 // has been heavily modified to support OpenGL abstraction.
-
-// Header include.
 #include "Graphics/Shaders.h"
+
+// Project includes.
+#include "Core/Logs.h"
 
 namespace SciRenderer
 {
@@ -15,6 +16,8 @@ namespace SciRenderer
 	}
 
 	Shader::Shader(const std::string &vertPath, const std::string &fragPath)
+		: vertPath(vertPath)
+		, fragPath(fragPath)
 	{
 		// Build the shader from source.
 		this->buildShader(GL_VERTEX_SHADER, vertPath.c_str());
@@ -48,21 +51,99 @@ namespace SciRenderer
 	}
 
 	void
-	Shader::bind()
+	Shader::rebuild()
 	{
+		// Delete the old shader.
+		glDeleteProgram(this->progID);
+		glDeleteShader(this->vertID);
+		glDeleteShader(this->fragID);
+
+		// Build the shader from source.
+		this->buildShader(GL_VERTEX_SHADER, this->vertPath.c_str());
+		this->buildShader(GL_FRAGMENT_SHADER, this->fragPath.c_str());
+		this->buildProgram(this->vertID, this->fragID, 0);
 		glUseProgram(this->progID);
+
+		// Reflect the shader and gather a list of uniforms.
+		this->shaderInfoString = this->dumpProgram();
+
+		char name[256];
+		GLsizei length;
+		GLint size;
+		GLenum type;
+		int uniforms;
+
+		// Generates a list of uniforms based on their name and type.
+		this->uniforms.clear();
+		glGetProgramiv(this->progID, GL_ACTIVE_UNIFORMS, &uniforms);
+		for (unsigned i = 0; i < uniforms; i++)
+		{
+			glGetActiveUniform(this->progID, i, 256, &length, &size, &type, name);
+			this->uniforms.push_back({ name, enumToUniform(type) });
+		}
 	}
 
 	void
-	Shader::unbind()
+	Shader::rebuildFromString()
 	{
-		glUseProgram(0);
+		this->buildShaderSource(GL_VERTEX_SHADER, this->vertSource);
+		this->buildShaderSource(GL_FRAGMENT_SHADER, this->fragSource);
+		this->buildProgram(this->vertID, this->fragID, 0);
+		glUseProgram(this->progID);
+
+		// Reflect the shader and gather a list of uniforms.
+		this->shaderInfoString = this->dumpProgram();
+
+		char name[256];
+		GLsizei length;
+		GLint size;
+		GLenum type;
+		int uniforms;
+
+		// Generates a list of uniforms based on their name and type.
+		this->uniforms.clear();
+		glGetProgramiv(this->progID, GL_ACTIVE_UNIFORMS, &uniforms);
+		for (unsigned i = 0; i < uniforms; i++)
+		{
+			glGetActiveUniform(this->progID, i, 256, &length, &size, &type, name);
+			this->uniforms.push_back({ name, enumToUniform(type) });
+		}
+	}
+
+	void
+	Shader::rebuildFromString(const std::string &vertSource,
+														const std::string &fragSource)
+	{
+		this->buildShaderSource(GL_VERTEX_SHADER, vertSource);
+		this->buildShaderSource(GL_FRAGMENT_SHADER, fragSource);
+		this->buildProgram(this->vertID, this->fragID, 0);
+		glUseProgram(this->progID);
+
+		// Reflect the shader and gather a list of uniforms.
+		this->shaderInfoString = this->dumpProgram();
+
+		char name[256];
+		GLsizei length;
+		GLint size;
+		GLenum type;
+		int uniforms;
+
+		// Generates a list of uniforms based on their name and type.
+		this->uniforms.clear();
+		glGetProgramiv(this->progID, GL_ACTIVE_UNIFORMS, &uniforms);
+		for (unsigned i = 0; i < uniforms; i++)
+		{
+			glGetActiveUniform(this->progID, i, 256, &length, &size, &type, name);
+			this->uniforms.push_back({ name, enumToUniform(type) });
+		}
 	}
 
 	// Build and validate a shader program. TODO: Move away from C to C++.
 	void
 	Shader::buildShader(int type, const char* filename)
 	{
+		Logger* logs = Logger::getInstance();
+
 		GLuint shaderID;
 		char *source;
 		int result;
@@ -78,11 +159,12 @@ namespace SciRenderer
 		glGetShaderiv(shaderID, GL_COMPILE_STATUS, &result);
 		if (result != GL_TRUE)
 		{
-			printf("shader compile error: %s\n",filename);
 			glGetShaderiv(shaderID, GL_INFO_LOG_LENGTH, &result);
 			buffer = new char[result];
 			glGetShaderInfoLog(shaderID, result, 0, buffer);
-			printf("%s\n", buffer);
+			logs->logMessage(LogMessage(std::string("Shader compiler error at: ")
+																	+ std::string(filename) + std::string("\n")
+																	+ std::string(buffer), true, false, true));
 			delete buffer;
 		}
 
@@ -90,12 +172,58 @@ namespace SciRenderer
 		{
 			case GL_VERTEX_SHADER:
 				this->vertID = shaderID;
+				this->vertSource = std::string(source);
 				break;
 			case GL_FRAGMENT_SHADER:
 				this->fragID = shaderID;
+				this->fragSource = std::string(source);
 				break;
 			default:
-				printf("Shader type unknown!\n");
+				logs->logMessage(LogMessage("Shader type unknown!", true, false, true));
+				break;
+		}
+	}
+
+	// Builds a shader from the provided source.
+	void
+	Shader::buildShaderSource(int type, const std::string &strSource)
+	{
+		Logger* logs = Logger::getInstance();
+
+		GLuint shaderID;
+		int result;
+		char* buffer;
+
+		shaderID = glCreateShader(type);
+		char* source = (char*) strSource.c_str();
+		if (source == 0)
+			return;
+
+		glShaderSource(shaderID, 1, (const  GLchar**) &source, 0);
+		glCompileShader(shaderID);
+		glGetShaderiv(shaderID, GL_COMPILE_STATUS, &result);
+		if (result != GL_TRUE)
+		{
+			glGetShaderiv(shaderID, GL_INFO_LOG_LENGTH, &result);
+			buffer = new char[result];
+			glGetShaderInfoLog(shaderID, result, 0, buffer);
+			logs->logMessage(LogMessage(std::string("Shader compiler error: ")
+																	+ std::string(buffer), true, false, true));
+			delete buffer;
+		}
+
+		switch (type)
+		{
+			case GL_VERTEX_SHADER:
+				this->vertID = shaderID;
+				this->vertSource = std::string(source);
+				break;
+			case GL_FRAGMENT_SHADER:
+				this->fragID = shaderID;
+				this->fragSource = std::string(source);
+				break;
+			default:
+				logs->logMessage(LogMessage("Shader type unknown!", true, false, true));
 				break;
 		}
 	}
@@ -151,6 +279,118 @@ namespace SciRenderer
 			printf("%s\n",buffer);
 			delete buffer;
 		}
+	}
+
+	// Saves the vertex and fragment shader source code to the files they were
+	// loaded from.
+	void
+	Shader::saveSourceToFiles()
+	{
+		Logger* logs = Logger::getInstance();
+
+		if (this->vertPath == "" || this->fragPath == "")
+		{
+			logs->logMessage(LogMessage("Could not save shader file, missing one or "
+																	"more path(s)!", true, false, true));
+			return;
+		}
+		bool successful = true;
+
+		// Save the vertex source first.
+		std::ofstream vertFile(this->vertPath, std::ios::out | std::ios::trunc);
+
+		if (vertFile.is_open())
+		{
+			vertFile << this->vertSource;
+			vertFile.close();
+		}
+		else
+		{
+			logs->logMessage(LogMessage("Failed to save the vertex source.",
+																	true, false, true));
+			successful = false;
+		}
+
+		// Save the fragment source second.
+		std::ofstream fragFile(this->fragPath, std::ios::out | std::ios::trunc);
+
+		if (fragFile.is_open())
+		{
+			fragFile << this->fragSource;
+			fragFile.close();
+		}
+		else
+		{
+			logs->logMessage(LogMessage("Failed to save the fragment source.",
+																	true, false, true));
+			successful = false;
+		}
+
+		if (successful)
+			logs->logMessage(LogMessage("Successfully saved the shader.",
+																	true, false, true));
+	}
+
+	// Saves the vertex and fragment shader source code to a new text file.
+	void
+	Shader::saveSourceToFiles(const std::string &vertPath,
+														const std::string &fragPath)
+	{
+		Logger* logs = Logger::getInstance();
+
+		if (vertPath == "" || fragPath == "")
+		{
+			logs->logMessage(LogMessage("Could not save shader file, missing one or "
+																	"more paths!", true, false, true));
+			return;
+		}
+		bool successful = true;
+
+		// Save the vertex source first.
+		std::ofstream vertFile(vertPath, std::ios::out | std::ios::trunc);
+
+		if (vertFile.is_open())
+		{
+			vertFile << this->vertSource;
+			vertFile.close();
+		}
+		else
+		{
+			logs->logMessage(LogMessage("Failed to save vertex source.",
+																	true, false, true));
+			successful = false;
+		}
+
+		// Save the fragment source second.
+		std::ofstream fragFile(fragPath, std::ios::out | std::ios::trunc);
+
+		if (fragFile.is_open())
+		{
+			fragFile << this->fragSource;
+			fragFile.close();
+		}
+		else
+		{
+			logs->logMessage(LogMessage("Failed to save fragment source.",
+																	true, false, true));
+			successful = false;
+		}
+
+		if (successful)
+			logs->logMessage(LogMessage("Successfully saved the shader files.",
+																	true, false, true));
+	}
+
+	void
+	Shader::bind()
+	{
+		glUseProgram(this->progID);
+	}
+
+	void
+	Shader::unbind()
+	{
+		glUseProgram(0);
 	}
 
 	// Setters for uniform matrices.

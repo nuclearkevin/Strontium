@@ -141,7 +141,7 @@ namespace SciRenderer
     for (auto& pair : this->cube->getSubmeshes())
     {
       if (!pair.second->hasVAO())
-        pair.second->generateVAO(this->cubeShader);
+        pair.second->generateVAO();
     }
   }
 

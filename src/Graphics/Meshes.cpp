@@ -24,26 +24,15 @@ namespace SciRenderer
     if (!this->isLoaded())
       return;
 
-    this->vArray = createUnique<VertexArray>(&(this->data[0]), this->data.size() * sizeof(Vertex), BufferType::Dynamic);
-    this->vArray->addIndexBuffer(&(this->indices[0]), this->indices.size(),  BufferType::Dynamic);
-  }
+    this->vArray = createUnique<VertexArray>(this->data.data(), this->data.size() * sizeof(Vertex), BufferType::Dynamic);
+    this->vArray->addIndexBuffer(this->indices.data(), this->indices.size(), BufferType::Dynamic);
 
-  // Generate a vertex array object associated with this mesh.
-  void
-  Mesh::generateVAO(Shader* program)
-  {
-    if (!this->isLoaded())
-      return;
-
-    this->vArray = createUnique<VertexArray>(&(this->data[0]), this->data.size() * sizeof(Vertex), BufferType::Dynamic);
-    this->vArray->addIndexBuffer(&(this->indices[0]), this->indices.size(), BufferType::Dynamic);
-
-  	program->addAtribute("vPosition", AttribType::Vec4, GL_FALSE, sizeof(Vertex), 0);
-  	program->addAtribute("vNormal", AttribType::Vec3, GL_FALSE, sizeof(Vertex), offsetof(Vertex, normal));
-  	program->addAtribute("vColour", AttribType::Vec3, GL_FALSE, sizeof(Vertex), offsetof(Vertex, colour));
-    program->addAtribute("vTexCoord", AttribType::Vec3, GL_FALSE, sizeof(Vertex), offsetof(Vertex, uv));
-    program->addAtribute("vTangent", AttribType::Vec3, GL_FALSE, sizeof(Vertex), offsetof(Vertex, tangent));
-    program->addAtribute("vBitangent", AttribType::Vec3, GL_FALSE, sizeof(Vertex), offsetof(Vertex, bitangent));
+    this->vArray->addAttribute(0, AttribType::Vec4, GL_FALSE, sizeof(Vertex), 0);
+  	this->vArray->addAttribute(1, AttribType::Vec3, GL_FALSE, sizeof(Vertex), offsetof(Vertex, normal));
+  	this->vArray->addAttribute(2, AttribType::Vec3, GL_FALSE, sizeof(Vertex), offsetof(Vertex, colour));
+    this->vArray->addAttribute(3, AttribType::Vec3, GL_FALSE, sizeof(Vertex), offsetof(Vertex, uv));
+    this->vArray->addAttribute(4, AttribType::Vec3, GL_FALSE, sizeof(Vertex), offsetof(Vertex, tangent));
+    this->vArray->addAttribute(5, AttribType::Vec3, GL_FALSE, sizeof(Vertex), offsetof(Vertex, bitangent));
   }
 
   void

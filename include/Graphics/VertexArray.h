@@ -7,6 +7,7 @@
 // Project includes.
 #include "Core/ApplicationBase.h"
 #include "Graphics/Buffers.h"
+#include "Graphics/Shaders.h"
 
 namespace SciRenderer
 {
@@ -23,6 +24,9 @@ namespace SciRenderer
     // Bind/unbind the array.
     void bind();
     void unbind();
+
+    void addAttribute(GLuint location, AttribType type, GLboolean normalized,
+                      unsigned size, unsigned stride);
 
     // Replace the vertex buffer, also purges the index buffers for safety.
     void setData(Shared<VertexBuffer> buffer);

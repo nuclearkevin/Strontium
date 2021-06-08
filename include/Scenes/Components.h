@@ -157,16 +157,35 @@ namespace SciRenderer
   // TODO: Finish these when done the deferred renderer.
   struct DirectionalLightComponent
   {
+    glm::vec3 direction;
+    glm::vec4 colour;
 
+    GLfloat intensity;
+
+    bool castShadows;
   };
 
   struct PointLightComponent
   {
+    glm::vec3 position;
+    glm::vec4 colour;
 
+    GLfloat intensity;
+    glm::vec2 attenuation;
+
+    bool castShadows;
   };
 
   struct SpotLightComponent
   {
+    glm::vec3 position;
+    glm::vec3 direction;
 
+    GLfloat intensity;
+    GLfloat innerCutoff;
+    GLfloat outerCutoff;
+    glm::vec2 attenuation;
+
+    bool castShadows;
   };
 }

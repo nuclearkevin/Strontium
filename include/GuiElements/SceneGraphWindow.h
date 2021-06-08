@@ -43,7 +43,6 @@ namespace SciRenderer
     void drawComponentNodes(); // TODO: Implement this
     void drawPropsWindow();
     void drawMaterialWindow();
-    void drawShaderInfoWindow(bool &isOpen);
     void drawMeshWindow();
     void drawEnviWindow();
     void drawTextureWindow(const std::string &type, Shared<Mesh> submesh, bool &isOpen);

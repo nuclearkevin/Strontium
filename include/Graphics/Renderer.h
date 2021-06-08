@@ -17,7 +17,7 @@
 
 namespace SciRenderer
 {
-  // Singleton 3D rendering class.
+  // The 3D renderer!
   namespace Renderer3D
   {
     struct RendererStorage
@@ -53,7 +53,7 @@ namespace SciRenderer
     void draw(VertexArray* data, Shader* program);
     void draw(Model* data, ModelMaterial &materials, const glm::mat4 &model, Shared<Camera> camera);
     void draw(Shared<EnvironmentMap> environment, Shared<Camera> camera);
-  };
+  }
 
   // Depth functions. Addition to this as they are required.
   enum class DepthFunctions

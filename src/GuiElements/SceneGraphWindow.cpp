@@ -395,8 +395,6 @@ namespace SciRenderer
             auto& uRoughness = material->getFloat("uRoughness");
             auto& uAO = material->getFloat("uAO");
 
-            ImGui::Checkbox("Show Shader Info", &showShaderInfo);
-
             // Draw all the associated texture maps for the entity.
             ImGui::Text("Albedo Map");
             if (ImGui::ImageButton((ImTextureID) (unsigned long) material->getTexture2D("albedoMap")->getID(),
@@ -450,31 +448,6 @@ namespace SciRenderer
 
           if (showTexWindow)
             this->drawTextureWindow(selectedType, pair.second, showTexWindow);
-          if (showShaderInfo)
-            this->drawShaderInfoWindow(showShaderInfo);
-        }
-      }
-    }
-  }
-
-  // Draw the renderable component shader information. Its in another window
-  // to make things easier to view.
-  void
-  SceneGraphWindow::drawShaderInfoWindow(bool &isOpen)
-  {
-    if (this->selectedEntity)
-    {
-      if (this->selectedEntity.hasComponent<RenderableComponent>())
-      {
-        auto& rComponent = this->selectedEntity.getComponent<RenderableComponent>();
-        for (auto& pair : rComponent.model->getSubmeshes())
-        {
-          auto material = rComponent.materials.getMaterial(pair.second);
-          ImGui::Begin("Shader Info", &isOpen);
-          if (ImGui::CollapsingHeader(pair.first.c_str()))
-            ImGui::Text((std::string("Shader Info: ") +
-                        material->getShader()->getInfoString()).c_str());
-          ImGui::End();
         }
       }
     }

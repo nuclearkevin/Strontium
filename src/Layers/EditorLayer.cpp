@@ -6,6 +6,7 @@
 #include "GuiElements/Styles.h"
 #include "GuiElements/SceneGraphWindow.h"
 #include "GuiElements/CameraWindow.h"
+#include "GuiElements/ShaderWindow.h"
 
 namespace SciRenderer
 {
@@ -60,6 +61,7 @@ namespace SciRenderer
     // All the windows!
     this->windows.push_back(std::make_pair(true, new SceneGraphWindow()));
     this->windows.push_back(std::make_pair(true, new CameraWindow(this->editorCam)));
+    this->windows.push_back(std::make_pair(true, new ShaderWindow()));
   }
 
   void
@@ -72,10 +74,10 @@ namespace SciRenderer
   void
   EditorLayer::onEvent(Event &event)
   {
-    this->editorCam->onEvent(event);
-
     for (auto& pair : this->windows)
       pair.second->onEvent(event);
+
+    this->editorCam->onEvent(event);
   }
 
   // On update for the layer.
@@ -218,6 +220,10 @@ namespace SciRenderer
           if (ImGui::MenuItem("Show Camera Menu"))
           {
             this->windows[1].first = true;
+          }
+          if (ImGui::MenuItem("Show Shader Menu"))
+          {
+            this->windows[2].first = true;
           }
           ImGui::EndMenu();
         }

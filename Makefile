@@ -7,6 +7,7 @@ SRC_DIR 			     := ./src/
 GLAD_DIR           := ./vendor/glad/src/
 IMGUI_DIR				   := ./vendor/imgui/
 IMGUI_FB_DIR			 := ./vendor/imguibrowser/FileBrowser/
+IMGUI_TEXT_DIR     := ./vendor/imguitexteditor/
 OUTPUT_DIR         := ./bin/
 
 # Praise be to the wildcards! Preps to shotgun compile the engine source +
@@ -20,6 +21,7 @@ GUI_SOURSES        := $(wildcard $(SRC_DIR)GuiElements/*.cpp)
 GLAD_SOURCES       := $(wildcard $(GLAD_DIR)*.c)
 IMGUI_SOURCES 	   := $(wildcard $(IMGUI_DIR)*.cpp)
 IMGUI_FB_SOURCES   := $(wildcard $(IMGUI_FB_DIR)*.cpp)
+IMGUI_TEXT_SOURCES := $(wildcard $(IMGUI_TEXT_DIR)*.cpp)
 
 CORE_OBJECTS 			 := $(patsubst $(SRC_DIR)Core/%.cpp, $(OUTPUT_DIR)Core/%.o, $(CORE_SOURCES))
 GRAPHICS_OBJECTS   := $(patsubst $(SRC_DIR)Graphics/%.cpp, $(OUTPUT_DIR)Graphics/%.o, $(GRAPHICS_SOURCES))
@@ -30,13 +32,14 @@ GUI_OBJECTS        := $(patsubst $(SRC_DIR)GuiElements/%.cpp, $(OUTPUT_DIR)GuiEl
 GLAD_OBJECTS       := $(patsubst $(GLAD_DIR)%.c, $(OUTPUT_DIR)vendor/%.o, $(GLAD_SOURCES))
 IMGUI_OBJECTS      := $(patsubst $(IMGUI_DIR)%.cpp, $(OUTPUT_DIR)vendor/%.o, $(IMGUI_SOURCES))
 IMGUI_FB_OBJECTS   := $(patsubst $(IMGUI_FB_DIR)%.cpp, $(OUTPUT_DIR)vendor/%.o, $(IMGUI_FB_SOURCES))
+IMGUI_TEXT_OBJECTS := $(patsubst $(IMGUI_TEXT_DIR)%.cpp, $(OUTPUT_DIR)vendor/%.o, $(IMGUI_TEXT_SOURCES))
 
 makebuild: make_dir Application
 
 # Link everything together.
 Application: $(CORE_OBJECTS) $(LAYERS_OBJECTS) $(GRAPHICS_OBJECTS) $(SCENE_OBJECTS) \
-	$(UTILS_OBJECTS) $(GUI_OBJECTS) $(GLAD_OBJECTS) $(IMGUI_FB_OBJECTS) \
-	$(IMGUI_OBJECTS)
+	$(UTILS_OBJECTS) $(GUI_OBJECTS) $(GLAD_OBJECTS) $(IMGUI_OBJECTS) $(IMGUI_FB_OBJECTS) \
+	$(IMGUI_TEXT_OBJECTS)
 	@echo Linking the application.
 	@$(COMPILE_FLAGS) -o Application $^ -ldl $(GLFW_FLAGS) $(ASSIMP_FLAGS)
 
@@ -59,6 +62,11 @@ $(OUTPUT_DIR)vendor/%.o: $(IMGUI_DIR)%.cpp
 $(OUTPUT_DIR)vendor/%.o: $(IMGUI_FB_DIR)%.cpp
 	@echo Compiling $<
 	@$(COMPILE_FLAGS) -I$(IMGUI_FB_DIR) -c $< -o $@
+
+# Compile the Imgui text editor.
+$(OUTPUT_DIR)vendor/%.o: $(IMGUI_TEXT_DIR)%.cpp
+	@echo Compiling $<
+	@$(COMPILE_FLAGS) -I$(IMGUI_TEXT_DIR) -c $< -o $@
 
 # Make the binary directory.
 make_dir:

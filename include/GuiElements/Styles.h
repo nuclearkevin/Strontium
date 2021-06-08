@@ -7,6 +7,9 @@
 #include "imgui/imgui.h"
 #include "imgui/imgui_internal.h"
 
+// ImGui text editor include.
+#include "imguitexteditor/TextEditor.h"
+
 namespace SciRenderer
 {
   namespace Styles
@@ -33,5 +36,8 @@ namespace SciRenderer
     ImVec4 colourFromHex(const std::string &hex);
     std::string colourToHex(const ImVec4 &colour);
     std::string colourToHex(const glm::vec4 &colour);
+
+    void drawTextEditorWindow(TextEditor &editor, const std::string &name,
+                              bool &isOpen, std::string &outString);
   }
 }

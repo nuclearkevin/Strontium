@@ -29,9 +29,23 @@ namespace SciRenderer
 
     // Shader parser/compiler function.
     void buildShader(int type, const char* filename);
+    void buildShaderSource(int type, const std::string &strSource);
 
     // Program linker function.
     void buildProgram(GLuint first, ...);
+
+    // Rebuild the shader. Includes source parsing, compiling and linking.
+    void rebuild();
+
+    // Rebuilds from the shader sources as strings.
+    void rebuildFromString();
+    void rebuildFromString(const std::string &vertSource, const std::string &fragSource);
+
+    // Saves the vertex and fragment shader source code to the files they were
+    // loaded from.
+    void saveSourceToFiles();
+    // Saves the vertex and fragment shader source code to a new text file.
+    void saveSourceToFiles(const std::string &vertPath, const std::string &fragPath);
 
     // Bind/unbind the shader.
     void bind();
@@ -62,8 +76,14 @@ namespace SciRenderer
     // Getters.
     GLuint getShaderID() { return this->progID; }
     std::string& getInfoString() { return this->shaderInfoString; }
+    std::string& getVertSource() { return this->vertSource; }
+    std::string& getFragSource() { return this->fragSource; }
     std::vector<std::pair<std::string, UniformType>>& getUniforms() { return this->uniforms; }
     std::vector<std::string>& getUniformNames() { return this->uniformNames; }
+
+    // Set the shader source for dynamic rebuilding.
+    void setVertSource(const std::string &source) { this->vertSource = source; }
+    void setFragSource(const std::string &source) { this->fragPath = source; }
 
     // Convert GLenums to strings.
     static std::string enumToString(GLenum sEnum);
@@ -72,6 +92,12 @@ namespace SciRenderer
     GLuint progID;
     GLuint vertID;
     GLuint fragID;
+
+    std::string vertPath;
+    std::string fragPath;
+
+    std::string vertSource;
+    std::string fragSource;
 
     std::string shaderInfoString;
     std::vector<std::pair<std::string, UniformType>> uniforms;

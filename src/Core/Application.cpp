@@ -50,6 +50,9 @@ namespace SciRenderer
   		delete layer;
 		}
 
+    // Shutdown the renderer.
+    Renderer3D::shutdown();
+
     // Delete the application event dispatcher and logs.
     delete EventDispatcher::getInstance();
     delete Logger::getInstance();

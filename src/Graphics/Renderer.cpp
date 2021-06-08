@@ -71,7 +71,7 @@ namespace SciRenderer
           Renderer3D::draw(pair.second->getVAO(), program);
         else
         {
-          pair.second->generateVAO(program);
+          pair.second->generateVAO();
           if (pair.second->hasVAO())
             Renderer3D::draw(pair.second->getVAO(), program);
         }

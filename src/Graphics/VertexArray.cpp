@@ -57,6 +57,17 @@ namespace SciRenderer
       this->indices->unbind();
   }
 
+  // Add an attribute
+  void
+  VertexArray::addAttribute(GLuint location, AttribType type, GLboolean normalized,
+                            unsigned size, unsigned stride)
+  {
+    this->bind();
+    glVertexAttribPointer(location, static_cast<GLint>(type), GL_FLOAT,
+													normalized, size, (void*) (unsigned long) stride);
+		glEnableVertexAttribArray(location);
+  }
+
   // Replace the vertex buffer, also purges the index buffers for safety.
   void
   VertexArray::setData(Shared<VertexBuffer> buffer)

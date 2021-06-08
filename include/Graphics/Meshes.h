@@ -35,7 +35,6 @@ namespace SciRenderer
 
     // Generate/delete the vertex array object.
     void generateVAO();
-    void generateVAO(Shader* program);
 
     void deleteVAO();
     // Debug function to dump to the console.
