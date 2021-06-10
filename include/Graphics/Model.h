@@ -24,6 +24,9 @@ namespace SciRenderer
 
     void loadModel(const std::string &filepath);
 
+    // Is the model loaded or not.
+    bool isLoaded() { return this->loaded; }
+
     // Get the submeshes for the model.
     std::vector<std::pair<std::string, Shared<Mesh>>>& getSubmeshes() { return this->subMeshes; }
     std::string getFilepath() { return this->filepath; }

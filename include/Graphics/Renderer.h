@@ -20,6 +20,14 @@ namespace SciRenderer
   // The 3D renderer!
   namespace Renderer3D
   {
+    // The renderer states (for serialization and other things of that nature).
+    // TODO: Add me!
+    struct RendererStates
+    {
+
+    };
+
+    // The renderer storage.
     struct RendererStorage
     {
       // Size of the buffers.

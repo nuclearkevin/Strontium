@@ -135,7 +135,8 @@ namespace SciRenderer
 
     void
     drawVec3Controls(const std::string &label, glm::vec3 resetValue,
-                     glm::vec3& param, GLfloat offset, GLfloat speed)
+                     glm::vec3& param, GLfloat offset, GLfloat speed,
+                     GLfloat min, GLfloat max)
     {
       ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4, 4));
       ImGui::PushMultiItemsWidths(4, ImGui::CalcItemWidth());
@@ -147,17 +148,17 @@ namespace SciRenderer
 
       ImGui::SameLine();
       ImGui::DragFloat((std::string("##x") + label).c_str(), &param.x, speed,
-                       0.0f, 0.0f, "%.2f");
+                       min, max, "%.2f");
       ImGui::PopItemWidth();
 
       ImGui::SameLine();
       ImGui::DragFloat((std::string("##y") + label).c_str(), &param.y, speed,
-                       0.0f, 0.0f, "%.2f");
+                       min, max, "%.2f");
       ImGui::PopItemWidth();
 
       ImGui::SameLine();
       ImGui::DragFloat((std::string("##z") + label).c_str(), &param.z, speed,
-                       0.0f, 0.0f, "%.2f");
+                       min, max, "%.2f");
       ImGui::PopItemWidth();
 
       ImGui::SameLine();
@@ -167,10 +168,11 @@ namespace SciRenderer
 
     void
     drawVec2Controls(const std::string &label, glm::vec2 resetValue,
-                     glm::vec2& param, GLfloat offset, GLfloat speed)
+                     glm::vec2& param, GLfloat offset, GLfloat speed,
+                     GLfloat min, GLfloat max)
     {
       ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4, 4));
-      ImGui::PushMultiItemsWidths(3, ImGui::CalcItemWidth());
+      ImGui::PushMultiItemsWidths(3, ImGui::CalcItemWidth() * 4.5 / 4.0 - offset);
       setButtonColour(ImVec4{ 0.8f, 0.1f, 0.15f, 1.0f },
                       ImVec4{ 0.9f, 0.2f, 0.2f, 1.0f },
                       ImVec4{ 0.8f, 0.1f, 0.15f, 1.0f });
@@ -181,11 +183,11 @@ namespace SciRenderer
 
       ImGui::SameLine();
       ImGui::DragFloat((std::string("##x") + label).c_str(), &param.x, speed,
-                       0.0f, 0.0f, "%.2f");
+                       min, max, "%.2f");
       ImGui::PopItemWidth();
       ImGui::SameLine();
       ImGui::DragFloat((std::string("##y") + label).c_str(), &param.y, speed,
-                       0.0f, 0.0f, "%.2f");
+                       min, max, "%.2f");
       ImGui::PopItemWidth();
       ImGui::SameLine();
       ImGui::Text(label.c_str());
@@ -194,7 +196,8 @@ namespace SciRenderer
 
     void
     drawFloatControl(const std::string &label, GLfloat resetValue,
-                     GLfloat& param, GLfloat offset, GLfloat speed)
+                     GLfloat& param, GLfloat offset, GLfloat speed,
+                     GLfloat min, GLfloat max)
     {
       ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4, 4));
       setButtonColour(ImVec4{ 0.8f, 0.1f, 0.15f, 1.0f },
@@ -206,8 +209,8 @@ namespace SciRenderer
 
       ImGui::SameLine();
       ImGui::PushItemWidth(ImGui::CalcItemWidth() * 3.0 / 4.0 - offset);
-      ImGui::DragFloat((std::string("##x") + label).c_str(), &param, speed, 0.0f,
-                       0.0f, "%.2f");
+      ImGui::DragFloat((std::string("##x") + label).c_str(), &param, speed, min,
+                       max, "%.2f");
       ImGui::PopItemWidth();
 
       ImGui::SameLine();

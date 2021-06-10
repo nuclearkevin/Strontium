@@ -39,24 +39,31 @@ namespace SciRenderer
     ImGui::Begin("Shader Programs", &isOpen);
     for (auto& name : shaderCache->getStorage())
     {
-      ImGuiTreeNodeFlags flags = ((this->selectedShader == shaderCache->getAsset(name)) ? ImGuiTreeNodeFlags_Selected : 0);
-      flags |= ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_Bullet;
+      Shader* shader = shaderCache->getAsset(name);
 
-      bool opened = ImGui::TreeNodeEx((void*) shaderCache->getAsset(name), flags, name.c_str());
+      ImGuiTreeNodeFlags flags = ((this->selectedShader == shader) ? ImGuiTreeNodeFlags_Selected : 0);
 
-      if (ImGui::IsItemClicked())
+      ImGui::SetNextItemOpen(this->selectedShader == shader);
+
+      bool opened = ImGui::TreeNodeEx((void*) shader, flags, name.c_str());
+
+      if (ImGui::IsItemClicked() && this->selectedShader != shader)
       {
         this->shaderName = name;
-        this->selectedShader = shaderCache->getAsset(name);
+        this->selectedShader = shader;
+      }
+      else if (ImGui::IsItemClicked() && this->selectedShader == shader)
+      {
+        this->shaderName = "";
+        this->selectedShader = nullptr;
       }
 
-      if (this->selectedShader == shaderCache->getAsset(name) && opened)
+      if (this->selectedShader == shader && opened)
       {
-        ImGui::Separator();
-
-        float buttonWidth = 140.0f;
+        const float buttonWidth = 140.0f;
 
         // Reloads the shader file.
+        ImGui::Indent();
         if (ImGui::Button("Reload From File", ImVec2(buttonWidth, 0)))
         {
           logs->logMessage(LogMessage(std::string("Reloaded shader: ") + this->shaderName,
@@ -102,6 +109,7 @@ namespace SciRenderer
         // Display the shader information string.
         ImGui::Text("Shader information:");
         ImGui::Text(this->selectedShader->getInfoString().c_str());
+        ImGui::Unindent();
 
         ImGui::TreePop();
       }

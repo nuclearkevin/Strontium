@@ -18,6 +18,12 @@ namespace SciRenderer
 
     NameComponent(const NameComponent&) = default;
 
+    NameComponent(NameComponent& other)
+    {
+      name = other.name + " (Copy)";
+      description = other.description;
+    }
+
     NameComponent()
       : name("")
       , description("")
@@ -89,7 +95,9 @@ namespace SciRenderer
 
     RenderableComponent()
       : meshName("")
-    { }
+    {
+      model = new Model();
+    }
 
     RenderableComponent(Model* model, const std::string &meshName)
       : model(model)
@@ -154,32 +162,53 @@ namespace SciRenderer
     operator Shared<EnvironmentMap>() { return ambient; }
   };
 
-  // TODO: Finish these when done the deferred renderer.
+  // TODO: Finish these.
+  // Various light components for rendering the scene.
   struct DirectionalLightComponent
   {
     glm::vec3 direction;
-    glm::vec4 colour;
+    glm::vec3 colour;
 
     GLfloat intensity;
 
     bool castShadows;
+
+    DirectionalLightComponent(const DirectionalLightComponent&) = default;
+
+    DirectionalLightComponent()
+      : direction(glm::vec3(0.0f))
+      , colour(glm::vec3(1.0f))
+      , intensity(0.0f)
+      , castShadows(false)
+    { }
   };
 
   struct PointLightComponent
   {
     glm::vec3 position;
-    glm::vec4 colour;
+    glm::vec3 colour;
 
     GLfloat intensity;
     glm::vec2 attenuation;
 
     bool castShadows;
+
+    PointLightComponent(const PointLightComponent&) = default;
+
+    PointLightComponent()
+      : position(glm::vec3(0.0f))
+      , colour(glm::vec3(1.0f))
+      , intensity(0.0f)
+      , attenuation(glm::vec2(0.0f))
+      , castShadows(false)
+    { }
   };
 
   struct SpotLightComponent
   {
     glm::vec3 position;
     glm::vec3 direction;
+    glm::vec4 colour;
 
     GLfloat intensity;
     GLfloat innerCutoff;
@@ -187,5 +216,18 @@ namespace SciRenderer
     glm::vec2 attenuation;
 
     bool castShadows;
+
+    SpotLightComponent(const SpotLightComponent&) = default;
+
+    SpotLightComponent()
+      : position(glm::vec3(0.0f))
+      , direction(glm::vec3(0.0f))
+      , colour(glm::vec4(1.0f))
+      , intensity(0.0f)
+      , innerCutoff(std::cos(glm::radians(45.0f)))
+      , outerCutoff(std::cos(glm::radians(90.0f)))
+      , attenuation(glm::vec2(0.0f))
+      , castShadows(false)
+    { }
   };
 }
