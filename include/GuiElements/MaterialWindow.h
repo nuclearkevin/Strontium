@@ -11,32 +11,25 @@
 
 namespace SciRenderer
 {
-  // A scene graph window for viewing a graph.
-  class SceneGraphWindow : public GuiWindow
+  class MaterialWindow : public GuiWindow
   {
   public:
-    SceneGraphWindow();
-    ~SceneGraphWindow();
+    MaterialWindow();
+    ~MaterialWindow();
 
     void onImGuiRender(bool &isOpen, Shared<Scene> activeScene);
     void onUpdate(float dt);
     void onEvent(Event &event);
 
     Entity getSelectedEntity() { return this->selectedEntity; }
-    void setSelectedEntity(Entity newEntity) { this->selectedEntity = newEntity; }
+    void setSelectedEntity(Entity newEnt) { this->selectedEntity = newEnt; }
 
   private:
-    // Functions for UI.
-    void drawEntityNode(Entity entity, Shared<Scene> activeScene);
-    void drawComponentNodes(Entity entity);
-    void drawPropsWindow(bool &isOpen);
-
-    // TODO: Consider moving this to a separate window.
-    void drawMeshWindow(bool &isOpen);
-
-    // Various buffers and selections.
     Entity selectedEntity;
     std::string selectedString;
     FileLoadTargets fileTargets;
+    std::pair<Material*, std::string> selectedMatTex;
+
+    void drawTextureWindow(const std::string &type, Shared<Mesh> submesh, bool &isOpen);
   };
 }

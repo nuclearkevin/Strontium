@@ -42,7 +42,8 @@ namespace SciRenderer
     // Editor camera.
     Shared<Camera> editorCam;
 
-    // The various external windows.
+    // The various external windows. Kinda janky.
+    // TODO: use an unordered map?
     std::vector<std::pair<bool, GuiWindow*>> windows;
 
     // Stuff for ImGui and the GUI.

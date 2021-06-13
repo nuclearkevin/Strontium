@@ -176,7 +176,7 @@ namespace SciRenderer
     DirectionalLightComponent(const DirectionalLightComponent&) = default;
 
     DirectionalLightComponent()
-      : direction(glm::vec3(0.0f))
+      : direction(glm::vec3(0.0f, -1.0f, 0.0f))
       , colour(glm::vec3(1.0f))
       , intensity(0.0f)
       , castShadows(false)
@@ -221,7 +221,7 @@ namespace SciRenderer
 
     SpotLightComponent()
       : position(glm::vec3(0.0f))
-      , direction(glm::vec3(0.0f))
+      , direction(glm::vec3(0.0f, -1.0f, 0.0f))
       , colour(glm::vec4(1.0f))
       , intensity(0.0f)
       , innerCutoff(std::cos(glm::radians(45.0f)))

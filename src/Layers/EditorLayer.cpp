@@ -7,6 +7,8 @@
 #include "GuiElements/SceneGraphWindow.h"
 #include "GuiElements/CameraWindow.h"
 #include "GuiElements/ShaderWindow.h"
+#include "GuiElements/FileBrowserWindow.h"
+#include "GuiElements/MaterialWindow.h"
 
 namespace SciRenderer
 {
@@ -62,6 +64,8 @@ namespace SciRenderer
     this->windows.push_back(std::make_pair(true, new SceneGraphWindow()));
     this->windows.push_back(std::make_pair(true, new CameraWindow(this->editorCam)));
     this->windows.push_back(std::make_pair(true, new ShaderWindow()));
+    this->windows.push_back(std::make_pair(true, new FileBrowserWindow()));
+    this->windows.push_back(std::make_pair(true, new MaterialWindow()));
   }
 
   void
@@ -74,9 +78,11 @@ namespace SciRenderer
   void
   EditorLayer::onEvent(Event &event)
   {
+    // Push the events through to all the gui elements.
     for (auto& pair : this->windows)
       pair.second->onEvent(event);
 
+    // Push the event through to the editor camera.
     this->editorCam->onEvent(event);
   }
 
@@ -84,6 +90,10 @@ namespace SciRenderer
   void
   EditorLayer::onUpdate(float dt)
   {
+    // Update the selected entity for all the windows.
+    auto selectedEntity = static_cast<SceneGraphWindow*>(this->windows[0].second)->getSelectedEntity();
+    static_cast<MaterialWindow*>(this->windows[4].second)->setSelectedEntity(selectedEntity);
+
     for (auto& pair : this->windows)
       pair.second->onUpdate(dt);
 
@@ -96,22 +106,17 @@ namespace SciRenderer
       this->drawBuffer->resize(this->editorSize.x, this->editorSize.y);
     }
 
-    //--------------------------------------------------------------------------
-    // The drawing phase. TODO: Move the application to a deferred renderer.
-    //--------------------------------------------------------------------------
     // Draw the scene.
     this->drawBuffer->clear();
     this->drawBuffer->bind();
     this->drawBuffer->setViewport();
 
     // Update the scene.
-    currentScene->onUpdate(dt, this->editorCam);
+    this->currentScene->onUpdate(dt, this->editorCam);
 
     this->drawBuffer->unbind();
 
-    //--------------------------------------------------------------------------
     // Update the editor camera.
-    //--------------------------------------------------------------------------
     this->editorCam->onUpdate(dt);
   }
 

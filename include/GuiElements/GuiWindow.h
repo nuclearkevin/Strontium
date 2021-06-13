@@ -10,6 +10,11 @@
 
 namespace SciRenderer
 {
+  enum class FileLoadTargets
+  {
+    TargetTexture, TargetModel, TargetEnvironment, TargetNone
+  };
+
   class GuiWindow
   {
   public:

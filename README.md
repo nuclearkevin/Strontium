@@ -12,8 +12,8 @@ This project is not intended to be a high performance rendering engine, but rath
   - Transparent support (using model sorting).
 - A deferred 2D renderer for sprites, billboards, etc.
 - A global illumination engine for rendering a static image of the scene.
-- Realistic physics simulations derived from first principles (possibly as extra modules).
-  - This will likely focus on the physics commonly found in nuclear reactors (considering my background).
+- Physics simulations (possibly as extra modules).
+  - Starting with 2D physics, might do 3D physics afterwards.
 - Vulkan support.
 
 ## Building SciRender

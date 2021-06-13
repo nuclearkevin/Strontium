@@ -3,15 +3,18 @@
 // Macro include file.
 #include "SciRenderPCH.h"
 
-// Data structure to hold the events.
-#include <queue>
-
 namespace SciRenderer
 {
   enum class EventType
   {
     KeyPressedEvent, KeyReleasedEvent, KeyTypedEvent, MouseClickEvent,
-    MouseReleasedEvent, MouseScrolledEvent, WindowCloseEvent, WindowResizeEvent
+    MouseReleasedEvent, MouseScrolledEvent, WindowCloseEvent, WindowResizeEvent,
+    OpenDialogueEvent, LoadFileEvent
+  };
+
+  enum class DialogueEventType
+  {
+    FileOpen, FileSave, FileSelect
   };
 
   //----------------------------------------------------------------------------
@@ -140,6 +143,39 @@ namespace SciRenderer
     inline glm::ivec2 getSize() { return glm::ivec2(this->width, this->height); }
   private:
     GLuint width, height;
+  };
+
+  //----------------------------------------------------------------------------
+  // Open file dialogue event.
+  //----------------------------------------------------------------------------
+  class OpenDialogueEvent : public Event
+  {
+  public:
+    OpenDialogueEvent(DialogueEventType type = DialogueEventType::FileOpen,
+                      const std::string &validFiles = "*.*");
+    ~OpenDialogueEvent() = default;
+
+    inline std::string& getFormat() { return this->validFiles; }
+    inline DialogueEventType getDialogueType() { return this->dialogueType; }
+  private:
+    std::string validFiles;
+    DialogueEventType dialogueType;
+  };
+
+  //----------------------------------------------------------------------------
+  // Load file event.
+  //----------------------------------------------------------------------------
+  class LoadFileEvent : public Event
+  {
+  public:
+    LoadFileEvent(const std::string &absPath, const std::string &fileName);
+    ~LoadFileEvent() = default;
+
+    inline std::string& getAbsPath() { return this->absPath; }
+    inline std::string& getFileName() { return this->fileName; }
+  private:
+    std::string absPath;
+    std::string fileName;
   };
 
   //----------------------------------------------------------------------------

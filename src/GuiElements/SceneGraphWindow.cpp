@@ -104,12 +104,12 @@ namespace SciRenderer
   }
   //----------------------------------------------------------------------------
 
+  // Fixed selection bug for now -> removed the ability to deselect entities.
+  // TODO: Readd the ability to deselect entities.
   SceneGraphWindow::SceneGraphWindow()
     : GuiWindow()
-    , attachMesh(false)
-    , attachEnvi(false)
-    , propsWindow(true)
     , selectedString("")
+    , fileTargets(FileLoadTargets::TargetNone)
   { }
 
   SceneGraphWindow::~SceneGraphWindow()
@@ -120,18 +120,9 @@ namespace SciRenderer
   {
     ImGui::Begin("Scene Graph", &isOpen);
 
-    if (!this->propsWindow)
-    {
-      this->propsWindow = this->propsWindow || ImGui::Button("Open Properties Window");
-    }
-    else
-    {
-      ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
-      ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
-      ImGui::Button("Open Properties Window");
-      ImGui::PopItemFlag();
-      ImGui::PopStyleVar();
-    }
+    static bool openPropWindow = true;
+
+    ImGui::Checkbox("Show Component Properties", &openPropWindow);
 
     activeScene->sceneECS.each([&](auto entityID)
     {
@@ -147,36 +138,22 @@ namespace SciRenderer
 				activeScene->createEntity();
 
       // Create a debug bunny entity.
-      if (ImGui::MenuItem("Create New Debug Bunny"))
+      if (ImGui::MenuItem("Create New Model"))
       {
         auto shaderCache = AssetManager<Shader>::getManager();
         auto modelAssets = AssetManager<Model>::getManager();
 
-				auto bunny = activeScene->createEntity();
-        bunny.addComponent<TransformComponent>();
-        bunny.addComponent<RenderableComponent>
-          (modelAssets->loadAssetFile("./res/models/bunnyNew.obj", "bunnyNew.obj"),
-           "bunnyNew.obj");
-
-        auto& tag = bunny.getComponent<NameComponent>();
-        tag.name = "Debug Bunny";
+				auto model = activeScene->createEntity("New Model");
+        model.addComponent<TransformComponent>();
+        model.addComponent<RenderableComponent>();
       }
 
 			ImGui::EndPopup();
 		}
-
-    // Deselect the entity if it isn't hovered over.
-    if (ImGui::IsMouseDown(0) && ImGui::IsWindowHovered() && !this->attachMesh)
-			this->selectedEntity = Entity();
-
     ImGui::End();
 
-    if (this->propsWindow)
-      this->drawPropsWindow();
-    if (this->attachMesh)
-      this->drawMeshWindow();
-    if (this->attachEnvi)
-      this->drawEnviWindow();
+    if (openPropWindow)
+      this->drawPropsWindow(openPropWindow);
   }
 
   void
@@ -188,7 +165,67 @@ namespace SciRenderer
   void
   SceneGraphWindow::onEvent(Event &event)
   {
+    if (!this->selectedEntity)
+      return;
 
+    switch(event.getType())
+    {
+      // Process a file loading event. Using enum barriers to prevent files from
+      // being improperly loaded when this window didn't dispatch the event.
+      case EventType::LoadFileEvent:
+      {
+        auto loadEvent = *(static_cast<LoadFileEvent*>(&event));
+        auto& path = loadEvent.getAbsPath();
+        auto& name = loadEvent.getFileName();
+
+        switch (this->fileTargets)
+        {
+          case FileLoadTargets::TargetModel:
+          {
+            auto modelAssets = AssetManager<Model>::getManager();
+
+            // If it already has a mesh component, remove it and add a new one.
+            if (this->selectedEntity.hasComponent<RenderableComponent>())
+            {
+              this->selectedEntity.removeComponent<RenderableComponent>();
+              auto& renderable = this->selectedEntity.addComponent<RenderableComponent>
+                (modelAssets->loadAssetFile(path, name), name);
+            }
+
+            this->fileTargets = FileLoadTargets::TargetNone;
+            break;
+          }
+
+          case FileLoadTargets::TargetEnvironment:
+          {
+            auto& ambient = this->selectedEntity.getComponent<AmbientComponent>();
+
+            if (ambient.ambient->hasEqrMap())
+            {
+              ambient.ambient->unloadEnvironment();
+              ambient.ambient->loadEquirectangularMap(path);
+              ambient.ambient->equiToCubeMap(true, 2048, 2048);
+              ambient.ambient->precomputeIrradiance(512, 512, true);
+              ambient.ambient->precomputeSpecular(2048, 2048, true);
+            }
+            else
+            {
+              ambient.ambient->loadEquirectangularMap(path);
+              ambient.ambient->equiToCubeMap(true, 2048, 2048);
+              ambient.ambient->precomputeIrradiance(512, 512, true);
+              ambient.ambient->precomputeSpecular(2048, 2048, true);
+            }
+
+            this->fileTargets = FileLoadTargets::TargetNone;
+            break;
+          }
+
+          default: break;
+        }
+        break;
+      }
+      default: break;
+    }
   }
 
   void
@@ -205,9 +242,7 @@ namespace SciRenderer
 
     // Set the new selected entity.
     if (ImGui::IsItemClicked())
-    {
       this->selectedEntity = entity;
-    }
 
     // Menu with entity properties. Allows the addition and deletion of
     // components, copying of the entity and deletion of the entity.
@@ -314,9 +349,9 @@ namespace SciRenderer
 
   // The property panel for an entity.
   void
-  SceneGraphWindow::drawPropsWindow()
+  SceneGraphWindow::drawPropsWindow(bool &isOpen)
   {
-    ImGui::Begin("Entity Properties", &(this->propsWindow));
+    ImGui::Begin("Entity Properties", &isOpen);
     if (this->selectedEntity)
     {
       auto& name = this->selectedEntity.getComponent<NameComponent>().name;
@@ -352,15 +387,14 @@ namespace SciRenderer
       drawComponentProperties<RenderableComponent>("Renderable Component",
         this->selectedEntity, [this](auto& component)
       {
-        static bool showMaterialInfo = false;
+        static bool showMeshWindow = false;
 
         ImGui::Text((std::string("Mesh: ") + component.meshName).c_str());
         if (ImGui::Button("Select New Mesh"))
-          this->attachMesh = true;
+          showMeshWindow = true;
 
-        ImGui::Checkbox("Show Material Window", &showMaterialInfo);
-        if (showMaterialInfo)
-          this->drawMaterialWindow(showMaterialInfo);
+        if (showMeshWindow)
+          this->drawMeshWindow(showMeshWindow);
       });
 
       drawComponentProperties<DirectionalLightComponent>("Directional Light Component",
@@ -369,8 +403,6 @@ namespace SciRenderer
         ImGui::PushID("DirectionalLight");
         ImGui::Checkbox("Cast Shadows", &component.castShadows);
         ImGui::ColorEdit3("Colour", &component.colour.r);
-        Styles::drawVec3Controls("Direction", glm::vec3(0.0f), component.direction,
-                                 0.0f, 0.1f, 0.0f, 1.0f);
         Styles::drawFloatControl("Intensity", 0.0f, component.intensity,
                                  0.0f, 0.1f, 0.0f, 1.0f);
         ImGui::PopID();
@@ -382,7 +414,6 @@ namespace SciRenderer
         ImGui::PushID("PointLight");
         ImGui::Checkbox("Cast Shadows", &component.castShadows);
         ImGui::ColorEdit3("Colour", &component.colour.r);
-        Styles::drawVec3Controls("Position", glm::vec3(0.0f), component.position);
         Styles::drawVec2Controls("Attenuation", glm::vec2(0.0f), component.attenuation);
         Styles::drawFloatControl("Intensity", 0.0f, component.intensity,
                                  0.0f, 0.1f, 0.0f, 1.0f);
@@ -395,9 +426,6 @@ namespace SciRenderer
         ImGui::PushID("SpotLight");
         ImGui::Checkbox("Cast Shadows", &component.castShadows);
         ImGui::ColorEdit3("Colour", &component.colour.r);
-        Styles::drawVec3Controls("Position", glm::vec3(0.0f), component.position);
-        Styles::drawVec3Controls("Direction", glm::vec3(0.0f), component.direction,
-                                 0.0f, 0.1f, 0.0f, 1.0f);
         Styles::drawVec2Controls("Attenuation", glm::vec2(0.0f), component.attenuation);
         Styles::drawFloatControl("Intensity", 0.0f, component.intensity,
                                  0.0f, 0.1f, 0.0f, 1.0f);
@@ -415,8 +443,10 @@ namespace SciRenderer
       drawComponentProperties<AmbientComponent>("Ambient Light Component",
         this->selectedEntity, [this](auto& component)
       {
+        bool attachEnvi = false;
+
         if (ImGui::Button("Load New Environment"))
-          this->attachEnvi = true;
+          attachEnvi = true;
 
         if (component.ambient->hasEqrMap())
         {
@@ -431,120 +461,40 @@ namespace SciRenderer
 
           ImGui::DragFloat("Gamma", &component.gamma, 0.1f, 0.0f, 10.0f, "%.2f");
         }
+
+        if (attachEnvi)
+        {
+          EventDispatcher* dispatcher = EventDispatcher::getInstance();
+          dispatcher->queueEvent(new OpenDialogueEvent(DialogueEventType::FileOpen, ".hdr"));
+
+          this->fileTargets = FileLoadTargets::TargetEnvironment;
+        }
       });
     }
 
     ImGui::End();
   }
 
-  // Draw the material info in a separate window to avoid cluttering.
-  void
-  SceneGraphWindow::drawMaterialWindow(bool &isOpen)
-  {
-    if (this->selectedEntity)
-    {
-      if (this->selectedEntity.hasComponent<RenderableComponent>())
-      {
-        auto& rComponent = this->selectedEntity.getComponent<RenderableComponent>();
-        for (auto& pair : rComponent.model->getSubmeshes())
-        {
-          ImGui::Begin("Materials", &isOpen);
-
-          static bool showTexWindow = false;
-          static std::string selectedType;
-          std::string selectedMeshName = pair.first;
-
-          if (ImGui::CollapsingHeader((pair.first + "##" + std::to_string((unsigned long) pair.second.get())).c_str()))
-          {
-            auto material = rComponent.materials.getMaterial(pair.second);
-            auto& uAlbedo = material->getVec3("uAlbedo");
-            auto& uMetallic = material->getFloat("uMetallic");
-            auto& uRoughness = material->getFloat("uRoughness");
-            auto& uAO = material->getFloat("uAO");
-
-            // Draw all the associated texture maps for the entity.
-            ImGui::Text("Albedo Map");
-            ImGui::PushID("Albedo Button");
-            if (ImGui::ImageButton((ImTextureID) (unsigned long) material->getTexture2D("albedoMap")->getID(),
-                                   ImVec2(64, 64), ImVec2(0, 1), ImVec2(1, 0)))
-            {
-              showTexWindow = true;
-              selectedType = "albedoMap";
-            }
-            ImGui::PopID();
-            ImGui::SameLine();
-            ImGui::ColorEdit3("##Albedo", &uAlbedo.r);
-
-            ImGui::Text("Metallic Map");
-            ImGui::PushID("Metallic Button");
-            if (ImGui::ImageButton((ImTextureID) (unsigned long) material->getTexture2D("metallicMap")->getID(),
-                                   ImVec2(64, 64), ImVec2(0, 1), ImVec2(1, 0)))
-            {
-              showTexWindow = true;
-              selectedType = "metallicMap";
-            }
-            ImGui::PopID();
-            ImGui::SameLine();
-            ImGui::SliderFloat("##Metallic", &uMetallic, 0.0f, 1.0f);
-
-            ImGui::Text("Roughness Map");
-            ImGui::PushID("Roughness Button");
-            if (ImGui::ImageButton((ImTextureID) (unsigned long) material->getTexture2D("roughnessMap")->getID(),
-                                   ImVec2(64, 64), ImVec2(0, 1), ImVec2(1, 0)))
-            {
-              showTexWindow = true;
-              selectedType = "roughnessMap";
-            }
-            ImGui::PopID();
-            ImGui::SameLine();
-            ImGui::SliderFloat("##Roughness", &uRoughness, 0.0f, 1.0f);
-
-            ImGui::Text("Ambient Occlusion Map");
-            ImGui::PushID("Ambient Button");
-            if (ImGui::ImageButton((ImTextureID) (unsigned long) material->getTexture2D("aOcclusionMap")->getID(),
-                                   ImVec2(64, 64), ImVec2(0, 1), ImVec2(1, 0)))
-            {
-              showTexWindow = true;
-              selectedType = "aOcclusionMap";
-            }
-            ImGui::PopID();
-            ImGui::SameLine();
-            ImGui::SliderFloat("##AO", &uAO, 0.0f, 1.0f);
-
-            ImGui::Text("Normal Map");
-            ImGui::PushID("Normal Button");
-            if (ImGui::ImageButton((ImTextureID) (unsigned long) material->getTexture2D("normalMap")->getID(),
-                                   ImVec2(64, 64), ImVec2(0, 1), ImVec2(1, 0)))
-            {
-              showTexWindow = true;
-              selectedType = "normalMap";
-            }
-            ImGui::PopID();
-          }
-          ImGui::End();
-
-          if (showTexWindow)
-            this->drawTextureWindow(selectedType, pair.second, showTexWindow);
-        }
-      }
-    }
-  }
-
   // Draw the mesh selection window.
   void
-  SceneGraphWindow::drawMeshWindow()
+  SceneGraphWindow::drawMeshWindow(bool &isOpen)
   {
-    bool openModelDialogue = false;
-
     // Get the asset caches.
     auto modelAssets = AssetManager<Model>::getManager();
     auto shaderCache = AssetManager<Shader>::getManager();
 
-    ImGui::Begin("Mesh Assets", &this->attachMesh);
+    ImGui::Begin("Mesh Assets", &isOpen);
 
     // Button to load in a new mesh asset.
     if (ImGui::Button("Load New Mesh"))
-      openModelDialogue = true;
+    {
+      EventDispatcher* dispatcher = EventDispatcher::getInstance();
+      dispatcher->queueEvent(new OpenDialogueEvent(DialogueEventType::FileOpen,
+                                                   ".obj,.FBX,.fbx"));
+
+      this->fileTargets = FileLoadTargets::TargetModel;
+      isOpen = false;
+    }
 
     // Loop over all the loaded models and display each for selection.
     for (auto& name : modelAssets->getStorage())
@@ -564,7 +514,7 @@ namespace SciRenderer
           renderable.model = modelAssets->getAsset(name);
           renderable.meshName = name;
 
-          this->attachMesh = false;
+          isOpen = false;
           this->selectedString = "";
         }
         else
@@ -572,146 +522,12 @@ namespace SciRenderer
           this->selectedEntity.addComponent<RenderableComponent>
             (modelAssets->getAsset(name), name);
 
-          this->attachMesh = false;
+          isOpen = false;
           this->selectedString = "";
         }
       }
     }
     ImGui::End();
-
-    // Load in a model and give it to the entity as a renderable component
-    // alongside the pbr_shader shader.
-    if (openModelDialogue)
-      ImGui::OpenPopup("Load Mesh");
-
-    if (this->fileHandler.showFileDialog("Load Mesh",
-        imgui_addons::ImGuiFileBrowser::DialogMode::OPEN, ImVec2(700, 310), ".obj,.FBX,.fbx"))
-    {
-      auto shaderCache = AssetManager<Shader>::getManager();
-      auto modelAssets = AssetManager<Model>::getManager();
-
-      std::string name = this->fileHandler.selected_fn;
-      std::string path = this->fileHandler.selected_path;
-
-      // If it already has a mesh component, remove it and add a new one.
-      if (this->selectedEntity.hasComponent<RenderableComponent>())
-      {
-        this->selectedEntity.removeComponent<RenderableComponent>();
-        auto& renderable = this->selectedEntity.addComponent<RenderableComponent>
-          (modelAssets->loadAssetFile(path, name), name);
-
-        this->attachMesh = false;
-        this->selectedString = "";
-      }
-      else
-      {
-        this->selectedEntity.addComponent<RenderableComponent>
-          (modelAssets->loadAssetFile(path, name), name);
-
-        this->attachMesh = false;
-        this->selectedString = "";
-      }
-    }
-
-    if (!this->attachMesh)
-      this->selectedString = "";
-  }
-
-  void
-  SceneGraphWindow::drawEnviWindow()
-  {
-    if (this->attachEnvi)
-      ImGui::OpenPopup("Load Environment Map");
-
-    if (this->fileHandler.showFileDialog("Load Environment Map",
-        imgui_addons::ImGuiFileBrowser::DialogMode::OPEN, ImVec2(700, 310), ".hdr"))
-    {
-      std::string name = this->fileHandler.selected_fn;
-      std::string path = this->fileHandler.selected_path;
-
-      auto& ambient = this->selectedEntity.getComponent<AmbientComponent>();
-
-      if (ambient.ambient->hasEqrMap())
-      {
-        ambient.ambient->unloadEnvironment();
-        ambient.ambient->loadEquirectangularMap(path);
-        ambient.ambient->equiToCubeMap(true, 2048, 2048);
-        ambient.ambient->precomputeIrradiance(512, 512, true);
-        ambient.ambient->precomputeSpecular(2048, 2048, true);
-      }
-      else
-      {
-        ambient.ambient->loadEquirectangularMap(path);
-        ambient.ambient->equiToCubeMap(true, 2048, 2048);
-        ambient.ambient->precomputeIrradiance(512, 512, true);
-        ambient.ambient->precomputeSpecular(2048, 2048, true);
-      }
-
-      this->attachEnvi = false;
-    }
-  }
-
-  // Texture selection window.
-  void
-  SceneGraphWindow::drawTextureWindow(const std::string &type, Shared<Mesh> submesh, bool &isOpen)
-  {
-    auto textureCache = AssetManager<Texture2D>::getManager();
-
-    Material* material =
-      this->selectedEntity.getComponent<RenderableComponent>().materials.getMaterial(submesh);
-
-    bool openTextureDialoge = false;
-
-    ImGui::Begin("Select Texture", &isOpen);
-
-    if (ImGui::Button("Load New Texture"))
-      openTextureDialoge = true;
-
-    for (auto& name : textureCache->getStorage())
-    {
-      ImGuiTreeNodeFlags flags = ((this->selectedString == name) ? ImGuiTreeNodeFlags_Selected : 0);
-      flags |= ImGuiTreeNodeFlags_NoTreePushOnOpen | ImGuiTreeNodeFlags_OpenOnArrow
-            | ImGuiTreeNodeFlags_Bullet | ImGuiTreeNodeFlags_OpenOnDoubleClick;
-
-      auto texture = textureCache->getAsset(name);
-      ImGui::Image((ImTextureID) (unsigned long) texture->getID(),
-                   ImVec2(64, 64), ImVec2(0, 1), ImVec2(1, 0));
-
-      if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(0))
-      {
-        material->attachTexture2D(texture, type);
-        isOpen = false;
-        this->selectedString = "";
-      }
-
-      ImGui::SameLine();
-      bool opened = ImGui::TreeNodeEx((void*) (sizeof(char) * name.size()), flags, name.c_str());
-
-      if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(0))
-      {
-        material->attachTexture2D(texture, type);
-        isOpen = false;
-        this->selectedString = "";
-      }
-    }
-    ImGui::End();
-
-    // Load in a new texture and attach it to the material.
-    if (openTextureDialoge)
-      ImGui::OpenPopup("Load Texture");
-
-    if (this->fileHandler.showFileDialog("Load Texture",
-        imgui_addons::ImGuiFileBrowser::DialogMode::OPEN, ImVec2(700, 310), ".jpg,.tga,.png"))
-    {
-      std::string name = this->fileHandler.selected_fn;
-      std::string path = this->fileHandler.selected_path;
-
-      Texture2D* tex = Texture2D::loadTexture2D(path);
-
-      material->attachTexture2D(tex, type);
-      isOpen = false;
-      this->selectedString = "";
-    }
 
     if (!isOpen)
       this->selectedString = "";

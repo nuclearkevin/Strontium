@@ -80,6 +80,26 @@ namespace SciRenderer
     , height(height)
   { }
 
+  //----------------------------------------------------------------------------
+  // Open file dialogue event.
+  //----------------------------------------------------------------------------
+  OpenDialogueEvent::OpenDialogueEvent(DialogueEventType type,
+                                       const std::string &validFiles)
+    : Event(EventType::OpenDialogueEvent, "Open dialogue event")
+    , validFiles(validFiles)
+    , dialogueType(type)
+  { }
+
+  //----------------------------------------------------------------------------
+  // Load file event.
+  //----------------------------------------------------------------------------
+  LoadFileEvent::LoadFileEvent(const std::string &absPath,
+                               const std::string &fileName)
+    : Event(EventType::LoadFileEvent, "Load file event")
+    , absPath(absPath)
+    , fileName(fileName)
+  { }
+
   // A utility downcast function which deletes the event.
   void
   Event::deleteEvent(Event* &event)
@@ -111,6 +131,12 @@ namespace SciRenderer
           break;
         case EventType::WindowResizeEvent:
           delete static_cast<WindowResizeEvent*>(event);
+          break;
+        case EventType::OpenDialogueEvent:
+          delete static_cast<OpenDialogueEvent*>(event);
+          break;
+        case EventType::LoadFileEvent:
+          delete static_cast<LoadFileEvent*>(event);
           break;
       }
     }
