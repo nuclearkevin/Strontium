@@ -134,7 +134,7 @@ namespace SciRenderer
       , ambientFactor(1.0f)
       , drawingMips(false)
     {
-      ambient = createShared<EnvironmentMap>("./res/models/cube.obj");
+      ambient = createShared<EnvironmentMap>("./assets/models/cube.obj");
     }
 
     AmbientComponent(Shared<EnvironmentMap> map)
@@ -151,7 +151,7 @@ namespace SciRenderer
       , ambientFactor(1.0f)
       , drawingMips(false)
     {
-      ambient = createShared<EnvironmentMap>("./res/models/cube.obj");
+      ambient = createShared<EnvironmentMap>("./assets/models/cube.obj");
       ambient->loadEquirectangularMap(iblImagePath);
       ambient->equiToCubeMap(true, 2048, 2048);
       ambient->precomputeIrradiance(512, 512, true);

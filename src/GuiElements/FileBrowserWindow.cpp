@@ -3,7 +3,8 @@
 namespace SciRenderer
 {
   FileBrowserWindow::FileBrowserWindow()
-    : isOpen(false)
+    : GuiWindow()
+    , isOpen(false)
     , format(".")
     , mode(imgui_addons::ImGuiFileBrowser::DialogMode::SELECT)
   {

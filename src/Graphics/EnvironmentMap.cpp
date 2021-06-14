@@ -22,7 +22,7 @@ namespace SciRenderer
     auto modelManager = AssetManager<Model>::getManager();
     auto shaderCache = AssetManager<Shader>::getManager();
 
-    this->cubeShader = new Shader("./res/shaders/pbr/pbrSkybox.vs", "./res/shaders/pbr/pbrSkybox.fs");
+    this->cubeShader = new Shader("./assets/shaders/pbr/pbrSkybox.vs", "./assets/shaders/pbr/pbrSkybox.fs");
     shaderCache->attachAsset("skybox_shader", this->cubeShader);
 
     this->cube = modelManager->loadAssetFile(cubeMeshPath, "skyboxcube.obj");
@@ -219,7 +219,7 @@ namespace SciRenderer
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
     // The equirectangular to cubemap compute shader.
-    ComputeShader conversionShader = ComputeShader("./res/shaders/compute/equiConversion.cs");
+    ComputeShader conversionShader = ComputeShader("./assets/shaders/compute/equiConversion.cs");
 
     // Buffer to pass the sizes of the image to the compute shader.
     struct
@@ -293,7 +293,7 @@ namespace SciRenderer
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
     // Convolution compute shader.
-    ComputeShader convolutionShader = ComputeShader("./res/shaders/compute/diffuseConv.cs");
+    ComputeShader convolutionShader = ComputeShader("./assets/shaders/compute/diffuseConv.cs");
 
     // Buffer to pass the sizes of the image to the compute shader.
     glm::vec2 dimensions = glm::vec2((GLfloat) width, (GLfloat) height);
@@ -357,7 +357,7 @@ namespace SciRenderer
       glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
 
       // The specular prefilter compute shader.
-      ComputeShader filterShader = ComputeShader("./res/shaders/compute/specPrefilter.cs");
+      ComputeShader filterShader = ComputeShader("./assets/shaders/compute/specPrefilter.cs");
 
       // A buffer with the parameters required for computing the prefilter.
       struct
@@ -426,7 +426,7 @@ namespace SciRenderer
       glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
       glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-      ComputeShader integrateBRDF = ComputeShader("./res/shaders/compute/integrateBRDF.cs");
+      ComputeShader integrateBRDF = ComputeShader("./assets/shaders/compute/integrateBRDF.cs");
 
       // Bind the irradiance map for writing to by the compute shader.
       glBindImageTexture(3, this->brdfIntMap->getID(), 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);

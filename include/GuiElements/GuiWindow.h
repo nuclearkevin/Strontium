@@ -25,6 +25,5 @@ namespace SciRenderer
     virtual void onUpdate(float dt);
     virtual void onEvent(Event &event);
   private:
-
   };
 }

@@ -22,8 +22,8 @@ namespace SciRenderer
       // Initialize the vewport shader passthrough.
       auto shaderCache = AssetManager<Shader>::getManager();
 
-      shaderCache->attachAsset("fsq_shader", new Shader("./res/shaders/viewport.vs",
-                                                        "./res/shaders/viewport.fs"));
+      shaderCache->attachAsset("fsq_shader", new Shader("./assets/shaders/viewport.vs",
+                                                        "./assets/shaders/viewport.fs"));
     }
 
     // Shutdown the renderer.
@@ -49,7 +49,7 @@ namespace SciRenderer
     // Draw a model to the screen (it just draws all the submeshes associated with the model).
     void
     draw(Model* data, ModelMaterial &materials, const glm::mat4 &model,
-                     Shared<Camera> camera)
+         Shared<Camera> camera)
     {
       for (auto& pair : data->getSubmeshes())
       {

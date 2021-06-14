@@ -10,8 +10,6 @@
 // ImGui includes.
 #include "imgui/imgui.h"
 #include "imgui/imgui_internal.h"
-#include "imgui/imgui_impl_glfw.h"
-#include "imgui/imgui_impl_opengl3.h"
 
 namespace SciRenderer
 {
@@ -121,7 +119,6 @@ namespace SciRenderer
     ImGui::Begin("Scene Graph", &isOpen);
 
     static bool openPropWindow = true;
-
     ImGui::Checkbox("Show Component Properties", &openPropWindow);
 
     activeScene->sceneECS.each([&](auto entityID)
@@ -351,7 +348,7 @@ namespace SciRenderer
   void
   SceneGraphWindow::drawPropsWindow(bool &isOpen)
   {
-    ImGui::Begin("Entity Properties", &isOpen);
+    ImGui::Begin("Components", &isOpen);
     if (this->selectedEntity)
     {
       auto& name = this->selectedEntity.getComponent<NameComponent>().name;

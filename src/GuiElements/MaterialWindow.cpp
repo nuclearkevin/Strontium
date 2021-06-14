@@ -11,6 +11,7 @@
 namespace SciRenderer
 {
   MaterialWindow::MaterialWindow()
+    : GuiWindow()
   { }
 
   MaterialWindow::~MaterialWindow()

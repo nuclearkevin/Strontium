@@ -9,6 +9,7 @@
 #include "GuiElements/ShaderWindow.h"
 #include "GuiElements/FileBrowserWindow.h"
 #include "GuiElements/MaterialWindow.h"
+#include "GuiElements/AssetBrowserWindow.h"
 
 namespace SciRenderer
 {
@@ -46,14 +47,14 @@ namespace SciRenderer
   	this->drawBuffer->attachRenderBuffer();
 
     // Load the shader into a cache and set the appropriate uniforms.
-    Shader* program = new Shader ("./res/shaders/mesh.vs",
-                                  "./res/shaders/pbr/pbrTex.fs");
+    Shader* program = new Shader ("./assets/shaders/mesh.vs",
+                                  "./assets/shaders/pbr/pbrTex.fs");
     shaderCache->attachAsset("pbr_shader", program);
 
     // Setup stuff for the scene.
     this->currentScene = createShared<Scene>();
     auto ambient = this->currentScene->createEntity("Ambient Light");
-    ambient.addComponent<AmbientComponent>("./res/textures/hdr_environments/pink_sunrise_4k.hdr");
+    ambient.addComponent<AmbientComponent>("./assets/textures/hdr_environments/pink_sunrise_4k.hdr");
 
     // Finally, the editor camera.
     this->editorCam = createShared<Camera>(1920 / 2, 1080 / 2, glm::vec3 { 0.0f, 1.0f, 4.0f },
@@ -66,6 +67,7 @@ namespace SciRenderer
     this->windows.push_back(std::make_pair(true, new ShaderWindow()));
     this->windows.push_back(std::make_pair(true, new FileBrowserWindow()));
     this->windows.push_back(std::make_pair(true, new MaterialWindow()));
+    this->windows.push_back(std::make_pair(true, new AssetBrowserWindow()));
   }
 
   void
@@ -94,6 +96,7 @@ namespace SciRenderer
     auto selectedEntity = static_cast<SceneGraphWindow*>(this->windows[0].second)->getSelectedEntity();
     static_cast<MaterialWindow*>(this->windows[4].second)->setSelectedEntity(selectedEntity);
 
+    // Update each of the windows.
     for (auto& pair : this->windows)
       pair.second->onUpdate(dt);
 
@@ -214,24 +217,44 @@ namespace SciRenderer
       {
         if (ImGui::BeginMenu("Menus"))
         {
-          if (ImGui::MenuItem("Show Performance Stats Menu"))
+          if (ImGui::BeginMenu("Scene Menu Settings"))
           {
-            this->showPerf = true;
+            if (ImGui::MenuItem("Show Scene Graph"))
+            {
+              this->windows[0].first = true;
+            }
+
+            if (ImGui::MenuItem("Material Settings"))
+            {
+              this->windows[4].first = true;
+            }
+
+            ImGui::EndMenu();
           }
-          if (ImGui::MenuItem("Show Scene Graph Menu"))
+
+          if (ImGui::BeginMenu("Editor Menu Settings"))
           {
-            this->windows[0].first = true;
+            if (ImGui::MenuItem("Show Performance Stats Menu"))
+            {
+              this->showPerf = true;
+            }
+
+            if (ImGui::MenuItem("Show Camera Menu"))
+            {
+              this->windows[1].first = true;
+            }
+
+            if (ImGui::MenuItem("Show Shader Menu"))
+            {
+              this->windows[2].first = true;
+            }
+
+            ImGui::EndMenu();
           }
-          if (ImGui::MenuItem("Show Camera Menu"))
-          {
-            this->windows[1].first = true;
-          }
-          if (ImGui::MenuItem("Show Shader Menu"))
-          {
-            this->windows[2].first = true;
-          }
+
           ImGui::EndMenu();
         }
+
         ImGui::EndMenu();
       }
 
@@ -249,11 +272,11 @@ namespace SciRenderer
     ImGui::Begin("Editor Viewport", nullptr, ImGuiWindowFlags_NoCollapse);
     {
       ImGui::BeginChild("EditorRender");
-        {
-          this->editorSize = ImGui::GetWindowSize();
-          ImGui::Image((ImTextureID) (unsigned long) this->drawBuffer->getAttachID(FBOTargetParam::Colour0),
-                       this->editorSize, ImVec2(0, 1), ImVec2(1, 0));
-        }
+      {
+        this->editorSize = ImGui::GetWindowSize();
+        ImGui::Image((ImTextureID) (unsigned long) this->drawBuffer->getAttachID(FBOTargetParam::Colour0),
+                     this->editorSize, ImVec2(0, 1), ImVec2(1, 0));
+      }
       ImGui::EndChild();
     }
     ImGui::PopStyleVar(3);
