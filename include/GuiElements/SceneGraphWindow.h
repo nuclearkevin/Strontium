@@ -19,7 +19,7 @@ namespace SciRenderer
     ~SceneGraphWindow();
 
     void onImGuiRender(bool &isOpen, Shared<Scene> activeScene);
-    void onUpdate(float dt);
+    void onUpdate(float dt, Shared<Scene> activeScene);
     void onEvent(Event &event);
 
     Entity getSelectedEntity() { return this->selectedEntity; }
@@ -34,9 +34,14 @@ namespace SciRenderer
     // TODO: Consider moving this to a separate window.
     void drawMeshWindow(bool &isOpen);
 
+    // Load an asset from a drag and drop action.
+    void loadDNDAsset(const std::string &filepath);
+
     // Various buffers and selections.
     Entity selectedEntity;
     std::string selectedString;
     FileLoadTargets fileTargets;
+
+    bool deleteSelected;
   };
 }

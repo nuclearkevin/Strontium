@@ -44,7 +44,7 @@ namespace SciRenderer
   }
 
   void
-  CameraWindow::onUpdate(float dt)
+  CameraWindow::onUpdate(float dt, Shared<Scene> activeScene)
   {
 
   }

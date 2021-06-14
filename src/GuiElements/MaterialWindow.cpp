@@ -17,6 +17,8 @@ namespace SciRenderer
   MaterialWindow::~MaterialWindow()
   { }
 
+  // This is uglier than me, and more complicated than it needs to be.
+  // TODO: Refactor and make it cleaner.
   void
   MaterialWindow::onImGuiRender(bool &isOpen, Shared<Scene> activeScene)
   {
@@ -55,6 +57,7 @@ namespace SciRenderer
               showTexWindow = true;
               selectedType = "albedoMap";
             }
+            this->DNDTarget(material, "albedoMap");
             ImGui::PopID();
             ImGui::SameLine();
             ImGui::ColorEdit3("##Albedo", &uAlbedo.r);
@@ -67,6 +70,7 @@ namespace SciRenderer
               showTexWindow = true;
               selectedType = "metallicMap";
             }
+            this->DNDTarget(material, "metallicMap");
             ImGui::PopID();
             ImGui::SameLine();
             ImGui::SliderFloat("##Metallic", &uMetallic, 0.0f, 1.0f);
@@ -79,6 +83,7 @@ namespace SciRenderer
               showTexWindow = true;
               selectedType = "roughnessMap";
             }
+            this->DNDTarget(material, "roughnessMap");
             ImGui::PopID();
             ImGui::SameLine();
             ImGui::SliderFloat("##Roughness", &uRoughness, 0.0f, 1.0f);
@@ -91,6 +96,7 @@ namespace SciRenderer
               showTexWindow = true;
               selectedType = "aOcclusionMap";
             }
+            this->DNDTarget(material, "aOcclusionMap");
             ImGui::PopID();
             ImGui::SameLine();
             ImGui::SliderFloat("##AO", &uAO, 0.0f, 1.0f);
@@ -103,6 +109,7 @@ namespace SciRenderer
               showTexWindow = true;
               selectedType = "normalMap";
             }
+            this->DNDTarget(material, "normalMap");
             ImGui::PopID();
           }
         }
@@ -115,7 +122,7 @@ namespace SciRenderer
   }
 
   void
-  MaterialWindow::onUpdate(float dt)
+  MaterialWindow::onUpdate(float dt, Shared<Scene> activeScene)
   {
 
   }
@@ -208,5 +215,38 @@ namespace SciRenderer
 
     if (!isOpen)
       this->selectedString = "";
+  }
+
+  void
+  MaterialWindow::DNDTarget(Material* material, const std::string &selectedType)
+  {
+    if (ImGui::BeginDragDropTarget())
+    {
+      if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH"))
+      {
+        this->selectedMatTex = std::make_pair(material, selectedType);
+        this->loadDNDAsset((char*) payload->Data);
+      }
+
+      ImGui::EndDragDropTarget();
+    }
+  }
+
+  void
+  MaterialWindow::loadDNDAsset(const std::string &filepath)
+  {
+    if (!this->selectedEntity)
+      return;
+
+    std::string filename = filepath.substr(filepath.find_last_of('/') + 1);
+    std::string filetype = filename.substr(filename.find_last_of('.'));
+
+    if (filetype == ".jpg" || filetype == ".tga" || filetype == ".png")
+    {
+      Texture2D* tex = Texture2D::loadTexture2D(filepath);
+      this->selectedMatTex.first->attachTexture2D(tex, this->selectedMatTex.second);
+    }
+
+    this->selectedMatTex = std::make_pair(nullptr, "");
   }
 }

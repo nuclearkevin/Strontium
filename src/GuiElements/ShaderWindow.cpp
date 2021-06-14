@@ -140,7 +140,7 @@ namespace SciRenderer
   }
 
   void
-  ShaderWindow::onUpdate(float dt)
+  ShaderWindow::onUpdate(float dt, Shared<Scene> activeScene)
   {
 
   }

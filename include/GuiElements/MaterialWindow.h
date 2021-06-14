@@ -18,7 +18,7 @@ namespace SciRenderer
     ~MaterialWindow();
 
     void onImGuiRender(bool &isOpen, Shared<Scene> activeScene);
-    void onUpdate(float dt);
+    void onUpdate(float dt, Shared<Scene> activeScene);
     void onEvent(Event &event);
 
     Entity getSelectedEntity() { return this->selectedEntity; }
@@ -31,5 +31,9 @@ namespace SciRenderer
     std::pair<Material*, std::string> selectedMatTex;
 
     void drawTextureWindow(const std::string &type, Shared<Mesh> submesh, bool &isOpen);
+
+    // Load an asset from a drag and drop action.
+    void DNDTarget(Material* material, const std::string &selectedType);
+    void loadDNDAsset(const std::string &filepath);
   };
 }

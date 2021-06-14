@@ -22,7 +22,7 @@ namespace SciRenderer
     virtual ~GuiWindow();
 
     virtual void onImGuiRender(bool &isOpen, Shared<Scene> activeScene);
-    virtual void onUpdate(float dt);
+    virtual void onUpdate(float dt, Shared<Scene> activeScene);
     virtual void onEvent(Event &event);
   private:
   };

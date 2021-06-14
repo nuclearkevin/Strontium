@@ -92,13 +92,13 @@ namespace SciRenderer
   void
   EditorLayer::onUpdate(float dt)
   {
+    // Update each of the windows.
+    for (auto& pair : this->windows)
+      pair.second->onUpdate(dt, this->currentScene);
+
     // Update the selected entity for all the windows.
     auto selectedEntity = static_cast<SceneGraphWindow*>(this->windows[0].second)->getSelectedEntity();
     static_cast<MaterialWindow*>(this->windows[4].second)->setSelectedEntity(selectedEntity);
-
-    // Update each of the windows.
-    for (auto& pair : this->windows)
-      pair.second->onUpdate(dt);
 
     // Update the size of the framebuffer to fit the editor window.
     glm::vec2 size = this->drawBuffer->getSize();

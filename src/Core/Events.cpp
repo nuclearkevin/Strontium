@@ -140,6 +140,7 @@ namespace SciRenderer
           break;
       }
     }
+    
     event = nullptr;
   }
 

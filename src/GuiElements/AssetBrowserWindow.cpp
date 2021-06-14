@@ -3,6 +3,7 @@
 // Project includes.
 #include "Core/AssetManager.h"
 #include "GuiElements/Styles.h"
+#include "Scenes/Entity.h"
 
 // ImGui includes.
 #include "imgui/imgui.h"
@@ -33,7 +34,7 @@ namespace SciRenderer
   void
   AssetBrowserWindow::onImGuiRender(bool &isOpen, Shared<Scene> activeScene)
   {
-    ImGui::Begin("Content Browser");
+    ImGui::Begin("Content Browser:", &isOpen);
 
     // A check to make sure the current directory exists. If it doesn't, we move
     // back one directory and try again. If 'assets' doesn't exist we quit early,
@@ -92,14 +93,14 @@ namespace SciRenderer
       ImGui::PopStyleVar();
     }
 
-    this->drawFolders();
-    this->drawFiles();
+    this->drawFolders(activeScene);
+    this->drawFiles(activeScene);
 
     ImGui::End();
   }
 
   void
-  AssetBrowserWindow::onUpdate(float dt)
+  AssetBrowserWindow::onUpdate(float dt, Shared<Scene> activeScene)
   {
 
   }
@@ -111,7 +112,7 @@ namespace SciRenderer
   }
 
   void
-  AssetBrowserWindow::drawFolders()
+  AssetBrowserWindow::drawFolders(Shared<Scene> activeScene)
   {
     float fontSize = ImGui::GetFontSize();
     ImGuiSelectableFlags flags = ImGuiSelectableFlags_AllowDoubleClick
@@ -157,7 +158,7 @@ namespace SciRenderer
   }
 
   void
-  AssetBrowserWindow::drawFiles()
+  AssetBrowserWindow::drawFiles(Shared<Scene> activeScene)
   {
     float fontSize = ImGui::GetFontSize();
     ImGuiSelectableFlags flags = ImGuiSelectableFlags_AllowDoubleClick
@@ -173,12 +174,12 @@ namespace SciRenderer
       {
         // Extract the file path.
         stream << entry;
-        std::string filePath = stream.str();
+        std::string filepath = stream.str();
 
         // Extract the file name.
-        auto lastQuote = filePath.find_last_of('"');
-        auto lastSlash = filePath.find_last_of('/');
-        std::string fileName = filePath.substr(lastSlash + 1, lastQuote - lastSlash - 1);
+        auto lastQuote = filepath.find_last_of('"');
+        auto lastSlash = filepath.find_last_of('/');
+        std::string fileName = filepath.substr(lastSlash + 1, lastQuote - lastSlash - 1);
 
         // Ignore hidden files.
         if (fileName[0] == '.')
@@ -189,12 +190,32 @@ namespace SciRenderer
 
         ImGui::Selectable((std::string("##") + fileName).c_str(), false, flags, ImVec2(64.0f, 64.0f));
 
+        // Setting up the drag and drop source for the filepath.
+        if (ImGui::BeginDragDropSource())
+        {
+          // The items to be dragged along with the cursor.
+          ImGui::Image((ImTextureID) (unsigned long) this->icons["file"]->getID(),
+                       ImVec2(64.0f, 64.0f), ImVec2(0, 1), ImVec2(1, 0));
+          ImGui::Text(fileName.c_str());
+
+          // The things I'll do to get a proper payload...
+          std::string tempPath = this->currentDir + "/" + fileName;
+          char pathBuffer[256];
+          memset(pathBuffer, 0, sizeof(pathBuffer));
+          std::strncpy(pathBuffer, tempPath.c_str(), sizeof(pathBuffer));
+
+          // Set the payload.
+          ImGui::SetDragDropPayload("ASSET_PATH", &pathBuffer, sizeof(pathBuffer));
+          ImGui::EndDragDropSource();
+        }
+
         if (ImGui::IsMouseDoubleClicked(0) && ImGui::IsItemHovered())
-          this->loadAssetFromFile(fileName, this->currentDir + fileName);
+          this->loadAssetFromFile(fileName, this->currentDir + "/" + fileName, activeScene);
 
         ImGui::SetCursorPos(cursorPos);
         ImGui::Image((ImTextureID) (unsigned long) this->icons["file"]->getID(),
                      ImVec2(64.0f, 64.0f), ImVec2(0, 1), ImVec2(1, 0));
+
         ImGui::SetCursorPos(ImVec2(cursorPos.x, cursorPos.y + 64.0f + fontSize));
         ImGui::Text(fileName.c_str());
         ImGui::SetCursorPos(ImVec2(cursorPos.x + (textSize.x > 64.0f ? textSize.x + 10.0f : 64.0f), cursorPos.y));
@@ -204,8 +225,25 @@ namespace SciRenderer
 
   void
   AssetBrowserWindow::loadAssetFromFile(const std::string &name,
-                                        const std::string &path)
+                                        const std::string &path,
+                                        Shared<Scene> activeScene)
   {
-    std::cout << path << std::endl;
+    std::string fileType = name.substr(name.find_last_of('.'));
+
+    // If its a supported model file, load it as a new entity in the scene.
+    if (fileType == ".obj" || fileType == ".FBX" || fileType == ".fbx")
+    {
+      auto modelAssets = AssetManager<Model>::getManager();
+
+      auto model = activeScene->createEntity(name.substr(0, name.find_last_of('.')));
+      model.addComponent<TransformComponent>();
+      model.addComponent<RenderableComponent>(modelAssets->loadAssetFile(path, name), name);
+    }
+
+    // If its a supported image, load and cache it.
+    if (fileType == ".jpg" || fileType == ".tga" || fileType == ".png")
+    {
+      Texture2D::loadTexture2D(path);
+    }
   }
 }

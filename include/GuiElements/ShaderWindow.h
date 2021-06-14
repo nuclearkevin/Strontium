@@ -22,7 +22,7 @@ namespace SciRenderer
     ~ShaderWindow();
 
     void onImGuiRender(bool &isOpen, Shared<Scene> activeScene);
-    void onUpdate(float dt);
+    void onUpdate(float dt, Shared<Scene> activeScene);
     void onEvent(Event &event);
 
   private:

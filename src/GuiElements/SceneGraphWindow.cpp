@@ -108,6 +108,7 @@ namespace SciRenderer
     : GuiWindow()
     , selectedString("")
     , fileTargets(FileLoadTargets::TargetNone)
+    , deleteSelected(false)
   { }
 
   SceneGraphWindow::~SceneGraphWindow()
@@ -137,9 +138,6 @@ namespace SciRenderer
       // Create a debug bunny entity.
       if (ImGui::MenuItem("Create New Model"))
       {
-        auto shaderCache = AssetManager<Shader>::getManager();
-        auto modelAssets = AssetManager<Model>::getManager();
-
 				auto model = activeScene->createEntity("New Model");
         model.addComponent<TransformComponent>();
         model.addComponent<RenderableComponent>();
@@ -154,9 +152,14 @@ namespace SciRenderer
   }
 
   void
-  SceneGraphWindow::onUpdate(float dt)
+  SceneGraphWindow::onUpdate(float dt, Shared<Scene> activeScene)
   {
-
+    if (this->deleteSelected)
+    {
+      activeScene->deleteEntity(this->selectedEntity);
+      this->selectedEntity = Entity();
+      this->deleteSelected = false;
+    }
   }
 
   void
@@ -185,9 +188,9 @@ namespace SciRenderer
             if (this->selectedEntity.hasComponent<RenderableComponent>())
             {
               this->selectedEntity.removeComponent<RenderableComponent>();
-              auto& renderable = this->selectedEntity.addComponent<RenderableComponent>
-                (modelAssets->loadAssetFile(path, name), name);
             }
+            auto& renderable = this->selectedEntity.addComponent<RenderableComponent>
+              (modelAssets->loadAssetFile(path, name), name);
 
             this->fileTargets = FileLoadTargets::TargetNone;
             break;
@@ -237,6 +240,18 @@ namespace SciRenderer
 
     bool opened = ImGui::TreeNodeEx((void*)(uint64_t)(uint32_t)entity, flags, nameTag.c_str());
 
+    // Drag and drop targets!
+    if (ImGui::BeginDragDropTarget())
+    {
+      if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH"))
+      {
+        this->selectedEntity = entity;
+        this->loadDNDAsset((char*) payload->Data);
+      }
+
+      ImGui::EndDragDropTarget();
+    }
+
     // Set the new selected entity.
     if (ImGui::IsItemClicked())
       this->selectedEntity = entity;
@@ -246,10 +261,10 @@ namespace SciRenderer
     bool entityDeleted = false;
     if (ImGui::BeginPopupContextItem())
     {
+      this->selectedEntity = entity;
+
       if (ImGui::BeginMenu("Attach Component"))
       {
-        this->selectedEntity = entity;
-
         // Add various components.
         drawComponentAdd<TransformComponent>("Transform Component", this->selectedEntity);
         drawComponentAdd<RenderableComponent>("Renderable Component", this->selectedEntity);
@@ -263,8 +278,6 @@ namespace SciRenderer
 
       if (ImGui::BeginMenu("Remove Component"))
       {
-        this->selectedEntity = entity;
-
         // Remove various components.
         drawComponentRemove<TransformComponent>("Transform Component", this->selectedEntity);
         drawComponentRemove<RenderableComponent>("Renderable Component", this->selectedEntity);
@@ -305,9 +318,10 @@ namespace SciRenderer
     // Delete the entity at the end of the draw session.
     if (entityDeleted)
     {
-      activeScene->deleteEntity(entity);
       if (this->selectedEntity == entity)
-        this->selectedEntity = Entity();
+        this->deleteSelected = true;
+      else
+        activeScene->deleteEntity(entity);
     }
   }
 
@@ -315,6 +329,9 @@ namespace SciRenderer
   void
   SceneGraphWindow::drawComponentNodes(Entity entity)
   {
+    if (!entity)
+      return;
+
     ImGuiTreeNodeFlags leafFlag = ImGuiTreeNodeFlags_Leaf
                                 | ImGuiTreeNodeFlags_NoTreePushOnOpen;
     // Display components here.
@@ -470,6 +487,30 @@ namespace SciRenderer
     }
 
     ImGui::End();
+  }
+
+  void
+  SceneGraphWindow::loadDNDAsset(const std::string &filepath)
+  {
+    if (!this->selectedEntity)
+      return;
+
+    auto modelAssets = AssetManager<Model>::getManager();
+
+    std::string filename = filepath.substr(filepath.find_last_of('/') + 1);
+    std::string filetype = filename.substr(filename.find_last_of('.'));
+
+    // Attach a mesh component.
+    if (filetype == ".obj" || filetype == ".FBX" || filetype == ".fbx")
+    {
+      // If it already has a mesh component, remove it and add a new one.
+      // Otherwise just add a component.
+      if (this->selectedEntity.hasComponent<RenderableComponent>())
+        this->selectedEntity.removeComponent<RenderableComponent>();
+
+      auto& renderable = this->selectedEntity.addComponent<RenderableComponent>
+        (modelAssets->loadAssetFile(filepath, filename), filename);
+    }
   }
 
   // Draw the mesh selection window.

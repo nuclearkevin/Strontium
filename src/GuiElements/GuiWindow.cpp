@@ -13,7 +13,7 @@ namespace SciRenderer
   { }
 
   void
-  GuiWindow::onUpdate(float dt)
+  GuiWindow::onUpdate(float dt, Shared<Scene> activeScene)
   { }
 
   void

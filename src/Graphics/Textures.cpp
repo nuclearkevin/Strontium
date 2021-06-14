@@ -65,6 +65,8 @@ namespace SciRenderer
 
     bool isHDR = (filepath.substr(filepath.find_last_of("."), 4) == ".hdr");
 
+    std::string name = filepath.substr(filepath.find_last_of('/') + 1);
+
     // The data.
     float* dataF;
     unsigned char* dataU;
@@ -99,13 +101,13 @@ namespace SciRenderer
       if (!textureCache->hasAsset(filepath))
       {
         outTex = new Texture2D(width, height, n, params);
-        textureCache->attachAsset(filepath, outTex);
+        textureCache->attachAsset(name, outTex);
       }
       else
       {
-        logs->logMessage(LogMessage("Fetched texture at: " + filepath + ".",
+        logs->logMessage(LogMessage("Fetched texture at: " + name + ".",
                                     true, false, true));
-        return textureCache->getAsset(filepath);
+        return textureCache->getAsset(name);
       }
     }
     else

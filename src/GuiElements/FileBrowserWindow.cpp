@@ -41,7 +41,7 @@ namespace SciRenderer
   }
 
   void
-  FileBrowserWindow::onUpdate(float dt)
+  FileBrowserWindow::onUpdate(float dt, Shared<Scene> activeScene)
   {
 
   }
