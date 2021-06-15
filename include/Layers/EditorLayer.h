@@ -35,6 +35,9 @@ namespace SciRenderer
     virtual void onUpdate(float dt) override;
 
   protected:
+    void DNDTarget();
+    void loadDNDAsset(const std::string &filepath);
+
     // The current scene.
     Shared<Scene> currentScene;
     // The framebuffer for the scene.

@@ -234,6 +234,11 @@ namespace SciRenderer
 
           if (ImGui::BeginMenu("Editor Menu Settings"))
           {
+            if (ImGui::MenuItem("Show Content Browser"))
+            {
+              this->windows[5].first = true;
+            }
+
             if (ImGui::MenuItem("Show Performance Stats Menu"))
             {
               this->showPerf = true;
@@ -274,6 +279,10 @@ namespace SciRenderer
       ImGui::BeginChild("EditorRender");
       {
         this->editorSize = ImGui::GetWindowSize();
+        ImVec2 cursorPos = ImGui::GetCursorPos();
+        ImGui::Selectable("##editorselectable", false, ImGuiSelectableFlags_Disabled, this->editorSize);
+        this->DNDTarget();
+        ImGui::SetCursorPos(cursorPos);
         ImGui::Image((ImTextureID) (unsigned long) this->drawBuffer->getAttachID(FBOTargetParam::Colour0),
                      this->editorSize, ImVec2(0, 1), ImVec2(1, 0));
       }
@@ -316,5 +325,41 @@ namespace SciRenderer
 
     // MUST KEEP THIS. Docking window end.
     ImGui::End();
+  }
+
+  void
+  EditorLayer::DNDTarget()
+  {
+    if (ImGui::BeginDragDropTarget())
+    {
+      if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH"))
+      {
+        this->loadDNDAsset((char*) payload->Data);
+      }
+      ImGui::EndDragDropTarget();
+    }
+  }
+
+  void
+  EditorLayer::loadDNDAsset(const std::string &filepath)
+  {
+    std::string filename = filepath.substr(filepath.find_last_of('/') + 1);
+    std::string filetype = filename.substr(filename.find_last_of('.'));
+
+    // If its a supported model file, load it as a new entity in the scene.
+    if (filetype == ".obj" || filetype == ".FBX" || filetype == ".fbx")
+    {
+      auto modelAssets = AssetManager<Model>::getManager();
+
+      auto model = this->currentScene->createEntity(filename.substr(0, filename.find_last_of('.')));
+      model.addComponent<TransformComponent>();
+      model.addComponent<RenderableComponent>(modelAssets->loadAssetFile(filepath, filename), filename);
+    }
+
+    // If its a supported image, load and cache it.
+    if (filetype == ".jpg" || filetype == ".tga" || filetype == ".png")
+    {
+      Texture2D::loadTexture2D(filepath);
+    }
   }
 }

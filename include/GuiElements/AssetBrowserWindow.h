@@ -27,10 +27,6 @@ namespace SciRenderer
     void drawFolders(Shared<Scene> activeScene);
     void drawFiles(Shared<Scene> activeScene);
 
-    // Load the selected (double-clicked) asset.
-    void loadAssetFromFile(const std::string &name, const std::string &path,
-                           Shared<Scene> activeScene);
-
     std::string currentDir;
 
     std::unordered_map<std::string, Texture2D*> icons;

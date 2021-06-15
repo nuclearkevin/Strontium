@@ -19,7 +19,8 @@ namespace SciRenderer
     : GuiWindow()
     , currentDir("./assets")
   {
-    Texture2D* folder = Texture2D::loadTexture2D("./assets/icons/folder2.png", Texture2DParams(), false);
+    // Load in the icons.
+    Texture2D* folder = Texture2D::loadTexture2D("./assets/icons/folder.png", Texture2DParams(), false);
     Texture2D* file = Texture2D::loadTexture2D("./assets/icons/file.png", Texture2DParams(), false);
     this->icons.insert({ "folder", folder });
     this->icons.insert({ "file", file });
@@ -78,7 +79,7 @@ namespace SciRenderer
     }
     else
     {
-      textSize = ImGui::CalcTextSize("Previous Folder");
+      textSize = ImGui::CalcTextSize("Go Back");
 
       ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
       ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
@@ -87,7 +88,7 @@ namespace SciRenderer
       ImGui::Image((ImTextureID) (unsigned long) this->icons["folder"]->getID(),
                    ImVec2(64.0f, 64.0f), ImVec2(0, 1), ImVec2(1, 0));
       ImGui::SetCursorPos(ImVec2(cursorPos.x, cursorPos.y + 64.0f + fontSize));
-      ImGui::Text("Previous Folder");
+      ImGui::Text("Go Back");
       ImGui::SetCursorPos(ImVec2(cursorPos.x, cursorPos.y + 64.0f + 2 * fontSize));
       ImGui::PopItemFlag();
       ImGui::PopStyleVar();
@@ -115,6 +116,7 @@ namespace SciRenderer
   AssetBrowserWindow::drawFolders(Shared<Scene> activeScene)
   {
     float fontSize = ImGui::GetFontSize();
+
     ImGuiSelectableFlags flags = ImGuiSelectableFlags_AllowDoubleClick
                                | ImGuiSelectableFlags_AllowItemOverlap;
 
@@ -150,9 +152,24 @@ namespace SciRenderer
         ImGui::SetCursorPos(cursorPos);
         ImGui::Image((ImTextureID) (unsigned long) this->icons["folder"]->getID(),
                      ImVec2(64.0f, 64.0f), ImVec2(0, 1), ImVec2(1, 0));
-        ImGui::SetCursorPos(ImVec2(cursorPos.x, cursorPos.y + 64.0f + fontSize));
-        ImGui::Text(folderName.c_str());
-        ImGui::SetCursorPos(ImVec2(cursorPos.x + (textSize.x > 64.0f ? textSize.x + 10.0f : 64.0f), cursorPos.y));
+
+        // Align the folder text so the icons are evenly spaced out.
+        unsigned int numChars = (unsigned int) (2 * 64.0f / fontSize);
+        unsigned int stringPos = 0;
+        float yPos = cursorPos.y + 64.0f + fontSize;
+        unsigned int stride;
+        for (unsigned int i = 0; i < (unsigned int) (textSize.x / 64.0f) + 1; i++)
+        {
+          ImGui::SetCursorPos(ImVec2(cursorPos.x, yPos));
+
+          stride = ((stringPos + numChars) < folderName.size()) ? numChars : folderName.size() - stringPos;
+
+          ImGui::Text(folderName.substr(stringPos, stride).c_str());
+          stringPos += numChars;
+          yPos += fontSize;
+        }
+
+        ImGui::SetCursorPos(ImVec2(cursorPos.x + 64.0f + 8.0f, cursorPos.y));
       }
     }
   }
@@ -161,8 +178,7 @@ namespace SciRenderer
   AssetBrowserWindow::drawFiles(Shared<Scene> activeScene)
   {
     float fontSize = ImGui::GetFontSize();
-    ImGuiSelectableFlags flags = ImGuiSelectableFlags_AllowDoubleClick
-                               | ImGuiSelectableFlags_AllowItemOverlap;
+    ImGuiSelectableFlags flags = ImGuiSelectableFlags_AllowItemOverlap;
 
     ImVec2 textSize, cursorPos;
 
@@ -209,41 +225,28 @@ namespace SciRenderer
           ImGui::EndDragDropSource();
         }
 
-        if (ImGui::IsMouseDoubleClicked(0) && ImGui::IsItemHovered())
-          this->loadAssetFromFile(fileName, this->currentDir + "/" + fileName, activeScene);
-
         ImGui::SetCursorPos(cursorPos);
         ImGui::Image((ImTextureID) (unsigned long) this->icons["file"]->getID(),
                      ImVec2(64.0f, 64.0f), ImVec2(0, 1), ImVec2(1, 0));
 
-        ImGui::SetCursorPos(ImVec2(cursorPos.x, cursorPos.y + 64.0f + fontSize));
-        ImGui::Text(fileName.c_str());
-        ImGui::SetCursorPos(ImVec2(cursorPos.x + (textSize.x > 64.0f ? textSize.x + 10.0f : 64.0f), cursorPos.y));
+        // Align the file text so the icons are evenly spaced out.
+        unsigned int numChars = (unsigned int) (2 * 64.0f / fontSize);
+        unsigned int stringPos = 0;
+        float yPos = cursorPos.y + 64.0f + fontSize;
+        unsigned int stride;
+        for (unsigned int i = 0; i < (unsigned int) (textSize.x / 64.0f) + 1; i++)
+        {
+          ImGui::SetCursorPos(ImVec2(cursorPos.x, yPos));
+
+          stride = ((stringPos + numChars) < fileName.size()) ? numChars : fileName.size() - stringPos;
+
+          ImGui::Text(fileName.substr(stringPos, stride).c_str());
+          stringPos += numChars;
+          yPos += fontSize;
+        }
+
+        ImGui::SetCursorPos(ImVec2(cursorPos.x + 64.0f + 8.0f, cursorPos.y));
       }
-    }
-  }
-
-  void
-  AssetBrowserWindow::loadAssetFromFile(const std::string &name,
-                                        const std::string &path,
-                                        Shared<Scene> activeScene)
-  {
-    std::string fileType = name.substr(name.find_last_of('.'));
-
-    // If its a supported model file, load it as a new entity in the scene.
-    if (fileType == ".obj" || fileType == ".FBX" || fileType == ".fbx")
-    {
-      auto modelAssets = AssetManager<Model>::getManager();
-
-      auto model = activeScene->createEntity(name.substr(0, name.find_last_of('.')));
-      model.addComponent<TransformComponent>();
-      model.addComponent<RenderableComponent>(modelAssets->loadAssetFile(path, name), name);
-    }
-
-    // If its a supported image, load and cache it.
-    if (fileType == ".jpg" || fileType == ".tga" || fileType == ".png")
-    {
-      Texture2D::loadTexture2D(path);
     }
   }
 }

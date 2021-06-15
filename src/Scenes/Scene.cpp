@@ -56,8 +56,9 @@ namespace SciRenderer
       auto& materials = renderable.materials.getStorage();
       auto& submeshes = renderable.model->getSubmeshes();
 
-      if (materials.size() == 0)
+      if (materials.size() != submeshes.size())
       {
+        materials.clear();
         for (auto& pair : submeshes)
           renderable.materials.attachMesh(pair.second);
       }

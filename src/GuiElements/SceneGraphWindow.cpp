@@ -186,9 +186,8 @@ namespace SciRenderer
 
             // If it already has a mesh component, remove it and add a new one.
             if (this->selectedEntity.hasComponent<RenderableComponent>())
-            {
               this->selectedEntity.removeComponent<RenderableComponent>();
-            }
+
             auto& renderable = this->selectedEntity.addComponent<RenderableComponent>
               (modelAssets->loadAssetFile(path, name), name);
 
@@ -261,17 +260,15 @@ namespace SciRenderer
     bool entityDeleted = false;
     if (ImGui::BeginPopupContextItem())
     {
-      this->selectedEntity = entity;
-
       if (ImGui::BeginMenu("Attach Component"))
       {
         // Add various components.
-        drawComponentAdd<TransformComponent>("Transform Component", this->selectedEntity);
-        drawComponentAdd<RenderableComponent>("Renderable Component", this->selectedEntity);
-        drawComponentAdd<DirectionalLightComponent>("Directional Light Component", this->selectedEntity);
-        drawComponentAdd<PointLightComponent>("Point Light Component", this->selectedEntity);
-        drawComponentAdd<SpotLightComponent>("Spot Light Component", this->selectedEntity);
-        drawComponentAdd<AmbientComponent>("Ambient Light Component", this->selectedEntity);
+        drawComponentAdd<TransformComponent>("Transform Component", entity);
+        drawComponentAdd<RenderableComponent>("Renderable Component", entity);
+        drawComponentAdd<DirectionalLightComponent>("Directional Light Component", entity);
+        drawComponentAdd<PointLightComponent>("Point Light Component", entity);
+        drawComponentAdd<SpotLightComponent>("Spot Light Component", entity);
+        drawComponentAdd<AmbientComponent>("Ambient Light Component", entity);
 
         ImGui::EndMenu();
       }
@@ -279,12 +276,12 @@ namespace SciRenderer
       if (ImGui::BeginMenu("Remove Component"))
       {
         // Remove various components.
-        drawComponentRemove<TransformComponent>("Transform Component", this->selectedEntity);
-        drawComponentRemove<RenderableComponent>("Renderable Component", this->selectedEntity);
-        drawComponentRemove<DirectionalLightComponent>("Directional Light Component", this->selectedEntity);
-        drawComponentRemove<PointLightComponent>("Point Light Component", this->selectedEntity);
-        drawComponentRemove<SpotLightComponent>("Spot Light Component", this->selectedEntity);
-        drawComponentRemove<AmbientComponent>("Ambient Light Component", this->selectedEntity);
+        drawComponentRemove<TransformComponent>("Transform Component", entity);
+        drawComponentRemove<RenderableComponent>("Renderable Component", entity);
+        drawComponentRemove<DirectionalLightComponent>("Directional Light Component", entity);
+        drawComponentRemove<PointLightComponent>("Point Light Component", entity);
+        drawComponentRemove<SpotLightComponent>("Spot Light Component", entity);
+        drawComponentRemove<AmbientComponent>("Ambient Light Component", entity);
 
         ImGui::EndMenu();
       }
@@ -545,24 +542,14 @@ namespace SciRenderer
 
       if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(0))
       {
-        // If it already has a mesh component, just modify the existing one.
         if (this->selectedEntity.hasComponent<RenderableComponent>())
-        {
-          auto& renderable = this->selectedEntity.getComponent<RenderableComponent>();
-          renderable.model = modelAssets->getAsset(name);
-          renderable.meshName = name;
+          this->selectedEntity.removeComponent<RenderableComponent>();
 
-          isOpen = false;
-          this->selectedString = "";
-        }
-        else
-        {
-          this->selectedEntity.addComponent<RenderableComponent>
-            (modelAssets->getAsset(name), name);
+        auto& renderable = this->selectedEntity.addComponent<RenderableComponent>
+          (modelAssets->getAsset(name), name);
 
-          isOpen = false;
-          this->selectedString = "";
-        }
+        isOpen = false;
+        this->selectedString = "";
       }
     }
     ImGui::End();
