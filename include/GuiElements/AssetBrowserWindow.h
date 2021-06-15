@@ -9,6 +9,10 @@
 #include "GuiElements/GuiWindow.h"
 #include "Scenes/Scene.h"
 
+// ImGui includes.
+#include "imgui/imgui.h"
+#include "imgui/imgui_internal.h"
+
 namespace SciRenderer
 {
   class AssetBrowserWindow : public GuiWindow
@@ -24,10 +28,11 @@ namespace SciRenderer
   private:
     // Draw the files and folders. They're separate so folders get sorted to the
     // front.
-    void drawFolders(Shared<Scene> activeScene);
-    void drawFiles(Shared<Scene> activeScene);
+    void drawFolders(Shared<Scene> activeScene, float &maxCursorYPos);
+    void drawFiles(Shared<Scene> activeScene, float &maxCursorYPos);
 
     std::string currentDir;
+    ImVec2 drawCursor;
 
     std::unordered_map<std::string, Texture2D*> icons;
   };

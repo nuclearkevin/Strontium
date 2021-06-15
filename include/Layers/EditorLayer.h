@@ -35,8 +35,15 @@ namespace SciRenderer
     virtual void onUpdate(float dt) override;
 
   protected:
+    // Handle the drag and drop actions.
     void DNDTarget();
     void loadDNDAsset(const std::string &filepath);
+
+    // Handle keyboard events.
+    void onKeyPressEvent(KeyPressedEvent &keyEvent);
+
+    // Handle entity manipulation using Gizmos.
+    void manipulateEntity(Entity entity);
 
     // The current scene.
     Shared<Scene> currentScene;
@@ -49,10 +56,12 @@ namespace SciRenderer
     // TODO: use an unordered map?
     std::vector<std::pair<bool, GuiWindow*>> windows;
 
-    // Stuff for ImGui and the GUI.
+    // Stuff for ImGui and the GUI. TODO: Move to other windows?
     bool showPerf;
     bool showSceneGraph;
     std::string logBuffer;
     ImVec2 editorSize;
+
+    int gizmoType;
   };
 }

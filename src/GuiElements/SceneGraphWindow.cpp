@@ -172,6 +172,7 @@ namespace SciRenderer
     {
       // Process a file loading event. Using enum barriers to prevent files from
       // being improperly loaded when this window didn't dispatch the event.
+      // TODO: Bitmask instead of enums?
       case EventType::LoadFileEvent:
       {
         auto loadEvent = *(static_cast<LoadFileEvent*>(&event));

@@ -11,16 +11,21 @@
 #include "GuiElements/MaterialWindow.h"
 #include "GuiElements/AssetBrowserWindow.h"
 
+// Some math for decomposing matrix transformations.
+#include "glm/gtx/matrix_decompose.hpp"
+
+// ImGizmo goodies.
+#include "imguizmo/ImGuizmo.h"
+
 namespace SciRenderer
 {
   EditorLayer::EditorLayer()
     : Layer("Editor Layer")
     , logBuffer("")
-  {
-    // TODO: Serialize these into application settings. YAML.cpp?
-    this->showPerf = true;
-    this->editorSize = ImVec2(0, 0);
-  }
+    , showPerf(true)
+    , editorSize(ImVec2(0, 0))
+    , gizmoType(-1)
+  { }
 
   EditorLayer::~EditorLayer()
   {
@@ -86,6 +91,21 @@ namespace SciRenderer
 
     // Push the event through to the editor camera.
     this->editorCam->onEvent(event);
+
+    // Handle events for the layer.
+    switch(event.getType())
+    {
+      case EventType::KeyPressedEvent:
+      {
+        auto keyEvent = *(static_cast<KeyPressedEvent*>(&event));
+        this->onKeyPressEvent(keyEvent);
+        break;
+      }
+      default:
+      {
+        break;
+      }
+    }
   }
 
   // On update for the layer.
@@ -285,6 +305,7 @@ namespace SciRenderer
         ImGui::SetCursorPos(cursorPos);
         ImGui::Image((ImTextureID) (unsigned long) this->drawBuffer->getAttachID(FBOTargetParam::Colour0),
                      this->editorSize, ImVec2(0, 1), ImVec2(1, 0));
+        this->manipulateEntity(static_cast<SceneGraphWindow*>(this->windows[0].second)->getSelectedEntity());
       }
       ImGui::EndChild();
     }
@@ -360,6 +381,116 @@ namespace SciRenderer
     if (filetype == ".jpg" || filetype == ".tga" || filetype == ".png")
     {
       Texture2D::loadTexture2D(filepath);
+    }
+  }
+
+  void
+  EditorLayer::onKeyPressEvent(KeyPressedEvent &keyEvent)
+  {
+    // Fetch the application window for input polling.
+    Shared<Window> appWindow = Application::getInstance()->getWindow();
+
+    int keyCode = keyEvent.getKeyCode();
+
+    bool controlHeld = appWindow->isKeyPressed(GLFW_KEY_LEFT_CONTROL);
+
+    switch (keyCode)
+    {
+      case GLFW_KEY_Q:
+      {
+        // Stop using the Gizmo.
+        if (controlHeld)
+          this->gizmoType = -1;
+        break;
+      }
+      case GLFW_KEY_W:
+      {
+        // Translate.
+        if (controlHeld)
+          this->gizmoType = ImGuizmo::TRANSLATE;
+        break;
+      }
+      case GLFW_KEY_E:
+      {
+        // Rotate.
+        if (controlHeld)
+          this->gizmoType = ImGuizmo::ROTATE;
+        break;
+      }
+      case GLFW_KEY_R:
+      {
+        // Scale.
+        if (controlHeld)
+          this->gizmoType = ImGuizmo::SCALE;
+        break;
+      }
+    }
+  }
+
+  // Must be called when the main viewport is being drawn to.
+  void
+  EditorLayer::manipulateEntity(Entity entity)
+  {
+    // Get the camera matrices.
+    auto& camProjection = this->editorCam->getProjMatrix();
+    auto& camView = this->editorCam->getViewMatrix();
+
+    // ImGuizmo boilerplate. Prepare the drawing context and set the window to
+    // draw the gizmos to.
+    ImGuizmo::SetOrthographic(false);
+    ImGuizmo::SetDrawlist();
+
+    auto windowMin = ImGui::GetWindowContentRegionMin();
+    auto windowMax = ImGui::GetWindowContentRegionMax();
+    auto windowOffset = ImGui::GetWindowPos();
+    ImVec2 bounds[2];
+    bounds[0] = ImVec2(windowMin.x + windowOffset.x,
+                       windowMin.y + windowOffset.y);
+    bounds[1] = ImVec2(windowMax.x + windowOffset.x,
+                       windowMax.y + windowOffset.y);
+
+    ImGuizmo::SetRect(bounds[0].x, bounds[0].y, bounds[1].x - bounds[0].x,
+                      bounds[1].y - bounds[0].y);
+
+    // Setup a cube view. Currently broken. TODO: fix camera controller first
+    // before renabling this.
+    /*
+    ImGuizmo::ViewManipulate(glm::value_ptr(camView), 8.0f,
+                             ImVec2(bounds[1].x - 128.0f, bounds[1].y
+                                    - ImGui::GetWindowSize().y),
+                             ImVec2(128.0f, 128.0f), 0x10101010);
+    */
+    // Quit early if the entity is invalid.
+    if (!entity)
+      return;
+
+    // Only draw the gizmo if the entity has a transform component and if a gizmo is selected.
+    if (entity.hasComponent<TransformComponent>() && this->gizmoType != -1)
+    {
+      // Fetch the transform component.
+      auto& transform = entity.getComponent<TransformComponent>();
+      glm::mat4 transformMatrix = transform;
+
+      // Manipulate the matrix. TODO: Add snapping.
+      ImGuizmo::Manipulate(glm::value_ptr(camView), glm::value_ptr(camProjection),
+                           (ImGuizmo::OPERATION) this->gizmoType,
+                           ImGuizmo::WORLD, glm::value_ptr(transformMatrix),
+                           nullptr, nullptr);
+
+      if (ImGuizmo::IsUsing())
+      {
+        glm::vec3 translation, scale, skew;
+        glm::vec4 perspective;
+        glm::quat rotation;
+        glm::decompose(transformMatrix, scale, rotation, translation, skew, perspective);
+
+        transform.translation = translation;
+        transform.rotation = glm::eulerAngles(rotation);
+
+        // Needed to fix some numerical instabilities in the decomposition.
+        if (scale.x > 0.05f && scale.y > 0.05f && scale.z > 0.05f)
+          transform.scale = scale;
+      }
     }
   }
 }

@@ -25,7 +25,7 @@ namespace SciRenderer
 
     // Implement init.
     void init(const GLfloat &fov = 90.0f, const GLfloat &aspect = 1.0f,
-              const GLfloat &near = 1.0f, const GLfloat &far = 30.0f);
+              const GLfloat &near = 1.0f, const GLfloat &far = 200.0f);
 
     // Function to zoom the camera.
     void cameraZoom(glm::vec2 offsets);
@@ -43,8 +43,8 @@ namespace SciRenderer
     void updateProj(GLfloat fov, GLfloat aspect, GLfloat near, GLfloat far);
 
     // Get the view/projection matrices.
-    glm::mat4 getViewMatrix();
-    glm::mat4 getProjMatrix();
+    glm::mat4& getViewMatrix();
+    glm::mat4& getProjMatrix();
 
     // Get the camera position and front.
     glm::vec3 getCamPos();

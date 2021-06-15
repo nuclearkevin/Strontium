@@ -7,7 +7,6 @@
 
 namespace SciRenderer
 {
-  // Constructors.
   Camera::Camera(GLfloat xCenter, GLfloat yCenter, EditorCameraType type)
     : position(glm::vec3 { 0.0f, 0.0f, 0.0f })
     , camFront(glm::vec3 { 0.0f, 0.0f, -1.0f })
@@ -265,13 +264,13 @@ namespace SciRenderer
   }
 
   // Fetch the view/projection matrix of the camera.
-  glm::mat4
+  glm::mat4&
   Camera::getViewMatrix()
   {
     return this->view;
   }
 
-  glm::mat4
+  glm::mat4&
   Camera::getProjMatrix()
   {
     return this->proj;
