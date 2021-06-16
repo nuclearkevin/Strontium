@@ -26,8 +26,12 @@ namespace SciRenderer
     void onEvent(Event &event);
 
   private:
-    // Draw the files and folders. They're separate so folders get sorted to the
-    // front.
+    // Draw the directory tree structure.
+    void drawDirectoryTree(const std::string &root = "./assets");
+    void drawDirectoryNode(const std::string &path, unsigned int level);
+
+    // Draw the file and folder icons as selectables. They're separate so
+    // folders get sorted to the front.
     void drawFolders(Shared<Scene> activeScene, float &maxCursorYPos);
     void drawFiles(Shared<Scene> activeScene, float &maxCursorYPos);
 

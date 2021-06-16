@@ -4,6 +4,7 @@
 #include "SciRenderPCH.h"
 
 // Project includes.
+#include "Core/AssetManager.h"
 #include "Graphics/Meshes.h"
 #include "Graphics/Material.h"
 #include "Graphics/EnvironmentMap.h"
@@ -85,33 +86,48 @@ namespace SciRenderer
   struct RenderableComponent
   {
     // A model and a collection of materials for the model's submeshes.
-    Model* model;
     ModelMaterial materials;
 
-    // Names so we can fetch the assets easily.
+    // Name so we can fetch the associated model.
     std::string meshName;
 
     RenderableComponent(const RenderableComponent&) = default;
 
     RenderableComponent()
       : meshName("")
-    {
-      model = new Model();
-    }
+    { }
 
-    RenderableComponent(Model* model, const std::string &meshName)
-      : model(model)
-      , meshName(meshName)
+    RenderableComponent(const std::string &meshName)
+      : meshName(meshName)
     {
-      for (auto& pair : model->getSubmeshes())
+      auto modelAssets = AssetManager<Model>::getManager();
+
+      Model* model = modelAssets->getAsset(meshName);
+
+      if (model != nullptr)
       {
-        materials.attachMesh(pair.second);
+        for (auto& pair : model->getSubmeshes())
+        {
+          materials.attachMesh(pair.second);
+        }
       }
     }
 
-    operator Model*() { return model; }
+    operator Model*()
+    {
+      auto modelAssets = AssetManager<Model>::getManager();
+
+      return modelAssets->getAsset(meshName);
+    }
+
     operator ModelMaterial&() { return materials; }
-    operator bool() { return model != nullptr; }
+
+    operator bool()
+    {
+      auto modelAssets = AssetManager<Model>::getManager();
+
+      return modelAssets->getAsset(meshName) != nullptr;
+    }
   };
 
   // This is an IBL ambient light component. TODO: Finish and overhaul environment maps.

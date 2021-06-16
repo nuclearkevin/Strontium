@@ -1,6 +1,7 @@
 #include "Scenes/Scene.h"
 
 // Project includes.
+#include "Core/AssetManager.h"
 #include "Scenes/Components.h"
 #include "Scenes/Entity.h"
 
@@ -29,6 +30,8 @@ namespace SciRenderer
   void
   Scene::onUpdate(float dt, Shared<Camera> sceneCamera)
   {
+    auto modelAssets = AssetManager<Model>::getManager();
+
     // Get all the skyboxes (there should only be one per ECS).
     auto skyboxes = this->sceneECS.view<AmbientComponent>();
     for (auto entity : skyboxes)
@@ -51,21 +54,23 @@ namespace SciRenderer
       // Draw all the renderables with transforms.
       auto [transform, renderable] = drawables.get<TransformComponent, RenderableComponent>(entity);
 
-      // Quick sanity check to make sure the number of materials is the same as
-      // the number of submeshes. If not, clear the materials and regenerate them.
-      auto& materials = renderable.materials.getStorage();
-      auto& submeshes = renderable.model->getSubmeshes();
-
-      if (materials.size() != submeshes.size())
-      {
-        materials.clear();
-        for (auto& pair : submeshes)
-          renderable.materials.attachMesh(pair.second);
-      }
-
-      // Draw the mesh with the associated transform.
       if (renderable)
+      {
+        // Quick sanity check to make sure the number of materials is the same as
+        // the number of submeshes. If not, clear the materials and regenerate them.
+        auto& materials = renderable.materials.getStorage();
+        auto& submeshes = modelAssets->getAsset(renderable.meshName)->getSubmeshes();
+
+        if (materials.size() != submeshes.size())
+        {
+          materials.clear();
+          for (auto& pair : submeshes)
+            renderable.materials.attachMesh(pair.second);
+        }
+
+        // Draw the mesh with the associated transform.
         Renderer3D::draw(renderable, renderable, transform, sceneCamera);
+      }
     }
 
     for (auto entity : skyboxes)

@@ -12,21 +12,13 @@
 *.tbscene
 *.psd
 
-# Ignore the ignore of important model files.
+# Ignore the ignore of important model files and hdr environments.
 !bunny.obj
 !sphere.obj
 !teapot.obj
 !ground_plane.obj
 !cube.obj
 !pink_sunrise_4k.hdr
-
-# Ignore the ignore of the skybox jpgs.
-!right.jpg
-!left.jpg
-!top.jpg
-!bottom.jpg
-!front.jpg
-!back.jpg
 
 # Object files
 *.d
@@ -44,5 +36,7 @@ Application
 /.idea/*
 /.models/*
 
-# Allow the inputs directory for now.
+# Allow some directories (fonts, icons, etc.).
 !**/inputs/*.txt
+!**/assets/.icons/*.png
+!**/assets/.fonts/*.txt

@@ -5,6 +5,7 @@
 
 // Project includes.
 #include "Core/ApplicationBase.h"
+#include "Core/ThreadPool.h"
 #include "Core/Window.h"
 #include "Core/AssetManager.h"
 #include "Layers/Layers.h"
@@ -33,6 +34,7 @@ namespace SciRenderer
     // Getters.
     static Application* getInstance() { return Application::appInstance; }
     Shared<Window> getWindow() { return this->appWindow; }
+    bool isRunning() { return this->running; }
 
   private:
     // The application instance.
@@ -55,6 +57,8 @@ namespace SciRenderer
 
     // The last frame time.
     float lastTime;
+
+    Unique<ThreadPool> workerGroup;
 
     // Asset managers for the different assets loaded in.
     Unique<AssetManager<Model>> modelAssets;

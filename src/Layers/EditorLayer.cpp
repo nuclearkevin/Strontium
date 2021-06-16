@@ -374,7 +374,8 @@ namespace SciRenderer
 
       auto model = this->currentScene->createEntity(filename.substr(0, filename.find_last_of('.')));
       model.addComponent<TransformComponent>();
-      model.addComponent<RenderableComponent>(modelAssets->loadAssetFile(filepath, filename), filename);
+      Model::asyncLoadModel(filepath, filename);
+      model.addComponent<RenderableComponent>(filename);
     }
 
     // If its a supported image, load and cache it.

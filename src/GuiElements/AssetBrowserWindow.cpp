@@ -17,11 +17,11 @@ namespace SciRenderer
   {
     // Load in the icons.
     Texture2D* tex;
-    tex = Texture2D::loadTexture2D("./assets/icons/folder.png", Texture2DParams(), false);
+    tex = Texture2D::loadTexture2D("./assets/.icons/folder.png", Texture2DParams(), false);
     this->icons.insert({ "folder", tex });
-    tex = Texture2D::loadTexture2D("./assets/icons/backfolder.png", Texture2DParams(), false);
+    tex = Texture2D::loadTexture2D("./assets/.icons/backfolder.png", Texture2DParams(), false);
     this->icons.insert({ "backfolder", tex });
-    tex = Texture2D::loadTexture2D("./assets/icons/file.png", Texture2DParams(), false);
+    tex = Texture2D::loadTexture2D("./assets/.icons/file.png", Texture2DParams(), false);
     this->icons.insert({ "file", tex });
   }
 
@@ -47,6 +47,11 @@ namespace SciRenderer
       ImGui::End();
       return;
     }
+
+    ImGui::Columns(2);
+    ImGui::SetColumnWidth(0, 256.0f);
+    this->drawDirectoryTree();
+    ImGui::NextColumn();
 
     float fontSize = ImGui::GetFontSize();
     ImGuiSelectableFlags flags = ImGuiSelectableFlags_AllowDoubleClick
@@ -104,6 +109,83 @@ namespace SciRenderer
   }
 
   void
+  AssetBrowserWindow::drawDirectoryTree(const std::string &root)
+  {
+    // Exit if the root directory doesn't exist.
+    if (!std::filesystem::exists(root))
+      return;
+
+    ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow
+                             | ImGuiTreeNodeFlags_DefaultOpen;
+
+    std::filesystem::path rootPath(root);
+
+    bool opened = ImGui::TreeNodeEx(rootPath.filename().string().c_str(), flags);
+
+    if (ImGui::IsMouseDoubleClicked(0) && ImGui::IsItemHovered())
+      this->currentDir = root;
+
+    if (opened)
+    {
+      this->drawDirectoryNode(root, 0);
+      ImGui::TreePop();
+    }
+  }
+
+  void
+  AssetBrowserWindow::drawDirectoryNode(const std::string &path, unsigned int level)
+  {
+    ImGuiTreeNodeFlags leafFlag = ImGuiTreeNodeFlags_Leaf
+                                | ImGuiTreeNodeFlags_NoTreePushOnOpen;
+
+    for (const auto& entry : std::filesystem::directory_iterator(path))
+    {
+      std::string name = entry.path().filename().string();
+
+      if (entry.is_directory() && name[0] != '.')
+      {
+        bool opened = ImGui::TreeNodeEx(name.c_str(), ImGuiTreeNodeFlags_OpenOnArrow);
+
+        if (ImGui::IsMouseDoubleClicked(0) && ImGui::IsItemHovered())
+          this->currentDir = entry.path().string();
+
+        if (opened)
+        {
+          this->drawDirectoryNode(entry.path().string(), level + 1);
+          ImGui::TreePop();
+        }
+      }
+    }
+
+    for (const auto& entry : std::filesystem::directory_iterator(path))
+    {
+      std::string name = entry.path().filename().string();
+
+      if (entry.is_regular_file() && name[0] != '.')
+      {
+        ImGui::TreeNodeEx(name.c_str(), leafFlag);
+
+        // Setting up the drag and drop source for the filepath.
+        if (ImGui::BeginDragDropSource())
+        {
+          // The items to be dragged along with the cursor.
+          ImGui::Text(name.c_str());
+
+          // The things I'll do to get a proper payload...
+          std::string filepath = entry.path().string();
+          char pathBuffer[256];
+          memset(pathBuffer, 0, sizeof(pathBuffer));
+          std::strncpy(pathBuffer, filepath.c_str(), sizeof(pathBuffer));
+
+          // Set the payload.
+          ImGui::SetDragDropPayload("ASSET_PATH", &pathBuffer, sizeof(pathBuffer));
+          ImGui::EndDragDropSource();
+        }
+      }
+    }
+  }
+
+  void
   AssetBrowserWindow::drawFolders(Shared<Scene> activeScene, float &maxCursorYPos)
   {
     float fontSize = ImGui::GetFontSize();
@@ -153,7 +235,7 @@ namespace SciRenderer
           yPos += fontSize;
         }
 
-        // Handle the content potentially being offscreen for really small
+        // Handle the content potentially being offscreen for small
         // content browsers. Move offscreen content to a new line.
         maxCursorYPos = std::max(std::ceil((textSize.x / 64.0f) + 1.0f) * fontSize + cursorPos.y + 64.0f + fontSize, maxCursorYPos);
         ImVec2 windowSize = ImGui::GetWindowSize();
@@ -229,7 +311,7 @@ namespace SciRenderer
           yPos += fontSize;
         }
 
-        // Handle the content potentially being offscreen for really small
+        // Handle the content potentially being offscreen for small
         // content browsers. Move offscreen content to a new line.
         maxCursorYPos = std::max(std::ceil((textSize.x / 64.0f) + 1.0f) * fontSize + cursorPos.y + 64.0f + fontSize, maxCursorYPos);
         ImVec2 windowSize = ImGui::GetWindowSize();

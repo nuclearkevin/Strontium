@@ -22,6 +22,10 @@ namespace SciRenderer
     Model();
     ~Model();
 
+    // Async load a model (using a separate thread).
+    static void asyncLoadModel(const std::string &filepath, const std::string &name);
+
+    // Load a model.
     void loadModel(const std::string &filepath);
 
     // Is the model loaded or not.

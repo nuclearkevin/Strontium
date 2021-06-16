@@ -22,6 +22,8 @@ namespace SciRenderer
   void
   MaterialWindow::onImGuiRender(bool &isOpen, Shared<Scene> activeScene)
   {
+    auto modelAssets = AssetManager<Model>::getManager();
+
     static bool showTexWindow = false;
     static std::string selectedType;
     std::string selectedMeshName;
@@ -35,82 +37,85 @@ namespace SciRenderer
 
         auto& rComponent = this->selectedEntity.getComponent<RenderableComponent>();
 
-        for (auto& pair : rComponent.model->getSubmeshes())
+        if (rComponent)
         {
-          if (ImGui::CollapsingHeader((pair.first + "##" + std::to_string((unsigned long) pair.second.get())).c_str()))
+          for (auto& pair : modelAssets->getAsset(rComponent.meshName)->getSubmeshes())
           {
-            selectedMeshName = pair.first;
-            submesh = pair.second;
-
-            auto material = rComponent.materials.getMaterial(pair.second);
-            auto& uAlbedo = material->getVec3("uAlbedo");
-            auto& uMetallic = material->getFloat("uMetallic");
-            auto& uRoughness = material->getFloat("uRoughness");
-            auto& uAO = material->getFloat("uAO");
-
-            // Draw all the associated texture maps for the entity.
-            ImGui::Text("Albedo Map");
-            ImGui::PushID("Albedo Button");
-            if (ImGui::ImageButton((ImTextureID) (unsigned long) material->getTexture2D("albedoMap")->getID(),
-                                   ImVec2(64, 64), ImVec2(0, 1), ImVec2(1, 0)))
+            if (ImGui::CollapsingHeader((pair.first + "##" + std::to_string((unsigned long) pair.second.get())).c_str()))
             {
-              showTexWindow = true;
-              selectedType = "albedoMap";
-            }
-            this->DNDTarget(material, "albedoMap");
-            ImGui::PopID();
-            ImGui::SameLine();
-            ImGui::ColorEdit3("##Albedo", &uAlbedo.r);
+              selectedMeshName = pair.first;
+              submesh = pair.second;
 
-            ImGui::Text("Metallic Map");
-            ImGui::PushID("Metallic Button");
-            if (ImGui::ImageButton((ImTextureID) (unsigned long) material->getTexture2D("metallicMap")->getID(),
-                                   ImVec2(64, 64), ImVec2(0, 1), ImVec2(1, 0)))
-            {
-              showTexWindow = true;
-              selectedType = "metallicMap";
-            }
-            this->DNDTarget(material, "metallicMap");
-            ImGui::PopID();
-            ImGui::SameLine();
-            ImGui::SliderFloat("##Metallic", &uMetallic, 0.0f, 1.0f);
+              auto material = rComponent.materials.getMaterial(pair.second);
+              auto& uAlbedo = material->getVec3("uAlbedo");
+              auto& uMetallic = material->getFloat("uMetallic");
+              auto& uRoughness = material->getFloat("uRoughness");
+              auto& uAO = material->getFloat("uAO");
 
-            ImGui::Text("Roughness Map");
-            ImGui::PushID("Roughness Button");
-            if (ImGui::ImageButton((ImTextureID) (unsigned long) material->getTexture2D("roughnessMap")->getID(),
-                                   ImVec2(64, 64), ImVec2(0, 1), ImVec2(1, 0)))
-            {
-              showTexWindow = true;
-              selectedType = "roughnessMap";
-            }
-            this->DNDTarget(material, "roughnessMap");
-            ImGui::PopID();
-            ImGui::SameLine();
-            ImGui::SliderFloat("##Roughness", &uRoughness, 0.0f, 1.0f);
+              // Draw all the associated texture maps for the entity.
+              ImGui::Text("Albedo Map");
+              ImGui::PushID("Albedo Button");
+              if (ImGui::ImageButton((ImTextureID) (unsigned long) material->getTexture2D("albedoMap")->getID(),
+                                     ImVec2(64, 64), ImVec2(0, 1), ImVec2(1, 0)))
+              {
+                showTexWindow = true;
+                selectedType = "albedoMap";
+              }
+              this->DNDTarget(material, "albedoMap");
+              ImGui::PopID();
+              ImGui::SameLine();
+              ImGui::ColorEdit3("##Albedo", &uAlbedo.r);
 
-            ImGui::Text("Ambient Occlusion Map");
-            ImGui::PushID("Ambient Button");
-            if (ImGui::ImageButton((ImTextureID) (unsigned long) material->getTexture2D("aOcclusionMap")->getID(),
-                                   ImVec2(64, 64), ImVec2(0, 1), ImVec2(1, 0)))
-            {
-              showTexWindow = true;
-              selectedType = "aOcclusionMap";
-            }
-            this->DNDTarget(material, "aOcclusionMap");
-            ImGui::PopID();
-            ImGui::SameLine();
-            ImGui::SliderFloat("##AO", &uAO, 0.0f, 1.0f);
+              ImGui::Text("Metallic Map");
+              ImGui::PushID("Metallic Button");
+              if (ImGui::ImageButton((ImTextureID) (unsigned long) material->getTexture2D("metallicMap")->getID(),
+                                     ImVec2(64, 64), ImVec2(0, 1), ImVec2(1, 0)))
+              {
+                showTexWindow = true;
+                selectedType = "metallicMap";
+              }
+              this->DNDTarget(material, "metallicMap");
+              ImGui::PopID();
+              ImGui::SameLine();
+              ImGui::SliderFloat("##Metallic", &uMetallic, 0.0f, 1.0f);
 
-            ImGui::Text("Normal Map");
-            ImGui::PushID("Normal Button");
-            if (ImGui::ImageButton((ImTextureID) (unsigned long) material->getTexture2D("normalMap")->getID(),
-                                   ImVec2(64, 64), ImVec2(0, 1), ImVec2(1, 0)))
-            {
-              showTexWindow = true;
-              selectedType = "normalMap";
+              ImGui::Text("Roughness Map");
+              ImGui::PushID("Roughness Button");
+              if (ImGui::ImageButton((ImTextureID) (unsigned long) material->getTexture2D("roughnessMap")->getID(),
+                                     ImVec2(64, 64), ImVec2(0, 1), ImVec2(1, 0)))
+              {
+                showTexWindow = true;
+                selectedType = "roughnessMap";
+              }
+              this->DNDTarget(material, "roughnessMap");
+              ImGui::PopID();
+              ImGui::SameLine();
+              ImGui::SliderFloat("##Roughness", &uRoughness, 0.0f, 1.0f);
+
+              ImGui::Text("Ambient Occlusion Map");
+              ImGui::PushID("Ambient Button");
+              if (ImGui::ImageButton((ImTextureID) (unsigned long) material->getTexture2D("aOcclusionMap")->getID(),
+                                     ImVec2(64, 64), ImVec2(0, 1), ImVec2(1, 0)))
+              {
+                showTexWindow = true;
+                selectedType = "aOcclusionMap";
+              }
+              this->DNDTarget(material, "aOcclusionMap");
+              ImGui::PopID();
+              ImGui::SameLine();
+              ImGui::SliderFloat("##AO", &uAO, 0.0f, 1.0f);
+
+              ImGui::Text("Normal Map");
+              ImGui::PushID("Normal Button");
+              if (ImGui::ImageButton((ImTextureID) (unsigned long) material->getTexture2D("normalMap")->getID(),
+                                     ImVec2(64, 64), ImVec2(0, 1), ImVec2(1, 0)))
+              {
+                showTexWindow = true;
+                selectedType = "normalMap";
+              }
+              this->DNDTarget(material, "normalMap");
+              ImGui::PopID();
             }
-            this->DNDTarget(material, "normalMap");
-            ImGui::PopID();
           }
         }
 

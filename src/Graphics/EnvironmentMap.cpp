@@ -25,7 +25,9 @@ namespace SciRenderer
     this->cubeShader = new Shader("./assets/shaders/pbr/pbrSkybox.vs", "./assets/shaders/pbr/pbrSkybox.fs");
     shaderCache->attachAsset("skybox_shader", this->cubeShader);
 
-    this->cube = modelManager->loadAssetFile(cubeMeshPath, "skyboxcube.obj");
+    this->cube = new Model();
+    this->cube->loadModel(cubeMeshPath);
+    modelManager->attachAsset("skyboxcube.obj", cube);
   }
 
   EnvironmentMap::~EnvironmentMap()

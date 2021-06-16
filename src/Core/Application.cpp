@@ -39,6 +39,9 @@ namespace SciRenderer
 
     this->imLayer = new ImGuiLayer();
     this->pushOverlay(this->imLayer);
+
+    // Initialize the thread pool.
+    workerGroup = Unique<ThreadPool>(ThreadPool::getInstance(4));
   }
 
   Application::~Application()

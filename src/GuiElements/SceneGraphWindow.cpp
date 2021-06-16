@@ -189,8 +189,8 @@ namespace SciRenderer
             if (this->selectedEntity.hasComponent<RenderableComponent>())
               this->selectedEntity.removeComponent<RenderableComponent>();
 
-            auto& renderable = this->selectedEntity.addComponent<RenderableComponent>
-              (modelAssets->loadAssetFile(path, name), name);
+            Model::asyncLoadModel(path, name);
+            auto& renderable = this->selectedEntity.addComponent<RenderableComponent>(name);
 
             this->fileTargets = FileLoadTargets::TargetNone;
             break;
@@ -506,8 +506,8 @@ namespace SciRenderer
       if (this->selectedEntity.hasComponent<RenderableComponent>())
         this->selectedEntity.removeComponent<RenderableComponent>();
 
-      auto& renderable = this->selectedEntity.addComponent<RenderableComponent>
-        (modelAssets->loadAssetFile(filepath, filename), filename);
+      Model::asyncLoadModel(filepath, filename);
+      auto& renderable = this->selectedEntity.addComponent<RenderableComponent>(filename);
     }
   }
 
@@ -546,8 +546,7 @@ namespace SciRenderer
         if (this->selectedEntity.hasComponent<RenderableComponent>())
           this->selectedEntity.removeComponent<RenderableComponent>();
 
-        auto& renderable = this->selectedEntity.addComponent<RenderableComponent>
-          (modelAssets->getAsset(name), name);
+        auto& renderable = this->selectedEntity.addComponent<RenderableComponent>(name);
 
         isOpen = false;
         this->selectedString = "";

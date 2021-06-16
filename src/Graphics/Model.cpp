@@ -1,6 +1,8 @@
 #include "Graphics/Model.h"
 
 // Project includes.
+#include "Core/AssetManager.h"
+#include "Core/ThreadPool.h"
 #include "Core/Logs.h"
 #include "Graphics/Material.h"
 
@@ -44,6 +46,28 @@ namespace SciRenderer
 
     this->processNode(scene->mRootNode, scene);
     this->loaded = true;
+  }
+
+  void
+  Model::asyncLoadModel(const std::string &filepath, const std::string &name)
+  {
+    // Fetch the thread pool.
+    auto workerGroup = ThreadPool::getInstance(2);
+
+    auto loaderImpl = [](const std::string &filepath, const std::string &name)
+    {
+      auto modelAssets = AssetManager<Model>::getManager();
+
+      if (!modelAssets->hasAsset(name))
+      {
+        Model* loadable = new Model();
+        loadable->loadModel(filepath);
+
+        modelAssets->attachAsset(name, loadable);
+      }
+    };
+
+    workerGroup->push(loaderImpl, filepath, name);
   }
 
   // Recursively process all the nodes in the mesh.
