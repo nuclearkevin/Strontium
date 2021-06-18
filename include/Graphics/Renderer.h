@@ -22,9 +22,20 @@ namespace SciRenderer
   {
     // The renderer states (for serialization and other things of that nature).
     // TODO: Add me!
-    struct RendererStates
+    struct RendererState
     {
+      // Environment map settings.
+      GLuint skyboxWidth;
+      GLuint irradianceWidth;
+      GLuint prefilterWidth;
+      GLuint prefilterSamples;
 
+      RendererState()
+        : skyboxWidth(512)
+        , irradianceWidth(128)
+        , prefilterWidth(512)
+        , prefilterSamples(1024)
+      { }
     };
 
     // The renderer storage.
@@ -45,14 +56,20 @@ namespace SciRenderer
       // The renderer queue (stores the models and materials).
       std::vector<std::pair<Mesh*, Shader*>> renderQueue;
 
-      // Other components of a PBR scene.
-      Camera* sceneCam;
-      EnvironmentMap* currentEnvironment;
+      Unique<EnvironmentMap> currentEnvironment;
+
+      RendererStorage()
+      {
+        currentEnvironment.reset(new EnvironmentMap("./assets/models/cube.obj"));
+      }
     };
 
     // Init the renderer for drawing.
     void init(const GLuint width = 1600, const GLuint height = 900);
     void shutdown();
+
+    RendererStorage* getStorage();
+    RendererState* getState();
 
     //--------------------------------------------------------------------------
     // Forward rendering setup.
@@ -60,7 +77,7 @@ namespace SciRenderer
     // Draw the data given.
     void draw(VertexArray* data, Shader* program);
     void draw(Model* data, ModelMaterial &materials, const glm::mat4 &model, Shared<Camera> camera);
-    void draw(Shared<EnvironmentMap> environment, Shared<Camera> camera);
+    void drawEnvironment(Shared<Camera> camera);
   }
 
   // Depth functions. Addition to this as they are required.

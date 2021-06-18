@@ -6,6 +6,9 @@
 // Project includes.
 #include "Core/ApplicationBase.h"
 
+// STL includes.
+#include <mutex>
+
 namespace SciRenderer
 {
   // Parameters for textures.
@@ -84,18 +87,46 @@ namespace SciRenderer
     { };
   };
 
+  struct ImageData2D
+  {
+    int width;
+    int height;
+    int n;
+
+    void* data;
+
+    bool isHDR;
+    Texture2DParams params;
+    std::string name;
+  };
+
   //----------------------------------------------------------------------------
   // 2D textures.
   //----------------------------------------------------------------------------
   class Texture2D
   {
   public:
-    static Texture2D* createMonoColour(const glm::vec4 &colour, const Texture2DParams &params
-                                       = Texture2DParams(), bool cache = true);
+    // Members to facilitate asynchronous image loading.
+    static std::queue<ImageData2D> asyncTexQueue;
+    static std::mutex asyncTexMutex;
 
+    static void bulkGenerateTextures();
+    static void loadImageAsync(const std::string &filepath,
+                               const Texture2DParams &params = Texture2DParams());
+
+    // Other members to load and generate textures.
+    static Texture2D* createMonoColour(const glm::vec4 &colour, std::string &outName,
+                                       const Texture2DParams &params = Texture2DParams(),
+                                       bool cache = true);
+    static Texture2D* createMonoColour(const glm::vec4 &colour, const Texture2DParams &params = Texture2DParams(),
+                                       bool cache = true);
+
+    // This loads an image and generates the texture all at once, does so on the
+    // main thread due to OpenGL thread safety.
     static Texture2D* loadTexture2D(const std::string &filepath, const Texture2DParams &params
                                     = Texture2DParams(), bool cache = true);
 
+    // The actual 2D texture class.
     Texture2D();
     Texture2D(const GLuint &width, const GLuint &height, const GLuint &n,
               const Texture2DParams &params = Texture2DParams());

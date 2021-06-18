@@ -5,6 +5,7 @@
 
 // Project includes.
 #include "Core/ApplicationBase.h"
+#include "Core/AssetManager.h"
 #include "Graphics/Shaders.h"
 #include "Graphics/Textures.h"
 #include "Graphics/Meshes.h"
@@ -23,17 +24,17 @@ namespace SciRenderer
   {
   public:
     Material(MaterialType type = MaterialType::PBR);
-    Material(MaterialType type, const std::vector<std::pair<std::string, Texture2D*>> &sampler2Ds);
+    Material(MaterialType type, const std::vector<std::pair<std::string, SciRenderer::AssetHandle>> &sampler2Ds);
     ~Material();
 
     // Attach a texture.
-    void attachTexture2D(Texture2D* tex, const std::string &name);
+    void attachSampler2D(const std::string &samplerName, const SciRenderer::AssetHandle &handle);
 
     // Prepare for drawing.
     void configure();
 
     // Check to see if the material has a texture of a certain type.
-    bool hasTexture2D(const std::string &name);
+    bool hasSampler2D(const std::string &samplerName);
 
     // Get the shader type.
     MaterialType& getType() { return this->type; }
@@ -57,7 +58,7 @@ namespace SciRenderer
       auto loc = Utilities::pairGet<std::string, glm::vec3>(this->vec3s, name);
       return loc->second;
     };
-    Texture2D* getTexture2D(const std::string &name);
+    Texture2D* getSampler2D(const std::string &samplerName);
 
     // Operator overloading makes this nice and easy.
     operator Shader*() { return this->program; }
@@ -70,7 +71,9 @@ namespace SciRenderer
     std::vector<std::pair<std::string, GLfloat>> floats;
     std::vector<std::pair<std::string, glm::vec2>> vec2s;
     std::vector<std::pair<std::string, glm::vec3>> vec3s;
-    std::vector<std::pair<std::string, Texture2D*>> sampler2Ds;
+    // First string is the name of the shader uniform. 2nd string is the internal
+    // asset handle for the texture.
+    std::vector<std::pair<std::string, SciRenderer::AssetHandle>> sampler2Ds;
   };
 
   // Macro material which holds all the individual material objects for each

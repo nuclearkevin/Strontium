@@ -16,9 +16,6 @@
 // ImGui includes.
 #include "imgui/imgui.h"
 #include "imgui/imgui_internal.h"
-#include "imgui/imgui_impl_glfw.h"
-#include "imgui/imgui_impl_opengl3.h"
-#include "imguibrowser/FileBrowser/ImGuiFileBrowser.h"
 
 namespace SciRenderer
 {
@@ -54,7 +51,7 @@ namespace SciRenderer
 
     // The various external windows. Kinda janky.
     // TODO: use an unordered map?
-    std::vector<std::pair<bool, GuiWindow*>> windows;
+    std::vector<GuiWindow*> windows;
 
     // Stuff for ImGui and the GUI. TODO: Move to other windows?
     bool showPerf;

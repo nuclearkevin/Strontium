@@ -457,21 +457,23 @@ namespace SciRenderer
       {
         bool attachEnvi = false;
 
+        static bool drawingMips = false;
+
         if (ImGui::Button("Load New Environment"))
           attachEnvi = true;
 
         if (component.ambient->hasEqrMap())
         {
-          ImGui::Checkbox("Draw Blurred", &component.drawingMips);
-          if (component.drawingMips)
+          ImGui::Checkbox("Draw Blurred", &drawingMips);
+          if (drawingMips)
           {
-            ImGui::SliderFloat("Roughness", &component.roughness, 0.0f, 1.0f);
+            ImGui::SliderFloat("Roughness", &component.ambient->getRoughness(), 0.0f, 1.0f);
             component.ambient->setDrawingType(MapType::Prefilter);
           }
           else
             component.ambient->setDrawingType(MapType::Skybox);
 
-          ImGui::DragFloat("Gamma", &component.gamma, 0.1f, 0.0f, 10.0f, "%.2f");
+          ImGui::DragFloat("Gamma", &component.ambient->getGamma(), 0.1f, 0.0f, 10.0f, "%.2f");
         }
 
         if (attachEnvi)

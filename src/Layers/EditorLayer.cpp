@@ -4,12 +4,7 @@
 #include "Core/Application.h"
 #include "Core/Logs.h"
 #include "GuiElements/Styles.h"
-#include "GuiElements/SceneGraphWindow.h"
-#include "GuiElements/CameraWindow.h"
-#include "GuiElements/ShaderWindow.h"
-#include "GuiElements/FileBrowserWindow.h"
-#include "GuiElements/MaterialWindow.h"
-#include "GuiElements/AssetBrowserWindow.h"
+#include "GuiElements/Panels.h"
 
 // Some math for decomposing matrix transformations.
 #include "glm/gtx/matrix_decompose.hpp"
@@ -29,8 +24,8 @@ namespace SciRenderer
 
   EditorLayer::~EditorLayer()
   {
-    for (auto& pair : this->windows)
-      delete pair.second;
+    for (auto& window : this->windows)
+      delete window;
   }
 
   void
@@ -67,12 +62,13 @@ namespace SciRenderer
     this->editorCam->init(90.0f, 1.0f, 0.1f, 200.0f);
 
     // All the windows!
-    this->windows.push_back(std::make_pair(true, new SceneGraphWindow()));
-    this->windows.push_back(std::make_pair(true, new CameraWindow(this->editorCam)));
-    this->windows.push_back(std::make_pair(true, new ShaderWindow()));
-    this->windows.push_back(std::make_pair(true, new FileBrowserWindow()));
-    this->windows.push_back(std::make_pair(true, new MaterialWindow()));
-    this->windows.push_back(std::make_pair(true, new AssetBrowserWindow()));
+    this->windows.push_back(new SceneGraphWindow());
+    this->windows.push_back(new CameraWindow(this->editorCam));
+    this->windows.push_back(new ShaderWindow());
+    this->windows.push_back(new FileBrowserWindow());
+    this->windows.push_back(new MaterialWindow());
+    this->windows.push_back(new AssetBrowserWindow());
+    this->windows.push_back(new RendererWindow());
   }
 
   void
@@ -86,8 +82,8 @@ namespace SciRenderer
   EditorLayer::onEvent(Event &event)
   {
     // Push the events through to all the gui elements.
-    for (auto& pair : this->windows)
-      pair.second->onEvent(event);
+    for (auto& window : this->windows)
+      window->onEvent(event);
 
     // Push the event through to the editor camera.
     this->editorCam->onEvent(event);
@@ -113,12 +109,12 @@ namespace SciRenderer
   EditorLayer::onUpdate(float dt)
   {
     // Update each of the windows.
-    for (auto& pair : this->windows)
-      pair.second->onUpdate(dt, this->currentScene);
+    for (auto& window : this->windows)
+      window->onUpdate(dt, this->currentScene);
 
     // Update the selected entity for all the windows.
-    auto selectedEntity = static_cast<SceneGraphWindow*>(this->windows[0].second)->getSelectedEntity();
-    static_cast<MaterialWindow*>(this->windows[4].second)->setSelectedEntity(selectedEntity);
+    auto selectedEntity = static_cast<SceneGraphWindow*>(this->windows[0])->getSelectedEntity();
+    static_cast<MaterialWindow*>(this->windows[4])->setSelectedEntity(selectedEntity);
 
     // Update the size of the framebuffer to fit the editor window.
     glm::vec2 size = this->drawBuffer->getSize();
@@ -190,9 +186,9 @@ namespace SciRenderer
 		style.WindowMinSize.x = minWinSizeX;
 
     // On ImGui render methods for all the GUI elements.
-    for (auto& pair : this->windows)
-      if (pair.first == true)
-        pair.second->onImGuiRender(pair.first, this->currentScene);
+    for (auto& window : this->windows)
+      if (window->isOpen)
+        window->onImGuiRender(window->isOpen, this->currentScene);
 
   	if (ImGui::BeginMainMenuBar())
   	{
@@ -241,12 +237,12 @@ namespace SciRenderer
           {
             if (ImGui::MenuItem("Show Scene Graph"))
             {
-              this->windows[0].first = true;
+              this->windows[0]->isOpen = true;
             }
 
             if (ImGui::MenuItem("Material Settings"))
             {
-              this->windows[4].first = true;
+              this->windows[4]->isOpen = true;
             }
 
             ImGui::EndMenu();
@@ -256,7 +252,7 @@ namespace SciRenderer
           {
             if (ImGui::MenuItem("Show Content Browser"))
             {
-              this->windows[5].first = true;
+              this->windows[5]->isOpen = true;
             }
 
             if (ImGui::MenuItem("Show Performance Stats Menu"))
@@ -266,12 +262,12 @@ namespace SciRenderer
 
             if (ImGui::MenuItem("Show Camera Menu"))
             {
-              this->windows[1].first = true;
+              this->windows[1]->isOpen = true;
             }
 
             if (ImGui::MenuItem("Show Shader Menu"))
             {
-              this->windows[2].first = true;
+              this->windows[2]->isOpen = true;
             }
 
             ImGui::EndMenu();
@@ -305,7 +301,7 @@ namespace SciRenderer
         ImGui::SetCursorPos(cursorPos);
         ImGui::Image((ImTextureID) (unsigned long) this->drawBuffer->getAttachID(FBOTargetParam::Colour0),
                      this->editorSize, ImVec2(0, 1), ImVec2(1, 0));
-        this->manipulateEntity(static_cast<SceneGraphWindow*>(this->windows[0].second)->getSelectedEntity());
+        this->manipulateEntity(static_cast<SceneGraphWindow*>(this->windows[0])->getSelectedEntity());
       }
       ImGui::EndChild();
     }
@@ -381,7 +377,7 @@ namespace SciRenderer
     // If its a supported image, load and cache it.
     if (filetype == ".jpg" || filetype == ".tga" || filetype == ".png")
     {
-      Texture2D::loadTexture2D(filepath);
+      Texture2D::loadImageAsync(filepath);
     }
   }
 
@@ -453,14 +449,6 @@ namespace SciRenderer
     ImGuizmo::SetRect(bounds[0].x, bounds[0].y, bounds[1].x - bounds[0].x,
                       bounds[1].y - bounds[0].y);
 
-    // Setup a cube view. Currently broken. TODO: fix camera controller first
-    // before renabling this.
-    /*
-    ImGuizmo::ViewManipulate(glm::value_ptr(camView), 8.0f,
-                             ImVec2(bounds[1].x - 128.0f, bounds[1].y
-                                    - ImGui::GetWindowSize().y),
-                             ImVec2(128.0f, 128.0f), 0x10101010);
-    */
     // Quit early if the entity is invalid.
     if (!entity)
       return;

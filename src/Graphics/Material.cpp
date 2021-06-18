@@ -15,11 +15,15 @@ namespace SciRenderer
       {
         this->program = shaderCache->getAsset("pbr_shader");
 
-        this->sampler2Ds.push_back(std::make_pair("albedoMap", Texture2D::createMonoColour(glm::vec4(1.0f))));
-        this->sampler2Ds.push_back(std::make_pair("metallicMap", Texture2D::createMonoColour(glm::vec4(1.0f))));
-        this->sampler2Ds.push_back(std::make_pair("roughnessMap", Texture2D::createMonoColour(glm::vec4(1.0f))));
-        this->sampler2Ds.push_back(std::make_pair("normalMap", Texture2D::createMonoColour(glm::vec4(0.5f, 0.5f, 1.0f, 1.0f))));
-        this->sampler2Ds.push_back(std::make_pair("aOcclusionMap", Texture2D::createMonoColour(glm::vec4(1.0f))));
+        std::string texHandle;
+        Texture2D::createMonoColour(glm::vec4(1.0f), texHandle);
+        this->sampler2Ds.push_back(std::make_pair("albedoMap", texHandle));
+        this->sampler2Ds.push_back(std::make_pair("metallicMap", texHandle));
+        this->sampler2Ds.push_back(std::make_pair("roughnessMap", texHandle));
+        Texture2D::createMonoColour(glm::vec4(0.5f, 0.5f, 1.0f, 1.0f), texHandle);
+        this->sampler2Ds.push_back(std::make_pair("normalMap", texHandle));
+        Texture2D::createMonoColour(glm::vec4(1.0f), texHandle);
+        this->sampler2Ds.push_back(std::make_pair("aOcclusionMap", texHandle));
 
         this->vec3s.push_back(std::pair("uAlbedo", glm::vec3(1.0f)));
         this->floats.push_back(std::pair("uMetallic", 1.0f));
@@ -40,7 +44,7 @@ namespace SciRenderer
     }
   }
 
-  Material::Material(MaterialType type, const std::vector<std::pair<std::string, Texture2D*>> &sampler2Ds)
+  Material::Material(MaterialType type, const std::vector<std::pair<std::string, SciRenderer::AssetHandle>> &sampler2Ds)
     : type(type)
     , sampler2Ds(sampler2Ds)
   { }
@@ -51,10 +55,14 @@ namespace SciRenderer
   void
   Material::configure()
   {
+    auto textureCache = AssetManager<Texture2D>::getManager();
+
     switch (this->type)
     {
       case MaterialType::PBR:
       {
+        auto textureCache = AssetManager<Texture2D>::getManager();
+
         unsigned int samplerCount = 0;
 
         // Bind the PBR maps first.
@@ -68,8 +76,11 @@ namespace SciRenderer
         // Loop over 2D textures and assign them.
         for (auto& pair : this->sampler2Ds)
         {
+          Texture2D* sampler = textureCache->getAsset(pair.second);
+
           this->program->addUniformSampler(pair.first.c_str(), samplerCount);
-          pair.second->bind(samplerCount);
+          if (sampler != nullptr)
+            sampler->bind(samplerCount);
 
           samplerCount++;
         }
@@ -101,33 +112,35 @@ namespace SciRenderer
   }
 
   Texture2D*
-  Material::getTexture2D(const std::string &name)
+  Material::getSampler2D(const std::string &samplerName)
   {
-    auto loc = Utilities::pairGet<std::string, Texture2D*>(this->sampler2Ds, name);
+    auto textureCache = AssetManager<Texture2D>::getManager();
 
-    return loc->second;
+    auto loc = Utilities::pairGet<std::string, std::string>(this->sampler2Ds, samplerName);
+
+    return textureCache->getAsset(loc->second);
   }
 
   // Attach a texture.
   void
-  Material::attachTexture2D(Texture2D* tex, const std::string &name)
+  Material::attachSampler2D(const std::string &samplerName, const SciRenderer::AssetHandle &handle)
   {
-    if (!this->hasTexture2D(name))
-      this->sampler2Ds.push_back(std::pair(name, tex));
+    if (!this->hasSampler2D(samplerName))
+      this->sampler2Ds.push_back(std::pair(samplerName, handle));
     else
     {
-      auto loc = Utilities::pairGet<std::string, Texture2D*>(this->sampler2Ds, name);
+      auto loc = Utilities::pairGet<std::string, std::string>(this->sampler2Ds, samplerName);
 
       this->sampler2Ds.erase(loc);
-      this->sampler2Ds.push_back(std::pair(name, tex));
+      this->sampler2Ds.push_back(std::pair(samplerName, handle));
     }
   }
 
   // Check to see if the material has a texture of a certain type.
   bool
-  Material::hasTexture2D(const std::string &name)
+  Material::hasSampler2D(const std::string &samplerName)
   {
-    return Utilities::pairSearch<std::string, Texture2D*>(this->sampler2Ds, name);
+    return Utilities::pairSearch<std::string, std::string>(this->sampler2Ds, samplerName);
   }
 
   // Attach a mesh-material pair.

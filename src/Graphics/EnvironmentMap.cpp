@@ -61,6 +61,27 @@ namespace SciRenderer
     }
   }
 
+  void
+  EnvironmentMap::unloadComputedMaps()
+  {
+    if (this->skybox != nullptr)
+    {
+      this->skybox = Unique<CubeMap>(nullptr);
+    }
+    if (this->irradiance != nullptr)
+    {
+      this->irradiance = Unique<CubeMap>(nullptr);
+    }
+    if (this->specPrefilter != nullptr)
+    {
+      this->specPrefilter = Unique<CubeMap>(nullptr);
+    }
+    if (this->brdfIntMap != nullptr)
+    {
+      this->brdfIntMap = Unique<Texture2D>(nullptr);
+    }
+  }
+
   // Bind/unbind a specific cubemap.
   void
   EnvironmentMap::bind(const MapType &type)

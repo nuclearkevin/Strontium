@@ -55,7 +55,7 @@ namespace SciRenderer
               // Draw all the associated texture maps for the entity.
               ImGui::Text("Albedo Map");
               ImGui::PushID("Albedo Button");
-              if (ImGui::ImageButton((ImTextureID) (unsigned long) material->getTexture2D("albedoMap")->getID(),
+              if (ImGui::ImageButton((ImTextureID) (unsigned long) material->getSampler2D("albedoMap")->getID(),
                                      ImVec2(64, 64), ImVec2(0, 1), ImVec2(1, 0)))
               {
                 showTexWindow = true;
@@ -68,7 +68,7 @@ namespace SciRenderer
 
               ImGui::Text("Metallic Map");
               ImGui::PushID("Metallic Button");
-              if (ImGui::ImageButton((ImTextureID) (unsigned long) material->getTexture2D("metallicMap")->getID(),
+              if (ImGui::ImageButton((ImTextureID) (unsigned long) material->getSampler2D("metallicMap")->getID(),
                                      ImVec2(64, 64), ImVec2(0, 1), ImVec2(1, 0)))
               {
                 showTexWindow = true;
@@ -81,7 +81,7 @@ namespace SciRenderer
 
               ImGui::Text("Roughness Map");
               ImGui::PushID("Roughness Button");
-              if (ImGui::ImageButton((ImTextureID) (unsigned long) material->getTexture2D("roughnessMap")->getID(),
+              if (ImGui::ImageButton((ImTextureID) (unsigned long) material->getSampler2D("roughnessMap")->getID(),
                                      ImVec2(64, 64), ImVec2(0, 1), ImVec2(1, 0)))
               {
                 showTexWindow = true;
@@ -94,7 +94,7 @@ namespace SciRenderer
 
               ImGui::Text("Ambient Occlusion Map");
               ImGui::PushID("Ambient Button");
-              if (ImGui::ImageButton((ImTextureID) (unsigned long) material->getTexture2D("aOcclusionMap")->getID(),
+              if (ImGui::ImageButton((ImTextureID) (unsigned long) material->getSampler2D("aOcclusionMap")->getID(),
                                      ImVec2(64, 64), ImVec2(0, 1), ImVec2(1, 0)))
               {
                 showTexWindow = true;
@@ -107,7 +107,7 @@ namespace SciRenderer
 
               ImGui::Text("Normal Map");
               ImGui::PushID("Normal Button");
-              if (ImGui::ImageButton((ImTextureID) (unsigned long) material->getTexture2D("normalMap")->getID(),
+              if (ImGui::ImageButton((ImTextureID) (unsigned long) material->getSampler2D("normalMap")->getID(),
                                      ImVec2(64, 64), ImVec2(0, 1), ImVec2(1, 0)))
               {
                 showTexWindow = true;
@@ -152,8 +152,8 @@ namespace SciRenderer
         {
           case FileLoadTargets::TargetTexture:
           {
-            Texture2D* tex = Texture2D::loadTexture2D(path);
-            this->selectedMatTex.first->attachTexture2D(tex, this->selectedMatTex.second);
+            Texture2D::loadImageAsync(path);
+            this->selectedMatTex.first->attachSampler2D(this->selectedMatTex.second, name);
 
             this->selectedMatTex = std::make_pair(nullptr, "");
             this->fileTargets = FileLoadTargets::TargetNone;
@@ -201,7 +201,7 @@ namespace SciRenderer
 
       if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(0))
       {
-        material->attachTexture2D(texture, type);
+        material->attachSampler2D(name, type);
         isOpen = false;
         this->selectedString = "";
       }
@@ -211,7 +211,7 @@ namespace SciRenderer
 
       if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(0))
       {
-        material->attachTexture2D(texture, type);
+        material->attachSampler2D(name, type);
         isOpen = false;
         this->selectedString = "";
       }
@@ -248,8 +248,8 @@ namespace SciRenderer
 
     if (filetype == ".jpg" || filetype == ".tga" || filetype == ".png")
     {
-      Texture2D* tex = Texture2D::loadTexture2D(filepath);
-      this->selectedMatTex.first->attachTexture2D(tex, this->selectedMatTex.second);
+      Texture2D::loadImageAsync(filepath);
+      this->selectedMatTex.first->attachSampler2D(this->selectedMatTex.second, filename);
     }
 
     this->selectedMatTex = std::make_pair(nullptr, "");

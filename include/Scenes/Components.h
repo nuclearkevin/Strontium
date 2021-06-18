@@ -8,6 +8,7 @@
 #include "Graphics/Meshes.h"
 #include "Graphics/Material.h"
 #include "Graphics/EnvironmentMap.h"
+#include "Graphics/Renderer.h"
 
 namespace SciRenderer
 {
@@ -133,7 +134,7 @@ namespace SciRenderer
   // This is an IBL ambient light component. TODO: Finish and overhaul environment maps.
   struct AmbientComponent
   {
-    Shared<EnvironmentMap> ambient;
+    EnvironmentMap* ambient;
 
     // Environment map properties.
     GLfloat roughness;
@@ -150,16 +151,8 @@ namespace SciRenderer
       , ambientFactor(1.0f)
       , drawingMips(false)
     {
-      ambient = createShared<EnvironmentMap>("./assets/models/cube.obj");
+      ambient = Renderer3D::getStorage()->currentEnvironment.get();
     }
-
-    AmbientComponent(Shared<EnvironmentMap> map)
-      : ambient(map)
-      , roughness(0.0f)
-      , gamma(2.2f)
-      , ambientFactor(1.0f)
-      , drawingMips(false)
-    { }
 
     AmbientComponent(const std::string &iblImagePath)
       : roughness(0.0f)
@@ -167,15 +160,17 @@ namespace SciRenderer
       , ambientFactor(1.0f)
       , drawingMips(false)
     {
-      ambient = createShared<EnvironmentMap>("./assets/models/cube.obj");
+      ambient = Renderer3D::getStorage()->currentEnvironment.get();
+      auto state = Renderer3D::getState();
+
       ambient->loadEquirectangularMap(iblImagePath);
-      ambient->equiToCubeMap(true, 2048, 2048);
-      ambient->precomputeIrradiance(512, 512, true);
-      ambient->precomputeSpecular(2048, 2048, true);
+      ambient->equiToCubeMap(true, state->skyboxWidth, state->skyboxWidth);
+      ambient->precomputeIrradiance(state->irradianceWidth, state->irradianceWidth, true);
+      ambient->precomputeSpecular(state->prefilterWidth, state->prefilterWidth, true);
     }
 
     operator bool() { return ambient != nullptr; }
-    operator Shared<EnvironmentMap>() { return ambient; }
+    operator EnvironmentMap*() { return ambient; }
   };
 
   // TODO: Finish these.

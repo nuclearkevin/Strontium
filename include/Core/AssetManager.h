@@ -6,24 +6,27 @@
 // Project includes.
 #include "Core/ApplicationBase.h"
 #include "Core/Logs.h"
-#include "Graphics/Model.h"
 
 // STL includes. Mutex for thread safety.
 #include <mutex>
 
 namespace SciRenderer
 {
+  // Define an asset handle to distinguish when an internal handle is used or not.
+  typedef std::string AssetHandle;
+
   // A class to handle asset creation, destruction and file loading.
   template <class T>
   class AssetManager
   {
   public:
-    ~AssetManager() = default;
+    ~AssetManager()
+    { }
 
     static std::mutex assetMutex;
 
     // Get an asset manager instance.
-    static AssetManager<T>* getManager()
+    static AssetManager<T>* getManager(T* defaultAsset = nullptr)
     {
       std::lock_guard<std::mutex> guard(assetMutex);
 
@@ -37,53 +40,61 @@ namespace SciRenderer
     }
 
     // Check to see if the map has an asset.
-    bool hasAsset(const std::string &name)
+    bool hasAsset(const AssetHandle &handle)
     {
-      return this->assetStorage.contains(name);
+      return this->assetStorage.contains(handle);
     }
 
     // Attach an asset to the manager.
-    void attachAsset(const std::string &name, T* asset)
+    void attachAsset(const AssetHandle &handle, T* asset)
     {
       std::lock_guard<std::mutex> guard(assetMutex);
 
-      if (!this->hasAsset(name))
+      if (!this->hasAsset(handle))
       {
-        this->assetNames.push_back(name);
-        this->assetStorage.insert({ name, Unique<T>(asset) });
+        this->assetNames.push_back(handle);
+        this->assetStorage.insert({ handle, Unique<T>(asset) });
       }
     }
 
     // Get the asset reference.
-    T* getAsset(const std::string &name)
+    T* getAsset(const AssetHandle &handle)
     {
-      if (this->hasAsset(name))
-        return this->assetStorage.at(name).get();
+      if (this->hasAsset(handle))
+        return this->assetStorage.at(handle).get();
       else
-        return nullptr;
+        return this->defaultAsset.get();
     }
 
     // Delete the asset.
-    void deleteAsset(const std::string &name)
+    void deleteAsset(const AssetHandle &handle)
     {
       std::lock_guard<std::mutex> guard(assetMutex);
 
-      this->assetStorage.erase(name);
+      this->assetStorage.erase(handle);
 
-      auto loc = std::find(this->assetNames.begin(), this->assetNames.end(), name);
+      auto loc = std::find(this->assetNames.begin(), this->assetNames.end(), handle);
       if (loc != this->assetNames.end())
         this->assetNames.erase(loc);
     }
 
+    void setDefaultAsset(T* asset)
+    {
+      this->defaultAsset.reset(asset);
+    }
+
     // Get a reference to the asset name storage.
-    std::vector<std::string>& getStorage() { return this->assetNames; }
+    std::vector<AssetHandle>& getStorage() { return this->assetNames; }
   private:
-    AssetManager() = default;
+    AssetManager(T* defaultAsset = new T())
+      : defaultAsset(defaultAsset)
+    { }
 
     static AssetManager<T>* instance;
 
-    std::unordered_map<std::string, Unique<T>> assetStorage;
-    std::vector<std::string> assetNames;
+    std::unordered_map<AssetHandle, Unique<T>> assetStorage;
+    std::vector<AssetHandle> assetNames;
+    Unique<T> defaultAsset;
   };
 
   template <typename T>

@@ -8,6 +8,7 @@ namespace SciRenderer
   namespace Renderer3D
   {
     RendererStorage* storage;
+    RendererState* state;
 
     // Initialize the renderer.
     void
@@ -18,6 +19,7 @@ namespace SciRenderer
       RendererCommands::enable(RendererFunction::CubeMapSeamless);
 
       storage = new RendererStorage();
+      state = new RendererState();
 
       // Initialize the vewport shader passthrough.
       auto shaderCache = AssetManager<Shader>::getManager();
@@ -31,6 +33,18 @@ namespace SciRenderer
     shutdown()
     {
       delete storage;
+    }
+
+    // Get the storage.
+    RendererStorage* getStorage()
+    {
+      return storage;
+    }
+
+    // Get the renderer state and settings.
+    RendererState* getState()
+    {
+      return state;
     }
 
     // Draw the data to the screen.
@@ -81,13 +95,17 @@ namespace SciRenderer
     // Draw an environment map to the screen. Draws all the submeshes associated
     // with the cube model.
     void
-    draw(Shared<EnvironmentMap> environment, Shared<Camera> camera)
+    drawEnvironment(Shared<Camera> camera)
     {
-      RendererCommands::depthFunction(DepthFunctions::LEq);
-      environment->configure(camera);
+      storage->currentEnvironment->bind(MapType::Irradiance, 0);
+      storage->currentEnvironment->bind(MapType::Prefilter, 1);
+      storage->currentEnvironment->bind(MapType::Integration, 2);
 
-      for (auto& pair : environment->getCubeMesh()->getSubmeshes())
-        Renderer3D::draw(pair.second->getVAO(), environment->getCubeProg());
+      RendererCommands::depthFunction(DepthFunctions::LEq);
+      storage->currentEnvironment->configure(camera);
+
+      for (auto& pair : storage->currentEnvironment->getCubeMesh()->getSubmeshes())
+        Renderer3D::draw(pair.second->getVAO(), storage->currentEnvironment->getCubeProg());
 
       RendererCommands::depthFunction(DepthFunctions::Less);
     }

@@ -31,6 +31,8 @@ namespace SciRenderer
 
     // Unload all the textures associated with this environment.
     void unloadEnvironment();
+    // Unload the non-equirectangular map textures.
+    void unloadComputedMaps();
 
     // Bind/unbind a specific cubemap.
     void bind(const MapType &type);

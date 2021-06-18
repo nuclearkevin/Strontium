@@ -14,15 +14,12 @@ namespace SciRenderer
     , running(true)
     , isMinimized(false)
     , lastTime(0.0f)
-    , texture2DAssets(AssetManager<Texture2D>::getManager())
-    , modelAssets(AssetManager<Model>::getManager())
-    , shaderCache(AssetManager<Shader>::getManager())
   {
     if (Application::appInstance != nullptr)
     {
       std::cout << "Already have an instance of the application. Aborting"
                 << std::endl;
-      exit(EXIT_FAILURE);
+      assert(Application::appInstance != nullptr);
     }
 
     Application::appInstance = this;
@@ -34,14 +31,22 @@ namespace SciRenderer
     // Initialize the application main window.
     this->appWindow = Window::getNewInstance(this->name);
 
+    // Initialize the thread pool.
+    workerGroup = Unique<ThreadPool>(ThreadPool::getInstance(4));
+
     // Initialize the 3D renderer.
     Renderer3D::init();
 
+    // Initialize the asset managers.
+    this->shaderCache.reset(AssetManager<Shader>::getManager());
+    this->modelAssets.reset(AssetManager<Model>::getManager());
+    this->texture2DAssets.reset(AssetManager<Texture2D>::getManager());
+
+    Texture2D* defaultTex = Texture2D::createMonoColour(glm::vec4(1.0f, 0.0f, 1.0f, 1.0f), Texture2DParams(), false);
+    this->texture2DAssets->setDefaultAsset(defaultTex);
+
     this->imLayer = new ImGuiLayer();
     this->pushOverlay(this->imLayer);
-
-    // Initialize the thread pool.
-    workerGroup = Unique<ThreadPool>(ThreadPool::getInstance(4));
   }
 
   Application::~Application()
@@ -115,6 +120,10 @@ namespace SciRenderer
         // Clear the back buffer.
         RendererCommands::clear(true, false, false);
       }
+
+      // Must be called at the end of every frame to create textures with loaded
+      // images.
+      Texture2D::bulkGenerateTextures();
     }
   }
 

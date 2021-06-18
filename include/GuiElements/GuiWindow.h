@@ -18,12 +18,15 @@ namespace SciRenderer
   class GuiWindow
   {
   public:
-    GuiWindow();
+    GuiWindow(bool isOpen = true);
     virtual ~GuiWindow();
 
     virtual void onImGuiRender(bool &isOpen, Shared<Scene> activeScene);
     virtual void onUpdate(float dt, Shared<Scene> activeScene);
     virtual void onEvent(Event &event);
+
+    bool isOpen;
+
   private:
   };
 }

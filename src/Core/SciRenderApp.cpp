@@ -8,7 +8,7 @@ namespace SciRenderer
   {
   public:
     SciRenderApp()
-      : Application("SciRenderApp")
+      : Application("SR - Editor")
     {
       this->pushLayer(new EditorLayer());
     }

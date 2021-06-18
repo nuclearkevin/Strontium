@@ -21,15 +21,17 @@ namespace SciRenderer
     io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
     io.ConfigDragClickToInputText = true;
 
+    io.FontDefault = io.Fonts->AddFontFromFileTTF("./assets/.fonts/Roboto/Roboto-Black.ttf", 14.0f);
+    io.Fonts->AddFontFromFileTTF("./assets/.fonts/Roboto/Roboto-Bold.ttf", 14.0f);
+
     // Set ImGui to dark mode, because why would we not?
     ImGui::StyleColorsDark();
 
     // Fetch the application window.
     Application* app = Application::getInstance();
-    GLFWwindow* window = app->getWindow()->getWindowPtr();
 
     // Setup the ImGui main window.
-    ImGui_ImplGlfw_InitForOpenGL(window, true);
+    ImGui_ImplGlfw_InitForOpenGL(app->getWindow()->getWindowPtr(), true);
     ImGui_ImplOpenGL3_Init("#version 440");
   }
 

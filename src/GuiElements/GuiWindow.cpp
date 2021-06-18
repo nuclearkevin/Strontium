@@ -2,7 +2,8 @@
 
 namespace SciRenderer
 {
-  GuiWindow::GuiWindow()
+  GuiWindow::GuiWindow(bool isOpen)
+    : isOpen(isOpen)
   { }
 
   GuiWindow::~GuiWindow()
