@@ -80,6 +80,8 @@ namespace SciRenderer
 
     void setDefaultAsset(T* asset)
     {
+      std::lock_guard<std::mutex> guard(assetMutex);
+      
       this->defaultAsset.reset(asset);
     }
 

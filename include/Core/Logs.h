@@ -4,6 +4,9 @@
 // Macro include file.
 #include "SciRenderPCH.h"
 
+// STL includes.
+#include <mutex>
+
 namespace SciRenderer
 {
   // A struct to contain the parameters for a logged message.
@@ -43,27 +46,31 @@ namespace SciRenderer
     // Destructor.
     ~Logger() = default;
 
+    // Log mutex for thread safety.
+    static std::mutex logMutex;
+
     // Get the logger instance.
-    static auto getInstance()              -> Logger*;
+    static Logger* getInstance();
 
     // Initialize the application logs.
-    auto init()                            -> void;
+    void init();
 
     // Add a message to the logger.
-    auto logMessage(const LogMessage &msg) -> void;
+    void logMessage(const LogMessage &msg);
 
     // Fetches all the logged messages
     // from the previous frame as a
     // single string. This clears the log.
-    auto getLastMessages()                 -> std::string;
+    std::string getLastMessages();
 
     // Fetches all the global logs as a
     //single string. This clears the log.
-    auto getGlobalLogs()                   -> std::string;
+    std::string getGlobalLogs();
 
   private:
     // The instance.
     static Logger* appLogs;
+
     // Queue to store the logs from the previous frame.
     std::queue<std::string>  lastFrameLogs;
 

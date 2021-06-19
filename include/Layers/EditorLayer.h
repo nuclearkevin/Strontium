@@ -42,6 +42,8 @@ namespace SciRenderer
     // Handle entity manipulation using Gizmos.
     void manipulateEntity(Entity entity);
 
+    void drawGizmoSelector(ImVec2 windowPos, ImVec2 windowSize);
+
     // The current scene.
     Shared<Scene> currentScene;
     // The framebuffer for the scene.
@@ -60,5 +62,6 @@ namespace SciRenderer
     ImVec2 editorSize;
 
     int gizmoType;
+    ImVec2 gizmoSelPos;
   };
 }

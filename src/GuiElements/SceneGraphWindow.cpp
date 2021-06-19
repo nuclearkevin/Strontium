@@ -392,8 +392,7 @@ namespace SciRenderer
         glm::vec3 tEulerRotation = glm::degrees(component.rotation);
         Styles::drawVec3Controls("Rotation", glm::vec3(0.0f), tEulerRotation);
         component.rotation = glm::radians(tEulerRotation);
-        Styles::drawVec3Controls("Shear", glm::vec3(1.0f), component.scale);
-        Styles::drawFloatControl("Scale", 1.0f, component.scaleFactor);
+        Styles::drawVec3Controls("Scale", glm::vec3(1.0f), component.scale);
       });
 
       drawComponentProperties<RenderableComponent>("Renderable Component",

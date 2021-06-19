@@ -55,7 +55,6 @@ namespace SciRenderer
     glm::vec3 translation;
     glm::vec3 rotation;
     glm::vec3 scale; // Euler angles. Pitch = x, yaw = y, roll = z.
-    GLfloat scaleFactor;
 
     TransformComponent(const TransformComponent&) = default;
 
@@ -63,7 +62,6 @@ namespace SciRenderer
       : translation(glm::vec3(0.0f))
       , rotation(glm::vec3(0.0f))
       , scale(glm::vec3(1.0f))
-      , scaleFactor(1.0f)
     { }
 
     TransformComponent(const glm::vec3 &translation, const glm::vec3 &rotation,
@@ -71,14 +69,13 @@ namespace SciRenderer
       : translation(translation)
       , rotation(rotation)
       , scale(scale)
-      , scaleFactor(1.0f)
     { }
 
     // Cast to glm::mat4 for easy multiplication.
     operator glm::mat4()
     {
       return glm::translate(glm::mat4(1.0f), translation)
-             * glm::toMat4(glm::quat(rotation)) * glm::scale(scale * scaleFactor);
+             * glm::toMat4(glm::quat(rotation)) * glm::scale(scale);
     }
   };
 

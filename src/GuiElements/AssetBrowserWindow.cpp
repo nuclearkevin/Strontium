@@ -48,10 +48,12 @@ namespace SciRenderer
       return;
     }
 
-    ImGui::Columns(2);
-    ImGui::SetColumnWidth(0, 256.0f);
+    ImGui::BeginChild("DirTree", ImVec2(256.0f, 0.0f));
     this->drawDirectoryTree();
-    ImGui::NextColumn();
+    ImGui::EndChild();
+
+    ImGui::SameLine();
+    ImGui::BeginChild("Content");
 
     float fontSize = ImGui::GetFontSize();
     ImGuiSelectableFlags flags = ImGuiSelectableFlags_AllowDoubleClick
@@ -93,6 +95,7 @@ namespace SciRenderer
     this->drawFolders(activeScene, maxCursorYPos);
     this->drawFiles(activeScene, maxCursorYPos);
 
+    ImGui::EndChild();
     ImGui::End();
   }
 

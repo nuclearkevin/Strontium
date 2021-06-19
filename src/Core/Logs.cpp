@@ -6,11 +6,14 @@
 namespace SciRenderer
 {
   Logger* Logger::appLogs = nullptr;
+  std::mutex Logger::logMutex;
 
   // Get the logger instance.
   Logger*
   Logger::getInstance()
   {
+    std::lock_guard<std::mutex> guard(logMutex);
+
     if (appLogs == nullptr)
     {
       appLogs = new Logger();
@@ -24,6 +27,8 @@ namespace SciRenderer
   void
   Logger::init()
   {
+    std::lock_guard<std::mutex> guard(logMutex);
+
     // Fetch the local time.
     std::time_t current = std::time(0);
     std::tm* local = std::localtime(&current);
@@ -49,6 +54,8 @@ namespace SciRenderer
   void
   Logger::logMessage(const LogMessage &msg)
   {
+    std::lock_guard<std::mutex> guard(logMutex);
+
     std::string messages = "";
 
     if (msg.logTime)
@@ -99,6 +106,8 @@ namespace SciRenderer
   std::string
   Logger::getLastMessages()
   {
+    std::lock_guard<std::mutex> guard(logMutex);
+
     std::string messages = "";
 
     while (!this->lastFrameLogs.empty())
@@ -115,6 +124,8 @@ namespace SciRenderer
   std::string
   Logger::getGlobalLogs()
   {
+    std::lock_guard<std::mutex> guard(logMutex);
+
     std::string messages = "";
 
     while (!this->globalLogs.empty())

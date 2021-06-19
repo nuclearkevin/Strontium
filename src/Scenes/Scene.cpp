@@ -32,6 +32,11 @@ namespace SciRenderer
   {
     auto modelAssets = AssetManager<Model>::getManager();
 
+    auto ambient = Renderer3D::getStorage()->currentEnvironment.get();
+    ambient->bind(MapType::Irradiance, 0);
+    ambient->bind(MapType::Prefilter, 1);
+    ambient->bind(MapType::Integration, 2);
+
     // Group together the transform and renderable components.
     auto drawables = this->sceneECS.group<TransformComponent>(entt::get<RenderableComponent>);
     for (auto entity : drawables)

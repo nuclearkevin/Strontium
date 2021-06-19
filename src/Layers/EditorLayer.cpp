@@ -20,6 +20,7 @@ namespace SciRenderer
     , showPerf(true)
     , editorSize(ImVec2(0, 0))
     , gizmoType(-1)
+    , gizmoSelPos(-1.0f, -1.0f)
   { }
 
   EditorLayer::~EditorLayer()
@@ -68,7 +69,7 @@ namespace SciRenderer
     this->windows.push_back(new FileBrowserWindow());
     this->windows.push_back(new MaterialWindow());
     this->windows.push_back(new AssetBrowserWindow());
-    this->windows.push_back(new RendererWindow());
+    this->windows.push_back(new RendererWindow()); // 6
   }
 
   void
@@ -273,6 +274,11 @@ namespace SciRenderer
             ImGui::EndMenu();
           }
 
+          if (ImGui::MenuItem("Show Renderer Settings"))
+          {
+            this->windows[6]->isOpen = true;
+          }
+
           ImGui::EndMenu();
         }
 
@@ -292,6 +298,12 @@ namespace SciRenderer
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
     ImGui::Begin("Editor Viewport", nullptr, ImGuiWindowFlags_NoCollapse);
     {
+      auto windowPos = ImGui::GetWindowPos();
+      auto windowMin = ImGui::GetWindowContentRegionMin();
+      auto windowMax = ImGui::GetWindowContentRegionMax();
+      windowPos.y = windowPos.y + windowMin.y;
+      ImVec2 contentSize = ImVec2(windowMax.x - windowMin.x, windowMax.y - windowMin.y);
+
       ImGui::BeginChild("EditorRender");
       {
         this->editorSize = ImGui::GetWindowSize();
@@ -302,6 +314,7 @@ namespace SciRenderer
         ImGui::Image((ImTextureID) (unsigned long) this->drawBuffer->getAttachID(FBOTargetParam::Colour0),
                      this->editorSize, ImVec2(0, 1), ImVec2(1, 0));
         this->manipulateEntity(static_cast<SceneGraphWindow*>(this->windows[0])->getSelectedEntity());
+        this->drawGizmoSelector(windowPos, contentSize);
       }
       ImGui::EndChild();
     }
@@ -480,6 +493,85 @@ namespace SciRenderer
         if (scale.x > 0.05f && scale.y > 0.05f && scale.z > 0.05f)
           transform.scale = scale;
       }
+    }
+  }
+
+  void
+  gizmoSelectDNDPayload()
+  {
+    if (ImGui::BeginDragDropSource())
+    {
+      ImGui::Button("None");
+
+      ImGui::SameLine();
+      ImGui::Button("Translate");
+
+      ImGui::SameLine();
+      ImGui::Button("Rotate");
+
+      ImGui::SameLine();
+      ImGui::Button("Scale");
+
+      int temp = 0;
+      ImGui::SetDragDropPayload("GIZMO_SELECT", &temp, sizeof(int));
+
+      ImGui::EndDragDropSource();
+    }
+  }
+
+  void
+  EditorLayer::drawGizmoSelector(ImVec2 windowPos, ImVec2 windowSize)
+  {
+    auto flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoBackground;
+    const ImVec2 selectorSize = ImVec2(219.0f, 18.0f);
+
+    // Bounding box detection to make sure this thing doesn't leave the editor
+    // viewport.
+    // Top left corner.
+    this->gizmoSelPos.x = this->gizmoSelPos.x < windowPos.x ? windowPos.x : this->gizmoSelPos.x;
+    this->gizmoSelPos.y = this->gizmoSelPos.y < windowPos.y ? windowPos.y : this->gizmoSelPos.y;
+
+    // Bottom right corner.
+    this->gizmoSelPos.x = this->gizmoSelPos.x + selectorSize.x > windowPos.x + windowSize.x
+      ? windowPos.x + windowSize.x - selectorSize.x : this->gizmoSelPos.x;
+    this->gizmoSelPos.y = this->gizmoSelPos.y + selectorSize.y > windowPos.y + windowSize.y
+      ? windowPos.y + windowSize.y - selectorSize.y : this->gizmoSelPos.y;
+
+    ImGui::SetNextWindowPos(this->gizmoSelPos);
+    ImGui::Begin("GizmoSelector", nullptr, flags);
+
+    auto cursorPos = ImGui::GetCursorPos();
+    ImGui::Selectable("##editorselectable", false, ImGuiSelectableFlags_AllowItemOverlap, selectorSize);
+    gizmoSelectDNDPayload();
+
+    ImGui::SetCursorPos(cursorPos);
+
+    if (ImGui::Button("None"))
+      this->gizmoType = -1;
+    gizmoSelectDNDPayload();
+
+    ImGui::SameLine();
+    if (ImGui::Button("Translate"))
+      this->gizmoType = ImGuizmo::TRANSLATE;
+    gizmoSelectDNDPayload();
+
+    ImGui::SameLine();
+    if (ImGui::Button("Rotate"))
+      this->gizmoType = ImGuizmo::ROTATE;
+    gizmoSelectDNDPayload();
+
+    ImGui::SameLine();
+    if (ImGui::Button("Scale"))
+      this->gizmoType = ImGuizmo::SCALE;
+    gizmoSelectDNDPayload();
+
+    ImGui::End();
+
+    if (ImGui::BeginDragDropTarget())
+    {
+      if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("GIZMO_SELECT", ImGuiDragDropFlags_AcceptNoDrawDefaultRect))
+        gizmoSelPos = ImGui::GetMousePos();
+      ImGui::EndDragDropTarget();
     }
   }
 }

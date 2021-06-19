@@ -97,10 +97,6 @@ namespace SciRenderer
     void
     drawEnvironment(Shared<Camera> camera)
     {
-      storage->currentEnvironment->bind(MapType::Irradiance, 0);
-      storage->currentEnvironment->bind(MapType::Prefilter, 1);
-      storage->currentEnvironment->bind(MapType::Integration, 2);
-
       RendererCommands::depthFunction(DepthFunctions::LEq);
       storage->currentEnvironment->configure(camera);
 

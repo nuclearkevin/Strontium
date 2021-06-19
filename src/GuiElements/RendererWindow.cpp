@@ -53,7 +53,7 @@ namespace SciRenderer
 
       if (ImGui::InputInt("Irradiance Map Quality", &irradianceWidth))
       {
-        irradianceWidth = irradianceWidth > 256 ? 256 : irradianceWidth;
+        irradianceWidth = irradianceWidth > 512 ? 512 : irradianceWidth;
         irradianceWidth = irradianceWidth < 64 ? 64 : irradianceWidth;
         irradianceWidth = std::pow(2, std::floor(std::log2(irradianceWidth)));
         state->irradianceWidth = irradianceWidth;
@@ -75,6 +75,7 @@ namespace SciRenderer
         state->prefilterSamples = prefilterSamples;
       }
     }
+
     ImGui::End();
   }
 
