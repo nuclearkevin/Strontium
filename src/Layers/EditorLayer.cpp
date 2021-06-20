@@ -16,7 +16,6 @@ namespace SciRenderer
 {
   EditorLayer::EditorLayer()
     : Layer("Editor Layer")
-    , logBuffer("")
     , showPerf(true)
     , editorSize(ImVec2(0, 0))
     , gizmoType(-1)
@@ -322,18 +321,16 @@ namespace SciRenderer
     ImGui::End();
 
     // The log menu.
-    this->logBuffer += logs->getLastMessages();
     ImGui::Begin("Application Logs", nullptr);
     {
       if (ImGui::Button("Clear Logs"))
-      {
-        this->logBuffer = "";
-      }
+        Logger::getInstance()->getLogs() = "";
+
       ImGui::BeginChild("LogText");
       {
         auto size = ImGui::GetWindowSize();
         ImGui::PushTextWrapPos(size.x);
-        ImGui::Text(this->logBuffer.c_str());
+        ImGui::Text(Logger::getInstance()->getLogs().c_str());
         ImGui::PopTextWrapPos();
       }
       ImGui::EndChild();
@@ -497,20 +494,50 @@ namespace SciRenderer
   }
 
   void
-  gizmoSelectDNDPayload()
+  gizmoSelectDNDPayload(int selectedGizmo)
   {
     if (ImGui::BeginDragDropSource())
     {
-      ImGui::Button("None");
+      ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 0.0f));
+      if (selectedGizmo == -1)
+      {
+        ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
+        ImGui::Button("None");
+        ImGui::PopStyleVar();
+      }
+      else
+        ImGui::Button("None");
 
       ImGui::SameLine();
-      ImGui::Button("Translate");
+      if (selectedGizmo == ImGuizmo::TRANSLATE)
+      {
+        ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
+        ImGui::Button("Translate");
+        ImGui::PopStyleVar();
+      }
+      else
+        ImGui::Button("Translate");
 
       ImGui::SameLine();
-      ImGui::Button("Rotate");
+      if (selectedGizmo == ImGuizmo::ROTATE)
+      {
+        ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
+        ImGui::Button("Rotate");
+        ImGui::PopStyleVar();
+      }
+      else
+        ImGui::Button("Rotate");
 
       ImGui::SameLine();
-      ImGui::Button("Scale");
+      if (selectedGizmo == ImGuizmo::SCALE)
+      {
+        ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
+        ImGui::Button("Scale");
+        ImGui::PopStyleVar();
+      }
+      else
+        ImGui::Button("Scale");
+      ImGui::PopStyleVar();
 
       int temp = 0;
       ImGui::SetDragDropPayload("GIZMO_SELECT", &temp, sizeof(int));
@@ -527,11 +554,8 @@ namespace SciRenderer
 
     // Bounding box detection to make sure this thing doesn't leave the editor
     // viewport.
-    // Top left corner.
     this->gizmoSelPos.x = this->gizmoSelPos.x < windowPos.x ? windowPos.x : this->gizmoSelPos.x;
     this->gizmoSelPos.y = this->gizmoSelPos.y < windowPos.y ? windowPos.y : this->gizmoSelPos.y;
-
-    // Bottom right corner.
     this->gizmoSelPos.x = this->gizmoSelPos.x + selectorSize.x > windowPos.x + windowSize.x
       ? windowPos.x + windowSize.x - selectorSize.x : this->gizmoSelPos.x;
     this->gizmoSelPos.y = this->gizmoSelPos.y + selectorSize.y > windowPos.y + windowSize.y
@@ -541,29 +565,69 @@ namespace SciRenderer
     ImGui::Begin("GizmoSelector", nullptr, flags);
 
     auto cursorPos = ImGui::GetCursorPos();
+    ImGui::PushStyleVar(ImGuiStyleVar_Alpha, 0.0f);
     ImGui::Selectable("##editorselectable", false, ImGuiSelectableFlags_AllowItemOverlap, selectorSize);
-    gizmoSelectDNDPayload();
+    ImGui::PopStyleVar();
+    gizmoSelectDNDPayload(this->gizmoType);
 
     ImGui::SetCursorPos(cursorPos);
 
-    if (ImGui::Button("None"))
-      this->gizmoType = -1;
-    gizmoSelectDNDPayload();
+    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 0.0f));
+    if (this->gizmoType == -1)
+    {
+      ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+      ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
+      ImGui::Button("None");
+      ImGui::PopItemFlag();
+      ImGui::PopStyleVar();
+    }
+    else
+      if (ImGui::Button("None"))
+        this->gizmoType = -1;
+    gizmoSelectDNDPayload(this->gizmoType);
 
     ImGui::SameLine();
-    if (ImGui::Button("Translate"))
-      this->gizmoType = ImGuizmo::TRANSLATE;
-    gizmoSelectDNDPayload();
+    if (this->gizmoType == ImGuizmo::TRANSLATE)
+    {
+      ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+      ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
+      ImGui::Button("Translate");
+      ImGui::PopItemFlag();
+      ImGui::PopStyleVar();
+    }
+    else
+      if (ImGui::Button("Translate"))
+        this->gizmoType = ImGuizmo::TRANSLATE;
+    gizmoSelectDNDPayload(this->gizmoType);
 
     ImGui::SameLine();
-    if (ImGui::Button("Rotate"))
-      this->gizmoType = ImGuizmo::ROTATE;
-    gizmoSelectDNDPayload();
+    if (this->gizmoType == ImGuizmo::ROTATE)
+    {
+      ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+      ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
+      ImGui::Button("Rotate");
+      ImGui::PopItemFlag();
+      ImGui::PopStyleVar();
+    }
+    else
+      if (ImGui::Button("Rotate"))
+        this->gizmoType = ImGuizmo::ROTATE;
+    gizmoSelectDNDPayload(this->gizmoType);
 
     ImGui::SameLine();
-    if (ImGui::Button("Scale"))
-      this->gizmoType = ImGuizmo::SCALE;
-    gizmoSelectDNDPayload();
+    if (this->gizmoType == ImGuizmo::SCALE)
+    {
+      ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+      ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
+      ImGui::Button("Scale");
+      ImGui::PopItemFlag();
+      ImGui::PopStyleVar();
+    }
+    else
+      if (ImGui::Button("Scale"))
+        this->gizmoType = ImGuizmo::SCALE;
+    gizmoSelectDNDPayload(this->gizmoType);
+    ImGui::PopStyleVar();
 
     ImGui::End();
 

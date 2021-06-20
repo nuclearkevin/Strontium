@@ -14,6 +14,8 @@ namespace SciRenderer
     : GuiWindow()
     , currentDir("./assets")
     , drawCursor(0.0f, 0.0f)
+    , loadingAsset(false)
+    , loadingAssetText("")
   {
     // Load in the icons.
     Texture2D* tex;
@@ -97,6 +99,18 @@ namespace SciRenderer
 
     ImGui::EndChild();
     ImGui::End();
+
+    if (this->loadingAsset)
+    {
+      auto flags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_AlwaysAutoResize;
+
+      float fontSize = ImGui::GetFontSize();
+      ImGui::Begin("Loading...", nullptr, flags);
+      ImGui::Spinner("##loadingspinner", fontSize / 2.0f, 4, ImGui::GetColorU32(ImGuiCol_Button));
+      ImGui::SameLine();
+      ImGui::Text((std::string("Loading file ") + this->loadingAssetText).c_str());
+      ImGui::End();
+    }
   }
 
   void
@@ -108,7 +122,35 @@ namespace SciRenderer
   void
   AssetBrowserWindow::onEvent(Event &event)
   {
+    switch (event.getType())
+    {
+      case EventType::GuiEvent:
+      {
+        auto guiEvent = *(static_cast<GuiEvent*>(&event));
 
+        switch (guiEvent.getGuiEventType())
+        {
+          case GuiEventType::StartSpinnerEvent:
+          {
+            this->loadingAsset = true;
+            this->loadingAssetText = guiEvent.getText();
+            break;
+          }
+
+          case GuiEventType::EndSpinnerEvent:
+          {
+            this->loadingAsset = false;
+            this->loadingAssetText = "";
+            break;
+          }
+
+          default: break;
+        }
+        break;
+      }
+
+      default: break;
+    }
   }
 
   void

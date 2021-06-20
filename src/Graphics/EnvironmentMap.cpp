@@ -272,7 +272,7 @@ namespace SciRenderer
 
     logs->logMessage(LogMessage("Converted the equirectangular map to a cubemap"
                                 " (elapsed time: " + std::to_string(elapsed.count())
-                                + " s).", true, false, true));
+                                + " s).", true, true));
     this->skybox->bind();
     glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
   }
@@ -340,7 +340,7 @@ namespace SciRenderer
 
     logs->logMessage(LogMessage("Convoluted environment map (elapsed time: "
                                 + std::to_string(elapsed.count()) + " s).", true,
-                                false, true));
+                                true));
   }
 
   // Generate the specular map components. Computes the pre-filtered environment
@@ -427,7 +427,7 @@ namespace SciRenderer
 
       logs->logMessage(LogMessage("Pre-filtered environment map (elapsed time: "
                                   + std::to_string(elapsed.count()) + " s).", true,
-                                  false, true));
+                                  true));
     }
 
     if (this->brdfIntMap == nullptr)
@@ -463,7 +463,7 @@ namespace SciRenderer
 
       logs->logMessage(LogMessage("Generated BRDF lookup texture (elapsed time: "
                                   + std::to_string(elapsed.count()) + " s).", true,
-                                  false, true));
+                                  true));
     }
   }
 }

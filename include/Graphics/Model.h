@@ -33,7 +33,7 @@ namespace SciRenderer
 
     // Get the submeshes for the model.
     std::vector<std::pair<std::string, Shared<Mesh>>>& getSubmeshes() { return this->subMeshes; }
-    std::string getFilepath() { return this->filepath; }
+    std::string& getFilepath() { return this->filepath; }
   protected:
     bool loaded;
     std::vector<std::pair<std::string, Shared<Mesh>>> subMeshes;

@@ -237,13 +237,13 @@ namespace SciRenderer
     {
       this->currentType = EditorCameraType::Free;
       appWindow->setCursorCapture(true);
-      logs->logMessage(LogMessage("Swapped camera to free-form.", true, false, false));
+      logs->logMessage(LogMessage("Swapped camera to free-form.", true, false));
     }
     else
     {
       this->currentType = EditorCameraType::Stationary;
       appWindow->setCursorCapture(false);
-      logs->logMessage(LogMessage("Swapped camera to stationary.", true, false, false));
+      logs->logMessage(LogMessage("Swapped camera to stationary.", true, false));
     }
 
     glm::vec2 cursorPos = appWindow->getCursorPos();

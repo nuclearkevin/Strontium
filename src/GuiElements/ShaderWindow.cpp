@@ -65,7 +65,7 @@ namespace SciRenderer
         if (ImGui::Button("Reload From File", ImVec2(buttonWidth, 0)))
         {
           logs->logMessage(LogMessage(std::string("Reloaded shader: ") + this->shaderName,
-                                      true, false, true));
+                                      true, true));
           this->selectedShader->rebuild();
         }
 
@@ -74,7 +74,7 @@ namespace SciRenderer
         if (ImGui::Button("Reload From Source", ImVec2(buttonWidth, 0)))
         {
           logs->logMessage(LogMessage(std::string("Reloaded shader: ") + this->shaderName,
-                                      true, false, true));
+                                      true, true));
 
           std::string tempVertSource = vertEditor.GetText();
           std::string tempFragSource = fragEditor.GetText();

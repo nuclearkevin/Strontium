@@ -164,7 +164,7 @@ namespace SciRenderer
 			glGetShaderInfoLog(shaderID, result, 0, buffer);
 			logs->logMessage(LogMessage(std::string("Shader compiler error at: ")
 																	+ std::string(filename) + std::string("\n")
-																	+ std::string(buffer), true, false, true));
+																	+ std::string(buffer), true, true));
 			delete buffer;
 		}
 
@@ -179,7 +179,7 @@ namespace SciRenderer
 				this->fragSource = std::string(source);
 				break;
 			default:
-				logs->logMessage(LogMessage("Shader type unknown!", true, false, true));
+				logs->logMessage(LogMessage("Shader type unknown!", true, true));
 				break;
 		}
 	}
@@ -208,7 +208,7 @@ namespace SciRenderer
 			buffer = new char[result];
 			glGetShaderInfoLog(shaderID, result, 0, buffer);
 			logs->logMessage(LogMessage(std::string("Shader compiler error: ")
-																	+ std::string(buffer), true, false, true));
+																	+ std::string(buffer), true, true));
 			delete buffer;
 		}
 
@@ -223,7 +223,7 @@ namespace SciRenderer
 				this->fragSource = std::string(source);
 				break;
 			default:
-				logs->logMessage(LogMessage("Shader type unknown!", true, false, true));
+				logs->logMessage(LogMessage("Shader type unknown!", true, true));
 				break;
 		}
 	}
@@ -291,7 +291,7 @@ namespace SciRenderer
 		if (this->vertPath == "" || this->fragPath == "")
 		{
 			logs->logMessage(LogMessage("Could not save shader file, missing one or "
-																	"more path(s)!", true, false, true));
+																	"more path(s)!", true, true));
 			return;
 		}
 		bool successful = true;
@@ -307,7 +307,7 @@ namespace SciRenderer
 		else
 		{
 			logs->logMessage(LogMessage("Failed to save the vertex source.",
-																	true, false, true));
+																	true, true));
 			successful = false;
 		}
 
@@ -322,13 +322,13 @@ namespace SciRenderer
 		else
 		{
 			logs->logMessage(LogMessage("Failed to save the fragment source.",
-																	true, false, true));
+																	true, true));
 			successful = false;
 		}
 
 		if (successful)
 			logs->logMessage(LogMessage("Successfully saved the shader.",
-																	true, false, true));
+																	true, true));
 	}
 
 	// Saves the vertex and fragment shader source code to a new text file.
@@ -341,7 +341,7 @@ namespace SciRenderer
 		if (vertPath == "" || fragPath == "")
 		{
 			logs->logMessage(LogMessage("Could not save shader file, missing one or "
-																	"more paths!", true, false, true));
+																	"more paths!", true, true));
 			return;
 		}
 		bool successful = true;
@@ -357,7 +357,7 @@ namespace SciRenderer
 		else
 		{
 			logs->logMessage(LogMessage("Failed to save vertex source.",
-																	true, false, true));
+																	true, true));
 			successful = false;
 		}
 
@@ -372,13 +372,13 @@ namespace SciRenderer
 		else
 		{
 			logs->logMessage(LogMessage("Failed to save fragment source.",
-																	true, false, true));
+																	true, true));
 			successful = false;
 		}
 
 		if (successful)
 			logs->logMessage(LogMessage("Successfully saved the shader files.",
-																	true, false, true));
+																	true, true));
 	}
 
 	void

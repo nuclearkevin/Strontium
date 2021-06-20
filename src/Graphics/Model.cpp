@@ -4,6 +4,7 @@
 #include "Core/AssetManager.h"
 #include "Core/ThreadPool.h"
 #include "Core/Logs.h"
+#include "Core/Events.h"
 #include "Graphics/Material.h"
 
 namespace SciRenderer
@@ -19,6 +20,8 @@ namespace SciRenderer
   Model::loadModel(const std::string &filepath)
   {
     Logger* logs = Logger::getInstance();
+    auto eventDispatcher = EventDispatcher::getInstance();
+    eventDispatcher->queueEvent(new GuiEvent(GuiEventType::StartSpinnerEvent, filepath));
 
     auto flags = aiProcess_CalcTangentSpace | aiProcess_GenNormals
                | aiProcess_JoinIdenticalVertices | aiProcess_Triangulate
@@ -31,14 +34,16 @@ namespace SciRenderer
     {
       logs->logMessage(LogMessage("Model failed to load at the path " + filepath +
                                   ", with the error: " + importer.GetErrorString()
-                                  + ".", true, false, true));
+                                  + ".", true, true));
+      eventDispatcher->queueEvent(new GuiEvent(GuiEventType::EndSpinnerEvent, ""));
       return;
     }
     else if (scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
     {
       logs->logMessage(LogMessage("Model failed to load at the path " + filepath +
                                   ", with the error: " + importer.GetErrorString()
-                                  + ".", true, false, true));
+                                  + ".", true, true));
+      eventDispatcher->queueEvent(new GuiEvent(GuiEventType::EndSpinnerEvent, ""));
       return;
     }
 
@@ -46,6 +51,8 @@ namespace SciRenderer
 
     this->processNode(scene->mRootNode, scene);
     this->loaded = true;
+    eventDispatcher->queueEvent(new GuiEvent(GuiEventType::EndSpinnerEvent, ""));
+    logs->logMessage(LogMessage("Model loaded at path " + filepath));
   }
 
   void
@@ -185,26 +192,6 @@ namespace SciRenderer
       for (GLuint j = 0; j < face.mNumIndices; j++)
         meshIndicies.push_back(face.mIndices[j]);
     }
-
-    // Load in the supported material textures. Currently only loads one of each type.
-    // TODO: Finish me!
-    // TODO: Add the option for multiple textures of each type.
-    /*
-    if (mesh->mMaterialIndex >= 0)
-    {
-      // Find the directory so textures can be loaded properly.
-      std::string directory = this->filepath.substr(0, this->filepath.find_last_of("/"));
-
-      aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
-
-      std::cout << "Albedo " << material->GetTextureCount(aiTextureType_DIFFUSE) << std::endl;
-      std::cout << "Metallic " << material->GetTextureCount(aiTextureType_SPECULAR) << std::endl;
-      std::cout << "Normal " << material->GetTextureCount(aiTextureType_NORMALS) << std::endl;
-      std::cout << "Roughness " << material->GetTextureCount(aiTextureType_SHININESS) << std::endl;
-      std::cout << "AO " << material->GetTextureCount(aiTextureType_AMBIENT_OCCLUSION) << std::endl;
-      std::cout << directory << std::endl;
-    }
-    */
 
     std::string meshName = std::string(mesh->mName.C_Str());
     this->subMeshes.push_back(std::pair

@@ -58,7 +58,6 @@ namespace SciRenderer
     // Stuff for ImGui and the GUI. TODO: Move to other windows?
     bool showPerf;
     bool showSceneGraph;
-    std::string logBuffer;
     ImVec2 editorSize;
 
     int gizmoType;

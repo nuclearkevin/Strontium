@@ -44,3 +44,12 @@ namespace SciRenderer
                               bool &isOpen, std::string &outString);
   }
 }
+
+// ImGUi objects.
+namespace ImGui
+{
+  // A loading spinner from https://github.com/ocornut/imgui/issues/1901.
+  // Many thanks to Zelimir Fedoran for creating this and allowing for its
+  // public use!
+  bool Spinner(const char* label, float radius, int thickness, const ImU32& color);
+}

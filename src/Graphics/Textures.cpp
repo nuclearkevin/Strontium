@@ -6,6 +6,7 @@
 
 // Project includes.
 #include "Core/Logs.h"
+#include "Core/Events.h"
 #include "Core/AssetManager.h"
 #include "Core/ThreadPool.h"
 #include "GuiElements/Styles.h"
@@ -98,7 +99,7 @@ namespace SciRenderer
       textureCache->attachAsset(image.name, outTex);
 
       logs->logMessage(LogMessage("Loaded texture: " + image.name + ".",
-                                  true, false, true));
+                                  true, true));
 
       stbi_image_free(image.data);
       asyncTexQueue.pop();
@@ -108,11 +109,14 @@ namespace SciRenderer
   void
   Texture2D::loadImageAsync(const std::string &filepath, const Texture2DParams &params)
   {
-    // Fetch the thread pool.
+    // Fetch the thread pool and event dispatcher.
     auto workerGroup = ThreadPool::getInstance(2);
 
     auto loaderImpl = [](const std::string &filepath, const std::string &name, const Texture2DParams &params)
     {
+      auto eventDispatcher = EventDispatcher::getInstance();
+      eventDispatcher->queueEvent(new GuiEvent(GuiEventType::StartSpinnerEvent, filepath));
+
       ImageData2D outImage;
       outImage.isHDR = (filepath.substr(filepath.find_last_of("."), 4) == ".hdr");
       outImage.params = params;
@@ -133,6 +137,8 @@ namespace SciRenderer
 
       std::lock_guard<std::mutex> imageGuard(asyncTexMutex);
       asyncTexQueue.push(outImage);
+
+      eventDispatcher->queueEvent(new GuiEvent(GuiEventType::EndSpinnerEvent, ""));
     };
     std::string name = filepath.substr(filepath.find_last_of('/') + 1);
 
@@ -157,7 +163,7 @@ namespace SciRenderer
 
         logs->logMessage(LogMessage("Generated monocolour texture: " +
                                     Styles::colourToHex(colour) + ".",
-                                    true, false, true));
+                                    true, true));
       }
       else
       {
@@ -202,7 +208,7 @@ namespace SciRenderer
 
         logs->logMessage(LogMessage("Generated monocolour texture: " +
                                     Styles::colourToHex(colour) + ".",
-                                    true, false, true));
+                                    true, true));
       }
       else
       {
@@ -254,13 +260,13 @@ namespace SciRenderer
     if (!dataU && !isHDR)
     {
       logs->logMessage(LogMessage("Failed to load image at: " + filepath + ".",
-                                  true, false, true));
+                                  true, true));
       stbi_image_free(dataU);
     }
     else if (!dataF && isHDR)
     {
       logs->logMessage(LogMessage("Failed to load HDR image at: " + filepath + ".",
-                                  true, false, true));
+                                  true, true));
       stbi_image_free(dataF);
     }
 
@@ -276,7 +282,7 @@ namespace SciRenderer
       else
       {
         logs->logMessage(LogMessage("Fetched texture at: " + name + ".",
-                                    true, false, true));
+                                    true, true));
         return textureCache->getAsset(name);
       }
     }
@@ -353,7 +359,7 @@ namespace SciRenderer
       stbi_image_free(dataU);
 
     logs->logMessage(LogMessage("Loaded texture at: " + filepath + ".",
-                                true, false, true));
+                                true, true));
 
     return outTex;
   }

@@ -3,18 +3,26 @@
 // Macro include file.
 #include "SciRenderPCH.h"
 
+// STL includes.
+#include <mutex>
+
 namespace SciRenderer
 {
   enum class EventType
   {
     KeyPressedEvent, KeyReleasedEvent, KeyTypedEvent, MouseClickEvent,
     MouseReleasedEvent, MouseScrolledEvent, WindowCloseEvent, WindowResizeEvent,
-    OpenDialogueEvent, LoadFileEvent
+    OpenDialogueEvent, LoadFileEvent, GuiEvent
   };
 
   enum class DialogueEventType
   {
     FileOpen, FileSave, FileSelect
+  };
+
+  enum class GuiEventType
+  {
+    StartSpinnerEvent, EndSpinnerEvent
   };
 
   //----------------------------------------------------------------------------
@@ -179,6 +187,22 @@ namespace SciRenderer
   };
 
   //----------------------------------------------------------------------------
+  // Gui event.
+  //----------------------------------------------------------------------------
+  class GuiEvent : public Event
+  {
+  public:
+    GuiEvent(GuiEventType type, const std::string &eventText);
+    ~GuiEvent() = default;
+
+    GuiEventType getGuiEventType() { return this->guiEventType; }
+    std::string& getText() { return this->eventText; }
+  private:
+    GuiEventType guiEventType;
+    std::string eventText;
+  };
+
+  //----------------------------------------------------------------------------
   // Singleton event reciever and dispatcher.
   // I know there are better ways to write event systems, but this is what makes
   // sense to me as of the time I needed an event system. So, here we are!
@@ -192,6 +216,7 @@ namespace SciRenderer
     // Get the instance of the event system.
     static EventDispatcher* getInstance();
 
+    static std::mutex dispatcherMutex;
     // Queue up an event into the dispatcher for handling at the end of the run
     // loop. This is a first in first out event system. Might do priority events
     // at some point.

@@ -38,6 +38,9 @@ namespace SciRenderer
     std::string currentDir;
     ImVec2 drawCursor;
 
+    bool loadingAsset;
+    std::string loadingAssetText;
+
     std::unordered_map<std::string, Texture2D*> icons;
   };
 }

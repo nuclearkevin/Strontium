@@ -47,6 +47,17 @@ namespace SciRenderer
       {
         skyboxWidth = skyboxWidth > 2048 ? 2048 : skyboxWidth;
         skyboxWidth = skyboxWidth < 512 ? 512 : skyboxWidth;
+
+        // Compute the next or previous power of 2 and set the int to that.
+        if (skyboxWidth - (int) state->skyboxWidth < 0)
+        {
+          skyboxWidth = std::pow(2, std::floor(std::log2(skyboxWidth)));
+        }
+        else if (skyboxWidth - (int) state->skyboxWidth > 0)
+        {
+          skyboxWidth = std::pow(2, std::floor(std::log2(skyboxWidth)) + 1);
+        }
+
         skyboxWidth = std::pow(2, std::floor(std::log2(skyboxWidth)));
         state->skyboxWidth = skyboxWidth;
       }
@@ -55,6 +66,17 @@ namespace SciRenderer
       {
         irradianceWidth = irradianceWidth > 512 ? 512 : irradianceWidth;
         irradianceWidth = irradianceWidth < 64 ? 64 : irradianceWidth;
+
+        // Compute the next or previous power of 2 and set the int to that.
+        if (irradianceWidth - (int) state->irradianceWidth < 0)
+        {
+          irradianceWidth = std::pow(2, std::floor(std::log2(irradianceWidth)));
+        }
+        else if (irradianceWidth - (int) state->irradianceWidth > 0)
+        {
+          irradianceWidth = std::pow(2, std::floor(std::log2(irradianceWidth)) + 1);
+        }
+
         irradianceWidth = std::pow(2, std::floor(std::log2(irradianceWidth)));
         state->irradianceWidth = irradianceWidth;
       }
@@ -63,6 +85,17 @@ namespace SciRenderer
       {
         prefilterWidth = prefilterWidth > 2048 ? 2048 : prefilterWidth;
         prefilterWidth = prefilterWidth < 512 ? 512 : prefilterWidth;
+
+        // Compute the next or previous power of 2 and set the int to that.
+        if (prefilterWidth - (int) state->prefilterWidth < 0)
+        {
+          prefilterWidth = std::pow(2, std::floor(std::log2(prefilterWidth)));
+        }
+        else if (prefilterWidth - (int) state->prefilterWidth > 0)
+        {
+          prefilterWidth = std::pow(2, std::floor(std::log2(prefilterWidth)) + 1);
+        }
+
         prefilterWidth = std::pow(2, std::floor(std::log2(prefilterWidth)));
         state->prefilterWidth = prefilterWidth;
       }
@@ -71,6 +104,17 @@ namespace SciRenderer
       {
         prefilterSamples = prefilterSamples > 2048 ? 2048 : prefilterSamples;
         prefilterSamples = prefilterSamples < 512 ? 512 : prefilterSamples;
+
+        // Compute the next or previous power of 2 and set the int to that.
+        if (prefilterSamples - (int) state->prefilterSamples < 0)
+        {
+          prefilterSamples = std::pow(2, std::floor(std::log2(prefilterSamples)));
+        }
+        else if (prefilterSamples - (int) state->prefilterSamples > 0)
+        {
+          prefilterSamples = std::pow(2, std::floor(std::log2(prefilterSamples)) + 1);
+        }
+
         prefilterSamples = std::pow(2, std::floor(std::log2(prefilterSamples)));
         state->prefilterSamples = prefilterSamples;
       }

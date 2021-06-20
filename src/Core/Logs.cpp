@@ -40,13 +40,8 @@ namespace SciRenderer
              + ":" + std::to_string(local->tm_sec) + "]"
              + " Initialized application logging.";
 
-    // Setup the queue and push the init message.
-    this->lastFrameLogs = std::queue<std::string>();
-    this->lastFrameLogs.push(message);
-
-    this->globalLogs = std::queue<std::string>();
-    this->globalLogs.push(message);
-
+    // Push the init message.
+    this->logs += message;
     std::cout << message << std::endl;
   }
 
@@ -56,85 +51,22 @@ namespace SciRenderer
   {
     std::lock_guard<std::mutex> guard(logMutex);
 
-    std::string messages = "";
-
+    std::string message = "";
     if (msg.logTime)
     {
       std::time_t current = std::time(0);
       std::tm* local = std::localtime(&current);
 
-      messages += "[" + std::to_string(local->tm_hour) + ":"
+      message += "[" + std::to_string(local->tm_hour) + ":"
                 + std::to_string(local->tm_min)
                 + ":" + std::to_string(local->tm_sec) + "] " + msg.message;
 
-      this->lastFrameLogs.push(messages);
-
-      if (msg.addToGlobal)
-      {
-        if (globalLogs.size() < 1000)
-          globalLogs.push(messages);
-        else
-        {
-          globalLogs.pop();
-          globalLogs.push(messages);
-        }
-      }
+      this->logs += "\n" + message;
     }
     else
-    {
-      messages = msg.message;
-
-      this->lastFrameLogs.push(messages);
-
-      if (msg.addToGlobal)
-      {
-        if (globalLogs.size() < 1000)
-          globalLogs.push(messages);
-        else
-        {
-          globalLogs.pop();
-          globalLogs.push(messages);
-        }
-      }
-    }
+      this->logs += "\n" + msg.message;
 
     if (msg.consoleOutput)
-      std::cout << messages << std::endl;
-  }
-
-  // Get the last frame logged messages.
-  std::string
-  Logger::getLastMessages()
-  {
-    std::lock_guard<std::mutex> guard(logMutex);
-
-    std::string messages = "";
-
-    while (!this->lastFrameLogs.empty())
-    {
-      messages += this->lastFrameLogs.front();
-      this->lastFrameLogs.pop();
-      messages += "\n";
-    }
-
-    return messages;
-  }
-
-  // Get the global logged messages.
-  std::string
-  Logger::getGlobalLogs()
-  {
-    std::lock_guard<std::mutex> guard(logMutex);
-
-    std::string messages = "";
-
-    while (!this->globalLogs.empty())
-    {
-      messages += this->globalLogs.front();
-      this->globalLogs.pop();
-      messages += "\n";
-    }
-
-    return messages;
+      std::cout << message << std::endl;
   }
 }

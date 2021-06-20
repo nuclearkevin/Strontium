@@ -100,6 +100,15 @@ namespace SciRenderer
     , fileName(fileName)
   { }
 
+  //----------------------------------------------------------------------------
+  // Gui event.
+  //----------------------------------------------------------------------------
+  GuiEvent::GuiEvent(GuiEventType type, const std::string &eventText)
+    : Event(EventType::GuiEvent, "Gui event")
+    , guiEventType(type)
+    , eventText(eventText)
+  { }
+
   // A utility downcast function which deletes the event.
   void
   Event::deleteEvent(Event* &event)
@@ -138,9 +147,12 @@ namespace SciRenderer
         case EventType::LoadFileEvent:
           delete static_cast<LoadFileEvent*>(event);
           break;
+        case EventType::GuiEvent:
+          delete static_cast<GuiEvent*>(event);
+          break;
       }
     }
-    
+
     event = nullptr;
   }
 
@@ -148,6 +160,7 @@ namespace SciRenderer
   // Singleton event reciever and dispatcher.
   //----------------------------------------------------------------------------
   EventDispatcher* EventDispatcher::appEvents = nullptr;
+  std::mutex EventDispatcher::dispatcherMutex;
 
   // Destructor deletes all remaining events.
   EventDispatcher::~EventDispatcher()
@@ -163,6 +176,8 @@ namespace SciRenderer
   EventDispatcher*
   EventDispatcher::getInstance()
   {
+    std::lock_guard<std::mutex> guard(dispatcherMutex);
+
     if (appEvents == nullptr)
     {
       appEvents = new EventDispatcher();
@@ -175,12 +190,16 @@ namespace SciRenderer
   void
   EventDispatcher::queueEvent(Event* toAdd)
   {
+    std::lock_guard<std::mutex> guard(dispatcherMutex);
+
     this->eventQueue.push(toAdd);
   }
 
   Event*
   EventDispatcher::dequeueEvent()
   {
+    std::lock_guard<std::mutex> guard(dispatcherMutex);
+
     Event* outEvent = this->eventQueue.front();
     this->eventQueue.pop();
     return outEvent;
