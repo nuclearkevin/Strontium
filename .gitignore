@@ -11,12 +11,9 @@
 *.FBX
 *.tbscene
 *.psd
+*.zip
 
 # Ignore the ignore of important model files and hdr environments.
-!bunny.obj
-!sphere.obj
-!teapot.obj
-!ground_plane.obj
 !cube.obj
 !pink_sunrise_4k.hdr
 
