@@ -20,24 +20,6 @@ namespace SciRenderer
   // The 3D renderer!
   namespace Renderer3D
   {
-    // The renderer states (for serialization and other things of that nature).
-    // TODO: Add me!
-    struct RendererState
-    {
-      // Environment map settings.
-      GLuint skyboxWidth;
-      GLuint irradianceWidth;
-      GLuint prefilterWidth;
-      GLuint prefilterSamples;
-
-      RendererState()
-        : skyboxWidth(512)
-        , irradianceWidth(128)
-        , prefilterWidth(512)
-        , prefilterSamples(1024)
-      { }
-    };
-
     // The renderer storage.
     struct RendererStorage
     {
@@ -64,16 +46,48 @@ namespace SciRenderer
       }
     };
 
+    // The renderer states (for serialization and other things of that nature).
+    struct RendererState
+    {
+      // Environment map settings.
+      GLuint skyboxWidth;
+      GLuint irradianceWidth;
+      GLuint prefilterWidth;
+      GLuint prefilterSamples;
+
+      RendererState()
+        : skyboxWidth(512)
+        , irradianceWidth(128)
+        , prefilterWidth(512)
+        , prefilterSamples(1024)
+      { }
+    };
+
+    struct RendererStats
+    {
+      GLuint drawCalls;
+      GLuint numVertices;
+      GLuint numTriangles;
+
+      RendererStats()
+        : drawCalls(0)
+        , numVertices(0)
+        , numTriangles(0)
+      { }
+    };
+
     // Init the renderer for drawing.
     void init(const GLuint width = 1600, const GLuint height = 900);
     void shutdown();
 
     RendererStorage* getStorage();
     RendererState* getState();
+    RendererStats* getStats();
 
-    //--------------------------------------------------------------------------
-    // Forward rendering setup.
-    //--------------------------------------------------------------------------
+    // Generic begin and end for the renderer.
+    void begin();
+    void end();
+
     // Draw the data given.
     void draw(VertexArray* data, Shader* program);
     void draw(Model* data, ModelMaterial &materials, const glm::mat4 &model, Shared<Camera> camera);

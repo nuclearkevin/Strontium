@@ -9,6 +9,7 @@ namespace SciRenderer
   {
     RendererStorage* storage;
     RendererState* state;
+    RendererStats* stats;
 
     // Initialize the renderer.
     void
@@ -20,6 +21,7 @@ namespace SciRenderer
 
       storage = new RendererStorage();
       state = new RendererState();
+      stats = new RendererStats();
 
       // Initialize the vewport shader passthrough.
       auto shaderCache = AssetManager<Shader>::getManager();
@@ -33,6 +35,8 @@ namespace SciRenderer
     shutdown()
     {
       delete storage;
+      delete state;
+      delete stats;
     }
 
     // Get the storage.
@@ -41,10 +45,31 @@ namespace SciRenderer
       return storage;
     }
 
-    // Get the renderer state and settings.
+    // Get the renderer state, settings and statistics.
     RendererState* getState()
     {
       return state;
+    }
+
+    RendererStats* getStats()
+    {
+      return stats;
+    }
+
+    // Generic begin and end for the renderer.
+    void
+    begin()
+    {
+      // Reset the stats each frame.
+      stats->drawCalls = 0;
+      stats->numVertices = 0;
+      stats->numTriangles = 0;
+    }
+
+    void
+    end()
+    {
+
     }
 
     // Draw the data to the screen.
@@ -89,6 +114,10 @@ namespace SciRenderer
           if (pair.second->hasVAO())
             Renderer3D::draw(pair.second->getVAO(), program);
         }
+
+        stats->drawCalls++;
+        stats->numVertices += pair.second->getData().size();
+        stats->numTriangles += pair.second->getIndices().size() / 3;
       }
     }
 

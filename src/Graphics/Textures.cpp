@@ -33,6 +33,7 @@ namespace SciRenderer
 
       Texture2D* outTex = new Texture2D(image.width, image.height, image.n, image.params);
       outTex->bind();
+      outTex->getFilepath() = image.filepath;
 
       // Generate a 2D texture. Currently supports both bytes and floating point
       // HDR images!
@@ -121,6 +122,7 @@ namespace SciRenderer
       outImage.isHDR = (filepath.substr(filepath.find_last_of("."), 4) == ".hdr");
       outImage.params = params;
       outImage.name = name;
+      outImage.filepath = filepath;
 
       // Load the image.
       stbi_set_flip_vertically_on_load(true);
@@ -229,6 +231,7 @@ namespace SciRenderer
 
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, 1, 1, 0,
                  GL_RGBA, GL_FLOAT, data);
+
     return outTex;
   }
 
@@ -361,13 +364,15 @@ namespace SciRenderer
     logs->logMessage(LogMessage("Loaded texture at: " + filepath + ".",
                                 true, true));
 
+    outTex->getFilepath() = filepath;
     return outTex;
   }
 
   Texture2D::Texture2D()
+    : filepath("")
   {
-    glGenTextures(1, &this->getID());
-    glBindTexture(GL_TEXTURE_2D, this->getID());
+    glGenTextures(1, &this->textureID);
+    glBindTexture(GL_TEXTURE_2D, this->textureID);
   }
 
   Texture2D::Texture2D(const GLuint &width, const GLuint &height, const GLuint &n,
@@ -376,9 +381,10 @@ namespace SciRenderer
     , height(height)
     , n(n)
     , params(params)
+    , filepath("")
   {
-    glGenTextures(1, &this->getID());
-    glBindTexture(GL_TEXTURE_2D, this->getID());
+    glGenTextures(1, &this->textureID);
+    glBindTexture(GL_TEXTURE_2D, this->textureID);
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S,
                     static_cast<GLint>(params.sWrap));
@@ -392,20 +398,20 @@ namespace SciRenderer
 
   Texture2D::~Texture2D()
   {
-    glDeleteTextures(1, &this->getID());
+    glDeleteTextures(1, &this->textureID);
   }
 
   void
   Texture2D::bind()
   {
-    glBindTexture(GL_TEXTURE_2D, this->getID());
+    glBindTexture(GL_TEXTURE_2D, this->textureID);
   }
 
   void
   Texture2D::bind(GLuint bindPoint)
   {
     glActiveTexture(GL_TEXTURE0 + bindPoint);
-    glBindTexture(GL_TEXTURE_2D, this->getID());
+    glBindTexture(GL_TEXTURE_2D, this->textureID);
   }
 
   void
@@ -426,8 +432,8 @@ namespace SciRenderer
   //----------------------------------------------------------------------------
   CubeMap::CubeMap()
   {
-    glGenTextures(1, &this->getID());
-    glBindTexture(GL_TEXTURE_CUBE_MAP, this->getID());
+    glGenTextures(1, &this->textureID);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, this->textureID);
   }
 
   CubeMap::CubeMap(const GLuint &width, const GLuint &height, const GLuint &n,
@@ -441,8 +447,8 @@ namespace SciRenderer
       this->n[i] = n;
     }
 
-    glGenTextures(1, &this->getID());
-    glBindTexture(GL_TEXTURE_CUBE_MAP, this->getID());
+    glGenTextures(1, &this->textureID);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, this->textureID);
 
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S,
                     static_cast<GLint>(params.sWrap));
@@ -458,20 +464,20 @@ namespace SciRenderer
 
   CubeMap::~CubeMap()
   {
-    glDeleteTextures(1, &this->getID());
+    glDeleteTextures(1, &this->textureID);
   }
 
   void
   CubeMap::bind()
   {
-    glBindTexture(GL_TEXTURE_CUBE_MAP, this->getID());
+    glBindTexture(GL_TEXTURE_CUBE_MAP, this->textureID);
   }
 
   void
   CubeMap::bind(GLuint bindPoint)
   {
     glActiveTexture(GL_TEXTURE0 + bindPoint);
-    glBindTexture(GL_TEXTURE_CUBE_MAP, this->getID());
+    glBindTexture(GL_TEXTURE_CUBE_MAP, this->textureID);
   }
 
   void

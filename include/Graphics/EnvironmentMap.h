@@ -57,7 +57,7 @@ namespace SciRenderer
     GLfloat& getRoughness() { return this->roughness; }
     Model* getCubeMesh() { return this->cube; }
     Shader* getCubeProg() { return this->cubeShader; }
-    std::string getFilepath() { return this->filepath; }
+    std::string& getFilepath() { return this->filepath; }
     bool hasEqrMap() { return this->erMap != nullptr; }
     bool hasSkybox() { return this->skybox != nullptr; }
     bool hasIrradiance() { return this->irradiance != nullptr; }

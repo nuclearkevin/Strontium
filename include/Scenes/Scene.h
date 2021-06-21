@@ -21,9 +21,12 @@ namespace SciRenderer
     ~Scene();
 
     Entity createEntity(const std::string& name = "New Entity");
+    Entity createEntity(GLuint entityID, const std::string& name = "New Entity");
     void deleteEntity(Entity entity);
 
     void onUpdate(float dt, Shared<Camera> sceneCamera);
+
+    entt::registry& getRegistry() { return this->sceneECS; }
   protected:
     entt::registry sceneECS;
 

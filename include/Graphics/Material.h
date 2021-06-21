@@ -63,6 +63,11 @@ namespace SciRenderer
     // Operator overloading makes this nice and easy.
     operator Shader*() { return this->program; }
 
+    // Get the internal storage for serialization.
+    std::vector<std::pair<std::string, GLfloat>>& getFloats() { return this->floats; }
+    std::vector<std::pair<std::string, glm::vec2>>& getVec2s() { return this->vec2s; }
+    std::vector<std::pair<std::string, glm::vec3>>& getVec3s() { return this->vec3s; }
+    std::vector<std::pair<std::string, SciRenderer::AssetHandle>>& getSampler2Ds() { return this->sampler2Ds; }
   private:
     MaterialType type;
 

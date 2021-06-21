@@ -29,7 +29,13 @@ namespace SciRenderer
     int prefilterWidth = state->prefilterWidth;
     int prefilterSamples = state->prefilterSamples;
 
+    auto stats = Renderer3D::getStats();
+
     ImGui::Begin("Renderer Settings", &isOpen);
+
+    ImGui::Text("Drawcalls: %u", stats->drawCalls);
+    ImGui::Text("Total vertices: %u", stats->numVertices);
+    ImGui::Text("Total triangles: %u", stats->numTriangles);
 
     if (ImGui::CollapsingHeader("Environment Maps"))
     {

@@ -101,6 +101,16 @@ namespace SciRenderer
   { }
 
   //----------------------------------------------------------------------------
+  // Save file event.
+  //----------------------------------------------------------------------------
+  SaveFileEvent::SaveFileEvent(const std::string &absPath,
+                               const std::string &fileName)
+   : Event(EventType::SaveFileEvent, "Save file event")
+   , absPath(absPath)
+   , fileName(fileName)
+  { }
+
+  //----------------------------------------------------------------------------
   // Gui event.
   //----------------------------------------------------------------------------
   GuiEvent::GuiEvent(GuiEventType type, const std::string &eventText)
@@ -149,6 +159,9 @@ namespace SciRenderer
           break;
         case EventType::GuiEvent:
           delete static_cast<GuiEvent*>(event);
+          break;
+        case EventType::SaveFileEvent:
+          delete static_cast<SaveFileEvent*>(event);
           break;
       }
     }

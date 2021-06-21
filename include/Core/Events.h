@@ -12,7 +12,7 @@ namespace SciRenderer
   {
     KeyPressedEvent, KeyReleasedEvent, KeyTypedEvent, MouseClickEvent,
     MouseReleasedEvent, MouseScrolledEvent, WindowCloseEvent, WindowResizeEvent,
-    OpenDialogueEvent, LoadFileEvent, GuiEvent
+    OpenDialogueEvent, LoadFileEvent, SaveFileEvent, GuiEvent
   };
 
   enum class DialogueEventType
@@ -178,6 +178,19 @@ namespace SciRenderer
   public:
     LoadFileEvent(const std::string &absPath, const std::string &fileName);
     ~LoadFileEvent() = default;
+
+    inline std::string& getAbsPath() { return this->absPath; }
+    inline std::string& getFileName() { return this->fileName; }
+  private:
+    std::string absPath;
+    std::string fileName;
+  };
+
+  class SaveFileEvent : public Event
+  {
+  public:
+    SaveFileEvent(const std::string &absPath, const std::string &fileName);
+    ~SaveFileEvent() = default;
 
     inline std::string& getAbsPath() { return this->absPath; }
     inline std::string& getFileName() { return this->fileName; }

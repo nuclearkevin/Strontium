@@ -31,7 +31,11 @@ namespace SciRenderer
       std::string path = this->fileHandler.selected_path;
 
       EventDispatcher* dispatcher = EventDispatcher::getInstance();
-      dispatcher->queueEvent(new LoadFileEvent(path, name));
+
+      if (this->mode == imgui_addons::ImGuiFileBrowser::DialogMode::OPEN)
+        dispatcher->queueEvent(new LoadFileEvent(path, name));
+      else if (this->mode == imgui_addons::ImGuiFileBrowser::DialogMode::SAVE)
+        dispatcher->queueEvent(new SaveFileEvent(path, name));
 
       this->isOpen = false;
     }

@@ -25,6 +25,8 @@ namespace SciRenderer
     this->icons.insert({ "backfolder", tex });
     tex = Texture2D::loadTexture2D("./assets/.icons/file.png", Texture2DParams(), false);
     this->icons.insert({ "file", tex });
+    tex = Texture2D::loadTexture2D("./assets/.icons/srfile.png", Texture2DParams(), false);
+    this->icons.insert({ "srfile", tex });
   }
 
   AssetBrowserWindow::~AssetBrowserWindow()
@@ -307,6 +309,7 @@ namespace SciRenderer
       {
         // Extract the file name.
         std::string filename = entry.path().filename().string();
+        std::string fileExt = entry.path().extension().string();
 
         // Ignore hidden files.
         if (filename[0] == '.')
@@ -321,8 +324,16 @@ namespace SciRenderer
         if (ImGui::BeginDragDropSource())
         {
           // The items to be dragged along with the cursor.
-          ImGui::Image((ImTextureID) (unsigned long) this->icons["file"]->getID(),
-                       ImVec2(64.0f, 64.0f), ImVec2(0, 1), ImVec2(1, 0));
+          if (fileExt == ".srn")
+          {
+            ImGui::Image((ImTextureID) (unsigned long) this->icons["srfile"]->getID(),
+                         ImVec2(64.0f, 64.0f), ImVec2(0, 1), ImVec2(1, 0));
+          }
+          else
+          {
+            ImGui::Image((ImTextureID) (unsigned long) this->icons["file"]->getID(),
+                         ImVec2(64.0f, 64.0f), ImVec2(0, 1), ImVec2(1, 0));
+          }
           ImGui::Text(filename.c_str());
 
           // The things I'll do to get a proper payload...
@@ -337,8 +348,17 @@ namespace SciRenderer
         }
 
         ImGui::SetCursorPos(cursorPos);
-        ImGui::Image((ImTextureID) (unsigned long) this->icons["file"]->getID(),
-                     ImVec2(64.0f, 64.0f), ImVec2(0, 1), ImVec2(1, 0));
+        // The items to be dragged along with the cursor.
+        if (fileExt == ".srn")
+        {
+          ImGui::Image((ImTextureID) (unsigned long) this->icons["srfile"]->getID(),
+                       ImVec2(64.0f, 64.0f), ImVec2(0, 1), ImVec2(1, 0));
+        }
+        else
+        {
+          ImGui::Image((ImTextureID) (unsigned long) this->icons["file"]->getID(),
+                       ImVec2(64.0f, 64.0f), ImVec2(0, 1), ImVec2(1, 0));
+        }
 
         // Align the file text so the icons are evenly spaced out.
         unsigned int numChars = (unsigned int) (2 * 64.0f / fontSize);

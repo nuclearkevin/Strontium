@@ -21,6 +21,14 @@ namespace SciRenderer
     return newEntity;
   }
 
+  Entity
+  Scene::createEntity(GLuint entityID, const std::string& name)
+  {
+    Entity newEntity = Entity(this->sceneECS.create(), this);
+    newEntity.addComponent<NameComponent>(name, "");
+    return newEntity;
+  }
+
   void
   Scene::deleteEntity(Entity entity)
   {
@@ -32,6 +40,7 @@ namespace SciRenderer
   {
     auto modelAssets = AssetManager<Model>::getManager();
 
+    Renderer3D::begin();
     auto ambient = Renderer3D::getStorage()->currentEnvironment.get();
     ambient->bind(MapType::Irradiance, 0);
     ambient->bind(MapType::Prefilter, 1);
@@ -65,5 +74,6 @@ namespace SciRenderer
 
     // Draw the environment at the end of the frame.
     Renderer3D::drawEnvironment(sceneCamera);
+    Renderer3D::end();
   }
 }

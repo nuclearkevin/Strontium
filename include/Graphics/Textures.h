@@ -98,6 +98,7 @@ namespace SciRenderer
     bool isHDR;
     Texture2DParams params;
     std::string name;
+    std::string filepath;
   };
 
   //----------------------------------------------------------------------------
@@ -144,8 +145,11 @@ namespace SciRenderer
     void unbind(GLuint bindPoint);
 
     GLuint& getID() { return this->textureID; }
+    std::string& getFilepath() { return this->filepath; }
   private:
     GLuint textureID;
+
+    std::string filepath;
   };
 
   //----------------------------------------------------------------------------
@@ -171,7 +175,10 @@ namespace SciRenderer
     void unbind(GLuint bindPoint);
 
     GLuint& getID() { return this->textureID; }
+    std::string& getFilepath() { return this->filepath; }
   private:
     GLuint textureID;
+
+    std::string filepath;
   };
 }

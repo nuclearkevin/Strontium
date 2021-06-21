@@ -133,29 +133,14 @@ namespace SciRenderer
   {
     EnvironmentMap* ambient;
 
-    // Environment map properties.
-    GLfloat roughness;
-    GLfloat gamma;
-    GLfloat ambientFactor;
-
-    bool drawingMips;
-
     AmbientComponent(const AmbientComponent&) = default;
 
     AmbientComponent()
-      : roughness(0.0f)
-      , gamma(2.2f)
-      , ambientFactor(1.0f)
-      , drawingMips(false)
     {
       ambient = Renderer3D::getStorage()->currentEnvironment.get();
     }
 
     AmbientComponent(const std::string &iblImagePath)
-      : roughness(0.0f)
-      , gamma(2.2f)
-      , ambientFactor(1.0f)
-      , drawingMips(false)
     {
       ambient = Renderer3D::getStorage()->currentEnvironment.get();
       auto state = Renderer3D::getState();
@@ -165,9 +150,6 @@ namespace SciRenderer
       ambient->precomputeIrradiance(state->irradianceWidth, state->irradianceWidth, true);
       ambient->precomputeSpecular(state->prefilterWidth, state->prefilterWidth, true);
     }
-
-    operator bool() { return ambient != nullptr; }
-    operator EnvironmentMap*() { return ambient; }
   };
 
   // TODO: Finish these.

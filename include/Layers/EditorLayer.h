@@ -39,9 +39,10 @@ namespace SciRenderer
     // Handle keyboard events.
     void onKeyPressEvent(KeyPressedEvent &keyEvent);
 
-    // Handle entity manipulation using Gizmos.
+    // Gizmo UI.
+    int gizmoType;
+    ImVec2 gizmoSelPos;
     void manipulateEntity(Entity entity);
-
     void drawGizmoSelector(ImVec2 windowPos, ImVec2 windowSize);
 
     // The current scene.
@@ -51,6 +52,10 @@ namespace SciRenderer
     // Editor camera.
     Shared<Camera> editorCam;
 
+    // Managing the current scene.
+    FileLoadTargets loadTarget;
+    FileSaveTargets saveTarget;
+
     // The various external windows. Kinda janky.
     // TODO: use an unordered map?
     std::vector<GuiWindow*> windows;
@@ -59,8 +64,5 @@ namespace SciRenderer
     bool showPerf;
     bool showSceneGraph;
     ImVec2 editorSize;
-
-    int gizmoType;
-    ImVec2 gizmoSelPos;
   };
 }

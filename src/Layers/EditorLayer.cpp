@@ -5,6 +5,7 @@
 #include "Core/Logs.h"
 #include "GuiElements/Styles.h"
 #include "GuiElements/Panels.h"
+#include "Serialization/YamlSerialization.h"
 
 // Some math for decomposing matrix transformations.
 #include "glm/gtx/matrix_decompose.hpp"
@@ -16,6 +17,8 @@ namespace SciRenderer
 {
   EditorLayer::EditorLayer()
     : Layer("Editor Layer")
+    , loadTarget(FileLoadTargets::TargetNone)
+    , saveTarget(FileSaveTargets::TargetNone)
     , showPerf(true)
     , editorSize(ImVec2(0, 0))
     , gizmoType(-1)
@@ -97,6 +100,36 @@ namespace SciRenderer
         this->onKeyPressEvent(keyEvent);
         break;
       }
+
+      case EventType::LoadFileEvent:
+      {
+        auto loadEvent = *(static_cast<LoadFileEvent*>(&event));
+
+        if (this->loadTarget == FileLoadTargets::TargetScene)
+        {
+          Shared<Scene> tempScene = createShared<Scene>();
+          if (YAMLSerialization::deserializeScene(tempScene, loadEvent.getAbsPath()))
+            this->currentScene = tempScene;
+        }
+
+        this->loadTarget = FileLoadTargets::TargetNone;
+        break;
+      }
+
+      case EventType::SaveFileEvent:
+      {
+        auto saveEvent = *(static_cast<SaveFileEvent*>(&event));
+
+        if (this->saveTarget == FileSaveTargets::TargetScene)
+        {
+          std::string name = saveEvent.getFileName().substr(0, saveEvent.getFileName().find_last_of('.'));
+          YAMLSerialization::serializeScene(this->currentScene, saveEvent.getAbsPath(), name);
+        }
+
+        this->saveTarget = FileSaveTargets::TargetNone;
+        break;
+      }
+
       default:
       {
         break;
@@ -194,17 +227,23 @@ namespace SciRenderer
   	{
     	if (ImGui::BeginMenu("File"))
     	{
-       	if (ImGui::MenuItem("New Scene"))
+       	if (ImGui::MenuItem("New", "Ctrl+N"))
        	{
 
        	}
-        if (ImGui::MenuItem("Load Scene"))
+        if (ImGui::MenuItem("Open...", "Ctrl+O"))
        	{
-
+          EventDispatcher* dispatcher = EventDispatcher::getInstance();
+          dispatcher->queueEvent(new OpenDialogueEvent(DialogueEventType::FileOpen,
+                                                       ".srn"));
+          this->loadTarget = FileLoadTargets::TargetScene;
        	}
-        if (ImGui::MenuItem("Save Scene"))
+        if (ImGui::MenuItem("Save As", "Ctrl+Shift+S"))
        	{
-
+          EventDispatcher* dispatcher = EventDispatcher::getInstance();
+          dispatcher->queueEvent(new OpenDialogueEvent(DialogueEventType::FileSave,
+                                                       ".srn"));
+          this->saveTarget = FileSaveTargets::TargetScene;
        	}
         if (ImGui::MenuItem("Exit"))
         {
@@ -388,6 +427,14 @@ namespace SciRenderer
     if (filetype == ".jpg" || filetype == ".tga" || filetype == ".png")
     {
       Texture2D::loadImageAsync(filepath);
+    }
+
+    // Load a SciRender scene file.
+    if (filetype == ".srn")
+    {
+      Shared<Scene> tempScene = createShared<Scene>();
+      if (YAMLSerialization::deserializeScene(tempScene, filepath))
+        this->currentScene = tempScene;
     }
   }
 

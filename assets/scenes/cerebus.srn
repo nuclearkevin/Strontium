@@ -1,0 +1,56 @@
+Scene: cerebus
+Entities:
+  - EntityID: 1
+    NameComponent:
+      Name: Cerberus_LP
+      Description: ""
+    TransformComponent:
+      Translation: [-1.3236661, 0.732165813, 0]
+      Rotation: [3.14157701, 1.44263923, -1.55075908]
+      Scale: [0.0500001982, 0.0500001013, 0.0500002503]
+    RenderableComponent:
+      ModelPath: ./assets/models/Cerberus_by_Andrew_Maximov/Cerberus_LP.FBX
+      ModelName: Cerberus_LP.FBX
+      Material:
+        - MaterialType: pbr_shader
+          AssociatedSubmesh: Cerberus00_Fixed
+          Floats:
+            - UniformName: uMetallic
+              UniformValue: 1
+            - UniformName: uRoughness
+              UniformValue: 1
+            - UniformName: uAO
+              UniformValue: 1
+          Vec2s:
+            []
+          Vec3s:
+            - UniformName: uAlbedo
+              UniformValue: [1, 1, 1]
+          Sampler2Ds:
+            - SamplerName: albedoMap
+              SamplerHandle: "Monocolour texture: #ffffffff"
+              ImagePath: ""
+            - SamplerName: metallicMap
+              SamplerHandle: "Monocolour texture: #ffffffff"
+              ImagePath: ""
+            - SamplerName: roughnessMap
+              SamplerHandle: "Monocolour texture: #ffffffff"
+              ImagePath: ""
+            - SamplerName: normalMap
+              SamplerHandle: "Monocolour texture: #7f7fffff"
+              ImagePath: ""
+            - SamplerName: aOcclusionMap
+              SamplerHandle: "Monocolour texture: #ffffffff"
+              ImagePath: ""
+  - EntityID: 0
+    NameComponent:
+      Name: Ambient Light
+      Description: ""
+    AmbientComponent:
+      IBLPath: ./assets/textures/hdr_environments/pink_sunrise_4k.hdr
+      EnviRes: 512
+      IrraRes: 128
+      FiltRes: 512
+      FiltSam: 1024
+      IBLGamma: 2.20000005
+      IBLRough: 0
