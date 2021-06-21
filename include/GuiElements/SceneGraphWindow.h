@@ -22,7 +22,7 @@ namespace SciRenderer
     void onUpdate(float dt, Shared<Scene> activeScene);
     void onEvent(Event &event);
 
-    Entity getSelectedEntity() { return this->selectedEntity; }
+    Entity& getSelectedEntity() { return this->selectedEntity; }
     void setSelectedEntity(Entity newEntity) { this->selectedEntity = newEntity; }
 
   private:

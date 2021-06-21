@@ -92,7 +92,7 @@ namespace SciRenderer
     {
       for (auto& pair : data->getSubmeshes())
       {
-        Material* material = materials.getMaterial(pair.second);
+        Material* material = materials.getMaterial(pair.second->getName());
         Shader* program = material->getShader();
 
         material->configure();

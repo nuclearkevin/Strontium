@@ -42,6 +42,11 @@ namespace SciRenderer
     this->modelAssets.reset(AssetManager<Model>::getManager());
     this->texture2DAssets.reset(AssetManager<Texture2D>::getManager());
 
+    // Load the shader into a cache and set the appropriate uniforms.
+    Shader* program = new Shader ("./assets/shaders/mesh.vs",
+                                  "./assets/shaders/pbr/pbrTex.fs");
+    this->shaderCache->attachAsset("pbr_shader", program);
+
     Texture2D* defaultTex = Texture2D::createMonoColour(glm::vec4(1.0f, 0.0f, 1.0f, 1.0f), Texture2DParams(), false);
     this->texture2DAssets->setDefaultAsset(defaultTex);
 

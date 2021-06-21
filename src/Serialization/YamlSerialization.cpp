@@ -121,7 +121,7 @@ namespace SciRenderer
     	return out;
     }
 
-    void serializeMaterial(YAML::Emitter &out, std::pair<Shared<Mesh>, Material> &pair)
+    void serializeMaterial(YAML::Emitter &out, std::pair<std::string, Material> &pair)
     {
       auto textureCache = AssetManager<Texture2D>::getManager();
 
@@ -136,7 +136,7 @@ namespace SciRenderer
         out << YAML::Key << "MaterialType" << YAML::Value << "unknown_shader";
 
       // Save the submesh which this acts on.
-      out << YAML::Key << "AssociatedSubmesh" << YAML::Value << pair.first->getName();
+      out << YAML::Key << "AssociatedSubmesh" << YAML::Value << pair.first;
 
       out << YAML::Key << "Floats";
       out << YAML::BeginSeq;
@@ -310,6 +310,75 @@ namespace SciRenderer
 
     }
 
+    void deserializeMaterial(YAML::Node &mat, ModelMaterial &modelMaterial)
+    {
+      auto matType = mat["MaterialType"];
+      auto parsedSubmeshName = mat["AssociatedSubmesh"];
+
+      std::string shaderName, submeshName;
+      if (matType && parsedSubmeshName)
+      {
+        shaderName = matType.as<std::string>();
+        submeshName = parsedSubmeshName.as<std::string>();
+        if (shaderName == "pbr_shader")
+          modelMaterial.attachMesh(submeshName, MaterialType::PBR);
+        else if (shaderName == "specular_shader")
+          modelMaterial.attachMesh(submeshName, MaterialType::Specular);
+        else
+          modelMaterial.attachMesh(submeshName, MaterialType::Unknown);
+
+        auto meshMaterial = modelMaterial.getMaterial(submeshName);
+
+        auto floats = mat["Floats"];
+        if (floats)
+        {
+          for (auto uFloat : floats)
+          {
+            auto uName = uFloat["UniformName"];
+            if (uName)
+              meshMaterial->getFloat(uName.as<std::string>()) = uFloat["UniformValue"].as<GLfloat>();
+          }
+        }
+
+        auto vec2s = mat["Vec2s"];
+        if (vec2s)
+        {
+          for (auto uVec2 : vec2s)
+          {
+            auto uName = uVec2["UniformName"];
+            if (uName)
+              meshMaterial->getVec2(uName.as<std::string>()) = uVec2["UniformValue"].as<glm::vec2>();
+          }
+        }
+
+        auto vec3s = mat["Vec3s"];
+        if (vec3s)
+        {
+          for (auto uVec3 : vec3s)
+          {
+            auto uName = uVec3["UniformName"];
+            if (uName)
+              meshMaterial->getVec3(uName.as<std::string>()) = uVec3["UniformValue"].as<glm::vec3>();
+          }
+        }
+
+        auto sampler2Ds = mat["Sampler2Ds"];
+        if (sampler2Ds)
+        {
+          for (auto uSampler2D : sampler2Ds)
+          {
+            auto uName = uSampler2D["SamplerName"];
+            if (uName)
+            {
+              Texture2D::loadImageAsync(uSampler2D["ImagePath"].as<std::string>());
+              meshMaterial->attachSampler2D(uSampler2D["SamplerName"].as<std::string>(),
+                                            uSampler2D["SamplerHandle"].as<std::string>());
+            }
+          }
+        }
+      }
+    }
+
     bool deserializeScene(Shared<Scene> scene, const std::string &filepath)
     {
       YAML::Node data = YAML::LoadFile(filepath);
@@ -359,9 +428,13 @@ namespace SciRenderer
           if (modelPath != "None")
           {
             Model::asyncLoadModel(modelPath, modelName);
-            newEntity.addComponent<RenderableComponent>(modelName);
+            auto& modelMaterial = newEntity.addComponent<RenderableComponent>(modelName).materials;
 
             // TODO: Deserialize the material.
+            auto materials = renderableComponent["Material"];
+            if (materials)
+              for (auto mat : materials)
+                deserializeMaterial(mat, modelMaterial);
           }
         }
 

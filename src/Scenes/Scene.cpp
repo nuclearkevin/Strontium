@@ -53,10 +53,9 @@ namespace SciRenderer
       // Draw all the renderables with transforms.
       auto [transform, renderable] = drawables.get<TransformComponent, RenderableComponent>(entity);
 
+      // Draw the mesh with the associated transform.
       if (renderable)
       {
-        // Quick sanity check to make sure the number of materials is the same as
-        // the number of submeshes. If not, clear the materials and regenerate them.
         auto& materials = renderable.materials.getStorage();
         auto& submeshes = modelAssets->getAsset(renderable.meshName)->getSubmeshes();
 
@@ -64,10 +63,9 @@ namespace SciRenderer
         {
           materials.clear();
           for (auto& pair : submeshes)
-            renderable.materials.attachMesh(pair.second);
+            renderable.materials.attachMesh(pair.second->getName());
         }
 
-        // Draw the mesh with the associated transform.
         Renderer3D::draw(renderable, renderable, transform, sceneCamera);
       }
     }

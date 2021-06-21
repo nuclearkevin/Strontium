@@ -89,13 +89,14 @@ namespace SciRenderer
     ModelMaterial() = default;
     ~ModelMaterial() = default;
 
-    void attachMesh(Shared<Mesh> mesh, MaterialType type = MaterialType::PBR);
+    void attachMesh(const std::string &meshName, MaterialType type = MaterialType::PBR);
     void attachModel(Model* model, MaterialType type = MaterialType::PBR);
 
-    Material* getMaterial(Shared<Mesh> mesh);
+    Material* getMaterial(const std::string &meshName);
 
-    std::vector<std::pair<Shared<Mesh>, Material>>& getStorage() { return this->materials; };
+    // Get the storage.
+    std::vector<std::pair<std::string, Material>>& getStorage() { return this->materials; };
   private:
-    std::vector<std::pair<Shared<Mesh>, Material>> materials;
+    std::vector<std::pair<std::string, Material>> materials;
   };
 }

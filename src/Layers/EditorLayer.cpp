@@ -34,9 +34,6 @@ namespace SciRenderer
   void
   EditorLayer::onAttach()
   {
-    // Fetch the asset caches and managers.
-    auto shaderCache = AssetManager<Shader>::getManager();
-
     Styles::setDefaultTheme();
 
     // Fetch the width and height of the window and create a floating point
@@ -49,15 +46,8 @@ namespace SciRenderer
     this->drawBuffer->attachTexture2D(cSpec);
   	this->drawBuffer->attachRenderBuffer();
 
-    // Load the shader into a cache and set the appropriate uniforms.
-    Shader* program = new Shader ("./assets/shaders/mesh.vs",
-                                  "./assets/shaders/pbr/pbrTex.fs");
-    shaderCache->attachAsset("pbr_shader", program);
-
     // Setup stuff for the scene.
     this->currentScene = createShared<Scene>();
-    auto ambient = this->currentScene->createEntity("Ambient Light");
-    ambient.addComponent<AmbientComponent>("./assets/textures/hdr_environments/pink_sunrise_4k.hdr");
 
     // Finally, the editor camera.
     this->editorCam = createShared<Camera>(1920 / 2, 1080 / 2, glm::vec3 { 0.0f, 1.0f, 4.0f },
@@ -432,6 +422,9 @@ namespace SciRenderer
     // Load a SciRender scene file.
     if (filetype == ".srn")
     {
+      auto& selectedEntity = static_cast<SceneGraphWindow*>(this->windows[0])->getSelectedEntity();
+      selectedEntity = Entity();
+      
       Shared<Scene> tempScene = createShared<Scene>();
       if (YAMLSerialization::deserializeScene(tempScene, filepath))
         this->currentScene = tempScene;

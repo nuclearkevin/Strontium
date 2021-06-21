@@ -132,16 +132,49 @@ namespace SciRenderer
     // Right-click on blank space to create a new entity.
 		if (ImGui::BeginPopupContextWindow(0, 1, false))
 		{
-			if (ImGui::MenuItem("Create New Empty Entity"))
-				activeScene->createEntity();
-
       // Create a debug bunny entity.
-      if (ImGui::MenuItem("Create New Model"))
+      if (ImGui::MenuItem("New Model"))
       {
 				auto model = activeScene->createEntity("New Model");
         model.addComponent<TransformComponent>();
         model.addComponent<RenderableComponent>();
       }
+
+      if (ImGui::BeginMenu("New Light"))
+      {
+        if (ImGui::MenuItem("Directional Light"))
+        {
+          auto light = activeScene->createEntity("New Directional Light");
+          light.addComponent<TransformComponent>();
+          light.addComponent<DirectionalLightComponent>();
+        }
+
+        if (ImGui::MenuItem("Point Light"))
+        {
+          auto light = activeScene->createEntity("New Point Light");
+          light.addComponent<TransformComponent>();
+          light.addComponent<PointLightComponent>();
+        }
+
+        if (ImGui::MenuItem("Spot Light"))
+        {
+          auto light = activeScene->createEntity("New Spot Light");
+          light.addComponent<TransformComponent>();
+          light.addComponent<SpotLightComponent>();
+        }
+
+        if (ImGui::MenuItem("Ambient Light"))
+        {
+          auto light = activeScene->createEntity("New Ambient Light");
+          light.addComponent<TransformComponent>();
+          light.addComponent<AmbientComponent>();
+        }
+
+        ImGui::EndMenu();
+      }
+
+      if (ImGui::MenuItem("New Empty Entity"))
+				activeScene->createEntity();
 
 			ImGui::EndPopup();
 		}
@@ -425,7 +458,7 @@ namespace SciRenderer
         ImGui::PushID("PointLight");
         ImGui::Checkbox("Cast Shadows", &component.castShadows);
         ImGui::ColorEdit3("Colour", &component.colour.r);
-        Styles::drawVec2Controls("Attenuation", glm::vec2(0.0f), component.attenuation);
+        Styles::drawFloatControl("Radius", 0.0f, component.radius, 0.0f, 0.1f, 0.0f, 100.0f);
         Styles::drawFloatControl("Intensity", 0.0f, component.intensity,
                                  0.0f, 0.1f, 0.0f, 1.0f);
         ImGui::PopID();
@@ -437,7 +470,7 @@ namespace SciRenderer
         ImGui::PushID("SpotLight");
         ImGui::Checkbox("Cast Shadows", &component.castShadows);
         ImGui::ColorEdit3("Colour", &component.colour.r);
-        Styles::drawVec2Controls("Attenuation", glm::vec2(0.0f), component.attenuation);
+        Styles::drawFloatControl("Radius", 0.0f, component.radius, 0.0f, 0.1f, 0.0f, 100.0f);
         Styles::drawFloatControl("Intensity", 0.0f, component.intensity,
                                  0.0f, 0.1f, 0.0f, 1.0f);
         GLfloat innerAngle = glm::degrees(std::acos(component.innerCutoff));

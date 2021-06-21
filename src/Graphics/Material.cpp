@@ -145,16 +145,16 @@ namespace SciRenderer
 
   // Attach a mesh-material pair.
   void
-  ModelMaterial::attachMesh(Shared<Mesh> mesh, MaterialType type)
+  ModelMaterial::attachMesh(const std::string &meshName, MaterialType type)
   {
-    this->materials.push_back(std::make_pair(mesh, Material(type)));
+    this->materials.push_back(std::make_pair(meshName, Material(type)));
   }
 
   // Get a material given the mesh.
   Material*
-  ModelMaterial::getMaterial(Shared<Mesh> mesh)
+  ModelMaterial::getMaterial(const std::string &meshName)
   {
-    auto loc = Utilities::pairGet<Shared<Mesh>, Material>(this->materials, mesh);
+    auto loc = Utilities::pairGet<std::string, Material>(this->materials, meshName);
 
     if (loc != this->materials.end())
       return &loc->second;

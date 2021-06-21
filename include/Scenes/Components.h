@@ -106,7 +106,7 @@ namespace SciRenderer
       {
         for (auto& pair : model->getSubmeshes())
         {
-          materials.attachMesh(pair.second);
+          materials.attachMesh(pair.second->getName());
         }
       }
     }
@@ -179,7 +179,7 @@ namespace SciRenderer
     glm::vec3 colour;
 
     GLfloat intensity;
-    glm::vec2 attenuation;
+    GLfloat radius;
 
     bool castShadows;
 
@@ -189,7 +189,7 @@ namespace SciRenderer
       : position(glm::vec3(0.0f))
       , colour(glm::vec3(1.0f))
       , intensity(0.0f)
-      , attenuation(glm::vec2(0.0f))
+      , radius(0.0f)
       , castShadows(false)
     { }
   };
@@ -203,7 +203,7 @@ namespace SciRenderer
     GLfloat intensity;
     GLfloat innerCutoff;
     GLfloat outerCutoff;
-    glm::vec2 attenuation;
+    GLfloat radius;
 
     bool castShadows;
 
@@ -216,7 +216,7 @@ namespace SciRenderer
       , intensity(0.0f)
       , innerCutoff(std::cos(glm::radians(45.0f)))
       , outerCutoff(std::cos(glm::radians(90.0f)))
-      , attenuation(glm::vec2(0.0f))
+      , radius(0.0f)
       , castShadows(false)
     { }
   };

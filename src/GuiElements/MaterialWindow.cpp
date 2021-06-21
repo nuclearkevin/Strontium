@@ -46,7 +46,7 @@ namespace SciRenderer
               selectedMeshName = pair.first;
               submesh = pair.second;
 
-              auto material = rComponent.materials.getMaterial(pair.second);
+              auto material = rComponent.materials.getMaterial(pair.second->getName());
               auto& uAlbedo = material->getVec3("uAlbedo");
               auto& uMetallic = material->getFloat("uMetallic");
               auto& uRoughness = material->getFloat("uRoughness");
@@ -174,7 +174,7 @@ namespace SciRenderer
     auto textureCache = AssetManager<Texture2D>::getManager();
 
     Material* material = this->selectedEntity.getComponent<RenderableComponent>()
-                                             .materials.getMaterial(submesh);
+                                             .materials.getMaterial(submesh->getName());
 
     ImGui::Begin("Select Texture", &isOpen);
     if (ImGui::Button("Load New Texture"))
