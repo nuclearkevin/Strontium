@@ -1,25 +1,25 @@
 #version 440
 /*
- * Lighting fragment shader for a deferred PBR pipeline. Computes the ambient
- * component.
- */
+* Lighting fragment shader for a deferred PBR pipeline. Computes the directional
+* component.
+*/
 
 #define PI 3.141592654
 #define MAX_MIP 4.0
 
 struct Camera
 {
-  vec3 position;
-  vec3 viewDir;
+ vec3 position;
+ vec3 viewDir;
 };
 
 // Camera uniform.
 uniform Camera camera;
 
-// Uniforms for ambient lighting.
-uniform samplerCube irradianceMap;
-uniform samplerCube reflectanceMap;
-uniform sampler2D brdfLookUp;
+// Directional light uniforms.
+uniform vec3 lDirection;
+uniform vec3 lColour;
+uniform float lIntensity;
 
 // Uniforms for the geometry buffer.
 uniform vec2 screenSize;
@@ -54,22 +54,20 @@ void main()
   vec3 F0 = mix(vec3(0.04), albedo, metallic);
 
   vec3 view = normalize(position - camera.position);
-  vec3 reflection = reflect(view, normal);
+  vec3 light = normalize(lDirection);
+  vec3 halfWay = normalize(view + light);
 
-  float nDotV = max(dot(normal, -view), 0.0);
-  vec3 ks = SFresnelR(nDotV, F0, roughness);
-  vec3 kd = (vec3(1.0) - ks) * (1.0 - roughness);
+  float NDF = TRDistribution(normal, halfWay, roughness);
+  float G = SSBGeometry(normal, view, light, roughness);
+  vec3 F = SFresnel(max(dot(halfWay, view), 0.0), F0);
 
-	vec3 radiosity = vec3(0.0);
-	vec3 ambientDiff = kd * texture(irradianceMap, normal).rgb * albedo;
-  vec3 ambientSpec = textureLod(reflectanceMap, reflection,
-                                roughness * MAX_MIP).rgb;
-  vec2 brdfInt = texture(brdfLookUp, vec2(nDotV, roughness)).rg;
-  ambientSpec = ambientSpec * (brdfInt.r * ks + brdfInt.g);
+  vec3 kD = (vec3(1.0) - F) * (1.0 - metallic);
 
-	vec3 colour = (radiosity + (ambientDiff + ambientSpec) * ao);
+  vec3 num = NDF * G * F;
+  float den = 4.0 * max(dot(normal, view), 0.0) * max(dot(normal, light), 0.0);
+  vec3 spec = num / max(den, 0.001);
 
-  fragColour = vec4(colour, 1.0);
+  fragColour = vec4((kD * albedo / PI + spec) * lColour * lIntensity * max(dot(normal, light), 0.0), 1.0);
 }
 
 // Trowbridge-Reitz distribution function.
@@ -113,7 +111,7 @@ float SSBGeometry(vec3 N, vec3 L, vec3 V, float roughness)
 // Schlick approximation to the Fresnel factor.
 vec3 SFresnel(float cosTheta, vec3 F0)
 {
-	return F0 + (1.0 - F0) * pow(max(1.0 - cosTheta, 0.0), 5.0);
+  return F0 + (1.0 - F0) * pow(max(1.0 - cosTheta, 0.0), 5.0);
 }
 
 vec3 SFresnelR(float cosTheta, vec3 F0, float roughness)

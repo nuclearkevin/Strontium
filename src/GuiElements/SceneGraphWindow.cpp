@@ -145,21 +145,18 @@ namespace SciRenderer
         if (ImGui::MenuItem("Directional Light"))
         {
           auto light = activeScene->createEntity("New Directional Light");
-          light.addComponent<TransformComponent>();
           light.addComponent<DirectionalLightComponent>();
         }
 
         if (ImGui::MenuItem("Point Light"))
         {
           auto light = activeScene->createEntity("New Point Light");
-          light.addComponent<TransformComponent>();
           light.addComponent<PointLightComponent>();
         }
 
         if (ImGui::MenuItem("Spot Light"))
         {
           auto light = activeScene->createEntity("New Spot Light");
-          light.addComponent<TransformComponent>();
           light.addComponent<SpotLightComponent>();
         }
 
@@ -447,7 +444,9 @@ namespace SciRenderer
         ImGui::Checkbox("Cast Shadows", &component.light.castShadows);
         ImGui::ColorEdit3("Colour", &component.light.colour.r);
         Styles::drawFloatControl("Intensity", 0.0f, component.light.intensity,
-                                 0.0f, 0.1f, 0.0f, 10.0f);
+                                 0.0f, 0.1f, 0.0f, 100.0f);
+        Styles::drawVec3Controls("Direction", glm::vec3(0.0f), component.light.direction,
+                                 0.0f, 0.1f, -1.0f, 1.0f);
         ImGui::PopID();
       });
 

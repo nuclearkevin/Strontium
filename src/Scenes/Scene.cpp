@@ -58,11 +58,11 @@ namespace SciRenderer
     }
 
     // Group together the lights and submit them to the renderer.
-    auto dirLight = this->sceneECS.group<DirectionalLightComponent>(entt::get<TransformComponent>);
+    auto dirLight = this->sceneECS.view<DirectionalLightComponent>();
     for (auto entity : dirLight)
     {
-      auto [directional, transform] = dirLight.get<DirectionalLightComponent, TransformComponent>(entity);
-      Renderer3D::submit(directional, transform);
+      auto directional = dirLight.get<DirectionalLightComponent>(entity);
+      Renderer3D::submit(directional);
     }
     auto pointLight = this->sceneECS.group<PointLightComponent>(entt::get<TransformComponent>);
     for (auto entity : pointLight)

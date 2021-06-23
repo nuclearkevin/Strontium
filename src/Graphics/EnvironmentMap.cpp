@@ -22,7 +22,7 @@ namespace SciRenderer
     auto modelManager = AssetManager<Model>::getManager();
     auto shaderCache = AssetManager<Shader>::getManager();
 
-    this->cubeShader = new Shader("./assets/shaders/pbr/pbrSkybox.vs", "./assets/shaders/pbr/pbrSkybox.fs");
+    this->cubeShader = new Shader("./assets/shaders/forward/pbr/pbrSkybox.vs", "./assets/shaders/forward/pbr/pbrSkybox.fs");
     shaderCache->attachAsset("skybox_shader", this->cubeShader);
 
     this->cube = new Model();

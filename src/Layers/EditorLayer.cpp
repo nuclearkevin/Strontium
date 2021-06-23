@@ -138,15 +138,20 @@ namespace SciRenderer
     static_cast<MaterialWindow*>(this->windows[4])->setSelectedEntity(selectedEntity);
 
     // Update the size of the framebuffer to fit the editor window.
-    if (this->editorSize.x >= 1.0f && this->editorSize.y >= 1.0f)
-      this->editorCam->updateProj(90.0f, editorSize.x / editorSize.y,
-                                  this->editorCam->getNear(),
-                                  this->editorCam->getFar());
+    glm::vec2 size = this->drawBuffer->getSize();
+    if (this->editorSize.x != size.x || this->editorSize.y != size.y)
+    {
+      if (this->editorSize.x >= 1.0f && this->editorSize.y >= 1.0f)
+        this->editorCam->updateProj(90.0f, editorSize.x / editorSize.y,
+                                    this->editorCam->getNear(),
+                                    this->editorCam->getFar());
+      this->drawBuffer->resize(this->editorSize.x, this->editorSize.y);
+    }
 
     // Update the scene.
     Renderer3D::begin(this->editorSize.x, this->editorSize.y, this->editorCam, false);
     this->currentScene->onUpdate(dt, this->editorCam);
-    Renderer3D::end();
+    Renderer3D::end(this->drawBuffer);
 
     // Update the editor camera.
     this->editorCam->onUpdate(dt);
@@ -326,14 +331,12 @@ namespace SciRenderer
       // the editor framebuffer, after post processing of course.
       ImGui::BeginChild("EditorRender");
       {
-        auto storage = Renderer3D::getStorage();
-
         this->editorSize = ImGui::GetWindowSize();
         ImVec2 cursorPos = ImGui::GetCursorPos();
         ImGui::Selectable("##editorselectable", false, ImGuiSelectableFlags_Disabled, this->editorSize);
         this->DNDTarget();
         ImGui::SetCursorPos(cursorPos);
-        ImGui::Image((ImTextureID) (unsigned long) storage->lightingPass.getAttachID(FBOTargetParam::Colour0),
+        ImGui::Image((ImTextureID) (unsigned long) this->drawBuffer->getAttachID(FBOTargetParam::Colour0),
                      this->editorSize, ImVec2(0, 1), ImVec2(1, 0));
         this->manipulateEntity(static_cast<SceneGraphWindow*>(this->windows[0])->getSelectedEntity());
         this->drawGizmoSelector(windowPos, contentSize);
@@ -519,10 +522,7 @@ namespace SciRenderer
 
         transform.translation = translation;
         transform.rotation = glm::eulerAngles(rotation);
-
-        // Needed to fix some numerical instabilities in the decomposition.
-        if (scale.x > 0.05f && scale.y > 0.05f && scale.z > 0.05f)
-          transform.scale = scale;
+        transform.scale = scale;
       }
     }
   }

@@ -27,8 +27,8 @@ namespace SciRenderer
         this->attachSampler2D("aOcclusionMap", texHandle);
 
         this->getVec3("uAlbedo") = glm::vec3(1.0f);
-        this->getFloat("uMetallic") = 1.0f;
-        this->getFloat("uRoughness") = 1.0f;
+        this->getFloat("uMetallic") = 0.0f;
+        this->getFloat("uRoughness") = 0.5f;
         this->getFloat("uAO") = 1.0f;
         break;
       }

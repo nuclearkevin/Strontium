@@ -15,6 +15,7 @@ namespace SciRenderer
   void
   Model::bulkGenerateMaterials()
   {
+    // This occasionally segfaults... TODO: Figure out a better solution.
     std::lock_guard<std::mutex> imageGuard(asyncModelMutex);
 
     Logger* logs = Logger::getInstance();
@@ -26,9 +27,8 @@ namespace SciRenderer
       auto& submeshes = model->getSubmeshes();
       auto& submaterials = materials->getStorage();
 
-      if (submeshes.size() != submaterials.size())
+      if (submaterials.size() == 0)
       {
-        submaterials.clear();
         for (auto& pair : submeshes)
           materials->attachMesh(pair.first, MaterialType::PBR);
       }

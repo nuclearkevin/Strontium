@@ -19,6 +19,5 @@ layout(location = 0) out vec4 fragColour;
 void main()
 {
   vec3 envColor = textureLod(skybox, fragIn.fTexCoords, roughness * MAX_MIP).rgb;
-  envColor = envColor / (envColor + vec3(1.0));
-  fragColour = vec4(pow(envColor, vec3(1.0 / gamma)), 1.0);
+  fragColour = vec4(envColor, 1.0);
 }

@@ -41,14 +41,28 @@ namespace SciRenderer
 
     // Load the shaders into a cache.
     this->shaderCache->attachAsset("pbr_shader",
-      new Shader("./assets/shaders/mesh.vs", "./assets/shaders/pbr/pbrTex.fs"));
+      new Shader("./assets/shaders/mesh.vs",
+                 "./assets/shaders/forward/pbr/pbrTex.fs"));
+
     this->shaderCache->attachAsset("geometry_pass_shader",
-      new Shader("./assets/shaders/deferred/geometryPass.vs", "./assets/shaders/deferred/geometryPass.fs"));
+      new Shader("./assets/shaders/deferred/geometryPass.vs",
+                 "./assets/shaders/deferred/geometryPass.fs"));
+
     this->shaderCache->attachAsset("deferred_ambient",
       new Shader("./assets/shaders/deferred/lightingPass.vs",
                  "./assets/shaders/deferred/ambientLightingPass.fs"));
+
+    this->shaderCache->attachAsset("deferred_directional",
+      new Shader("./assets/shaders/deferred/lightingPass.vs",
+                 "./assets/shaders/deferred/directionalLightPass.fs"));
+
+    this->shaderCache->attachAsset("post_hdr",
+      new Shader("./assets/shaders/post/postProcessingPass.vs",
+                 "./assets/shaders/post/hdrPostPass.fs"));
+
     this->shaderCache->attachAsset("fsq_shader",
-      new Shader("./assets/shaders/viewport.vs", "./assets/shaders/viewport.fs"));
+      new Shader("./assets/shaders/viewport.vs",
+                 "./assets/shaders/viewport.fs"));
 
     // Load the default assets.
     this->texture2DAssets->setDefaultAsset(Texture2D::createMonoColour(

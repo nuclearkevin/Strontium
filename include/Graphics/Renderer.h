@@ -30,7 +30,7 @@ namespace SciRenderer
       bool castShadows;
 
       DirectionalLight()
-        : direction(glm::vec3(0.0f, -1.0f, 0.0f))
+        : direction(glm::vec3(0.0f, 1.0f, 0.0f))
         , colour(glm::vec3(1.0f))
         , intensity(0.0f)
         , castShadows(false)
@@ -67,7 +67,7 @@ namespace SciRenderer
 
       SpotLight()
         : position(glm::vec3(0.0f))
-        , direction(glm::vec3(0.0f, -1.0f, 0.0f))
+        , direction(glm::vec3(0.0f, 1.0f, 0.0f))
         , colour(glm::vec3(1.0f))
         , intensity(0.0f)
         , innerCutoff(std::cos(glm::radians(45.0f)))
@@ -95,6 +95,8 @@ namespace SciRenderer
       // The required shaders for processing.
       Shader* geometryShader;
       Shader* ambientShader;
+      Shader* directionalShader;
+      Shader* hdrPostShader;
 
       Unique<EnvironmentMap> currentEnvironment;
       Shared<Camera> sceneCam;
@@ -159,11 +161,11 @@ namespace SciRenderer
 
     // Generic begin and end for the renderer.
     void begin(GLuint width, GLuint height, Shared<Camera> sceneCam, bool isForward = false);
-    void end();
+    void end(Shared<FrameBuffer> frontBuffer);
 
     // Deferred rendering setup.
     void submit(Model* data, ModelMaterial &materials, const glm::mat4 &model);
-    void submit(DirectionalLight light, const glm::mat4 &model);
+    void submit(DirectionalLight light);
     void submit(PointLight light, const glm::mat4 &model);
     void submit(SpotLight light, const glm::mat4 &model);
   }

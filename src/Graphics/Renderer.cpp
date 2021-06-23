@@ -12,7 +12,7 @@ namespace SciRenderer
   {
     // Forward declaration for passes.
     void lightingPass();
-    void postProcessPass();
+    void postProcessPass(Shared<FrameBuffer> frontBuffer);
 
     // Draw the data given, forward rendering style.
     void draw(VertexArray* data, Shader* program);
@@ -82,6 +82,15 @@ namespace SciRenderer
       storage->ambientShader->addUniformSampler("gAlbedo", 5);
       storage->ambientShader->addUniformSampler("gMatProp", 6);
 
+      storage->directionalShader = shaderCache->getAsset("deferred_directional");
+      storage->directionalShader->addUniformSampler("gPosition", 3);
+      storage->directionalShader->addUniformSampler("gNormal", 4);
+      storage->directionalShader->addUniformSampler("gAlbedo", 5);
+      storage->directionalShader->addUniformSampler("gMatProp", 6);
+
+      storage->hdrPostShader = shaderCache->getAsset("post_hdr");
+      storage->hdrPostShader->addUniformSampler("screenColour", 0);
+
       storage->lightingPass = FrameBuffer(width, height);
       cSpec = FBOCommands::getFloatColourSpec(FBOTargetParam::Colour0);
       storage->lightingPass.attachTexture2D(cSpec);
@@ -147,7 +156,7 @@ namespace SciRenderer
     }
 
     void
-    end()
+    end(Shared<FrameBuffer> frontBuffer)
     {
       if (storage->isForward)
       {
@@ -160,7 +169,7 @@ namespace SciRenderer
 
         lightingPass();
 
-        postProcessPass();
+        postProcessPass(frontBuffer);
       }
     }
 
@@ -250,10 +259,10 @@ namespace SciRenderer
       }
     }
 
-    void submit(DirectionalLight light, const glm::mat4 &model)
+    void submit(DirectionalLight light)
     {
       DirectionalLight temp = light;
-      temp.direction = glm::vec3(model * glm::vec4(light.direction, 0.0f));
+      temp.direction = -1.0f * light.direction;
 
       storage->directionalQueue.push_back(temp);
       stats->numDirLights++;
@@ -271,8 +280,8 @@ namespace SciRenderer
     void submit(SpotLight light, const glm::mat4 &model)
     {
       SpotLight temp = light;
+      temp.direction = -1.0f * light.direction;
       temp.position = glm::vec3(model * glm::vec4(light.position, 1.0f));
-      temp.direction = glm::vec3(model * glm::vec4(light.direction, 0.0f));
 
       storage->spotQueue.push_back(temp);
       stats->numSpotLights++;
@@ -307,6 +316,24 @@ namespace SciRenderer
       //------------------------------------------------------------------------
       // Directional lighting subpass.
       //------------------------------------------------------------------------
+      glEnable(GL_BLEND);
+      glBlendEquation(GL_FUNC_ADD);
+      glBlendFunc(GL_ONE, GL_ONE);
+
+      // Screen size.
+      storage->directionalShader->addUniformVector("screenSize", storage->lightingPass.getSize());
+      // Camera position.
+      storage->directionalShader->addUniformVector("camera.position", storage->sceneCam->getCamPos());
+
+      for (auto& lights : storage->directionalQueue)
+      {
+        storage->directionalShader->addUniformVector("lDirection", lights.direction);
+        storage->directionalShader->addUniformVector("lColour", lights.colour);
+        storage->directionalShader->addUniformFloat("lIntensity", lights.intensity);
+
+        draw(&storage->fsq, storage->directionalShader);
+      }
+
       storage->directionalQueue.clear();
 
       //------------------------------------------------------------------------
@@ -318,6 +345,7 @@ namespace SciRenderer
       // Spot lighting subpass.
       //------------------------------------------------------------------------
       storage->spotQueue.clear();
+      glDisable(GL_BLEND);
 
       //------------------------------------------------------------------------
       // Draw the skybox.
@@ -329,9 +357,21 @@ namespace SciRenderer
       storage->lightingPass.unbind();
     }
 
-    void postProcessPass()
+    void postProcessPass(Shared<FrameBuffer> frontBuffer)
     {
+      frontBuffer->clear();
+      frontBuffer->bind();
+      frontBuffer->setViewport();
 
+      //------------------------------------------------------------------------
+      // HDR post processing pass.
+      //------------------------------------------------------------------------
+      storage->hdrPostShader->addUniformVector("screenSize", frontBuffer->getSize());
+      storage->lightingPass.bindTextureID(FBOTargetParam::Colour0, 0);
+
+      draw(&storage->fsq, storage->hdrPostShader);
+
+      frontBuffer->unbind();
     }
   }
 

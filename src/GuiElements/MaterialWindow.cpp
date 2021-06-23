@@ -90,7 +90,7 @@ namespace SciRenderer
               this->DNDTarget(material, "roughnessMap");
               ImGui::PopID();
               ImGui::SameLine();
-              ImGui::SliderFloat("##Roughness", &uRoughness, 0.0f, 1.0f);
+              ImGui::SliderFloat("##Roughness", &uRoughness, 0.01f, 1.0f);
 
               ImGui::Text("Ambient Occlusion Map");
               ImGui::PushID("Ambient Button");
