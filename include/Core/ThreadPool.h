@@ -65,7 +65,8 @@ namespace SciRenderer
       virtual ~Job()
       { }
 
-      virtual void execute() = 0;
+      virtual void execute()
+      { }
     };
 
     template <typename ReturnType>
@@ -76,7 +77,7 @@ namespace SciRenderer
         : function(std::move(function))
       { }
 
-      void execute()
+      void execute() override
       {
         this->function();
       }

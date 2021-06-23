@@ -34,24 +34,31 @@ namespace SciRenderer
     // Initialize the thread pool.
     workerGroup = Unique<ThreadPool>(ThreadPool::getInstance(4));
 
-    // Initialize the 3D renderer.
-    Renderer3D::init();
-
     // Initialize the asset managers.
     this->shaderCache.reset(AssetManager<Shader>::getManager());
     this->modelAssets.reset(AssetManager<Model>::getManager());
     this->texture2DAssets.reset(AssetManager<Texture2D>::getManager());
 
-    // Load the shader into a cache and set the appropriate uniforms.
-    Shader* program = new Shader ("./assets/shaders/mesh.vs",
-                                  "./assets/shaders/pbr/pbrTex.fs");
-    this->shaderCache->attachAsset("pbr_shader", program);
+    // Load the shaders into a cache.
+    this->shaderCache->attachAsset("pbr_shader",
+      new Shader("./assets/shaders/mesh.vs", "./assets/shaders/pbr/pbrTex.fs"));
+    this->shaderCache->attachAsset("geometry_pass_shader",
+      new Shader("./assets/shaders/deferred/geometryPass.vs", "./assets/shaders/deferred/geometryPass.fs"));
+    this->shaderCache->attachAsset("deferred_ambient",
+      new Shader("./assets/shaders/deferred/lightingPass.vs",
+                 "./assets/shaders/deferred/ambientLightingPass.fs"));
+    this->shaderCache->attachAsset("fsq_shader",
+      new Shader("./assets/shaders/viewport.vs", "./assets/shaders/viewport.fs"));
 
-    Texture2D* defaultTex = Texture2D::createMonoColour(glm::vec4(1.0f, 0.0f, 1.0f, 1.0f), Texture2DParams(), false);
-    this->texture2DAssets->setDefaultAsset(defaultTex);
+    // Load the default assets.
+    this->texture2DAssets->setDefaultAsset(Texture2D::createMonoColour(
+      glm::vec4(1.0f, 0.0f, 1.0f, 1.0f), Texture2DParams(), false));
 
     this->imLayer = new ImGuiLayer();
     this->pushOverlay(this->imLayer);
+
+    // Initialize the 3D renderer.
+    Renderer3D::init();
   }
 
   Application::~Application()

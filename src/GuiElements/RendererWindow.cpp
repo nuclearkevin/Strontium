@@ -37,7 +37,31 @@ namespace SciRenderer
     ImGui::Text("Total vertices: %u", stats->numVertices);
     ImGui::Text("Total triangles: %u", stats->numTriangles);
 
-    if (ImGui::CollapsingHeader("Environment Maps"))
+    if (ImGui::CollapsingHeader("Geometry Pass"))
+    {
+      auto storage = Renderer3D::getStorage();
+      ImGui::Text("Positions:");
+      ImGui::Image((ImTextureID) (unsigned long) storage->geometryPass.getAttachID(FBOTargetParam::Colour0),
+                   ImVec2(128.0f, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
+      ImGui::Text("Normals:");
+      ImGui::Image((ImTextureID) (unsigned long) storage->geometryPass.getAttachID(FBOTargetParam::Colour1),
+                   ImVec2(128.0f, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
+      ImGui::Text("Albedo:");
+      ImGui::Image((ImTextureID) (unsigned long) storage->geometryPass.getAttachID(FBOTargetParam::Colour2),
+                   ImVec2(128.0f, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
+      ImGui::Text("Materials:");
+      ImGui::Image((ImTextureID) (unsigned long) storage->geometryPass.getAttachID(FBOTargetParam::Colour3),
+                   ImVec2(128.0f, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
+    }
+
+    if (ImGui::CollapsingHeader("Lighting Pass"))
+    {
+      auto storage = Renderer3D::getStorage();
+      ImGui::Image((ImTextureID) (unsigned long) storage->lightingPass.getAttachID(FBOTargetParam::Colour0),
+                   ImVec2(128.0f, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
+    }
+
+    if (ImGui::CollapsingHeader("Environment Map"))
     {
       if (ImGui::Button("Recompute Environment Map"))
       {

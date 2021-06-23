@@ -97,9 +97,7 @@ namespace SciRenderer
 
         if (this->loadTarget == FileLoadTargets::TargetScene)
         {
-          Shared<Scene> tempScene = createShared<Scene>();
-          if (YAMLSerialization::deserializeScene(tempScene, loadEvent.getAbsPath()))
-            this->currentScene = tempScene;
+          YAMLSerialization::deserializeScene(this->currentScene, loadEvent.getAbsPath());
         }
 
         this->loadTarget = FileLoadTargets::TargetNone;
@@ -154,9 +152,10 @@ namespace SciRenderer
     this->drawBuffer->setViewport();
 
     // Update the scene.
+    Renderer3D::begin(this->editorSize.x, this->editorSize.y, this->editorCam, true);
     this->currentScene->onUpdate(dt, this->editorCam);
-
     this->drawBuffer->unbind();
+    Renderer3D::end();
 
     // Update the editor camera.
     this->editorCam->onUpdate(dt);
@@ -332,14 +331,18 @@ namespace SciRenderer
       windowPos.y = windowPos.y + windowMin.y;
       ImVec2 contentSize = ImVec2(windowMax.x - windowMin.x, windowMax.y - windowMin.y);
 
+      // TODO: Move off the lighting pass framebuffer and blitz the result to
+      // the editor framebuffer, after post processing of course.
       ImGui::BeginChild("EditorRender");
       {
+        auto storage = Renderer3D::getStorage();
+
         this->editorSize = ImGui::GetWindowSize();
         ImVec2 cursorPos = ImGui::GetCursorPos();
         ImGui::Selectable("##editorselectable", false, ImGuiSelectableFlags_Disabled, this->editorSize);
         this->DNDTarget();
         ImGui::SetCursorPos(cursorPos);
-        ImGui::Image((ImTextureID) (unsigned long) this->drawBuffer->getAttachID(FBOTargetParam::Colour0),
+        ImGui::Image((ImTextureID) (unsigned long) storage->lightingPass.getAttachID(FBOTargetParam::Colour0),
                      this->editorSize, ImVec2(0, 1), ImVec2(1, 0));
         this->manipulateEntity(static_cast<SceneGraphWindow*>(this->windows[0])->getSelectedEntity());
         this->drawGizmoSelector(windowPos, contentSize);
@@ -424,7 +427,7 @@ namespace SciRenderer
     {
       auto& selectedEntity = static_cast<SceneGraphWindow*>(this->windows[0])->getSelectedEntity();
       selectedEntity = Entity();
-      
+
       Shared<Scene> tempScene = createShared<Scene>();
       if (YAMLSerialization::deserializeScene(tempScene, filepath))
         this->currentScene = tempScene;

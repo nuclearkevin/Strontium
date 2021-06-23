@@ -213,7 +213,7 @@ namespace SciRenderer
                               GL_RENDERBUFFER, this->depthBuffer->getID());
     this->unbind();
 
-    this->clearFlags |= GL_DEPTH_BUFFER_BIT;
+    this->clearFlags |= GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT;
     this->hasRenderBuffer = true;
   }
 
@@ -235,7 +235,7 @@ namespace SciRenderer
     this->unbind();
 
     this->depthBuffer = buffer;
-    this->clearFlags |= GL_DEPTH_BUFFER_BIT;
+    this->clearFlags |= GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT;
     this->hasRenderBuffer = true;
   }
 
@@ -268,7 +268,7 @@ namespace SciRenderer
         totalAttachments.push_back(static_cast<GLenum>(pair.first));
     }
     if (totalAttachments.size() >= 1)
-      glDrawBuffers(totalAttachments.size(), &totalAttachments[0]);
+      glDrawBuffers(totalAttachments.size(), totalAttachments.data());
     this->unbind();
   }
 
@@ -324,6 +324,12 @@ namespace SciRenderer
   FrameBuffer::getAttachID(const FBOTargetParam &attachment)
   {
     return this->textureAttachments.at(attachment).second->getID();
+  }
+
+  void
+  FrameBuffer::bindTextureID(const FBOTargetParam &attachment, GLuint bindPoint)
+  {
+    this->textureAttachments.at(attachment).second->bind(bindPoint);
   }
 
   void

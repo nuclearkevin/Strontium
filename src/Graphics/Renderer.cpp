@@ -5,8 +5,16 @@
 
 namespace SciRenderer
 {
+  //----------------------------------------------------------------------------
+  // 3D renderer starts here.
+  //----------------------------------------------------------------------------
   namespace Renderer3D
   {
+    // Forward declaration for passes.
+    void geometryPass();
+    void lightingPass();
+    void postProcessPass();
+
     RendererStorage* storage;
     RendererState* state;
     RendererStats* stats;
@@ -15,19 +23,66 @@ namespace SciRenderer
     void
     init(const GLuint width, const GLuint height)
     {
+      // Initialize the vewport shader passthrough.
+      auto shaderCache = AssetManager<Shader>::getManager();
+
       // Initialize OpenGL parameters.
       RendererCommands::enable(RendererFunction::DepthTest);
       RendererCommands::enable(RendererFunction::CubeMapSeamless);
 
+      // Setup the various storage structs.
       storage = new RendererStorage();
       state = new RendererState();
       stats = new RendererStats();
 
-      // Initialize the vewport shader passthrough.
-      auto shaderCache = AssetManager<Shader>::getManager();
+      GLfloat fsqVertices[] =
+      {
+        -1.0f, -1.0f,
+        1.0f, -1.0f,
+        1.0f, 1.0f,
+        -1.0f, 1.0f
+      };
 
-      shaderCache->attachAsset("fsq_shader", new Shader("./assets/shaders/viewport.vs",
-                                                        "./assets/shaders/viewport.fs"));
+      GLuint fsqIndices[] =
+      {
+        0, 1, 2, 2, 3, 0
+      };
+
+      storage->fsq = VertexArray(fsqVertices, 8 * sizeof(GLfloat), BufferType::Dynamic);
+      storage->fsq.addIndexBuffer(fsqIndices, 6, BufferType::Dynamic);
+      storage->fsq.addAttribute(0, AttribType::Vec2, GL_FALSE, 2 * sizeof(GLfloat), 0);
+
+      // Prepare the deferred renderer.
+      storage->width = width;
+      storage->height = height;
+      storage->geometryPass = FrameBuffer(width, height);
+
+      auto cSpec = FBOCommands::getFloatColourSpec(FBOTargetParam::Colour0);
+      storage->geometryPass.attachTexture2D(cSpec);
+      cSpec = FBOCommands::getFloatColourSpec(FBOTargetParam::Colour1);
+      storage->geometryPass.attachTexture2D(cSpec);
+      cSpec = FBOCommands::getFloatColourSpec(FBOTargetParam::Colour2);
+      storage->geometryPass.attachTexture2D(cSpec);
+      cSpec = FBOCommands::getFloatColourSpec(FBOTargetParam::Colour3);
+      storage->geometryPass.attachTexture2D(cSpec);
+    	storage->geometryPass.attachRenderBuffer();
+      storage->geometryPass.setDrawBuffers();
+
+      storage->geometryShader = shaderCache->getAsset("geometry_pass_shader");
+
+      storage->ambientShader = shaderCache->getAsset("deferred_ambient");
+      storage->ambientShader->addUniformSampler("irradianceMap", 0);
+      storage->ambientShader->addUniformSampler("reflectanceMap", 1);
+      storage->ambientShader->addUniformSampler("brdfLookUp", 2);
+      storage->ambientShader->addUniformSampler("gPosition", 3);
+      storage->ambientShader->addUniformSampler("gNormal", 4);
+      storage->ambientShader->addUniformSampler("gAlbedo", 5);
+      storage->ambientShader->addUniformSampler("gMatProp", 6);
+
+      storage->lightingPass = FrameBuffer(width, height);
+      cSpec = FBOCommands::getFloatColourSpec(FBOTargetParam::Colour0);
+      storage->lightingPass.attachTexture2D(cSpec);
+      storage->lightingPass.attachRenderBuffer();
     }
 
     // Shutdown the renderer.
@@ -39,27 +94,27 @@ namespace SciRenderer
       delete stats;
     }
 
-    // Get the storage.
-    RendererStorage* getStorage()
-    {
-      return storage;
-    }
-
-    // Get the renderer state, settings and statistics.
-    RendererState* getState()
-    {
-      return state;
-    }
-
-    RendererStats* getStats()
-    {
-      return stats;
-    }
+    // Get the renderer storage, state and stats.
+    RendererStorage* getStorage() { return storage; }
+    RendererState* getState() { return state; }
+    RendererStats* getStats() { return stats; }
 
     // Generic begin and end for the renderer.
     void
-    begin()
+    begin(GLuint width, GLuint height, Shared<Camera> sceneCam, bool isForward)
     {
+      // Resize the framebuffer at the start of a frame, if required.
+      storage->width = width;
+      storage->height = height;
+      auto geoSize = storage->geometryPass.getSize();
+      if (geoSize.x != width || geoSize.y != height)
+      {
+        storage->geometryPass.resize(width, height);
+        storage->lightingPass.resize(width, height);
+      }
+
+      storage->sceneCam = sceneCam;
+
       // Reset the stats each frame.
       stats->drawCalls = 0;
       stats->numVertices = 0;
@@ -69,7 +124,11 @@ namespace SciRenderer
     void
     end()
     {
+      geometryPass();
 
+      lightingPass();
+
+      postProcessPass();
     }
 
     // Draw the data to the screen.
@@ -95,16 +154,11 @@ namespace SciRenderer
         Material* material = materials.getMaterial(pair.second->getName());
         Shader* program = material->getShader();
 
+        material->getVec3("camera.position") = camera->getCamPos();
+        material->getMat3("normalMat") = glm::transpose(glm::inverse(glm::mat3(model)));
+        material->getMat4("model") = model;
+        material->getMat4("mVP") = camera->getProjMatrix() * camera->getViewMatrix() * model;
         material->configure();
-
-        // Pass the camera uniforms into the material's shader program.
-        glm::mat3 normal = glm::transpose(glm::inverse(glm::mat3(model)));
-      	glm::mat4 modelViewPerspective = camera->getProjMatrix() * camera->getViewMatrix() * model;
-
-      	program->addUniformMatrix("model", model, GL_FALSE);
-      	program->addUniformMatrix("mVP", modelViewPerspective, GL_FALSE);
-      	program->addUniformMatrix("normalMat", normal, GL_FALSE);
-        program->addUniformVector("camera.position", camera->getCamPos());
 
         if (pair.second->hasVAO())
           Renderer3D::draw(pair.second->getVAO(), program);
@@ -134,12 +188,137 @@ namespace SciRenderer
 
       RendererCommands::depthFunction(DepthFunctions::Less);
     }
+
+    void submit(Model* data, ModelMaterial &materials, const glm::mat4 &model)
+    {
+      for (auto& pair : data->getSubmeshes())
+      {
+        Material* material = materials.getMaterial(pair.second->getName());
+        Shader* program = material->getShader();
+
+        material->getVec3("camera.position") = storage->sceneCam->getCamPos();
+        material->getMat3("normalMat") = glm::transpose(glm::inverse(glm::mat3(model)));
+        material->getMat4("model") = model;
+        material->getMat4("mVP") = storage->sceneCam->getProjMatrix()
+          * storage->sceneCam->getViewMatrix() * model;
+        material->configure();
+
+        if (!pair.second->hasVAO())
+          pair.second->generateVAO();
+
+        // Construct the gbuffer material here.
+        storage->deferredQueue.push_back({ pair.second, material });
+
+        stats->drawCalls++;
+        stats->numVertices += pair.second->getData().size();
+        stats->numTriangles += pair.second->getIndices().size() / 3;
+      }
+    }
+
+    void submit(DirectionalLight light, const glm::mat4 &model)
+    {
+      DirectionalLight temp = light;
+      temp.direction = glm::vec3(model * glm::vec4(light.direction, 0.0f));
+
+      storage->directionalQueue.push_back(temp);
+    }
+
+    void submit(PointLight light, const glm::mat4 &model)
+    {
+      PointLight temp = light;
+      temp.position = glm::vec3(model * glm::vec4(light.position, 1.0f));
+
+      storage->pointQueue.push_back(temp);
+    }
+
+    void submit(SpotLight light, const glm::mat4 &model)
+    {
+      SpotLight temp = light;
+      temp.position = glm::vec3(model * glm::vec4(light.position, 1.0f));
+      temp.direction = glm::vec3(model * glm::vec4(light.direction, 0.0f));
+
+      storage->spotQueue.push_back(temp);
+    }
+
+    void geometryPass()
+    {
+      storage->geometryPass.clear();
+      storage->geometryPass.bind();
+      storage->geometryPass.setViewport();
+      for (auto& pair : storage->deferredQueue)
+      {
+        pair.second->configure(storage->geometryShader);
+
+        draw(pair.first->getVAO(), storage->geometryShader);
+      }
+      storage->geometryPass.unbind();
+      storage->deferredQueue.clear();
+    }
+
+    void lightingPass()
+    {
+      RendererCommands::disable(RendererFunction::DepthTest);
+      storage->lightingPass.clear();
+      storage->lightingPass.bind();
+      storage->lightingPass.setViewport();
+
+      //------------------------------------------------------------------------
+      // Ambient lighting subpass.
+      //------------------------------------------------------------------------
+      // Environment maps.
+      storage->currentEnvironment->bind(MapType::Irradiance, 0);
+      storage->currentEnvironment->bind(MapType::Prefilter, 1);
+      storage->currentEnvironment->bind(MapType::Integration, 2);
+      // Gbuffer textures.
+      storage->geometryPass.bindTextureID(FBOTargetParam::Colour0, 3);
+      storage->geometryPass.bindTextureID(FBOTargetParam::Colour1, 4);
+      storage->geometryPass.bindTextureID(FBOTargetParam::Colour2, 5);
+      storage->geometryPass.bindTextureID(FBOTargetParam::Colour3, 6);
+      // Screen size.
+      storage->ambientShader->addUniformVector("screenSize", storage->lightingPass.getSize());
+      // Camera position.
+      storage->ambientShader->addUniformVector("camera.position", storage->sceneCam->getCamPos());
+
+      draw(&storage->fsq, storage->ambientShader);
+
+      //------------------------------------------------------------------------
+      // Directional lighting subpass.
+      //------------------------------------------------------------------------
+      storage->directionalQueue.clear();
+
+      //------------------------------------------------------------------------
+      // Point lighting subpass.
+      //------------------------------------------------------------------------
+      storage->pointQueue.clear();
+
+      //------------------------------------------------------------------------
+      // Spot lighting subpass.
+      //------------------------------------------------------------------------
+      storage->spotQueue.clear();
+
+      storage->lightingPass.unbind();
+      RendererCommands::enable(RendererFunction::DepthTest);
+    }
+
+    void postProcessPass()
+    {
+
+    }
   }
 
+  //----------------------------------------------------------------------------
+  // Renderer commands start here.
+  //----------------------------------------------------------------------------
   void
   RendererCommands::enable(const RendererFunction &toEnable)
   {
     glEnable(static_cast<GLenum>(toEnable));
+  }
+
+  void
+  RendererCommands::disable(const RendererFunction &toDisable)
+  {
+    glDisable(static_cast<GLenum>(toDisable));
   }
 
   void

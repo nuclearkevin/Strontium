@@ -51,7 +51,7 @@ namespace SciRenderer
     this->isActive.store(false, std::memory_order_relaxed);
 
     for (unsigned int i = 0; i < this->workers.size(); i++)
-      this->push([](){ });
+      this->push([](){ return; });
   }
 
   ThreadPool*

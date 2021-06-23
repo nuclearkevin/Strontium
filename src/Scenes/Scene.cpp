@@ -40,7 +40,6 @@ namespace SciRenderer
   {
     auto modelAssets = AssetManager<Model>::getManager();
 
-    Renderer3D::begin();
     auto ambient = Renderer3D::getStorage()->currentEnvironment.get();
     ambient->bind(MapType::Irradiance, 0);
     ambient->bind(MapType::Prefilter, 1);
@@ -53,7 +52,7 @@ namespace SciRenderer
       // Draw all the renderables with transforms.
       auto [transform, renderable] = drawables.get<TransformComponent, RenderableComponent>(entity);
 
-      // Draw the mesh with the associated transform.
+      // Submit the mesh + material + transform to the deferred renderer queue.
       if (renderable)
       {
         auto& materials = renderable.materials.getStorage();
@@ -66,12 +65,11 @@ namespace SciRenderer
             renderable.materials.attachMesh(pair.second->getName());
         }
 
-        Renderer3D::draw(renderable, renderable, transform, sceneCamera);
+        Renderer3D::submit(renderable, renderable, transform);
       }
     }
 
     // Draw the environment at the end of the frame.
     Renderer3D::drawEnvironment(sceneCamera);
-    Renderer3D::end();
   }
 }

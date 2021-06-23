@@ -107,6 +107,7 @@ namespace SciRenderer
 
     // Get the IDs of the attachments.
     GLuint getAttachID(const FBOTargetParam &attachment);
+    void bindTextureID(const FBOTargetParam &attachment, GLuint bindPoint);
     GLuint getRenderBufferID();
 
     // Get the size of the framebuffer.

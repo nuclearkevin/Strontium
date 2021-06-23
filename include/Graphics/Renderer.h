@@ -20,6 +20,35 @@ namespace SciRenderer
   // The 3D renderer!
   namespace Renderer3D
   {
+    struct DirectionalLight
+    {
+      glm::vec3 direction;
+      glm::vec3 colour;
+      GLfloat intensity;
+      bool castShadows;
+    };
+
+    struct PointLight
+    {
+      glm::vec3 position;
+      glm::vec3 colour;
+      GLfloat intensity;
+      GLfloat radius;
+      bool castShadows;
+    };
+
+    struct SpotLight
+    {
+      glm::vec3 position;
+      glm::vec3 direction;
+      glm::vec3 colour;
+      GLfloat intensity;
+      GLfloat innerCutoff;
+      GLfloat outerCutoff;
+      GLfloat radius;
+      bool castShadows;
+    };
+
     // The renderer storage.
     struct RendererStorage
     {
@@ -27,28 +56,36 @@ namespace SciRenderer
       GLuint width;
       GLuint height;
 
+      VertexArray fsq;
+
       // The required buffers for processing.
       FrameBuffer geometryPass;
       FrameBuffer lightingPass;
 
       // The required shaders for processing.
-      Shader geometryShader;
-      Shader lightingShader;
-
-      // The renderer queue (stores the models and materials).
-      std::vector<std::pair<Mesh*, Shader*>> renderQueue;
+      Shader* geometryShader;
+      Shader* ambientShader;
 
       Unique<EnvironmentMap> currentEnvironment;
+      Shared<Camera> sceneCam;
+
+      std::vector<std::pair<Shared<Mesh>, Material*>> deferredQueue;
+      std::vector<DirectionalLight> directionalQueue;
+      std::vector<PointLight> pointQueue;
+      std::vector<SpotLight> spotQueue;
 
       RendererStorage()
       {
-        currentEnvironment.reset(new EnvironmentMap("./assets/models/cube.obj"));
+        currentEnvironment = createUnique<EnvironmentMap>("./assets/models/cube.obj");
       }
     };
 
     // The renderer states (for serialization and other things of that nature).
     struct RendererState
     {
+      // Settings for rendering.
+      bool isForward;
+
       // Environment map settings.
       GLuint skyboxWidth;
       GLuint irradianceWidth;
@@ -56,7 +93,8 @@ namespace SciRenderer
       GLuint prefilterSamples;
 
       RendererState()
-        : skyboxWidth(512)
+        : isForward(false)
+        , skyboxWidth(512)
         , irradianceWidth(128)
         , prefilterWidth(512)
         , prefilterSamples(1024)
@@ -85,13 +123,19 @@ namespace SciRenderer
     RendererStats* getStats();
 
     // Generic begin and end for the renderer.
-    void begin();
+    void begin(GLuint width, GLuint height, Shared<Camera> sceneCam, bool isForward = false);
     void end();
 
-    // Draw the data given.
+    // Draw the data given, forward rendering style.
     void draw(VertexArray* data, Shader* program);
     void draw(Model* data, ModelMaterial &materials, const glm::mat4 &model, Shared<Camera> camera);
     void drawEnvironment(Shared<Camera> camera);
+
+    // Deferred rendering setup.
+    void submit(Model* data, ModelMaterial &materials, const glm::mat4 &model);
+    void submit(DirectionalLight light, const glm::mat4 &model);
+    void submit(PointLight light, const glm::mat4 &model);
+    void submit(SpotLight light, const glm::mat4 &model);
   }
 
   // Depth functions. Addition to this as they are required.
@@ -111,6 +155,7 @@ namespace SciRenderer
   namespace RendererCommands
   {
     void enable(const RendererFunction &toEnable);
+    void disable(const RendererFunction &toDisable);
     void depthFunction(const DepthFunctions &function);
     void setClearColour(const glm::vec4 &colour);
     void clear(const bool &clearColour = true, const bool &clearDepth = true,

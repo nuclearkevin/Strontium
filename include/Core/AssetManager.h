@@ -55,11 +55,25 @@ namespace SciRenderer
         this->assetNames.push_back(handle);
         this->assetStorage.insert({ handle, Unique<T>(asset) });
       }
+      else
+      {
+        this->assetStorage.erase(handle);
+
+        auto loc = std::find(this->assetNames.begin(), this->assetNames.end(), handle);
+        if (loc != this->assetNames.end())
+          this->assetNames.erase(loc);
+
+        this->assetNames.push_back(handle);
+        this->assetStorage.insert({ handle, Unique<T>(asset) });
+      }
     }
 
     // Get the asset reference.
     T* getAsset(const AssetHandle &handle)
     {
+      if (handle == "None")
+        return this->defaultAsset.get();
+        
       if (this->hasAsset(handle))
         return this->assetStorage.at(handle).get();
       else

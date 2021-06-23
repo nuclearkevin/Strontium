@@ -259,6 +259,53 @@ namespace SciRenderer
         }
       }
 
+      if (entity.hasComponent<DirectionalLightComponent>())
+      {
+        out << YAML::Key << "DirectionalLightComponent";
+        out << YAML::BeginMap;
+
+        auto& component = entity.getComponent<DirectionalLightComponent>();
+        out << YAML::Key << "Direction" << YAML::Value << component.direction;
+        out << YAML::Key << "Colour" << YAML::Value << component.colour;
+        out << YAML::Key << "Intensity" << YAML::Value << component.intensity;
+        out << YAML::Key << "CastShadows" << YAML::Value << component.castShadows;
+
+        out << YAML::EndMap;
+      }
+
+      if (entity.hasComponent<PointLightComponent>())
+      {
+        out << YAML::Key << "PointLightComponent";
+        out << YAML::BeginMap;
+
+        auto& component = entity.getComponent<PointLightComponent>();
+        out << YAML::Key << "Position" << YAML::Value << component.position;
+        out << YAML::Key << "Colour" << YAML::Value << component.colour;
+        out << YAML::Key << "Intensity" << YAML::Value << component.intensity;
+        out << YAML::Key << "Radius" << YAML::Value << component.radius;
+        out << YAML::Key << "CastShadows" << YAML::Value << component.castShadows;
+
+        out << YAML::EndMap;
+      }
+
+      if (entity.hasComponent<SpotLightComponent>())
+      {
+        out << YAML::Key << "SpotLightComponent";
+        out << YAML::BeginMap;
+
+        auto& component = entity.getComponent<SpotLightComponent>();
+        out << YAML::Key << "Position" << YAML::Value << component.position;
+        out << YAML::Key << "Direction" << YAML::Value << component.direction;
+        out << YAML::Key << "Colour" << YAML::Value << component.colour;
+        out << YAML::Key << "Intensity" << YAML::Value << component.intensity;
+        out << YAML::Key << "InnerCutoff" << YAML::Value << component.innerCutoff;
+        out << YAML::Key << "OuterCutoff" << YAML::Value << component.outerCutoff;
+        out << YAML::Key << "Radius" << YAML::Value << component.radius;
+        out << YAML::Key << "CastShadows" << YAML::Value << component.castShadows;
+
+        out << YAML::EndMap;
+      }
+
       if (entity.hasComponent<AmbientComponent>())
       {
         out << YAML::Key << "AmbientComponent";
@@ -310,10 +357,11 @@ namespace SciRenderer
 
     }
 
-    void deserializeMaterial(YAML::Node &mat, ModelMaterial &modelMaterial)
+    void deserializeMaterial(YAML::Node &mat, Entity entity)
     {
       auto matType = mat["MaterialType"];
       auto parsedSubmeshName = mat["AssociatedSubmesh"];
+      auto& modelMaterial = entity.getComponent<RenderableComponent>().materials;
 
       std::string shaderName, submeshName;
       if (matType && parsedSubmeshName)
@@ -370,6 +418,9 @@ namespace SciRenderer
             auto uName = uSampler2D["SamplerName"];
             if (uName)
             {
+              if (uSampler2D["ImagePath"].as<std::string>() == "")
+                continue;
+
               Texture2D::loadImageAsync(uSampler2D["ImagePath"].as<std::string>());
               meshMaterial->attachSampler2D(uSampler2D["SamplerName"].as<std::string>(),
                                             uSampler2D["SamplerHandle"].as<std::string>());
@@ -389,6 +440,8 @@ namespace SciRenderer
       auto entities = data["Entities"];
       if (!entities)
         return false;
+
+      scene->getRegistry().clear();
 
       for (auto entity : entities)
       {
@@ -422,20 +475,55 @@ namespace SciRenderer
         {
           std::string modelPath = renderableComponent["ModelPath"].as<std::string>();
           std::string modelName = renderableComponent["ModelName"].as<std::string>();
+          auto& rComponent = newEntity.addComponent<RenderableComponent>(modelName);
 
           // If the path is "None" its an internal model asset.
           // TODO: Handle internals separately.
           if (modelPath != "None")
           {
             Model::asyncLoadModel(modelPath, modelName);
-            auto& modelMaterial = newEntity.addComponent<RenderableComponent>(modelName).materials;
 
             // TODO: Deserialize the material.
             auto materials = renderableComponent["Material"];
             if (materials)
               for (auto mat : materials)
-                deserializeMaterial(mat, modelMaterial);
+                deserializeMaterial(mat, newEntity);
           }
+        }
+
+        auto directionalComponent = entity["DirectionalLightComponent"];
+        if (directionalComponent)
+        {
+          auto& dComponent = newEntity.addComponent<DirectionalLightComponent>();
+          dComponent.direction = directionalComponent["Direction"].as<glm::vec3>();
+          dComponent.colour = directionalComponent["Colour"].as<glm::vec3>();
+          dComponent.intensity = directionalComponent["Intensity"].as<GLfloat>();
+          dComponent.castShadows = directionalComponent["CastShadows"].as<bool>();
+        }
+
+        auto pointComponent = entity["PointLightComponent"];
+        if (pointComponent)
+        {
+          auto& pComponent = newEntity.addComponent<PointLightComponent>();
+          pComponent.position = pointComponent["Position"].as<glm::vec3>();
+          pComponent.colour = pointComponent["Colour"].as<glm::vec3>();
+          pComponent.intensity = pointComponent["Intensity"].as<GLfloat>();
+          pComponent.radius = pointComponent["Radius"].as<GLfloat>();
+          pComponent.castShadows = pointComponent["CastShadows"].as<bool>();
+        }
+
+        auto spotComponent = entity["SpotLightComponent"];
+        if (spotComponent)
+        {
+          auto& sComponent = newEntity.addComponent<SpotLightComponent>();
+          sComponent.position = spotComponent["Position"].as<glm::vec3>();
+          sComponent.direction = spotComponent["Direction"].as<glm::vec3>();
+          sComponent.colour = spotComponent["Colour"].as<glm::vec3>();
+          sComponent.intensity = spotComponent["Intensity"].as<GLfloat>();
+          sComponent.innerCutoff = spotComponent["InnerCutoff"].as<GLfloat>();
+          sComponent.outerCutoff = spotComponent["OuterCutoff"].as<GLfloat>();
+          sComponent.radius = spotComponent["Radius"].as<GLfloat>();
+          sComponent.castShadows = spotComponent["CastShadows"].as<bool>();
         }
 
         auto ambientComponent = entity["AmbientComponent"];
@@ -449,12 +537,9 @@ namespace SciRenderer
           state->irradianceWidth = ambientComponent["IrraRes"].as<GLuint>();
           state->prefilterWidth = ambientComponent["FiltRes"].as<GLuint>();
           state->prefilterSamples = ambientComponent["FiltSam"].as<GLuint>();
-
           storage->currentEnvironment->unloadEnvironment();
-          storage->currentEnvironment->loadEquirectangularMap(iblImagePath);
-          storage->currentEnvironment->equiToCubeMap(true, state->skyboxWidth, state->skyboxWidth);
-          storage->currentEnvironment->precomputeIrradiance(state->irradianceWidth, state->irradianceWidth);
-          storage->currentEnvironment->precomputeSpecular(state->prefilterWidth, state->prefilterWidth);
+
+          newEntity.addComponent<AmbientComponent>(iblImagePath);
         }
       }
 

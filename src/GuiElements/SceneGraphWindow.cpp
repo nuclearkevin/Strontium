@@ -166,7 +166,6 @@ namespace SciRenderer
         if (ImGui::MenuItem("Ambient Light"))
         {
           auto light = activeScene->createEntity("New Ambient Light");
-          light.addComponent<TransformComponent>();
           light.addComponent<AmbientComponent>();
         }
 
@@ -448,7 +447,7 @@ namespace SciRenderer
         ImGui::Checkbox("Cast Shadows", &component.castShadows);
         ImGui::ColorEdit3("Colour", &component.colour.r);
         Styles::drawFloatControl("Intensity", 0.0f, component.intensity,
-                                 0.0f, 0.1f, 0.0f, 1.0f);
+                                 0.0f, 0.1f, 0.0f, 10.0f);
         ImGui::PopID();
       });
 
@@ -460,7 +459,7 @@ namespace SciRenderer
         ImGui::ColorEdit3("Colour", &component.colour.r);
         Styles::drawFloatControl("Radius", 0.0f, component.radius, 0.0f, 0.1f, 0.0f, 100.0f);
         Styles::drawFloatControl("Intensity", 0.0f, component.intensity,
-                                 0.0f, 0.1f, 0.0f, 1.0f);
+                                 0.0f, 0.1f, 0.0f, 10.0f);
         ImGui::PopID();
       });
 
@@ -472,7 +471,7 @@ namespace SciRenderer
         ImGui::ColorEdit3("Colour", &component.colour.r);
         Styles::drawFloatControl("Radius", 0.0f, component.radius, 0.0f, 0.1f, 0.0f, 100.0f);
         Styles::drawFloatControl("Intensity", 0.0f, component.intensity,
-                                 0.0f, 0.1f, 0.0f, 1.0f);
+                                 0.0f, 0.1f, 0.0f, 10.0f);
         GLfloat innerAngle = glm::degrees(std::acos(component.innerCutoff));
         Styles::drawFloatControl("Inner Cutoff", 45.0f, innerAngle,
                                  0.0f, 0.1f, 0.0f, 360.0f);
