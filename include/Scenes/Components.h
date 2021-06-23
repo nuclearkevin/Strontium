@@ -144,68 +144,49 @@ namespace SciRenderer
   // Various light components for rendering the scene.
   struct DirectionalLightComponent
   {
-    glm::vec3 direction;
-    glm::vec3 colour;
-
-    GLfloat intensity;
-
-    bool castShadows;
+    Renderer3D::DirectionalLight light;
 
     DirectionalLightComponent(const DirectionalLightComponent&) = default;
 
     DirectionalLightComponent()
-      : direction(glm::vec3(0.0f, -1.0f, 0.0f))
-      , colour(glm::vec3(1.0f))
-      , intensity(0.0f)
-      , castShadows(false)
+      : light()
     { }
+
+    operator Renderer3D::DirectionalLight()
+    {
+      return light;
+    }
   };
 
   struct PointLightComponent
   {
-    glm::vec3 position;
-    glm::vec3 colour;
-
-    GLfloat intensity;
-    GLfloat radius;
-
-    bool castShadows;
+    Renderer3D::PointLight light;
 
     PointLightComponent(const PointLightComponent&) = default;
 
     PointLightComponent()
-      : position(glm::vec3(0.0f))
-      , colour(glm::vec3(1.0f))
-      , intensity(0.0f)
-      , radius(0.0f)
-      , castShadows(false)
+      : light()
     { }
+
+    operator Renderer3D::PointLight()
+    {
+      return light;
+    }
   };
 
   struct SpotLightComponent
   {
-    glm::vec3 position;
-    glm::vec3 direction;
-    glm::vec3 colour;
-
-    GLfloat intensity;
-    GLfloat innerCutoff;
-    GLfloat outerCutoff;
-    GLfloat radius;
-
-    bool castShadows;
+    Renderer3D::SpotLight light;
 
     SpotLightComponent(const SpotLightComponent&) = default;
 
     SpotLightComponent()
-      : position(glm::vec3(0.0f))
-      , direction(glm::vec3(0.0f, -1.0f, 0.0f))
-      , colour(glm::vec3(1.0f))
-      , intensity(0.0f)
-      , innerCutoff(std::cos(glm::radians(45.0f)))
-      , outerCutoff(std::cos(glm::radians(90.0f)))
-      , radius(0.0f)
-      , castShadows(false)
+      : light()
     { }
+
+    operator Renderer3D::SpotLight()
+    {
+      return light;
+    }
   };
 }

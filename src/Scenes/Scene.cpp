@@ -40,13 +40,8 @@ namespace SciRenderer
   {
     auto modelAssets = AssetManager<Model>::getManager();
 
-    auto ambient = Renderer3D::getStorage()->currentEnvironment.get();
-    ambient->bind(MapType::Irradiance, 0);
-    ambient->bind(MapType::Prefilter, 1);
-    ambient->bind(MapType::Integration, 2);
-
     // Group together the transform and renderable components.
-    auto drawables = this->sceneECS.group<TransformComponent>(entt::get<RenderableComponent>);
+    auto drawables = this->sceneECS.group<RenderableComponent>(entt::get<TransformComponent>);
     for (auto entity : drawables)
     {
       // Draw all the renderables with transforms.
@@ -58,18 +53,28 @@ namespace SciRenderer
         auto& materials = renderable.materials.getStorage();
         auto& submeshes = modelAssets->getAsset(renderable.meshName)->getSubmeshes();
 
-        if (materials.size() != submeshes.size())
-        {
-          materials.clear();
-          for (auto& pair : submeshes)
-            renderable.materials.attachMesh(pair.second->getName());
-        }
-
         Renderer3D::submit(renderable, renderable, transform);
       }
     }
 
-    // Draw the environment at the end of the frame.
-    Renderer3D::drawEnvironment(sceneCamera);
+    // Group together the lights and submit them to the renderer.
+    auto dirLight = this->sceneECS.group<DirectionalLightComponent>(entt::get<TransformComponent>);
+    for (auto entity : dirLight)
+    {
+      auto [directional, transform] = dirLight.get<DirectionalLightComponent, TransformComponent>(entity);
+      Renderer3D::submit(directional, transform);
+    }
+    auto pointLight = this->sceneECS.group<PointLightComponent>(entt::get<TransformComponent>);
+    for (auto entity : pointLight)
+    {
+      auto [point, transform] = pointLight.get<PointLightComponent, TransformComponent>(entity);
+      Renderer3D::submit(point, transform);
+    }
+    auto spotLight = this->sceneECS.group<SpotLightComponent>(entt::get<TransformComponent>);
+    for (auto entity : spotLight)
+    {
+      auto [spot, transform] = spotLight.get<SpotLightComponent, TransformComponent>(entity);
+      Renderer3D::submit(spot, transform);
+    }
   }
 }

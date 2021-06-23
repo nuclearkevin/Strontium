@@ -11,9 +11,12 @@ namespace SciRenderer
   namespace Renderer3D
   {
     // Forward declaration for passes.
-    void geometryPass();
     void lightingPass();
     void postProcessPass();
+
+    // Draw the data given, forward rendering style.
+    void draw(VertexArray* data, Shader* program);
+    void drawEnvironment();
 
     RendererStorage* storage;
     RendererState* state;
@@ -103,9 +106,13 @@ namespace SciRenderer
     void
     begin(GLuint width, GLuint height, Shared<Camera> sceneCam, bool isForward)
     {
+      storage->sceneCam = sceneCam;
+
       // Resize the framebuffer at the start of a frame, if required.
       storage->width = width;
       storage->height = height;
+      storage->isForward = isForward;
+
       auto geoSize = storage->geometryPass.getSize();
       if (geoSize.x != width || geoSize.y != height)
       {
@@ -113,22 +120,48 @@ namespace SciRenderer
         storage->lightingPass.resize(width, height);
       }
 
-      storage->sceneCam = sceneCam;
-
       // Reset the stats each frame.
       stats->drawCalls = 0;
       stats->numVertices = 0;
       stats->numTriangles = 0;
+      stats->numDirLights = 0;
+      stats->numPointLights = 0;
+      stats->numSpotLights = 0;
+
+      if (isForward)
+      {
+        storage->lightingPass.clear();
+        storage->lightingPass.bind();
+        storage->lightingPass.setViewport();
+
+        storage->currentEnvironment->bind(MapType::Irradiance, 0);
+        storage->currentEnvironment->bind(MapType::Prefilter, 1);
+        storage->currentEnvironment->bind(MapType::Integration, 2);
+      }
+      else
+      {
+        storage->geometryPass.clear();
+        storage->geometryPass.bind();
+        storage->geometryPass.setViewport();
+      }
     }
 
     void
     end()
     {
-      geometryPass();
+      if (storage->isForward)
+      {
+        drawEnvironment();
+        storage->lightingPass.unbind();
+      }
+      else
+      {
+        storage->geometryPass.unbind();
 
-      lightingPass();
+        lightingPass();
 
-      postProcessPass();
+        postProcessPass();
+      }
     }
 
     // Draw the data to the screen.
@@ -144,44 +177,13 @@ namespace SciRenderer
       program->unbind();
     }
 
-    // Draw a model to the screen (it just draws all the submeshes associated with the model).
-    void
-    draw(Model* data, ModelMaterial &materials, const glm::mat4 &model,
-         Shared<Camera> camera)
-    {
-      for (auto& pair : data->getSubmeshes())
-      {
-        Material* material = materials.getMaterial(pair.second->getName());
-        Shader* program = material->getShader();
-
-        material->getVec3("camera.position") = camera->getCamPos();
-        material->getMat3("normalMat") = glm::transpose(glm::inverse(glm::mat3(model)));
-        material->getMat4("model") = model;
-        material->getMat4("mVP") = camera->getProjMatrix() * camera->getViewMatrix() * model;
-        material->configure();
-
-        if (pair.second->hasVAO())
-          Renderer3D::draw(pair.second->getVAO(), program);
-        else
-        {
-          pair.second->generateVAO();
-          if (pair.second->hasVAO())
-            Renderer3D::draw(pair.second->getVAO(), program);
-        }
-
-        stats->drawCalls++;
-        stats->numVertices += pair.second->getData().size();
-        stats->numTriangles += pair.second->getIndices().size() / 3;
-      }
-    }
-
     // Draw an environment map to the screen. Draws all the submeshes associated
     // with the cube model.
     void
-    drawEnvironment(Shared<Camera> camera)
+    drawEnvironment()
     {
       RendererCommands::depthFunction(DepthFunctions::LEq);
-      storage->currentEnvironment->configure(camera);
+      storage->currentEnvironment->configure(storage->sceneCam);
 
       for (auto& pair : storage->currentEnvironment->getCubeMesh()->getSubmeshes())
         Renderer3D::draw(pair.second->getVAO(), storage->currentEnvironment->getCubeProg());
@@ -191,27 +193,60 @@ namespace SciRenderer
 
     void submit(Model* data, ModelMaterial &materials, const glm::mat4 &model)
     {
-      for (auto& pair : data->getSubmeshes())
+      if (storage->isForward)
       {
-        Material* material = materials.getMaterial(pair.second->getName());
-        Shader* program = material->getShader();
+        for (auto& pair : data->getSubmeshes())
+        {
+          Material* material = materials.getMaterial(pair.first);
+          Shader* program = material->getShader();
 
-        material->getVec3("camera.position") = storage->sceneCam->getCamPos();
-        material->getMat3("normalMat") = glm::transpose(glm::inverse(glm::mat3(model)));
-        material->getMat4("model") = model;
-        material->getMat4("mVP") = storage->sceneCam->getProjMatrix()
-          * storage->sceneCam->getViewMatrix() * model;
-        material->configure();
+          material->getVec3("camera.position") = storage->sceneCam->getCamPos();
+          material->getMat3("normalMat") = glm::transpose(glm::inverse(glm::mat3(model)));
+          material->getMat4("model") = model;
+          material->getMat4("mVP") = storage->sceneCam->getProjMatrix() * storage->sceneCam->getViewMatrix() * model;
+          material->configure();
 
-        if (!pair.second->hasVAO())
-          pair.second->generateVAO();
+          if (pair.second->hasVAO())
+            Renderer3D::draw(pair.second->getVAO(), program);
+          else
+          {
+            pair.second->generateVAO();
+            if (pair.second->hasVAO())
+              Renderer3D::draw(pair.second->getVAO(), program);
+          }
 
-        // Construct the gbuffer material here.
-        storage->deferredQueue.push_back({ pair.second, material });
+          stats->drawCalls++;
+          stats->numVertices += pair.second->getData().size();
+          stats->numTriangles += pair.second->getIndices().size() / 3;
+        }
+      }
+      else
+      {
+        for (auto& pair : data->getSubmeshes())
+        {
+          Material* material = materials.getMaterial(pair.first);
+          Shader* program = material->getShader();
 
-        stats->drawCalls++;
-        stats->numVertices += pair.second->getData().size();
-        stats->numTriangles += pair.second->getIndices().size() / 3;
+          material->getVec3("camera.position") = storage->sceneCam->getCamPos();
+          material->getMat3("normalMat") = glm::transpose(glm::inverse(glm::mat3(model)));
+          material->getMat4("model") = model;
+          material->getMat4("mVP") = storage->sceneCam->getProjMatrix()
+            * storage->sceneCam->getViewMatrix() * model;
+          material->configure(storage->geometryShader);
+
+          if (pair.second->hasVAO())
+            Renderer3D::draw(pair.second->getVAO(), storage->geometryShader);
+          else
+          {
+            pair.second->generateVAO();
+            if (pair.second->hasVAO())
+              Renderer3D::draw(pair.second->getVAO(), storage->geometryShader);
+          }
+
+          stats->drawCalls++;
+          stats->numVertices += pair.second->getData().size();
+          stats->numTriangles += pair.second->getIndices().size() / 3;
+        }
       }
     }
 
@@ -221,6 +256,7 @@ namespace SciRenderer
       temp.direction = glm::vec3(model * glm::vec4(light.direction, 0.0f));
 
       storage->directionalQueue.push_back(temp);
+      stats->numDirLights++;
     }
 
     void submit(PointLight light, const glm::mat4 &model)
@@ -229,6 +265,7 @@ namespace SciRenderer
       temp.position = glm::vec3(model * glm::vec4(light.position, 1.0f));
 
       storage->pointQueue.push_back(temp);
+      stats->numPointLights++;
     }
 
     void submit(SpotLight light, const glm::mat4 &model)
@@ -238,21 +275,7 @@ namespace SciRenderer
       temp.direction = glm::vec3(model * glm::vec4(light.direction, 0.0f));
 
       storage->spotQueue.push_back(temp);
-    }
-
-    void geometryPass()
-    {
-      storage->geometryPass.clear();
-      storage->geometryPass.bind();
-      storage->geometryPass.setViewport();
-      for (auto& pair : storage->deferredQueue)
-      {
-        pair.second->configure(storage->geometryShader);
-
-        draw(pair.first->getVAO(), storage->geometryShader);
-      }
-      storage->geometryPass.unbind();
-      storage->deferredQueue.clear();
+      stats->numSpotLights++;
     }
 
     void lightingPass()
@@ -296,8 +319,14 @@ namespace SciRenderer
       //------------------------------------------------------------------------
       storage->spotQueue.clear();
 
-      storage->lightingPass.unbind();
+      //------------------------------------------------------------------------
+      // Draw the skybox.
+      //------------------------------------------------------------------------
       RendererCommands::enable(RendererFunction::DepthTest);
+      storage->geometryPass.blitzToOther(storage->lightingPass, FBOTargetParam::Depth);
+      drawEnvironment();
+
+      storage->lightingPass.unbind();
     }
 
     void postProcessPass()

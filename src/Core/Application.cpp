@@ -53,12 +53,14 @@ namespace SciRenderer
     // Load the default assets.
     this->texture2DAssets->setDefaultAsset(Texture2D::createMonoColour(
       glm::vec4(1.0f, 0.0f, 1.0f, 1.0f), Texture2DParams(), false));
+    Texture2D::createMonoColour(glm::vec4(1.0f));
+    Texture2D::createMonoColour(glm::vec4(0.5f, 0.5f, 1.0f, 1.0f));
 
     this->imLayer = new ImGuiLayer();
     this->pushOverlay(this->imLayer);
 
     // Initialize the 3D renderer.
-    Renderer3D::init();
+    Renderer3D::init(1600.0f, 900.0f);
   }
 
   Application::~Application()
@@ -136,6 +138,7 @@ namespace SciRenderer
       // Must be called at the end of every frame to create textures with loaded
       // images.
       Texture2D::bulkGenerateTextures();
+      Model::bulkGenerateMaterials();
     }
   }
 

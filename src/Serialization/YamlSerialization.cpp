@@ -265,10 +265,10 @@ namespace SciRenderer
         out << YAML::BeginMap;
 
         auto& component = entity.getComponent<DirectionalLightComponent>();
-        out << YAML::Key << "Direction" << YAML::Value << component.direction;
-        out << YAML::Key << "Colour" << YAML::Value << component.colour;
-        out << YAML::Key << "Intensity" << YAML::Value << component.intensity;
-        out << YAML::Key << "CastShadows" << YAML::Value << component.castShadows;
+        out << YAML::Key << "Direction" << YAML::Value << component.light.direction;
+        out << YAML::Key << "Colour" << YAML::Value << component.light.colour;
+        out << YAML::Key << "Intensity" << YAML::Value << component.light.intensity;
+        out << YAML::Key << "CastShadows" << YAML::Value << component.light.castShadows;
 
         out << YAML::EndMap;
       }
@@ -279,11 +279,11 @@ namespace SciRenderer
         out << YAML::BeginMap;
 
         auto& component = entity.getComponent<PointLightComponent>();
-        out << YAML::Key << "Position" << YAML::Value << component.position;
-        out << YAML::Key << "Colour" << YAML::Value << component.colour;
-        out << YAML::Key << "Intensity" << YAML::Value << component.intensity;
-        out << YAML::Key << "Radius" << YAML::Value << component.radius;
-        out << YAML::Key << "CastShadows" << YAML::Value << component.castShadows;
+        out << YAML::Key << "Position" << YAML::Value << component.light.position;
+        out << YAML::Key << "Colour" << YAML::Value << component.light.colour;
+        out << YAML::Key << "Intensity" << YAML::Value << component.light.intensity;
+        out << YAML::Key << "Radius" << YAML::Value << component.light.radius;
+        out << YAML::Key << "CastShadows" << YAML::Value << component.light.castShadows;
 
         out << YAML::EndMap;
       }
@@ -294,14 +294,14 @@ namespace SciRenderer
         out << YAML::BeginMap;
 
         auto& component = entity.getComponent<SpotLightComponent>();
-        out << YAML::Key << "Position" << YAML::Value << component.position;
-        out << YAML::Key << "Direction" << YAML::Value << component.direction;
-        out << YAML::Key << "Colour" << YAML::Value << component.colour;
-        out << YAML::Key << "Intensity" << YAML::Value << component.intensity;
-        out << YAML::Key << "InnerCutoff" << YAML::Value << component.innerCutoff;
-        out << YAML::Key << "OuterCutoff" << YAML::Value << component.outerCutoff;
-        out << YAML::Key << "Radius" << YAML::Value << component.radius;
-        out << YAML::Key << "CastShadows" << YAML::Value << component.castShadows;
+        out << YAML::Key << "Position" << YAML::Value << component.light.position;
+        out << YAML::Key << "Direction" << YAML::Value << component.light.direction;
+        out << YAML::Key << "Colour" << YAML::Value << component.light.colour;
+        out << YAML::Key << "Intensity" << YAML::Value << component.light.intensity;
+        out << YAML::Key << "InnerCutoff" << YAML::Value << component.light.innerCutoff;
+        out << YAML::Key << "OuterCutoff" << YAML::Value << component.light.outerCutoff;
+        out << YAML::Key << "Radius" << YAML::Value << component.light.radius;
+        out << YAML::Key << "CastShadows" << YAML::Value << component.light.castShadows;
 
         out << YAML::EndMap;
       }
@@ -481,13 +481,11 @@ namespace SciRenderer
           // TODO: Handle internals separately.
           if (modelPath != "None")
           {
-            Model::asyncLoadModel(modelPath, modelName);
-
-            // TODO: Deserialize the material.
             auto materials = renderableComponent["Material"];
             if (materials)
               for (auto mat : materials)
                 deserializeMaterial(mat, newEntity);
+            Model::asyncLoadModel(modelPath, modelName, &rComponent.materials);
           }
         }
 
@@ -495,35 +493,35 @@ namespace SciRenderer
         if (directionalComponent)
         {
           auto& dComponent = newEntity.addComponent<DirectionalLightComponent>();
-          dComponent.direction = directionalComponent["Direction"].as<glm::vec3>();
-          dComponent.colour = directionalComponent["Colour"].as<glm::vec3>();
-          dComponent.intensity = directionalComponent["Intensity"].as<GLfloat>();
-          dComponent.castShadows = directionalComponent["CastShadows"].as<bool>();
+          dComponent.light.direction = directionalComponent["Direction"].as<glm::vec3>();
+          dComponent.light.colour = directionalComponent["Colour"].as<glm::vec3>();
+          dComponent.light.intensity = directionalComponent["Intensity"].as<GLfloat>();
+          dComponent.light.castShadows = directionalComponent["CastShadows"].as<bool>();
         }
 
         auto pointComponent = entity["PointLightComponent"];
         if (pointComponent)
         {
           auto& pComponent = newEntity.addComponent<PointLightComponent>();
-          pComponent.position = pointComponent["Position"].as<glm::vec3>();
-          pComponent.colour = pointComponent["Colour"].as<glm::vec3>();
-          pComponent.intensity = pointComponent["Intensity"].as<GLfloat>();
-          pComponent.radius = pointComponent["Radius"].as<GLfloat>();
-          pComponent.castShadows = pointComponent["CastShadows"].as<bool>();
+          pComponent.light.position = pointComponent["Position"].as<glm::vec3>();
+          pComponent.light.colour = pointComponent["Colour"].as<glm::vec3>();
+          pComponent.light.intensity = pointComponent["Intensity"].as<GLfloat>();
+          pComponent.light.radius = pointComponent["Radius"].as<GLfloat>();
+          pComponent.light.castShadows = pointComponent["CastShadows"].as<bool>();
         }
 
         auto spotComponent = entity["SpotLightComponent"];
         if (spotComponent)
         {
           auto& sComponent = newEntity.addComponent<SpotLightComponent>();
-          sComponent.position = spotComponent["Position"].as<glm::vec3>();
-          sComponent.direction = spotComponent["Direction"].as<glm::vec3>();
-          sComponent.colour = spotComponent["Colour"].as<glm::vec3>();
-          sComponent.intensity = spotComponent["Intensity"].as<GLfloat>();
-          sComponent.innerCutoff = spotComponent["InnerCutoff"].as<GLfloat>();
-          sComponent.outerCutoff = spotComponent["OuterCutoff"].as<GLfloat>();
-          sComponent.radius = spotComponent["Radius"].as<GLfloat>();
-          sComponent.castShadows = spotComponent["CastShadows"].as<bool>();
+          sComponent.light.position = spotComponent["Position"].as<glm::vec3>();
+          sComponent.light.direction = spotComponent["Direction"].as<glm::vec3>();
+          sComponent.light.colour = spotComponent["Colour"].as<glm::vec3>();
+          sComponent.light.intensity = spotComponent["Intensity"].as<GLfloat>();
+          sComponent.light.innerCutoff = spotComponent["InnerCutoff"].as<GLfloat>();
+          sComponent.light.outerCutoff = spotComponent["OuterCutoff"].as<GLfloat>();
+          sComponent.light.radius = spotComponent["Radius"].as<GLfloat>();
+          sComponent.light.castShadows = spotComponent["CastShadows"].as<bool>();
         }
 
         auto ambientComponent = entity["AmbientComponent"];

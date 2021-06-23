@@ -9,6 +9,61 @@
 
 namespace SciRenderer
 {
+  std::queue<std::pair<Model*, ModelMaterial*>> Model::asyncModelQueue;
+  std::mutex Model::asyncModelMutex;
+
+  void
+  Model::bulkGenerateMaterials()
+  {
+    std::lock_guard<std::mutex> imageGuard(asyncModelMutex);
+
+    Logger* logs = Logger::getInstance();
+
+    while (!asyncModelQueue.empty())
+    {
+      auto& model = asyncModelQueue.front().first;
+      auto& materials = asyncModelQueue.front().second;
+      auto& submeshes = model->getSubmeshes();
+      auto& submaterials = materials->getStorage();
+
+      if (submeshes.size() != submaterials.size())
+      {
+        submaterials.clear();
+        for (auto& pair : submeshes)
+          materials->attachMesh(pair.first, MaterialType::PBR);
+      }
+
+      asyncModelQueue.pop();
+    }
+  }
+
+  void
+  Model::asyncLoadModel(const std::string &filepath, const std::string &name,
+                        ModelMaterial* materialContainer)
+  {
+    // Fetch the thread pool.
+    auto workerGroup = ThreadPool::getInstance(2);
+
+    auto loaderImpl = [](const std::string &filepath, const std::string &name,
+                         ModelMaterial* materialContainer)
+    {
+      auto modelAssets = AssetManager<Model>::getManager();
+
+      if (!modelAssets->hasAsset(name))
+      {
+        Model* loadable = new Model();
+        loadable->loadModel(filepath);
+
+        modelAssets->attachAsset(name, loadable);
+
+        std::lock_guard<std::mutex> imageGuard(asyncModelMutex);
+        asyncModelQueue.push({ loadable, materialContainer });
+      }
+    };
+
+    workerGroup->push(loaderImpl, filepath, name, materialContainer);
+  }
+
   Model::Model()
     : loaded(false)
   { }
@@ -53,28 +108,6 @@ namespace SciRenderer
     this->loaded = true;
     eventDispatcher->queueEvent(new GuiEvent(GuiEventType::EndSpinnerEvent, ""));
     logs->logMessage(LogMessage("Model loaded at path " + filepath));
-  }
-
-  void
-  Model::asyncLoadModel(const std::string &filepath, const std::string &name)
-  {
-    // Fetch the thread pool.
-    auto workerGroup = ThreadPool::getInstance(2);
-
-    auto loaderImpl = [](const std::string &filepath, const std::string &name)
-    {
-      auto modelAssets = AssetManager<Model>::getManager();
-
-      if (!modelAssets->hasAsset(name))
-      {
-        Model* loadable = new Model();
-        loadable->loadModel(filepath);
-
-        modelAssets->attachAsset(name, loadable);
-      }
-    };
-
-    workerGroup->push(loaderImpl, filepath, name);
   }
 
   // Recursively process all the nodes in the mesh.

@@ -221,8 +221,8 @@ namespace SciRenderer
             if (this->selectedEntity.hasComponent<RenderableComponent>())
               this->selectedEntity.removeComponent<RenderableComponent>();
 
-            Model::asyncLoadModel(path, name);
             auto& renderable = this->selectedEntity.addComponent<RenderableComponent>(name);
+            Model::asyncLoadModel(path, name, &renderable.materials);
 
             this->fileTargets = FileLoadTargets::TargetNone;
             break;
@@ -444,9 +444,9 @@ namespace SciRenderer
         this->selectedEntity, [this](auto& component)
       {
         ImGui::PushID("DirectionalLight");
-        ImGui::Checkbox("Cast Shadows", &component.castShadows);
-        ImGui::ColorEdit3("Colour", &component.colour.r);
-        Styles::drawFloatControl("Intensity", 0.0f, component.intensity,
+        ImGui::Checkbox("Cast Shadows", &component.light.castShadows);
+        ImGui::ColorEdit3("Colour", &component.light.colour.r);
+        Styles::drawFloatControl("Intensity", 0.0f, component.light.intensity,
                                  0.0f, 0.1f, 0.0f, 10.0f);
         ImGui::PopID();
       });
@@ -455,10 +455,10 @@ namespace SciRenderer
         this->selectedEntity, [this](auto& component)
       {
         ImGui::PushID("PointLight");
-        ImGui::Checkbox("Cast Shadows", &component.castShadows);
-        ImGui::ColorEdit3("Colour", &component.colour.r);
-        Styles::drawFloatControl("Radius", 0.0f, component.radius, 0.0f, 0.1f, 0.0f, 100.0f);
-        Styles::drawFloatControl("Intensity", 0.0f, component.intensity,
+        ImGui::Checkbox("Cast Shadows", &component.light.castShadows);
+        ImGui::ColorEdit3("Colour", &component.light.colour.r);
+        Styles::drawFloatControl("Radius", 0.0f, component.light.radius, 0.0f, 0.1f, 0.0f, 100.0f);
+        Styles::drawFloatControl("Intensity", 0.0f, component.light.intensity,
                                  0.0f, 0.1f, 0.0f, 10.0f);
         ImGui::PopID();
       });
@@ -467,19 +467,19 @@ namespace SciRenderer
         this->selectedEntity, [this](auto& component)
       {
         ImGui::PushID("SpotLight");
-        ImGui::Checkbox("Cast Shadows", &component.castShadows);
-        ImGui::ColorEdit3("Colour", &component.colour.r);
-        Styles::drawFloatControl("Radius", 0.0f, component.radius, 0.0f, 0.1f, 0.0f, 100.0f);
-        Styles::drawFloatControl("Intensity", 0.0f, component.intensity,
+        ImGui::Checkbox("Cast Shadows", &component.light.castShadows);
+        ImGui::ColorEdit3("Colour", &component.light.colour.r);
+        Styles::drawFloatControl("Radius", 0.0f, component.light.radius, 0.0f, 0.1f, 0.0f, 100.0f);
+        Styles::drawFloatControl("Intensity", 0.0f, component.light.intensity,
                                  0.0f, 0.1f, 0.0f, 10.0f);
-        GLfloat innerAngle = glm::degrees(std::acos(component.innerCutoff));
+        GLfloat innerAngle = glm::degrees(std::acos(component.light.innerCutoff));
         Styles::drawFloatControl("Inner Cutoff", 45.0f, innerAngle,
                                  0.0f, 0.1f, 0.0f, 360.0f);
-        component.innerCutoff = std::cos(glm::radians(innerAngle));
-        GLfloat outerAngle = glm::degrees(std::acos(component.outerCutoff));
+        component.light.innerCutoff = std::cos(glm::radians(innerAngle));
+        GLfloat outerAngle = glm::degrees(std::acos(component.light.outerCutoff));
         Styles::drawFloatControl("Outer Cutoff", 90.0f, outerAngle,
                                  0.0f, 0.1f, 0.0f, 360.0f);
-        component.outerCutoff = std::cos(glm::radians(outerAngle));
+        component.light.outerCutoff = std::cos(glm::radians(outerAngle));
         ImGui::PopID();
       });
 
@@ -539,8 +539,8 @@ namespace SciRenderer
       if (this->selectedEntity.hasComponent<RenderableComponent>())
         this->selectedEntity.removeComponent<RenderableComponent>();
 
-      Model::asyncLoadModel(filepath, filename);
       auto& renderable = this->selectedEntity.addComponent<RenderableComponent>(filename);
+      Model::asyncLoadModel(filepath, filename, &renderable.materials);
     }
   }
 

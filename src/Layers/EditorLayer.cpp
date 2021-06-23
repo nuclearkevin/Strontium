@@ -138,23 +138,14 @@ namespace SciRenderer
     static_cast<MaterialWindow*>(this->windows[4])->setSelectedEntity(selectedEntity);
 
     // Update the size of the framebuffer to fit the editor window.
-    glm::vec2 size = this->drawBuffer->getSize();
-    if (this->editorSize.x != size.x || this->editorSize.y != size.y)
-    {
-      if (this->editorSize.x >= 1.0f && this->editorSize.y >= 1.0f)
-        this->editorCam->updateProj(90.0f, editorSize.x / editorSize.y, 0.1f, 30.0f);
-      this->drawBuffer->resize(this->editorSize.x, this->editorSize.y);
-    }
-
-    // Draw the scene.
-    this->drawBuffer->clear();
-    this->drawBuffer->bind();
-    this->drawBuffer->setViewport();
+    if (this->editorSize.x >= 1.0f && this->editorSize.y >= 1.0f)
+      this->editorCam->updateProj(90.0f, editorSize.x / editorSize.y,
+                                  this->editorCam->getNear(),
+                                  this->editorCam->getFar());
 
     // Update the scene.
-    Renderer3D::begin(this->editorSize.x, this->editorSize.y, this->editorCam, true);
+    Renderer3D::begin(this->editorSize.x, this->editorSize.y, this->editorCam, false);
     this->currentScene->onUpdate(dt, this->editorCam);
-    this->drawBuffer->unbind();
     Renderer3D::end();
 
     // Update the editor camera.
@@ -412,8 +403,8 @@ namespace SciRenderer
 
       auto model = this->currentScene->createEntity(filename.substr(0, filename.find_last_of('.')));
       model.addComponent<TransformComponent>();
-      Model::asyncLoadModel(filepath, filename);
-      model.addComponent<RenderableComponent>(filename);
+      auto& rComponent = model.addComponent<RenderableComponent>(filename);
+      Model::asyncLoadModel(filepath, filename, &rComponent.materials);
     }
 
     // If its a supported image, load and cache it.

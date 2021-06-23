@@ -7,11 +7,15 @@
 #include "Core/ApplicationBase.h"
 #include "Graphics/Meshes.h"
 #include "Graphics/Textures.h"
+#include "Graphics/Material.h"
 
 // Assimp so more than just obj files can be loaded.
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
+
+// STL includes.
+#include <mutex>
 
 namespace SciRenderer
 {
@@ -22,8 +26,12 @@ namespace SciRenderer
     Model();
     ~Model();
 
+    static std::queue<std::pair<Model*, ModelMaterial*>> asyncModelQueue;
+    static std::mutex asyncModelMutex;
+
     // Async load a model (using a separate thread).
-    static void asyncLoadModel(const std::string &filepath, const std::string &name);
+    static void bulkGenerateMaterials();
+    static void asyncLoadModel(const std::string &filepath, const std::string &name, ModelMaterial* materialContainer);
 
     // Load a model.
     void loadModel(const std::string &filepath);

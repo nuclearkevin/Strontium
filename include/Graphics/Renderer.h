@@ -15,6 +15,8 @@
 #include "Graphics/FrameBuffer.h"
 #include "Graphics/EnvironmentMap.h"
 
+#include <tuple>
+
 namespace SciRenderer
 {
   // The 3D renderer!
@@ -26,6 +28,13 @@ namespace SciRenderer
       glm::vec3 colour;
       GLfloat intensity;
       bool castShadows;
+
+      DirectionalLight()
+        : direction(glm::vec3(0.0f, -1.0f, 0.0f))
+        , colour(glm::vec3(1.0f))
+        , intensity(0.0f)
+        , castShadows(false)
+      { }
     };
 
     struct PointLight
@@ -35,6 +44,14 @@ namespace SciRenderer
       GLfloat intensity;
       GLfloat radius;
       bool castShadows;
+
+      PointLight()
+        : position(glm::vec3(0.0f))
+        , colour(glm::vec3(1.0f))
+        , intensity(0.0f)
+        , radius(0.0f)
+        , castShadows(false)
+      { }
     };
 
     struct SpotLight
@@ -47,6 +64,17 @@ namespace SciRenderer
       GLfloat outerCutoff;
       GLfloat radius;
       bool castShadows;
+
+      SpotLight()
+        : position(glm::vec3(0.0f))
+        , direction(glm::vec3(0.0f, -1.0f, 0.0f))
+        , colour(glm::vec3(1.0f))
+        , intensity(0.0f)
+        , innerCutoff(std::cos(glm::radians(45.0f)))
+        , outerCutoff(std::cos(glm::radians(90.0f)))
+        , radius(0.0f)
+        , castShadows(false)
+      { }
     };
 
     // The renderer storage.
@@ -55,6 +83,8 @@ namespace SciRenderer
       // Size of the buffers.
       GLuint width;
       GLuint height;
+
+      bool isForward;
 
       VertexArray fsq;
 
@@ -69,7 +99,6 @@ namespace SciRenderer
       Unique<EnvironmentMap> currentEnvironment;
       Shared<Camera> sceneCam;
 
-      std::vector<std::pair<Shared<Mesh>, Material*>> deferredQueue;
       std::vector<DirectionalLight> directionalQueue;
       std::vector<PointLight> pointQueue;
       std::vector<SpotLight> spotQueue;
@@ -106,16 +135,22 @@ namespace SciRenderer
       GLuint drawCalls;
       GLuint numVertices;
       GLuint numTriangles;
+      GLuint numDirLights;
+      GLuint numPointLights;
+      GLuint numSpotLights;
 
       RendererStats()
         : drawCalls(0)
         , numVertices(0)
         , numTriangles(0)
+        , numDirLights(0)
+        , numPointLights(0)
+        , numSpotLights(0)
       { }
     };
 
     // Init the renderer for drawing.
-    void init(const GLuint width = 1600, const GLuint height = 900);
+    void init(const GLuint width, const GLuint height);
     void shutdown();
 
     RendererStorage* getStorage();
@@ -125,11 +160,6 @@ namespace SciRenderer
     // Generic begin and end for the renderer.
     void begin(GLuint width, GLuint height, Shared<Camera> sceneCam, bool isForward = false);
     void end();
-
-    // Draw the data given, forward rendering style.
-    void draw(VertexArray* data, Shader* program);
-    void draw(Model* data, ModelMaterial &materials, const glm::mat4 &model, Shared<Camera> camera);
-    void drawEnvironment(Shared<Camera> camera);
 
     // Deferred rendering setup.
     void submit(Model* data, ModelMaterial &materials, const glm::mat4 &model);

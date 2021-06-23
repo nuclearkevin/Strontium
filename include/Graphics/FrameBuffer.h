@@ -98,20 +98,12 @@ namespace SciRenderer
     Shared<Texture2D> unattachTexture2D(const FBOTargetParam &attachment);
 
     void setDrawBuffers();
+    void bindTextureID(const FBOTargetParam &attachment, GLuint bindPoint);
+    void blitzToOther(FrameBuffer &target, const FBOTargetParam &type);
 
     // Update the framebuffer size.
     void resize(GLuint width, GLuint height);
-
-    // Set the viewport size.
     void setViewport();
-
-    // Get the IDs of the attachments.
-    GLuint getAttachID(const FBOTargetParam &attachment);
-    void bindTextureID(const FBOTargetParam &attachment, GLuint bindPoint);
-    GLuint getRenderBufferID();
-
-    // Get the size of the framebuffer.
-    glm::vec2 getSize() { return glm::vec2(this->width, this->height); }
 
     // Clear the buffer.
     void clear();
@@ -119,19 +111,23 @@ namespace SciRenderer
     // Check if the framebuffer is valid.
     bool isValid();
 
+    glm::vec2 getSize() { return glm::vec2(this->width, this->height); }
+    GLuint getAttachID(const FBOTargetParam &attachment);
+    GLuint getRenderBufferID();
+    GLuint getID() { return this->bufferID; }
   protected:
-    GLuint       bufferID;
+    GLuint bufferID;
 
     std::unordered_map<FBOTargetParam, std::pair<FBOSpecification, Shared<Texture2D>>> textureAttachments;
     Shared<RenderBuffer> depthBuffer;
 
-    GLuint       width, height;
+    GLuint width, height;
 
-    bool         hasRenderBuffer;
+    bool hasRenderBuffer;
 
-    GLbitfield   clearFlags;
+    GLbitfield clearFlags;
 
-    glm::vec4    clearColour;
+    glm::vec4 clearColour;
   };
 
   namespace FBOCommands

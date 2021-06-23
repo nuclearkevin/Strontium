@@ -130,7 +130,6 @@ namespace SciRenderer
     ~ModelMaterial() = default;
 
     void attachMesh(const std::string &meshName, MaterialType type = MaterialType::PBR);
-    void attachModel(Model* model, MaterialType type = MaterialType::PBR);
 
     Material* getMaterial(const std::string &meshName);
 

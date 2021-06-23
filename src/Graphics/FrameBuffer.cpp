@@ -272,6 +272,55 @@ namespace SciRenderer
     this->unbind();
   }
 
+  void
+  FrameBuffer::blitzToOther(FrameBuffer &target, const FBOTargetParam &type)
+  {
+    switch (type)
+    {
+      case FBOTargetParam::Depth:
+      {
+        auto otherSize = target.getSize();
+        glBlitNamedFramebuffer(this->bufferID, target.getID(), 0, 0,
+                               this->width, this->height, 0, 0,
+                               (GLuint) otherSize.x, (GLuint) otherSize.y,
+                               GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+        break;
+      }
+
+      case FBOTargetParam::Stencil:
+      {
+        auto otherSize = target.getSize();
+        glBlitNamedFramebuffer(this->bufferID, target.getID(), 0, 0,
+                               this->width, this->height, 0, 0,
+                               (GLuint) otherSize.x, (GLuint) otherSize.y,
+                               GL_STENCIL_BUFFER_BIT, GL_NEAREST);
+        break;
+      }
+
+      case FBOTargetParam::DepthStencil:
+      {
+        auto otherSize = target.getSize();
+        glBlitNamedFramebuffer(this->bufferID, target.getID(), 0, 0,
+                               this->width, this->height, 0, 0,
+                               (GLuint) otherSize.x, (GLuint) otherSize.y,
+                               GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT,
+                               GL_NEAREST);
+        break;
+      }
+
+      default:
+      {
+        // Default to colour for any other attachment.
+        auto otherSize = target.getSize();
+        glBlitNamedFramebuffer(this->bufferID, target.getID(), 0, 0,
+                               this->width, this->height, 0, 0,
+                               (GLuint) otherSize.x, (GLuint) otherSize.y,
+                               GL_COLOR_BUFFER_BIT, GL_LINEAR);
+        break;
+      }
+    }
+  }
+
   // Resize the framebuffer.
   void
   FrameBuffer::resize(GLuint width, GLuint height)
