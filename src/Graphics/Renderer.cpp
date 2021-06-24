@@ -202,60 +202,40 @@ namespace SciRenderer
 
     void submit(Model* data, ModelMaterial &materials, const glm::mat4 &model)
     {
-      if (storage->isForward)
+      for (auto& pair : data->getSubmeshes())
       {
-        for (auto& pair : data->getSubmeshes())
+        Material* material = materials.getMaterial(pair.first);
+        if (!material)
         {
-          Material* material = materials.getMaterial(pair.first);
-          Shader* program = material->getShader();
+          // Generate a material for the submesh if it doesn't have one.
+          materials.attachMesh(pair.first);
+          material = materials.getMaterial(pair.first);
+        }
 
-          material->getVec3("camera.position") = storage->sceneCam->getCamPos();
-          material->getMat3("normalMat") = glm::transpose(glm::inverse(glm::mat3(model)));
-          material->getMat4("model") = model;
-          material->getMat4("mVP") = storage->sceneCam->getProjMatrix() * storage->sceneCam->getViewMatrix() * model;
-          material->configure();
+        Shader* program;
+        if (storage->isForward)
+          program = material->getShader();
+        else
+          program = storage->geometryShader;
 
+        material->getVec3("camera.position") = storage->sceneCam->getCamPos();
+        material->getMat3("normalMat") = glm::transpose(glm::inverse(glm::mat3(model)));
+        material->getMat4("model") = model;
+        material->getMat4("mVP") = storage->sceneCam->getProjMatrix() * storage->sceneCam->getViewMatrix() * model;
+        material->configure(program);
+
+        if (pair.second->hasVAO())
+          Renderer3D::draw(pair.second->getVAO(), program);
+        else
+        {
+          pair.second->generateVAO();
           if (pair.second->hasVAO())
             Renderer3D::draw(pair.second->getVAO(), program);
-          else
-          {
-            pair.second->generateVAO();
-            if (pair.second->hasVAO())
-              Renderer3D::draw(pair.second->getVAO(), program);
-          }
-
-          stats->drawCalls++;
-          stats->numVertices += pair.second->getData().size();
-          stats->numTriangles += pair.second->getIndices().size() / 3;
         }
-      }
-      else
-      {
-        for (auto& pair : data->getSubmeshes())
-        {
-          Material* material = materials.getMaterial(pair.first);
-          Shader* program = material->getShader();
 
-          material->getVec3("camera.position") = storage->sceneCam->getCamPos();
-          material->getMat3("normalMat") = glm::transpose(glm::inverse(glm::mat3(model)));
-          material->getMat4("model") = model;
-          material->getMat4("mVP") = storage->sceneCam->getProjMatrix()
-            * storage->sceneCam->getViewMatrix() * model;
-          material->configure(storage->geometryShader);
-
-          if (pair.second->hasVAO())
-            Renderer3D::draw(pair.second->getVAO(), storage->geometryShader);
-          else
-          {
-            pair.second->generateVAO();
-            if (pair.second->hasVAO())
-              Renderer3D::draw(pair.second->getVAO(), storage->geometryShader);
-          }
-
-          stats->drawCalls++;
-          stats->numVertices += pair.second->getData().size();
-          stats->numTriangles += pair.second->getIndices().size() / 3;
-        }
+        stats->drawCalls++;
+        stats->numVertices += pair.second->getData().size();
+        stats->numTriangles += pair.second->getIndices().size() / 3;
       }
     }
 

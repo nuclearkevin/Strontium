@@ -55,6 +55,7 @@ namespace SciRenderer
     // Managing the current scene.
     FileLoadTargets loadTarget;
     FileSaveTargets saveTarget;
+    std::string dndScenePath;
 
     // The various external windows. Kinda janky.
     // TODO: use an unordered map?

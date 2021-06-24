@@ -441,8 +441,6 @@ namespace SciRenderer
       if (!entities)
         return false;
 
-      scene->getRegistry().clear();
-
       for (auto entity : entities)
       {
         GLuint entityID = entity["EntityID"].as<GLuint>();

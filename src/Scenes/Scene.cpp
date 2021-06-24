@@ -7,7 +7,8 @@
 
 namespace SciRenderer
 {
-  Scene::Scene()
+  Scene::Scene(const std::string &filepath)
+    : saveFilepath(filepath)
   { }
 
   Scene::~Scene()
@@ -36,7 +37,13 @@ namespace SciRenderer
   }
 
   void
-  Scene::onUpdate(float dt, Shared<Camera> sceneCamera)
+  Scene::onUpdate(float dt)
+  {
+
+  }
+
+  void
+  Scene::render(Shared<Camera> sceneCamera)
   {
     auto modelAssets = AssetManager<Model>::getManager();
 

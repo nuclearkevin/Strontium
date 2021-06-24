@@ -17,18 +17,22 @@ namespace SciRenderer
   class Scene
   {
   public:
-    Scene();
+    Scene(const std::string &filepath = "");
     ~Scene();
 
     Entity createEntity(const std::string& name = "New Entity");
     Entity createEntity(GLuint entityID, const std::string& name = "New Entity");
     void deleteEntity(Entity entity);
 
-    void onUpdate(float dt, Shared<Camera> sceneCamera);
+    void onUpdate(float dt);
+    void render(Shared<Camera> sceneCamera);
 
     entt::registry& getRegistry() { return this->sceneECS; }
+    std::string& getSaveFilepath() { return this->saveFilepath; }
   protected:
     entt::registry sceneECS;
+
+    std::string saveFilepath;
 
     friend class Entity;
     friend class SceneGraphWindow;

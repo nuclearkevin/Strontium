@@ -19,6 +19,7 @@ namespace SciRenderer
     : Layer("Editor Layer")
     , loadTarget(FileLoadTargets::TargetNone)
     , saveTarget(FileSaveTargets::TargetNone)
+    , dndScenePath("")
     , showPerf(true)
     , editorSize(ImVec2(0, 0))
     , gizmoType(-1)
@@ -97,7 +98,16 @@ namespace SciRenderer
 
         if (this->loadTarget == FileLoadTargets::TargetScene)
         {
-          YAMLSerialization::deserializeScene(this->currentScene, loadEvent.getAbsPath());
+          Shared<Scene> tempScene = createShared<Scene>();
+          bool success = YAMLSerialization::deserializeScene(tempScene, loadEvent.getAbsPath());
+
+          if (success)
+          {
+            this->currentScene = tempScene;
+            this->currentScene->getSaveFilepath() = loadEvent.getAbsPath();
+            static_cast<SceneGraphWindow*>(this->windows[0])->setSelectedEntity(Entity());
+            static_cast<MaterialWindow*>(this->windows[4])->setSelectedEntity(Entity());
+          }
         }
 
         this->loadTarget = FileLoadTargets::TargetNone;
@@ -112,6 +122,21 @@ namespace SciRenderer
         {
           std::string name = saveEvent.getFileName().substr(0, saveEvent.getFileName().find_last_of('.'));
           YAMLSerialization::serializeScene(this->currentScene, saveEvent.getAbsPath(), name);
+          this->currentScene->getSaveFilepath() = saveEvent.getAbsPath();
+
+          if (this->dndScenePath != "")
+          {
+            static_cast<SceneGraphWindow*>(this->windows[0])->setSelectedEntity(Entity());
+            static_cast<MaterialWindow*>(this->windows[4])->setSelectedEntity(Entity());
+
+            Shared<Scene> tempScene = createShared<Scene>();
+            if (YAMLSerialization::deserializeScene(tempScene, this->dndScenePath))
+            {
+              this->currentScene = tempScene;
+              this->currentScene->getSaveFilepath() = this->dndScenePath;
+            }
+            this->dndScenePath = "";
+          }
         }
 
         this->saveTarget = FileSaveTargets::TargetNone;
@@ -149,8 +174,11 @@ namespace SciRenderer
     }
 
     // Update the scene.
+    this->currentScene->onUpdate(dt);
+
+    // Draw the scene.
     Renderer3D::begin(this->editorSize.x, this->editorSize.y, this->editorCam, false);
-    this->currentScene->onUpdate(dt, this->editorCam);
+    this->currentScene->render(this->editorCam);
     Renderer3D::end(this->drawBuffer);
 
     // Update the editor camera.
@@ -214,7 +242,10 @@ namespace SciRenderer
     	{
        	if (ImGui::MenuItem("New", "Ctrl+N"))
        	{
+          auto storage = Renderer3D::getStorage();
+          storage->currentEnvironment->unloadEnvironment();
 
+          this->currentScene = createShared<Scene>();
        	}
         if (ImGui::MenuItem("Open...", "Ctrl+O"))
        	{
@@ -223,6 +254,23 @@ namespace SciRenderer
                                                        ".srn"));
           this->loadTarget = FileLoadTargets::TargetScene;
        	}
+        if (ImGui::MenuItem("Save", "Ctrl+S"))
+        {
+          if (this->currentScene->getSaveFilepath() != "")
+          {
+            std::string path =  this->currentScene->getSaveFilepath();
+            std::string name = path.substr(path.find_last_of('/') + 1, path.find_last_of('.'));
+
+            YAMLSerialization::serializeScene(this->currentScene, path, name);
+          }
+          else
+          {
+            EventDispatcher* dispatcher = EventDispatcher::getInstance();
+            dispatcher->queueEvent(new OpenDialogueEvent(DialogueEventType::FileSave,
+                                                         ".srn"));
+            this->saveTarget = FileSaveTargets::TargetScene;
+          }
+        }
         if (ImGui::MenuItem("Save As", "Ctrl+Shift+S"))
        	{
           EventDispatcher* dispatcher = EventDispatcher::getInstance();
@@ -376,6 +424,82 @@ namespace SciRenderer
       ImGui::End();
     }
 
+    // Show a warning when a new scene is to be loaded.
+    if (this->dndScenePath != "" && this->currentScene->getRegistry().size() > 0)
+    {
+      auto flags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse;
+
+      ImGui::Begin("Warning", nullptr, flags);
+
+      ImGui::Text("Loading a new scene will overwrite the current scene, do you wish to continue?");
+      ImGui::Text(" ");
+
+      auto cursor = ImGui::GetCursorPos();
+      ImGui::SetCursorPos(ImVec2(cursor.x + 90.0f, cursor.y));
+      if (ImGui::Button("Save and Continue"))
+      {
+        if (this->currentScene->getSaveFilepath() != "")
+        {
+          std::string path =  this->currentScene->getSaveFilepath();
+          std::string name = path.substr(path.find_last_of('/') + 1, path.find_last_of('.'));
+
+          YAMLSerialization::serializeScene(this->currentScene, path, name);
+
+          static_cast<SceneGraphWindow*>(this->windows[0])->setSelectedEntity(Entity());
+          static_cast<MaterialWindow*>(this->windows[4])->setSelectedEntity(Entity());
+
+          Shared<Scene> tempScene = createShared<Scene>();
+          if (YAMLSerialization::deserializeScene(tempScene, this->dndScenePath))
+          {
+            this->currentScene = tempScene;
+            this->currentScene->getSaveFilepath() = this->dndScenePath;
+          }
+          this->dndScenePath = "";
+        }
+        else
+        {
+          EventDispatcher* dispatcher = EventDispatcher::getInstance();
+          dispatcher->queueEvent(new OpenDialogueEvent(DialogueEventType::FileSave,
+                                                       ".srn"));
+          this->saveTarget = FileSaveTargets::TargetScene;
+        }
+      }
+
+      ImGui::SameLine();
+      if (ImGui::Button("Continue"))
+      {
+        static_cast<SceneGraphWindow*>(this->windows[0])->setSelectedEntity(Entity());
+        static_cast<MaterialWindow*>(this->windows[4])->setSelectedEntity(Entity());
+
+        Shared<Scene> tempScene = createShared<Scene>();
+        if (YAMLSerialization::deserializeScene(tempScene, this->dndScenePath))
+        {
+          this->currentScene = tempScene;
+          this->currentScene->getSaveFilepath() = this->dndScenePath;
+        }
+        this->dndScenePath = "";
+      }
+
+      ImGui::SameLine();
+      if (ImGui::Button("Cancel"))
+        this->dndScenePath = "";
+
+      ImGui::End();
+    }
+    else if (this->dndScenePath != "")
+    {
+      static_cast<SceneGraphWindow*>(this->windows[0])->setSelectedEntity(Entity());
+      static_cast<MaterialWindow*>(this->windows[4])->setSelectedEntity(Entity());
+
+      Shared<Scene> tempScene = createShared<Scene>();
+      if (YAMLSerialization::deserializeScene(tempScene, this->dndScenePath))
+      {
+        this->currentScene = tempScene;
+        this->currentScene->getSaveFilepath() = this->dndScenePath;
+      }
+      this->dndScenePath = "";
+    }
+
     // MUST KEEP THIS. Docking window end.
     ImGui::End();
   }
@@ -416,16 +540,18 @@ namespace SciRenderer
       Texture2D::loadImageAsync(filepath);
     }
 
+    if (filetype == ".hdr")
+    {
+      auto storage = Renderer3D::getStorage();
+      auto ambient = this->currentScene->createEntity("New Ambient Component");
+
+      storage->currentEnvironment->unloadEnvironment();
+      ambient.addComponent<AmbientComponent>(filepath);
+    }
+
     // Load a SciRender scene file.
     if (filetype == ".srn")
-    {
-      auto& selectedEntity = static_cast<SceneGraphWindow*>(this->windows[0])->getSelectedEntity();
-      selectedEntity = Entity();
-
-      Shared<Scene> tempScene = createShared<Scene>();
-      if (YAMLSerialization::deserializeScene(tempScene, filepath))
-        this->currentScene = tempScene;
-    }
+      this->dndScenePath = filepath;
   }
 
   void
@@ -436,35 +562,88 @@ namespace SciRenderer
 
     int keyCode = keyEvent.getKeyCode();
 
-    bool controlHeld = appWindow->isKeyPressed(GLFW_KEY_LEFT_CONTROL);
+    bool lControlHeld = appWindow->isKeyPressed(GLFW_KEY_LEFT_CONTROL);
+    bool lShiftHeld = appWindow->isKeyPressed(GLFW_KEY_LEFT_SHIFT);
 
     switch (keyCode)
     {
+      case GLFW_KEY_N:
+      {
+        if (lControlHeld)
+        {
+          auto storage = Renderer3D::getStorage();
+          storage->currentEnvironment->unloadEnvironment();
+
+          this->currentScene = createShared<Scene>();
+          static_cast<SceneGraphWindow*>(this->windows[0])->setSelectedEntity(Entity());
+          static_cast<MaterialWindow*>(this->windows[4])->setSelectedEntity(Entity());
+        }
+        break;
+      }
+      case GLFW_KEY_O:
+      {
+        if (lControlHeld)
+        {
+          EventDispatcher* dispatcher = EventDispatcher::getInstance();
+          dispatcher->queueEvent(new OpenDialogueEvent(DialogueEventType::FileOpen,
+                                                       ".srn"));
+          this->loadTarget = FileLoadTargets::TargetScene;
+        }
+        break;
+      }
+      case GLFW_KEY_S:
+      {
+        if (lControlHeld && lShiftHeld)
+        {
+          EventDispatcher* dispatcher = EventDispatcher::getInstance();
+          dispatcher->queueEvent(new OpenDialogueEvent(DialogueEventType::FileSave,
+                                                       ".srn"));
+          this->saveTarget = FileSaveTargets::TargetScene;
+        }
+        else if (lControlHeld)
+        {
+          if (this->currentScene->getSaveFilepath() != "")
+          {
+            std::string path =  this->currentScene->getSaveFilepath();
+            std::string name = path.substr(path.find_last_of('/') + 1, path.find_last_of('.'));
+
+            YAMLSerialization::serializeScene(this->currentScene, path, name);
+          }
+          else
+          {
+            EventDispatcher* dispatcher = EventDispatcher::getInstance();
+            dispatcher->queueEvent(new OpenDialogueEvent(DialogueEventType::FileSave,
+                                                         ".srn"));
+            this->saveTarget = FileSaveTargets::TargetScene;
+          }
+        }
+        break;
+      }
       case GLFW_KEY_Q:
       {
         // Stop using the Gizmo.
-        if (controlHeld)
+        if (lControlHeld)
           this->gizmoType = -1;
         break;
       }
       case GLFW_KEY_W:
       {
         // Translate.
-        if (controlHeld)
+        if (lControlHeld)
           this->gizmoType = ImGuizmo::TRANSLATE;
         break;
       }
       case GLFW_KEY_E:
       {
         // Rotate.
-        if (controlHeld)
+        if (lControlHeld)
           this->gizmoType = ImGuizmo::ROTATE;
         break;
       }
       case GLFW_KEY_R:
       {
         // Scale.
-        if (controlHeld)
+        if (lControlHeld)
           this->gizmoType = ImGuizmo::SCALE;
         break;
       }
