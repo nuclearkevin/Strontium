@@ -36,8 +36,12 @@ namespace SciRenderer
     void DNDTarget();
     void loadDNDAsset(const std::string &filepath);
 
-    // Handle keyboard events.
+    // Handle keyboard/mouse events.
     void onKeyPressEvent(KeyPressedEvent &keyEvent);
+    void onMouseEvent(MouseClickEvent &mouseEvent);
+
+    // Screenpicking.
+    void selectEntity();
 
     // Gizmo UI.
     int gizmoType;
@@ -65,5 +69,6 @@ namespace SciRenderer
     bool showPerf;
     bool showSceneGraph;
     ImVec2 editorSize;
+    ImVec2 bounds[2];
   };
 }

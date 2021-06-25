@@ -100,6 +100,7 @@ namespace SciRenderer
     void setDrawBuffers();
     void bindTextureID(const FBOTargetParam &attachment, GLuint bindPoint);
     void blitzToOther(FrameBuffer &target, const FBOTargetParam &type);
+    GLint readPixel(const FBOTargetParam &target, const glm::vec2 &mousePos);
 
     // Update the framebuffer size.
     void resize(GLuint width, GLuint height);

@@ -3,9 +3,11 @@
 uniform vec2 screenSize;
 uniform float gamma = 2.2;
 uniform sampler2D screenColour;
+uniform sampler2D entityIDs;
 
 // Output colour variable.
-layout(location = 0) out vec4 fragColour;
+layout(location = 1) out vec4 fragColour;
+layout(location = 0) out float fragID;
 
 void main()
 {
@@ -16,4 +18,5 @@ void main()
   colour = colour / (colour + vec3(1.0));
   colour = pow(colour, vec3(1.0 / gamma));
   fragColour = vec4(colour, 1.0);
+  fragID = texture(entityIDs, fTexCoords).r;
 }

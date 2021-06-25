@@ -321,6 +321,16 @@ namespace SciRenderer
     }
   }
 
+  GLint
+  FrameBuffer::readPixel(const FBOTargetParam &target, const glm::vec2 &mousePos)
+  {
+    this->bind();
+    glReadBuffer(static_cast<GLenum>(target));
+    GLfloat data;
+    glReadPixels((GLint) mousePos.x, (GLint) mousePos.y, 1, 1, GL_RED, GL_FLOAT, &data);
+    return (GLint) data;
+  }
+
   // Resize the framebuffer.
   void
   FrameBuffer::resize(GLuint width, GLuint height)

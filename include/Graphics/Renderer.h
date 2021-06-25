@@ -14,8 +14,7 @@
 #include "Graphics/Camera.h"
 #include "Graphics/FrameBuffer.h"
 #include "Graphics/EnvironmentMap.h"
-
-#include <tuple>
+#include "Graphics/RendererCommands.h"
 
 namespace SciRenderer
 {
@@ -97,6 +96,7 @@ namespace SciRenderer
       Shader* ambientShader;
       Shader* directionalShader;
       Shader* hdrPostShader;
+      Shader* outlineShader;
 
       Unique<EnvironmentMap> currentEnvironment;
       Shared<Camera> sceneCam;
@@ -164,34 +164,10 @@ namespace SciRenderer
     void end(Shared<FrameBuffer> frontBuffer);
 
     // Deferred rendering setup.
-    void submit(Model* data, ModelMaterial &materials, const glm::mat4 &model);
+    void submit(Model* data, ModelMaterial &materials, const glm::mat4 &model,
+                GLfloat id = 0.0f);
     void submit(DirectionalLight light);
     void submit(PointLight light, const glm::mat4 &model);
     void submit(SpotLight light, const glm::mat4 &model);
   }
-
-  // Depth functions. Addition to this as they are required.
-  enum class DepthFunctions
-  {
-    Less = GL_LESS,
-    LEq = GL_LEQUAL
-  };
-
-  // Render functions to glEnable. Adding to this as they are required.
-  enum class RendererFunction
-  {
-    DepthTest = GL_DEPTH_TEST,
-    CubeMapSeamless = GL_TEXTURE_CUBE_MAP_SEAMLESS
-  };
-
-  namespace RendererCommands
-  {
-    void enable(const RendererFunction &toEnable);
-    void disable(const RendererFunction &toDisable);
-    void depthFunction(const DepthFunctions &function);
-    void setClearColour(const glm::vec4 &colour);
-    void clear(const bool &clearColour = true, const bool &clearDepth = true,
-               const bool &clearStencil = true);
-    void setViewport(const glm::ivec2 topRight, const glm::ivec2 bottomLeft = glm::ivec2(0));
-  };
 }

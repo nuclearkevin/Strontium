@@ -56,6 +56,9 @@ namespace SciRenderer
       ImGui::Text("Materials:");
       ImGui::Image((ImTextureID) (unsigned long) storage->geometryPass.getAttachID(FBOTargetParam::Colour3),
                    ImVec2(128.0f * ratio, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
+      ImGui::Text("Entity IDs:");
+      ImGui::Image((ImTextureID) (unsigned long) storage->geometryPass.getAttachID(FBOTargetParam::Colour4),
+                   ImVec2(128.0f * ratio, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
     }
 
     if (ImGui::CollapsingHeader("Lighting Pass"))

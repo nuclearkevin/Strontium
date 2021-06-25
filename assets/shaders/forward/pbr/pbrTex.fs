@@ -40,6 +40,7 @@ uniform vec3 uAlbedo = vec3(1.0);
 uniform float uMetallic = 1.0;
 uniform float uRoughness = 1.0;
 uniform float uAO = 1.0;
+uniform float uID = -1.0;
 
 // Uniforms for PBR textures.
 uniform sampler2D albedoMap;
@@ -54,7 +55,8 @@ uniform samplerCube reflectanceMap;
 uniform sampler2D brdfLookUp;
 
 // Output colour variable.
-layout(location = 0) out vec4 fragColour;
+layout (location = 0) out vec4 fragColour;
+layout (location = 1) out float id;
 
 // Trowbridge-Reitz distribution function.
 float TRDistribution(vec3 N, vec3 H, float alpha);
@@ -98,6 +100,7 @@ void main()
 	colour = pow(colour, vec3(1.0 / 2.2));
 
   fragColour = vec4(colour.xyz, 1.0);
+	id = uID;
 }
 
 // Trowbridge-Reitz distribution function.

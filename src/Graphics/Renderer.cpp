@@ -60,16 +60,27 @@ namespace SciRenderer
       storage->height = height;
       storage->geometryPass = FrameBuffer(width, height);
 
-      auto cSpec = FBOCommands::getFloatColourSpec(FBOTargetParam::Colour0);
+      auto cSpec = FBOCommands::getFloatColourSpec(FBOTargetParam::Colour0); // The position texture.
       storage->geometryPass.attachTexture2D(cSpec);
-      cSpec = FBOCommands::getFloatColourSpec(FBOTargetParam::Colour1);
+      cSpec = FBOCommands::getFloatColourSpec(FBOTargetParam::Colour1); // The normal texture.
       storage->geometryPass.attachTexture2D(cSpec);
-      cSpec = FBOCommands::getFloatColourSpec(FBOTargetParam::Colour2);
+      cSpec = FBOCommands::getFloatColourSpec(FBOTargetParam::Colour2); // The albedo texture.
       storage->geometryPass.attachTexture2D(cSpec);
-      cSpec = FBOCommands::getFloatColourSpec(FBOTargetParam::Colour3);
+      cSpec = FBOCommands::getFloatColourSpec(FBOTargetParam::Colour3); // The lighting materials texture.
+      storage->geometryPass.attachTexture2D(cSpec);
+      cSpec = FBOCommands::getFloatColourSpec(FBOTargetParam::Colour4); // The ID texture.
+      cSpec.internal = TextureInternalFormats::R16F;
+      cSpec.format = TextureFormats::Red;
+      cSpec.sWrap = TextureWrapParams::ClampEdges;
+      cSpec.tWrap = TextureWrapParams::ClampEdges;
       storage->geometryPass.attachTexture2D(cSpec);
     	storage->geometryPass.attachRenderBuffer();
       storage->geometryPass.setDrawBuffers();
+
+      storage->lightingPass = FrameBuffer(width, height);
+      cSpec = FBOCommands::getFloatColourSpec(FBOTargetParam::Colour0);
+      storage->lightingPass.attachTexture2D(cSpec);
+      storage->lightingPass.attachRenderBuffer();
 
       storage->geometryShader = shaderCache->getAsset("geometry_pass_shader");
 
@@ -90,11 +101,7 @@ namespace SciRenderer
 
       storage->hdrPostShader = shaderCache->getAsset("post_hdr");
       storage->hdrPostShader->addUniformSampler("screenColour", 0);
-
-      storage->lightingPass = FrameBuffer(width, height);
-      cSpec = FBOCommands::getFloatColourSpec(FBOTargetParam::Colour0);
-      storage->lightingPass.attachTexture2D(cSpec);
-      storage->lightingPass.attachRenderBuffer();
+      storage->hdrPostShader->addUniformSampler("entityIDs", 1);
     }
 
     // Shutdown the renderer.
@@ -180,7 +187,7 @@ namespace SciRenderer
       data->bind();
       program->bind();
 
-      glDrawElements(GL_TRIANGLES, data->numToRender(), GL_UNSIGNED_INT, nullptr);
+      RendererCommands::drawPrimatives(PrimativeType::Triangle, data->numToRender());
 
       data->unbind();
       program->unbind();
@@ -200,7 +207,8 @@ namespace SciRenderer
       RendererCommands::depthFunction(DepthFunctions::Less);
     }
 
-    void submit(Model* data, ModelMaterial &materials, const glm::mat4 &model)
+    void submit(Model* data, ModelMaterial &materials, const glm::mat4 &model,
+                GLfloat id)
     {
       for (auto& pair : data->getSubmeshes())
       {
@@ -222,6 +230,7 @@ namespace SciRenderer
         material->getMat3("normalMat") = glm::transpose(glm::inverse(glm::mat3(model)));
         material->getMat4("model") = model;
         material->getMat4("mVP") = storage->sceneCam->getProjMatrix() * storage->sceneCam->getViewMatrix() * model;
+        material->getFloat("uID") = id + 1.0f;
         material->configure(program);
 
         if (pair.second->hasVAO())
@@ -296,9 +305,9 @@ namespace SciRenderer
       //------------------------------------------------------------------------
       // Directional lighting subpass.
       //------------------------------------------------------------------------
-      glEnable(GL_BLEND);
-      glBlendEquation(GL_FUNC_ADD);
-      glBlendFunc(GL_ONE, GL_ONE);
+      RendererCommands::enable(RendererFunction::Blending);
+      RendererCommands::blendEquation(BlendEquation::Additive);
+      RendererCommands::blendFunction(BlendFunction::One, BlendFunction::One);
 
       // Screen size.
       storage->directionalShader->addUniformVector("screenSize", storage->lightingPass.getSize());
@@ -325,7 +334,7 @@ namespace SciRenderer
       // Spot lighting subpass.
       //------------------------------------------------------------------------
       storage->spotQueue.clear();
-      glDisable(GL_BLEND);
+      RendererCommands::disable(RendererFunction::Blending);
 
       //------------------------------------------------------------------------
       // Draw the skybox.
@@ -339,65 +348,22 @@ namespace SciRenderer
 
     void postProcessPass(Shared<FrameBuffer> frontBuffer)
     {
+      GLfloat data = -1.0f;
       frontBuffer->clear();
       frontBuffer->bind();
       frontBuffer->setViewport();
 
       //------------------------------------------------------------------------
-      // HDR post processing pass.
+      // HDR post processing pass. Also streams the entity IDs to the editor
+      // buffer.
       //------------------------------------------------------------------------
       storage->hdrPostShader->addUniformVector("screenSize", frontBuffer->getSize());
       storage->lightingPass.bindTextureID(FBOTargetParam::Colour0, 0);
+      storage->geometryPass.bindTextureID(FBOTargetParam::Colour4, 1);
 
       draw(&storage->fsq, storage->hdrPostShader);
 
       frontBuffer->unbind();
     }
-  }
-
-  //----------------------------------------------------------------------------
-  // Renderer commands start here.
-  //----------------------------------------------------------------------------
-  void
-  RendererCommands::enable(const RendererFunction &toEnable)
-  {
-    glEnable(static_cast<GLenum>(toEnable));
-  }
-
-  void
-  RendererCommands::disable(const RendererFunction &toDisable)
-  {
-    glDisable(static_cast<GLenum>(toDisable));
-  }
-
-  void
-  RendererCommands::depthFunction(const DepthFunctions &function)
-  {
-    glDepthFunc(static_cast<GLenum>(function));
-  }
-
-  void
-  RendererCommands::setClearColour(const glm::vec4 &colour)
-  {
-    glClearColor(colour.r, colour.b, colour.g, colour.a);
-  }
-
-  void
-  RendererCommands::clear(const bool &clearColour, const bool &clearDepth,
-                          const bool &clearStencil)
-  {
-    if (clearColour)
-      glClear(GL_COLOR_BUFFER_BIT);
-    if (clearDepth)
-      glClear(GL_DEPTH_BUFFER_BIT);
-    if (clearStencil)
-      glClear(GL_STENCIL_BUFFER_BIT);
-  }
-
-  void
-  RendererCommands::setViewport(const glm::ivec2 topRight,
-                                const glm::ivec2 bottomLeft)
-  {
-    glViewport(bottomLeft.x, bottomLeft.y, topRight.x, topRight.y);
   }
 }

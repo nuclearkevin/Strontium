@@ -42,9 +42,17 @@ namespace SciRenderer
     glm::ivec2 wDims = Application::getInstance()->getWindow()->getSize();
     this->drawBuffer = createShared<FrameBuffer>((GLuint) wDims.x, (GLuint) wDims.y);
 
-    // Fetch a default floating point FBO spec and attach it.
+    // Fetch a default floating point FBO spec and attach it. Also attach a single
+    // float spec for entity IDs.
     auto cSpec = FBOCommands::getFloatColourSpec(FBOTargetParam::Colour0);
     this->drawBuffer->attachTexture2D(cSpec);
+    cSpec = FBOCommands::getFloatColourSpec(FBOTargetParam::Colour1); // The ID texture.
+    cSpec.internal = TextureInternalFormats::R16F;
+    cSpec.format = TextureFormats::Red;
+    cSpec.sWrap = TextureWrapParams::ClampEdges;
+    cSpec.tWrap = TextureWrapParams::ClampEdges;
+    this->drawBuffer->attachTexture2D(cSpec);
+    this->drawBuffer->setDrawBuffers();
   	this->drawBuffer->attachRenderBuffer();
 
     // Setup stuff for the scene.
@@ -89,6 +97,13 @@ namespace SciRenderer
       {
         auto keyEvent = *(static_cast<KeyPressedEvent*>(&event));
         this->onKeyPressEvent(keyEvent);
+        break;
+      }
+
+      case EventType::MouseClickEvent:
+      {
+        auto mouseEvent = *(static_cast<MouseClickEvent*>(&event));
+        this->onMouseEvent(mouseEvent);
         break;
       }
 
@@ -650,6 +665,53 @@ namespace SciRenderer
     }
   }
 
+  void EditorLayer::onMouseEvent(MouseClickEvent &mouseEvent)
+  {
+    // Fetch the application window for input polling.
+    Shared<Window> appWindow = Application::getInstance()->getWindow();
+
+    int mouseCode = mouseEvent.getButton();
+
+    bool lControlHeld = appWindow->isKeyPressed(GLFW_KEY_LEFT_CONTROL);
+
+    switch (mouseCode)
+    {
+      case GLFW_MOUSE_BUTTON_1:
+      {
+        if (lControlHeld)
+          this->selectEntity();
+        break;
+      }
+    }
+  }
+
+  void
+  EditorLayer::selectEntity()
+  {
+    auto mousePos = ImGui::GetMousePos();
+    mousePos.x -= this->bounds[0].x;
+    mousePos.y -= this->bounds[0].y;
+
+    mousePos.y = (editorSize).y - mousePos.y;
+    if (mousePos.x >= 0.0f && mousePos.y >= 0.0f &&
+        mousePos.x < (editorSize).x && mousePos.y < (editorSize).y)
+    {
+      GLint id = this->drawBuffer->readPixel(FBOTargetParam::Colour1, glm::vec2(mousePos.x, mousePos.y)) - 1.0f;
+      if (id < 0)
+      {
+        static_cast<SceneGraphWindow*>(this->windows[0])->setSelectedEntity(Entity());
+        static_cast<MaterialWindow*>(this->windows[4])->setSelectedEntity(Entity());
+      }
+      else
+      {
+        static_cast<SceneGraphWindow*>(this->windows[0])->
+          setSelectedEntity(Entity((entt::entity) (GLuint) id, this->currentScene.get()));
+        static_cast<MaterialWindow*>(this->windows[4])->
+          setSelectedEntity(Entity((entt::entity) (GLuint) id, this->currentScene.get()));
+      }
+    }
+  }
+
   // Must be called when the main viewport is being drawn to.
   void
   EditorLayer::manipulateEntity(Entity entity)
@@ -666,11 +728,10 @@ namespace SciRenderer
     auto windowMin = ImGui::GetWindowContentRegionMin();
     auto windowMax = ImGui::GetWindowContentRegionMax();
     auto windowOffset = ImGui::GetWindowPos();
-    ImVec2 bounds[2];
-    bounds[0] = ImVec2(windowMin.x + windowOffset.x,
-                       windowMin.y + windowOffset.y);
-    bounds[1] = ImVec2(windowMax.x + windowOffset.x,
-                       windowMax.y + windowOffset.y);
+    this->bounds[0] = ImVec2(windowMin.x + windowOffset.x,
+                             windowMin.y + windowOffset.y);
+    this->bounds[1] = ImVec2(windowMax.x + windowOffset.x,
+                             windowMax.y + windowOffset.y);
 
     ImGuizmo::SetRect(bounds[0].x, bounds[0].y, bounds[1].x - bounds[0].x,
                       bounds[1].y - bounds[0].y);

@@ -60,7 +60,7 @@ namespace SciRenderer
         auto& materials = renderable.materials.getStorage();
         auto& submeshes = modelAssets->getAsset(renderable.meshName)->getSubmeshes();
 
-        Renderer3D::submit(renderable, renderable, transform);
+        Renderer3D::submit(renderable, renderable, transform, (GLfloat) (GLuint) entity);
       }
     }
 
