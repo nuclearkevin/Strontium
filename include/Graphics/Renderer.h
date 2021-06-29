@@ -1,3 +1,5 @@
+#define NUM_CASCADES 3
+
 // Include guard.
 #pragma once
 
@@ -16,6 +18,9 @@
 #include "Graphics/EnvironmentMap.h"
 #include "Graphics/RendererCommands.h"
 
+// STL includes.
+#include <tuple>
+
 namespace SciRenderer
 {
   // The 3D renderer!
@@ -27,12 +32,14 @@ namespace SciRenderer
       glm::vec3 colour;
       GLfloat intensity;
       bool castShadows;
+      bool primaryLight;
 
       DirectionalLight()
         : direction(glm::vec3(0.0f, 1.0f, 0.0f))
         , colour(glm::vec3(1.0f))
         , intensity(0.0f)
         , castShadows(false)
+        , primaryLight(false)
       { }
     };
 
@@ -83,16 +90,30 @@ namespace SciRenderer
       GLuint width;
       GLuint height;
 
+      // Various properties for rendering.
       bool isForward;
+      bool drawEdge;
 
+      // Geometric primatives for applying lights and effects.
       VertexArray fsq;
 
       // The required buffers for processing.
       FrameBuffer geometryPass;
+      FrameBuffer shadowBuffer[NUM_CASCADES];
       FrameBuffer lightingPass;
+
+      // Items for the geometry pass.
+      std::vector<std::tuple<Model*, ModelMaterial*, glm::mat4, GLuint, bool>> renderQueue;
+
+      // Items for the shadow pass.
+      std::vector<std::pair<Model*, glm::mat4>> shadowQueue;
+      glm::mat4 cascades[NUM_CASCADES];
+      GLfloat cascadeSplits[NUM_CASCADES];
+      bool hasCascades;
 
       // The required shaders for processing.
       Shader* geometryShader;
+      Shader* shadowShader;
       Shader* ambientShader;
       Shader* directionalShader;
       Shader* hdrPostShader;
@@ -165,7 +186,7 @@ namespace SciRenderer
 
     // Deferred rendering setup.
     void submit(Model* data, ModelMaterial &materials, const glm::mat4 &model,
-                GLfloat id = 0.0f);
+                GLfloat id = 0.0f, bool drawSelectionMask = false);
     void submit(DirectionalLight light);
     void submit(PointLight light, const glm::mat4 &model);
     void submit(SpotLight light, const glm::mat4 &model);

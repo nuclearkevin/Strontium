@@ -18,5 +18,5 @@ void main()
   colour = colour / (colour + vec3(1.0));
   colour = pow(colour, vec3(1.0 / gamma));
   fragColour = vec4(colour, 1.0);
-  fragID = texture(entityIDs, fTexCoords).r;
+  fragID = texture(entityIDs, fTexCoords).a;
 }

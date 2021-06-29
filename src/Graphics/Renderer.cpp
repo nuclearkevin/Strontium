@@ -11,6 +11,8 @@ namespace SciRenderer
   namespace Renderer3D
   {
     // Forward declaration for passes.
+    void geometryPass();
+    void shadowPass();
     void lightingPass();
     void postProcessPass(Shared<FrameBuffer> frontBuffer);
 
@@ -38,6 +40,7 @@ namespace SciRenderer
       state = new RendererState();
       stats = new RendererStats();
 
+      // The full-screen quad for rendering.
       GLfloat fsqVertices[] =
       {
         -1.0f, -1.0f,
@@ -55,32 +58,48 @@ namespace SciRenderer
       storage->fsq.addIndexBuffer(fsqIndices, 6, BufferType::Dynamic);
       storage->fsq.addAttribute(0, AttribType::Vec2, GL_FALSE, 2 * sizeof(GLfloat), 0);
 
-      // Prepare the deferred renderer.
+      // Prepare the shadow buffers.
+      auto dSpec = FBOCommands::getDefaultDepthSpec();
+      for (unsigned int i = 0; i < NUM_CASCADES; i++)
+      {
+        storage->shadowBuffer[i] = FrameBuffer(2048, 2048);
+        storage->shadowBuffer[i].attachTexture2D(dSpec);
+      }
+      storage->hasCascades = false;
+
       storage->width = width;
       storage->height = height;
-      storage->geometryPass = FrameBuffer(width, height);
 
-      auto cSpec = FBOCommands::getFloatColourSpec(FBOTargetParam::Colour0); // The position texture.
+      // The geoemtry pass framebuffer.
+      storage->geometryPass = FrameBuffer(width, height);
+      // The position texture.
+      auto cSpec = FBOCommands::getFloatColourSpec(FBOTargetParam::Colour0);
       storage->geometryPass.attachTexture2D(cSpec);
-      cSpec = FBOCommands::getFloatColourSpec(FBOTargetParam::Colour1); // The normal texture.
+      // The normal texture.
+      cSpec = FBOCommands::getFloatColourSpec(FBOTargetParam::Colour1);
       storage->geometryPass.attachTexture2D(cSpec);
-      cSpec = FBOCommands::getFloatColourSpec(FBOTargetParam::Colour2); // The albedo texture.
+      // The albedo texture.
+      cSpec = FBOCommands::getFloatColourSpec(FBOTargetParam::Colour2);
       storage->geometryPass.attachTexture2D(cSpec);
-      cSpec = FBOCommands::getFloatColourSpec(FBOTargetParam::Colour3); // The lighting materials texture.
+      // The lighting materials texture.
+      cSpec = FBOCommands::getFloatColourSpec(FBOTargetParam::Colour3);
+      // The ID texture with a mask for the current selected entity.
       storage->geometryPass.attachTexture2D(cSpec);
-      cSpec = FBOCommands::getFloatColourSpec(FBOTargetParam::Colour4); // The ID texture.
-      cSpec.internal = TextureInternalFormats::R16F;
-      cSpec.format = TextureFormats::Red;
+      cSpec = FBOCommands::getFloatColourSpec(FBOTargetParam::Colour4);
       cSpec.sWrap = TextureWrapParams::ClampEdges;
       cSpec.tWrap = TextureWrapParams::ClampEdges;
       storage->geometryPass.attachTexture2D(cSpec);
-    	storage->geometryPass.attachRenderBuffer();
       storage->geometryPass.setDrawBuffers();
+    	storage->geometryPass.attachTexture2D(dSpec);
 
+      // The lighting pass framebuffer.
       storage->lightingPass = FrameBuffer(width, height);
       cSpec = FBOCommands::getFloatColourSpec(FBOTargetParam::Colour0);
       storage->lightingPass.attachTexture2D(cSpec);
       storage->lightingPass.attachRenderBuffer();
+
+      // Shaders for the various passes.
+      storage->shadowShader = shaderCache->getAsset("shadow_shader");
 
       storage->geometryShader = shaderCache->getAsset("geometry_pass_shader");
 
@@ -98,10 +117,16 @@ namespace SciRenderer
       storage->directionalShader->addUniformSampler("gNormal", 4);
       storage->directionalShader->addUniformSampler("gAlbedo", 5);
       storage->directionalShader->addUniformSampler("gMatProp", 6);
+      storage->directionalShader->addUniformSampler("cascadeMaps[0]", 7);
+      storage->directionalShader->addUniformSampler("cascadeMaps[1]", 8);
+      storage->directionalShader->addUniformSampler("cascadeMaps[2]", 9);
 
       storage->hdrPostShader = shaderCache->getAsset("post_hdr");
       storage->hdrPostShader->addUniformSampler("screenColour", 0);
       storage->hdrPostShader->addUniformSampler("entityIDs", 1);
+
+      storage->outlineShader = shaderCache->getAsset("post_entity_outline");
+      storage->outlineShader->addUniformSampler("entity", 0);
     }
 
     // Shutdown the renderer.
@@ -128,6 +153,7 @@ namespace SciRenderer
       storage->width = width;
       storage->height = height;
       storage->isForward = isForward;
+      storage->drawEdge = false;
 
       auto geoSize = storage->geometryPass.getSize();
       if (geoSize.x != width || geoSize.y != height)
@@ -156,9 +182,7 @@ namespace SciRenderer
       }
       else
       {
-        storage->geometryPass.clear();
-        storage->geometryPass.bind();
-        storage->geometryPass.setViewport();
+        storage->renderQueue.clear();
       }
     }
 
@@ -172,7 +196,9 @@ namespace SciRenderer
       }
       else
       {
-        storage->geometryPass.unbind();
+        geometryPass();
+
+        shadowPass();
 
         lightingPass();
 
@@ -207,48 +233,16 @@ namespace SciRenderer
       RendererCommands::depthFunction(DepthFunctions::Less);
     }
 
-    void submit(Model* data, ModelMaterial &materials, const glm::mat4 &model,
-                GLfloat id)
+    void
+    submit(Model* data, ModelMaterial &materials, const glm::mat4 &model,
+                GLfloat id, bool drawSelectionMask)
     {
-      for (auto& pair : data->getSubmeshes())
-      {
-        Material* material = materials.getMaterial(pair.first);
-        if (!material)
-        {
-          // Generate a material for the submesh if it doesn't have one.
-          materials.attachMesh(pair.first);
-          material = materials.getMaterial(pair.first);
-        }
-
-        Shader* program;
-        if (storage->isForward)
-          program = material->getShader();
-        else
-          program = storage->geometryShader;
-
-        material->getVec3("camera.position") = storage->sceneCam->getCamPos();
-        material->getMat3("normalMat") = glm::transpose(glm::inverse(glm::mat3(model)));
-        material->getMat4("model") = model;
-        material->getMat4("mVP") = storage->sceneCam->getProjMatrix() * storage->sceneCam->getViewMatrix() * model;
-        material->getFloat("uID") = id + 1.0f;
-        material->configure(program);
-
-        if (pair.second->hasVAO())
-          Renderer3D::draw(pair.second->getVAO(), program);
-        else
-        {
-          pair.second->generateVAO();
-          if (pair.second->hasVAO())
-            Renderer3D::draw(pair.second->getVAO(), program);
-        }
-
-        stats->drawCalls++;
-        stats->numVertices += pair.second->getData().size();
-        stats->numTriangles += pair.second->getIndices().size() / 3;
-      }
+      storage->renderQueue.emplace_back(data, &materials, model, id, drawSelectionMask);
+      storage->shadowQueue.emplace_back(data, model);
     }
 
-    void submit(DirectionalLight light)
+    void
+    submit(DirectionalLight light)
     {
       DirectionalLight temp = light;
       temp.direction = -1.0f * light.direction;
@@ -257,7 +251,8 @@ namespace SciRenderer
       stats->numDirLights++;
     }
 
-    void submit(PointLight light, const glm::mat4 &model)
+    void
+    submit(PointLight light, const glm::mat4 &model)
     {
       PointLight temp = light;
       temp.position = glm::vec3(model * glm::vec4(light.position, 1.0f));
@@ -266,7 +261,8 @@ namespace SciRenderer
       stats->numPointLights++;
     }
 
-    void submit(SpotLight light, const glm::mat4 &model)
+    void
+    submit(SpotLight light, const glm::mat4 &model)
     {
       SpotLight temp = light;
       temp.direction = -1.0f * light.direction;
@@ -276,7 +272,237 @@ namespace SciRenderer
       stats->numSpotLights++;
     }
 
-    void lightingPass()
+    //--------------------------------------------------------------------------
+    // Deferred geometry pass.
+    //--------------------------------------------------------------------------
+    void geometryPass()
+    {
+      storage->geometryPass.clear();
+      storage->geometryPass.bind();
+      storage->geometryPass.setViewport();
+
+      for (auto& drawable : storage->renderQueue)
+      {
+        auto& [data, materials, transform, id, drawSelectionMask] = drawable;
+        for (auto& pair : data->getSubmeshes())
+        {
+          Material* material = materials->getMaterial(pair.first);
+          if (!material)
+          {
+            // Generate a material for the submesh if it doesn't have one.
+            materials->attachMesh(pair.first);
+            material = materials->getMaterial(pair.first);
+          }
+
+          Shader* program = storage->geometryShader;
+
+          material->getVec3("camera.position") = storage->sceneCam->getCamPos();
+          material->getMat3("normalMat") = glm::transpose(glm::inverse(glm::mat3(transform)));
+          material->getMat4("model") = transform;
+          material->getMat4("mVP") = storage->sceneCam->getProjMatrix() * storage->sceneCam->getViewMatrix() * transform;
+          material->getFloat("uID") = id + 1.0f;
+          if (drawSelectionMask)
+          {
+            // Enable edge detection for selected mesh outlines.
+            storage->drawEdge = true;
+            material->getVec3("uMaskColour") = glm::vec3(1.0f);
+          }
+          else
+            material->getVec3("uMaskColour") = glm::vec3(0.0f);
+
+          material->configure(program);
+
+          if (pair.second->hasVAO())
+            Renderer3D::draw(pair.second->getVAO(), program);
+          else
+          {
+            pair.second->generateVAO();
+            if (pair.second->hasVAO())
+              Renderer3D::draw(pair.second->getVAO(), program);
+          }
+
+          stats->drawCalls++;
+          stats->numVertices += pair.second->getData().size();
+          stats->numTriangles += pair.second->getIndices().size() / 3;
+        }
+      }
+
+      storage->geometryPass.unbind();
+    }
+
+    //--------------------------------------------------------------------------
+    // Deferred shadow mapping pass.
+    // TODO: Support only single directional light mapping. Maybe a
+    // "primary light" checkbox?
+    //--------------------------------------------------------------------------
+    void
+    shadowPass()
+    {
+      //------------------------------------------------------------------------
+      // Directional light shadow cascade calculations:
+      //------------------------------------------------------------------------
+      // https://developer.nvidia.com/gpugems/gpugems3/part-ii-light-and-shadows
+      // /chapter-10-parallel-split-shadow-maps-programmable-gpus
+      //------------------------------------------------------------------------
+      // https://docs.microsoft.com/en-us/windows/win32/dxtecharts/
+      // cascaded-shadow-maps
+      //------------------------------------------------------------------------
+      const float near = storage->sceneCam->getNear();
+      const float far = storage->sceneCam->getFar();
+
+      glm::mat4 camView = storage->sceneCam->getViewMatrix();
+      glm::mat4 camProj = storage->sceneCam->getProjMatrix();
+      glm::mat4 camInvVP = glm::inverse(camProj * camView);
+
+      float cascadeSplits[NUM_CASCADES];
+      for (unsigned int i = 0; i < NUM_CASCADES; i++)
+      {
+        float p = (i + 1.0f) / (float) NUM_CASCADES;
+        float log = near * std::pow(far / near, p);
+        float uniform = near + (far - near) * p;
+        float d = 0.91f * (log - uniform) + uniform;
+        cascadeSplits[i] = (d - near) / (far - near);
+      }
+
+      // Compute the lightspace matrices for each light for each cascade.
+      storage->hasCascades = false;
+      for (auto& dirLight : storage->directionalQueue)
+      {
+        float previousCascadeDistance = 0.0f;
+
+        if (!dirLight.castShadows || !dirLight.primaryLight)
+          continue;
+
+        storage->hasCascades = true;
+
+        glm::mat4 cascadeViewMatrix[NUM_CASCADES];
+        glm::mat4 cascadeProjMatrix[NUM_CASCADES];
+
+        for (unsigned int i = 0; i < NUM_CASCADES; i++)
+        {
+          glm::vec4 frustumCorners[8] =
+          {
+            // The near face of the camera frustum in NDC.
+            { 1.0f, 1.0f, -1.0f, 1.0f },
+            { -1.0f, 1.0f, -1.0f, 1.0f },
+            { 1.0f, -1.0f, -1.0f, 1.0f },
+            { -1.0f, -1.0f, -1.0f, 1.0f },
+
+            // The far face of the camera frustum in NDC.
+            { 1.0f, 1.0f, 1.0f, 1.0f },
+            { -1.0f, 1.0f, 1.0f, 1.0f },
+            { 1.0f, -1.0f, 1.0f, 1.0f },
+            { -1.0f, -1.0f, 1.0f, 1.0f }
+          };
+
+          // Compute the worldspace frustum corners.
+          for (unsigned int j = 0; j < 8; j++)
+          {
+            glm::vec4 worldDepthless = camInvVP * frustumCorners[j];
+            frustumCorners[j] = worldDepthless / worldDepthless.w;
+          }
+
+          // Scale the frustum to the size of the cascade.
+          for (unsigned int j = 0; j < 4; j++)
+          {
+            glm::vec4 distance = frustumCorners[j + 4] - frustumCorners[j];
+            frustumCorners[j + 4] = frustumCorners[j] + (distance * cascadeSplits[i]);
+            frustumCorners[j] = frustumCorners[j] + (distance * previousCascadeDistance);
+          }
+
+          // Find the center of the cascade frustum.
+          glm::vec4 cascadeCenter = glm::vec4(0.0f);
+          for (unsigned int j = 0; j < 8; j++)
+            cascadeCenter += frustumCorners[j];
+          cascadeCenter /= 8.0f;
+
+          // Find the minimum and maximum size of the cascade ortho matrix.
+          float radius = 0.0f;
+          for (unsigned int j = 0; j < 8; j++)
+          {
+            float distance = glm::length(glm::vec3(frustumCorners[j] - cascadeCenter));
+            radius = glm::max(radius, distance);
+          }
+          radius = std::ceil(radius);
+          glm::vec3 maxDims = glm::vec3(radius);
+          glm::vec3 minDims = -1.0f * maxDims;
+
+          cascadeViewMatrix[i] = glm::lookAt(glm::vec3(cascadeCenter) - glm::normalize(dirLight.direction) * minDims.z,
+                                             glm::vec3(cascadeCenter), glm::vec3(0.0f, 0.0f, 1.0f));
+          cascadeProjMatrix[i] = glm::ortho(minDims.x, maxDims.x, minDims.y,
+                                            maxDims.y, -15.0f, maxDims.z - minDims.z + 15.0f);
+
+          // Offset the matrix to texel space to fix shimmering:
+          //--------------------------------------------------------------------
+          // https://stackoverflow.com/questions/33499053/cascaded-shadow-map-
+          // shimmering
+          //--------------------------------------------------------------------
+          // https://docs.microsoft.com/en-ca/windows/win32/dxtecharts/common-
+          // techniques-to-improve-shadow-depth-maps?redirectedfrom=MSDN
+          //---------------------------------------------------------------------
+          glm::mat4 lightVP = cascadeProjMatrix[i] * cascadeViewMatrix[i];
+          glm::vec4 shadowOrigin = glm::vec4(glm::vec3(0.0f), 1.0f);
+          shadowOrigin = lightVP * shadowOrigin;
+          GLfloat storedShadowW = shadowOrigin.w;
+          shadowOrigin = 0.5f * shadowOrigin * storage->shadowBuffer[i].getSize().x;
+
+          glm::vec4 roundedShadowOrigin = glm::round(shadowOrigin);
+          glm::vec4 roundedShadowOffset = roundedShadowOrigin - shadowOrigin;
+          roundedShadowOffset = 2.0f * roundedShadowOffset / storage->shadowBuffer[i].getSize().x;
+          roundedShadowOffset.z = 0.0f;
+          roundedShadowOffset.w = 0.0f;
+
+          glm::mat4 texelSpaceOrtho = cascadeProjMatrix[i];
+          texelSpaceOrtho[3] += roundedShadowOffset;
+          cascadeProjMatrix[i] = texelSpaceOrtho;
+
+          storage->cascades[i] = cascadeProjMatrix[i] * cascadeViewMatrix[i];
+
+          previousCascadeDistance = cascadeSplits[i];
+
+          storage->cascadeSplits[i] = near + (cascadeSplits[i] * (far - near));
+        }
+      }
+
+      // Actual shadow pass.
+      for (unsigned int i = 0; i < NUM_CASCADES; i++)
+      {
+        storage->shadowBuffer[i].clear();
+        storage->shadowBuffer[i].bind();
+        storage->shadowBuffer[i].setViewport();
+
+        if (storage->hasCascades)
+        {
+          for (auto& pair : storage->shadowQueue)
+          {
+            storage->shadowShader->addUniformMatrix("lightVP", storage->cascades[i], GL_FALSE);
+            storage->shadowShader->addUniformMatrix("model", pair.second, GL_FALSE);
+
+            for (auto& submesh : pair.first->getSubmeshes())
+            {
+              if (submesh.second->hasVAO())
+                Renderer3D::draw(submesh.second->getVAO(), storage->shadowShader);
+              else
+              {
+                submesh.second->generateVAO();
+                if (submesh.second->hasVAO())
+                  Renderer3D::draw(submesh.second->getVAO(), storage->shadowShader);
+              }
+            }
+          }
+        }
+
+        storage->shadowBuffer[i].unbind();
+      }
+
+      storage->shadowQueue.clear();
+    }
+
+    //--------------------------------------------------------------------------
+    // Deferred lighting pass.
+    //--------------------------------------------------------------------------
+    void
+    lightingPass()
     {
       RendererCommands::disable(RendererFunction::DepthTest);
       storage->lightingPass.clear();
@@ -313,6 +539,33 @@ namespace SciRenderer
       storage->directionalShader->addUniformVector("screenSize", storage->lightingPass.getSize());
       // Camera position.
       storage->directionalShader->addUniformVector("camera.position", storage->sceneCam->getCamPos());
+      // Camera view-projection matrix.
+      storage->directionalShader->addUniformMatrix("camera.cameraView", storage->sceneCam->getViewMatrix(), GL_FALSE);
+      // Setting the uniforms for cascaded shadows.
+      for (unsigned int i = 0; i < NUM_CASCADES; i++)
+      {
+        if (storage->hasCascades)
+        {
+          storage->directionalShader->addUniformMatrix(
+            (std::string("lightVP[") + std::to_string(i) + std::string("]")).c_str(),
+            storage->cascades[i], GL_FALSE);
+
+          storage->directionalShader->addUniformFloat(
+            (std::string("cascadeSplits[") + std::to_string(i) + std::string("]")).c_str(),
+            storage->cascadeSplits[i]);
+
+          storage->shadowBuffer[i].bindTextureID(FBOTargetParam::Depth, i + 7);
+        }
+        else
+        {
+          storage->directionalShader->addUniformMatrix(
+            (std::string("lightVP[") + std::to_string(i) + std::string("]")).c_str(),
+            glm::mat4(1.0f), GL_FALSE);
+          storage->directionalShader->addUniformFloat(
+            (std::string("cascadeSplits[") + std::to_string(i) + std::string("]")).c_str(),
+            0.0f);
+        }
+      }
 
       for (auto& lights : storage->directionalQueue)
       {
@@ -346,9 +599,12 @@ namespace SciRenderer
       storage->lightingPass.unbind();
     }
 
-    void postProcessPass(Shared<FrameBuffer> frontBuffer)
+    //--------------------------------------------------------------------------
+    // Post processing pass.
+    //--------------------------------------------------------------------------
+    void
+    postProcessPass(Shared<FrameBuffer> frontBuffer)
     {
-      GLfloat data = -1.0f;
       frontBuffer->clear();
       frontBuffer->bind();
       frontBuffer->setViewport();
@@ -362,6 +618,26 @@ namespace SciRenderer
       storage->geometryPass.bindTextureID(FBOTargetParam::Colour4, 1);
 
       draw(&storage->fsq, storage->hdrPostShader);
+
+      //------------------------------------------------------------------------
+      // Edge detection post processing pass. Draws an outline around the
+      // selected entity.
+      //------------------------------------------------------------------------
+      if (storage->drawEdge)
+      {
+        RendererCommands::enable(RendererFunction::Blending);
+        RendererCommands::blendEquation(BlendEquation::Additive);
+        RendererCommands::blendFunction(BlendFunction::One, BlendFunction::One);
+        RendererCommands::disable(RendererFunction::DepthTest);
+
+        storage->outlineShader->addUniformVector("screenSize", frontBuffer->getSize());
+        storage->geometryPass.bindTextureID(FBOTargetParam::Colour4, 0);
+
+        draw(&storage->fsq, storage->outlineShader);
+
+        RendererCommands::enable(RendererFunction::DepthTest);
+        RendererCommands::disable(RendererFunction::Blending);
+      }
 
       frontBuffer->unbind();
     }

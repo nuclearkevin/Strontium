@@ -39,31 +39,12 @@ namespace SciRenderer
   void
   Scene::onUpdate(float dt)
   {
-
+    
   }
 
   void
-  Scene::render(Shared<Camera> sceneCamera)
+  Scene::render(Shared<Camera> sceneCamera, Entity selectedEntity)
   {
-    auto modelAssets = AssetManager<Model>::getManager();
-
-    // Group together the transform and renderable components.
-    auto drawables = this->sceneECS.group<RenderableComponent>(entt::get<TransformComponent>);
-    for (auto entity : drawables)
-    {
-      // Draw all the renderables with transforms.
-      auto [transform, renderable] = drawables.get<TransformComponent, RenderableComponent>(entity);
-
-      // Submit the mesh + material + transform to the deferred renderer queue.
-      if (renderable)
-      {
-        auto& materials = renderable.materials.getStorage();
-        auto& submeshes = modelAssets->getAsset(renderable.meshName)->getSubmeshes();
-
-        Renderer3D::submit(renderable, renderable, transform, (GLfloat) (GLuint) entity);
-      }
-    }
-
     // Group together the lights and submit them to the renderer.
     auto dirLight = this->sceneECS.view<DirectionalLightComponent>();
     for (auto entity : dirLight)
@@ -82,6 +63,20 @@ namespace SciRenderer
     {
       auto [spot, transform] = spotLight.get<SpotLightComponent, TransformComponent>(entity);
       Renderer3D::submit(spot, transform);
+    }
+
+    // Group together the transform and renderable components.
+    auto drawables = this->sceneECS.group<RenderableComponent>(entt::get<TransformComponent>);
+    for (auto entity : drawables)
+    {
+      // Draw all the renderables with transforms.
+      auto [transform, renderable] = drawables.get<TransformComponent, RenderableComponent>(entity);
+
+      bool selected = entity == selectedEntity;
+
+      // Submit the mesh + material + transform to the deferred renderer queue.
+      if (renderable)
+        Renderer3D::submit(renderable, renderable, transform, (GLfloat) (GLuint) entity, selected);
     }
   }
 }

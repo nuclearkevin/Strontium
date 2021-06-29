@@ -39,6 +39,17 @@ namespace SciRenderer
     ImGui::Text("Total lights: D-%u P-%u S-%u", stats->numDirLights,
                 stats->numPointLights, stats->numSpotLights);
 
+    if (ImGui::CollapsingHeader("Shadow Pass"))
+    {
+      auto storage = Renderer3D::getStorage();
+
+      static int cascadeIndex = 0;
+      ImGui::SliderInt("Cascade Index", &cascadeIndex, 0, 2);
+
+      ImGui::Image((ImTextureID) (unsigned long) storage->shadowBuffer[(unsigned int) cascadeIndex].getAttachID(FBOTargetParam::Depth),
+                   ImVec2(128.0f, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
+    }
+
     if (ImGui::CollapsingHeader("Geometry Pass"))
     {
       auto storage = Renderer3D::getStorage();
@@ -56,8 +67,11 @@ namespace SciRenderer
       ImGui::Text("Materials:");
       ImGui::Image((ImTextureID) (unsigned long) storage->geometryPass.getAttachID(FBOTargetParam::Colour3),
                    ImVec2(128.0f * ratio, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
-      ImGui::Text("Entity IDs:");
+      ImGui::Text("Entity Mask:");
       ImGui::Image((ImTextureID) (unsigned long) storage->geometryPass.getAttachID(FBOTargetParam::Colour4),
+                   ImVec2(128.0f * ratio, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
+      ImGui::Text("Depth:");
+      ImGui::Image((ImTextureID) (unsigned long) storage->geometryPass.getAttachID(FBOTargetParam::Depth),
                    ImVec2(128.0f * ratio, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
     }
 

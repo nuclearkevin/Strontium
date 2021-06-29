@@ -25,7 +25,7 @@ namespace SciRenderer
     void deleteEntity(Entity entity);
 
     void onUpdate(float dt);
-    void render(Shared<Camera> sceneCamera);
+    void render(Shared<Camera> sceneCamera, Entity selectedEntity);
 
     entt::registry& getRegistry() { return this->sceneECS; }
     std::string& getSaveFilepath() { return this->saveFilepath; }

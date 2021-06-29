@@ -455,15 +455,15 @@ namespace SciRenderer
   FBOCommands::getDefaultDepthSpec()
   {
     FBOSpecification defaultDepth = FBOSpecification();
-    defaultDepth.target = FBOTargetParam::DepthStencil;
+    defaultDepth.target = FBOTargetParam::Depth;
     defaultDepth.type = FBOTex2DParam::Texture2D;
-    defaultDepth.internal = TextureInternalFormats::Depth24Stencil8;
-    defaultDepth.format = TextureFormats::DepthStencil;
-    defaultDepth.dataType = TextureDataType::UInt24UInt8;
+    defaultDepth.internal = TextureInternalFormats::Depth;
+    defaultDepth.format = TextureFormats::Depth;
+    defaultDepth.dataType = TextureDataType::Floats;
     defaultDepth.sWrap = TextureWrapParams::Repeat;
     defaultDepth.tWrap = TextureWrapParams::Repeat;
-    defaultDepth.minFilter = TextureMinFilterParams::Linear;
-    defaultDepth.maxFilter = TextureMaxFilterParams::Linear;
+    defaultDepth.minFilter = TextureMinFilterParams::Nearest;
+    defaultDepth.maxFilter = TextureMaxFilterParams::Nearest;
 
     return defaultDepth;
   }

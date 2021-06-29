@@ -269,6 +269,7 @@ namespace SciRenderer
         out << YAML::Key << "Colour" << YAML::Value << component.light.colour;
         out << YAML::Key << "Intensity" << YAML::Value << component.light.intensity;
         out << YAML::Key << "CastShadows" << YAML::Value << component.light.castShadows;
+        out << YAML::Key << "PrimaryLight" << YAML::Value << component.light.primaryLight;
 
         out << YAML::EndMap;
       }
@@ -495,6 +496,7 @@ namespace SciRenderer
           dComponent.light.colour = directionalComponent["Colour"].as<glm::vec3>();
           dComponent.light.intensity = directionalComponent["Intensity"].as<GLfloat>();
           dComponent.light.castShadows = directionalComponent["CastShadows"].as<bool>();
+          dComponent.light.primaryLight = directionalComponent["PrimaryLight"].as<bool>();
         }
 
         auto pointComponent = entity["PointLightComponent"];

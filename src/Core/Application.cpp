@@ -44,6 +44,10 @@ namespace SciRenderer
       new Shader("./assets/shaders/mesh.vs",
                  "./assets/shaders/forward/pbr/pbrTex.fs"));
 
+    this->shaderCache->attachAsset("shadow_shader",
+      new Shader("./assets/shaders/shadows/directionalShadow.vs",
+                 "./assets/shaders/shadows/directionalShadow.fs"));
+
     this->shaderCache->attachAsset("geometry_pass_shader",
       new Shader("./assets/shaders/deferred/geometryPass.vs",
                  "./assets/shaders/deferred/geometryPass.fs"));
@@ -59,6 +63,10 @@ namespace SciRenderer
     this->shaderCache->attachAsset("post_hdr",
       new Shader("./assets/shaders/post/postProcessingPass.vs",
                  "./assets/shaders/post/hdrPostPass.fs"));
+
+    this->shaderCache->attachAsset("post_entity_outline",
+      new Shader("./assets/shaders/post/postProcessingPass.vs",
+                 "./assets/shaders/post/outlinePostPass.fs"));
 
     this->shaderCache->attachAsset("fsq_shader",
       new Shader("./assets/shaders/viewport.vs",

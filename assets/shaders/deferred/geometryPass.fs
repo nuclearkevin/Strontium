@@ -7,7 +7,7 @@ layout (location = 4) out vec4 gPosition;
 layout (location = 3) out vec4 gNormal;
 layout (location = 2) out vec4 gAlbedo;
 layout (location = 1) out vec4 gMatProp;
-layout (location = 0) out float gID;
+layout (location = 0) out vec4 gIDMaskColour;
 
 in VERT_OUT
 {
@@ -22,7 +22,8 @@ uniform vec3 uAlbedo = vec3(1.0);
 uniform float uMetallic = 1.0;
 uniform float uRoughness = 1.0;
 uniform float uAO = 1.0;
-uniform float uID = -1.0;
+uniform float uID = 0.0;
+uniform vec3 uMaskColour = vec3(0.0);
 
 uniform sampler2D albedoMap;
 uniform sampler2D normalMap;
@@ -42,5 +43,5 @@ void main()
   outMatProps.b = texture(aOcclusionMap, fragIn.fTexCoords).r * uAO;
   outMatProps.a = 1.0;
   gMatProp = outMatProps;
-	gID = uID;
+	gIDMaskColour = vec4(uMaskColour, uID);
 }

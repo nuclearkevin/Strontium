@@ -6,11 +6,13 @@
 
 #define PI 3.141592654
 #define MAX_MIP 4.0
+#define NUM_CASCADES 3
 
 struct Camera
 {
  vec3 position;
  vec3 viewDir;
+ mat4 cameraView;
 };
 
 // Camera uniform.
@@ -20,6 +22,11 @@ uniform Camera camera;
 uniform vec3 lDirection;
 uniform vec3 lColour;
 uniform float lIntensity;
+
+// Shadow map uniforms.
+uniform mat4 lightVP[NUM_CASCADES];
+uniform float cascadeSplits[NUM_CASCADES];
+uniform sampler2D cascadeMaps[NUM_CASCADES];
 
 // Uniforms for the geometry buffer.
 uniform vec2 screenSize;
@@ -39,6 +46,9 @@ float SSBGeometry(vec3 N, vec3 L, vec3 V, float roughness);
 vec3 SFresnel(float cosTheta, vec3 F0);
 // Schlick approximation to the Fresnel factor, with roughness!
 vec3 SFresnelR(float cosTheta, vec3 F0, float roughness);
+
+// Calculate if the fragment is in shadow or not.
+float calcShadow(uint cascadeIndex, vec3 position, vec3 normal, vec3 lightDir);
 
 void main()
 {
@@ -67,18 +77,30 @@ void main()
   float den = 4.0 * max(dot(normal, view), 0.0) * max(dot(normal, light), 0.0);
   vec3 spec = num / max(den, 0.001);
 
-  fragColour = vec4((kD * albedo / PI + spec) * lColour * lIntensity * max(dot(normal, light), 0.0), 1.0);
+  vec4 clipSpacePos = camera.cameraView * vec4(position, 1.0);
+  float shadowFactor = 1.0;
+
+  for (uint i = 0; i < NUM_CASCADES; i++)
+  {
+    if (clipSpacePos.z > -cascadeSplits[i])
+    {
+      shadowFactor = calcShadow(i, position, normal, light);
+      break;
+    }
+  }
+
+  fragColour = vec4(shadowFactor * (kD * albedo / PI + spec) * lColour * lIntensity * max(dot(normal, light), 0.0), 1.0);
 }
 
 // Trowbridge-Reitz distribution function.
 float TRDistribution(vec3 N, vec3 H, float roughness)
 {
-  float alpha = roughness*roughness;
+  float alpha = roughness * roughness;
   float a2 = alpha * alpha;
   float NdotH = max(dot(N, H), 0.0);
-  float NdotH2 = NdotH*NdotH;
+  float NdotH2 = NdotH * NdotH;
 
-  float nom   = a2;
+  float nom = a2;
   float denom = (NdotH2 * (a2 - 1.0) + 1.0);
   denom = PI * denom * denom;
 
@@ -117,4 +139,18 @@ vec3 SFresnel(float cosTheta, vec3 F0)
 vec3 SFresnelR(float cosTheta, vec3 F0, float roughness)
 {
   return F0 + (max(vec3(1.0 - roughness), F0) - F0) * pow(max(1.0 - cosTheta, 0.0), 5.0);
+}
+
+// Calculate if the fragment is in shadow or not.
+float calcShadow(uint cascadeIndex, vec3 position, vec3 normal, vec3 lightDir)
+{
+  vec4 lightClipPos = lightVP[cascadeIndex] * vec4(position, 1.0);
+  vec3 projCoords = lightClipPos.xyz / lightClipPos.w;
+  projCoords = 0.5 * projCoords + 0.5;
+
+  float bias = max(0.005 * (1.0 - dot(normal, lightDir)), 0.0005);
+
+  float closestDepth = texture(cascadeMaps[cascadeIndex], projCoords.xy).r;
+
+  return projCoords.z - bias < closestDepth ? 1.0 : 0.0;
 }

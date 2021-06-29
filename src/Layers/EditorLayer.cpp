@@ -182,7 +182,8 @@ namespace SciRenderer
     if (this->editorSize.x != size.x || this->editorSize.y != size.y)
     {
       if (this->editorSize.x >= 1.0f && this->editorSize.y >= 1.0f)
-        this->editorCam->updateProj(90.0f, editorSize.x / editorSize.y,
+        this->editorCam->updateProj(this->editorCam->getHorFOV(),
+                                    editorSize.x / editorSize.y,
                                     this->editorCam->getNear(),
                                     this->editorCam->getFar());
       this->drawBuffer->resize(this->editorSize.x, this->editorSize.y);
@@ -193,7 +194,7 @@ namespace SciRenderer
 
     // Draw the scene.
     Renderer3D::begin(this->editorSize.x, this->editorSize.y, this->editorCam, false);
-    this->currentScene->render(this->editorCam);
+    this->currentScene->render(this->editorCam, selectedEntity);
     Renderer3D::end(this->drawBuffer);
 
     // Update the editor camera.

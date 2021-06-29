@@ -177,7 +177,7 @@ namespace SciRenderer
     ImGui::End();
 
     if (openPropWindow)
-      this->drawPropsWindow(openPropWindow);
+      this->drawPropsWindow(openPropWindow, activeScene);
   }
 
   void
@@ -390,7 +390,7 @@ namespace SciRenderer
 
   // The property panel for an entity.
   void
-  SceneGraphWindow::drawPropsWindow(bool &isOpen)
+  SceneGraphWindow::drawPropsWindow(bool &isOpen, Shared<Scene> activeScene)
   {
     ImGui::Begin("Components", &isOpen);
     if (this->selectedEntity)
@@ -438,15 +438,30 @@ namespace SciRenderer
       });
 
       drawComponentProperties<DirectionalLightComponent>("Directional Light Component",
-        this->selectedEntity, [this](auto& component)
+        this->selectedEntity, [this, activeScene](auto& component)
       {
         ImGui::PushID("DirectionalLight");
+
+        bool isPrimaryLight = component.light.primaryLight;
+        ImGui::Checkbox("Primary Light", &component.light.primaryLight);
+        if (component.light.primaryLight && !isPrimaryLight)
+        {
+          auto dirLight = activeScene->sceneECS.view<DirectionalLightComponent>();
+          
+          for (auto entity : dirLight)
+          {
+            auto& directional = dirLight.get<DirectionalLightComponent>(entity);
+            if (this->selectedEntity != entity && directional.light.primaryLight)
+              directional.light.primaryLight;
+          }
+        }
+
         ImGui::Checkbox("Cast Shadows", &component.light.castShadows);
         ImGui::ColorEdit3("Colour", &component.light.colour.r);
         Styles::drawFloatControl("Intensity", 0.0f, component.light.intensity,
                                  0.0f, 0.1f, 0.0f, 100.0f);
         Styles::drawVec3Controls("Direction", glm::vec3(0.0f), component.light.direction,
-                                 0.0f, 0.1f, -1.0f, 1.0f);
+                                 0.0f, 0.01f, -1.0f, 1.0f);
         ImGui::PopID();
       });
 
