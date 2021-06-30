@@ -55,6 +55,7 @@ namespace SciRenderer
     GLfloat& getNear() { return this->near; }
     GLfloat& getFar() { return this->far; }
     GLfloat& getAspect() { return this->aspect; }
+    bool isStationary() { return this->currentType == EditorCameraType::Stationary; }
 
     GLfloat& getSpeed() { return this->scalarSpeed; }
     GLfloat& getSens() { return this->sensitivity; }

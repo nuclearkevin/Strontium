@@ -578,6 +578,7 @@ namespace SciRenderer
 
     int keyCode = keyEvent.getKeyCode();
 
+    bool camStationary = this->editorCam->isStationary();
     bool lControlHeld = appWindow->isKeyPressed(GLFW_KEY_LEFT_CONTROL);
     bool lShiftHeld = appWindow->isKeyPressed(GLFW_KEY_LEFT_SHIFT);
 
@@ -585,7 +586,7 @@ namespace SciRenderer
     {
       case GLFW_KEY_N:
       {
-        if (lControlHeld)
+        if (lControlHeld && keyEvent.getRepeatCount() == 0 && camStationary)
         {
           auto storage = Renderer3D::getStorage();
           storage->currentEnvironment->unloadEnvironment();
@@ -598,7 +599,7 @@ namespace SciRenderer
       }
       case GLFW_KEY_O:
       {
-        if (lControlHeld)
+        if (lControlHeld && keyEvent.getRepeatCount() == 0 && camStationary)
         {
           EventDispatcher* dispatcher = EventDispatcher::getInstance();
           dispatcher->queueEvent(new OpenDialogueEvent(DialogueEventType::FileOpen,
@@ -609,14 +610,14 @@ namespace SciRenderer
       }
       case GLFW_KEY_S:
       {
-        if (lControlHeld && lShiftHeld)
+        if (lControlHeld && lShiftHeld && keyEvent.getRepeatCount() == 0 && camStationary)
         {
           EventDispatcher* dispatcher = EventDispatcher::getInstance();
           dispatcher->queueEvent(new OpenDialogueEvent(DialogueEventType::FileSave,
                                                        ".srn"));
           this->saveTarget = FileSaveTargets::TargetScene;
         }
-        else if (lControlHeld)
+        else if (lControlHeld && keyEvent.getRepeatCount() == 0 && camStationary)
         {
           if (this->currentScene->getSaveFilepath() != "")
           {
@@ -638,28 +639,28 @@ namespace SciRenderer
       case GLFW_KEY_Q:
       {
         // Stop using the Gizmo.
-        if (lControlHeld)
+        if (lControlHeld && keyEvent.getRepeatCount() == 0 && camStationary)
           this->gizmoType = -1;
         break;
       }
       case GLFW_KEY_W:
       {
         // Translate.
-        if (lControlHeld)
+        if (lControlHeld && keyEvent.getRepeatCount() == 0 && camStationary)
           this->gizmoType = ImGuizmo::TRANSLATE;
         break;
       }
       case GLFW_KEY_E:
       {
         // Rotate.
-        if (lControlHeld)
+        if (lControlHeld && keyEvent.getRepeatCount() == 0 && camStationary)
           this->gizmoType = ImGuizmo::ROTATE;
         break;
       }
       case GLFW_KEY_R:
       {
         // Scale.
-        if (lControlHeld)
+        if (lControlHeld && keyEvent.getRepeatCount() == 0 && camStationary)
           this->gizmoType = ImGuizmo::SCALE;
         break;
       }
