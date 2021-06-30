@@ -98,6 +98,7 @@ namespace SciRenderer
     Shared<Texture2D> unattachTexture2D(const FBOTargetParam &attachment);
 
     void setDrawBuffers();
+    void bindTextureID(const FBOTargetParam &attachment);
     void bindTextureID(const FBOTargetParam &attachment, GLuint bindPoint);
     void blitzToOther(FrameBuffer &target, const FBOTargetParam &type);
     GLint readPixel(const FBOTargetParam &target, const glm::vec2 &mousePos);

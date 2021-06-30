@@ -64,6 +64,9 @@ namespace SciRenderer
       {
         storage->shadowBuffer[i] = FrameBuffer(2048, 2048);
         storage->shadowBuffer[i].attachTexture2D(dSpec);
+        storage->shadowBuffer[i].bindTextureID(FBOTargetParam::Depth);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LESS);
       }
       storage->hasCascades = false;
 
@@ -331,9 +334,9 @@ namespace SciRenderer
     }
 
     //--------------------------------------------------------------------------
-    // Deferred shadow mapping pass.
-    // TODO: Support only single directional light mapping. Maybe a
-    // "primary light" checkbox?
+    // Deferred shadow mapping pass. Cascaded shadows for a "primary light".
+    // TODO: Compute the scene AABB and factor that in for cascade ortho
+    // calculations.
     //--------------------------------------------------------------------------
     void
     shadowPass()
@@ -363,6 +366,21 @@ namespace SciRenderer
         float d = 0.91f * (log - uniform) + uniform;
         cascadeSplits[i] = (d - near) / (far - near);
       }
+
+      // Compute the scene AABB in world space. This fixes issues with objects
+      // not being captured if they're out of the camera frustum (since they
+      // still need to cast shadows).
+      glm::vec3 minPos = glm::vec3(std::numeric_limits<float>::max());
+      glm::vec3 maxPos = glm::vec3(std::numeric_limits<float>::min());
+      for (auto& pair : storage->shadowQueue)
+      {
+        glm::mat4 mMatrix = pair.second;
+        minPos = glm::min(minPos, glm::vec3(mMatrix * glm::vec4(pair.first->getMinPos(), 1.0f)));
+        maxPos = glm::max(maxPos, glm::vec3(mMatrix * glm::vec4(pair.first->getMaxPos(), 1.0f)));
+      }
+
+      float sceneMaxRadius = glm::length(minPos);
+      sceneMaxRadius = glm::max(sceneMaxRadius, glm::length(maxPos));
 
       // Compute the lightspace matrices for each light for each cascade.
       storage->hasCascades = false;
@@ -427,10 +445,20 @@ namespace SciRenderer
           glm::vec3 maxDims = glm::vec3(radius);
           glm::vec3 minDims = -1.0f * maxDims;
 
-          cascadeViewMatrix[i] = glm::lookAt(glm::vec3(cascadeCenter) - glm::normalize(dirLight.direction) * minDims.z,
-                                             glm::vec3(cascadeCenter), glm::vec3(0.0f, 0.0f, 1.0f));
-          cascadeProjMatrix[i] = glm::ortho(minDims.x, maxDims.x, minDims.y,
-                                            maxDims.y, -15.0f, maxDims.z - minDims.z + 15.0f);
+          if (radius > sceneMaxRadius)
+          {
+            cascadeViewMatrix[i] = glm::lookAt(glm::vec3(cascadeCenter) - glm::normalize(dirLight.direction) * minDims.z,
+                                               glm::vec3(cascadeCenter), glm::vec3(0.0f, 0.0f, 1.0f));
+            cascadeProjMatrix[i] = glm::ortho(minDims.x, maxDims.x, minDims.y,
+                                              maxDims.y, -15.0f, maxDims.z - minDims.z + 15.0f);
+          }
+          else
+          {
+            cascadeViewMatrix[i] = glm::lookAt(glm::vec3(cascadeCenter) + glm::normalize(dirLight.direction) * sceneMaxRadius,
+                                               glm::vec3(cascadeCenter), glm::vec3(0.0f, 0.0f, 1.0f));
+            cascadeProjMatrix[i] = glm::ortho(minDims.x, maxDims.x, minDims.y,
+                                              maxDims.y, -15.0f, 2.0f * sceneMaxRadius + 15.0f);
+          }
 
           // Offset the matrix to texel space to fix shimmering:
           //--------------------------------------------------------------------
@@ -439,7 +467,7 @@ namespace SciRenderer
           //--------------------------------------------------------------------
           // https://docs.microsoft.com/en-ca/windows/win32/dxtecharts/common-
           // techniques-to-improve-shadow-depth-maps?redirectedfrom=MSDN
-          //---------------------------------------------------------------------
+          //--------------------------------------------------------------------
           glm::mat4 lightVP = cascadeProjMatrix[i] * cascadeViewMatrix[i];
           glm::vec4 shadowOrigin = glm::vec4(glm::vec3(0.0f), 1.0f);
           shadowOrigin = lightVP * shadowOrigin;

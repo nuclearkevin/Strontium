@@ -40,11 +40,16 @@ namespace SciRenderer
     bool isLoaded() { return this->loaded; }
 
     // Get the submeshes for the model.
+    glm::vec3& getMinPos() { return this->minPos; }
+    glm::vec3& getMaxPos() { return this->maxPos; }
     std::vector<std::pair<std::string, Shared<Mesh>>>& getSubmeshes() { return this->subMeshes; }
     std::string& getFilepath() { return this->filepath; }
   protected:
     bool loaded;
     std::vector<std::pair<std::string, Shared<Mesh>>> subMeshes;
+
+    glm::vec3 minPos;
+    glm::vec3 maxPos;
 
     std::string filepath;
     std::string name;

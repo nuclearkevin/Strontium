@@ -66,6 +66,8 @@ namespace SciRenderer
 
   Model::Model()
     : loaded(false)
+    , minPos(std::numeric_limits<float>::max())
+    , maxPos(std::numeric_limits<float>::min())
   { }
 
   Model::~Model()
@@ -148,6 +150,8 @@ namespace SciRenderer
         temp.w = 1.0f;
 
         meshVertices[i].position = temp;
+        this->minPos = glm::min(this->minPos, glm::vec3(temp));
+        this->maxPos = glm::max(this->maxPos, glm::vec3(temp));
       }
     }
     else
@@ -175,7 +179,6 @@ namespace SciRenderer
       for (GLuint i = 0; i < mesh->mNumVertices; i++)
         meshVertices[i].colour = temp;
     }
-
 
     // Get the UV's, but only supporting a single UV channel for now.
     if (mesh->mTextureCoords[0])

@@ -386,6 +386,12 @@ namespace SciRenderer
   }
 
   void
+  FrameBuffer::bindTextureID(const FBOTargetParam &attachment)
+  {
+    this->textureAttachments.at(attachment).second->bind();
+  }
+
+  void
   FrameBuffer::bindTextureID(const FBOTargetParam &attachment, GLuint bindPoint)
   {
     this->textureAttachments.at(attachment).second->bind(bindPoint);

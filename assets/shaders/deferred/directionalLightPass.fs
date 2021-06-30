@@ -97,7 +97,7 @@ uniform float lIntensity;
 // Shadow map uniforms.
 uniform mat4 lightVP[NUM_CASCADES];
 uniform float cascadeSplits[NUM_CASCADES];
-uniform sampler2D cascadeMaps[NUM_CASCADES];
+uniform sampler2DShadow cascadeMaps[NUM_CASCADES];
 
 // Uniforms for the geometry buffer.
 uniform vec2 screenSize;
@@ -118,9 +118,10 @@ vec3 SFresnel(float cosTheta, vec3 F0);
 // Schlick approximation to the Fresnel factor, with roughness!
 vec3 SFresnelR(float cosTheta, vec3 F0, float roughness);
 
+vec2 samplePoisson(uint samplePos);
+
 // Calculate if the fragment is in shadow or not.
 float calcShadow(uint cascadeIndex, vec3 position, vec3 normal, vec3 lightDir);
-
 // Functions for softening shadows.
 float calcPCFFactor(vec3 shadowCoords, uint cascadeIndex, float radius, float bias);
 
@@ -215,6 +216,11 @@ vec3 SFresnelR(float cosTheta, vec3 F0, float roughness)
   return F0 + (max(vec3(1.0 - roughness), F0) - F0) * pow(max(1.0 - cosTheta, 0.0), 5.0);
 }
 
+vec2 samplePoisson(uint samplePos)
+{
+  return poissonDisk[samplePos % 64];
+}
+
 // Calculate if the fragment is in shadow or not.
 float calcShadow(uint cascadeIndex, vec3 position, vec3 normal, vec3 lightDir)
 {
@@ -224,7 +230,10 @@ float calcShadow(uint cascadeIndex, vec3 position, vec3 normal, vec3 lightDir)
 
   float bias = max(0.005 * (1.0 - dot(normal, lightDir)), 0.0005);
 
-  return calcPCFFactor(projCoords, cascadeIndex, 1.0, bias);
+  if (projCoords.z > 1.0)
+    return 1.0;
+
+  return calcPCFFactor(projCoords, cascadeIndex, 1.5, bias);
 }
 
 
@@ -237,8 +246,7 @@ float calcPCFFactor(vec3 shadowCoords, uint cascadeIndex, float radius, float bi
   float z = 0.0;
   for (uint i = 0; i < NUM_PCF_SAMPLES; i++)
   {
-    z = texture(cascadeMaps[cascadeIndex], shadowCoords.xy + poissonDisk[i] * texelSize * radius).r;
-    sum += shadowCoords.z - bias < z ? 1.0 : 0.0;
+    sum += texture(cascadeMaps[cascadeIndex], vec3(shadowCoords.xy + samplePoisson(i) * texelSize * radius, shadowCoords.z - bias)).r;
   }
 
   return sum / NUM_PCF_SAMPLES;
