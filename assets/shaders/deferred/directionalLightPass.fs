@@ -97,18 +97,23 @@ uniform float lIntensity;
 // Shadow map uniforms.
 uniform mat4 lightVP[NUM_CASCADES];
 uniform float cascadeSplits[NUM_CASCADES];
-uniform sampler2DShadow cascadeMaps[NUM_CASCADES];
+layout(binding = 7) uniform sampler2DShadow cascadeMaps[NUM_CASCADES];
 
 // Uniforms for the geometry buffer.
 uniform vec2 screenSize;
-uniform sampler2D gPosition;
-uniform sampler2D gNormal;
-uniform sampler2D gAlbedo;
-uniform sampler2D gMatProp;
+layout(binding = 3) uniform sampler2D gPosition;
+layout(binding = 4) uniform sampler2D gNormal;
+layout(binding = 5) uniform sampler2D gAlbedo;
+layout(binding = 6) uniform sampler2D gMatProp;
 
 // Output colour variable.
 layout(location = 0) out vec4 fragColour;
 
+vec2 samplePoisson(uint samplePos);
+
+//------------------------------------------------------------------------------
+// Janky LearnOpenGL PBR.
+//------------------------------------------------------------------------------
 // Trowbridge-Reitz distribution function.
 float TRDistribution(vec3 N, vec3 H, float alpha);
 // Smith-Schlick-Beckmann geometry function.
@@ -118,8 +123,9 @@ vec3 SFresnel(float cosTheta, vec3 F0);
 // Schlick approximation to the Fresnel factor, with roughness!
 vec3 SFresnelR(float cosTheta, vec3 F0, float roughness);
 
-vec2 samplePoisson(uint samplePos);
-
+//------------------------------------------------------------------------------
+// Shadow calculations.
+//------------------------------------------------------------------------------
 // Calculate if the fragment is in shadow or not.
 float calcShadow(uint cascadeIndex, vec3 position, vec3 normal, vec3 lightDir);
 // Functions for softening shadows.
@@ -154,12 +160,17 @@ void main()
 
   vec4 clipSpacePos = camera.cameraView * vec4(position, 1.0);
   float shadowFactor = 1.0;
+  float tempShadowFactor = 1.0;
 
   for (uint i = 0; i < NUM_CASCADES; i++)
   {
-    if (clipSpacePos.z > -cascadeSplits[i])
+    if (clipSpacePos.z > -(cascadeSplits[i + 1] - 15.0f))
     {
       shadowFactor = calcShadow(i, position, normal, light);
+      tempShadowFactor = calcShadow(i + 1, position, normal, light);
+
+      float delta = clipSpacePos.z / -cascadeSplits[i + 1];
+      mix(shadowFactor, tempShadowFactor, delta);
       break;
     }
   }

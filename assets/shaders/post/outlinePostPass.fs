@@ -1,7 +1,7 @@
 #version 440
 
 uniform vec2 screenSize;
-uniform sampler2D entity;
+layout(binding = 0) uniform sampler2D entity;
 
 layout(location = 1) out vec4 fragColour;
 

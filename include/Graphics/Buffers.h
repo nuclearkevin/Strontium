@@ -79,10 +79,10 @@ namespace SciRenderer
   class UniformBuffer
   {
   public:
-    // Constructors and destructor.
     UniformBuffer(const void* bufferData, const unsigned &dataSize,
                   BufferType bufferType);
     UniformBuffer(const unsigned &bufferSize, BufferType bufferType);
+    UniformBuffer();
     ~UniformBuffer();
 
     // Bind/unbind the buffer.

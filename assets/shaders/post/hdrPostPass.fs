@@ -2,8 +2,9 @@
 
 uniform vec2 screenSize;
 uniform float gamma = 2.2;
-uniform sampler2D screenColour;
-uniform sampler2D entityIDs;
+
+layout(binding = 0) uniform sampler2D screenColour;
+layout(binding = 1) uniform sampler2D entityIDs;
 
 // Output colour variable.
 layout(location = 1) out vec4 fragColour;

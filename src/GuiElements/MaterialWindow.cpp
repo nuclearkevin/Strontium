@@ -201,7 +201,7 @@ namespace SciRenderer
 
       if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(0))
       {
-        material->attachSampler2D(name, type);
+        material->attachSampler2D(type, name);
         isOpen = false;
         this->selectedString = "";
       }
@@ -211,7 +211,7 @@ namespace SciRenderer
 
       if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(0))
       {
-        material->attachSampler2D(name, type);
+        material->attachSampler2D(type, name);
         isOpen = false;
         this->selectedString = "";
       }

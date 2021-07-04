@@ -107,6 +107,11 @@ namespace SciRenderer
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
   }
 
+  UniformBuffer::UniformBuffer()
+  {
+    glGenBuffers(1, &this->bufferID);
+  }
+
   UniformBuffer::~UniformBuffer()
   {
     glDeleteBuffers(1, &this->bufferID);

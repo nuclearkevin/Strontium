@@ -17,16 +17,16 @@ struct Camera
 uniform Camera camera;
 
 // Uniforms for ambient lighting.
-uniform samplerCube irradianceMap;
-uniform samplerCube reflectanceMap;
-uniform sampler2D brdfLookUp;
+layout(binding = 0) uniform samplerCube irradianceMap;
+layout(binding = 1) uniform samplerCube reflectanceMap;
+layout(binding = 2) uniform sampler2D brdfLookUp;
 
 // Uniforms for the geometry buffer.
 uniform vec2 screenSize;
-uniform sampler2D gPosition;
-uniform sampler2D gNormal;
-uniform sampler2D gAlbedo;
-uniform sampler2D gMatProp;
+layout(binding = 3) uniform sampler2D gPosition;
+layout(binding = 4) uniform sampler2D gNormal;
+layout(binding = 5) uniform sampler2D gAlbedo;
+layout(binding = 6) uniform sampler2D gMatProp;
 
 // Output colour variable.
 layout(location = 0) out vec4 fragColour;

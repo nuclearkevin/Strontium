@@ -107,29 +107,12 @@ namespace SciRenderer
       storage->geometryShader = shaderCache->getAsset("geometry_pass_shader");
 
       storage->ambientShader = shaderCache->getAsset("deferred_ambient");
-      storage->ambientShader->addUniformSampler("irradianceMap", 0);
-      storage->ambientShader->addUniformSampler("reflectanceMap", 1);
-      storage->ambientShader->addUniformSampler("brdfLookUp", 2);
-      storage->ambientShader->addUniformSampler("gPosition", 3);
-      storage->ambientShader->addUniformSampler("gNormal", 4);
-      storage->ambientShader->addUniformSampler("gAlbedo", 5);
-      storage->ambientShader->addUniformSampler("gMatProp", 6);
 
       storage->directionalShader = shaderCache->getAsset("deferred_directional");
-      storage->directionalShader->addUniformSampler("gPosition", 3);
-      storage->directionalShader->addUniformSampler("gNormal", 4);
-      storage->directionalShader->addUniformSampler("gAlbedo", 5);
-      storage->directionalShader->addUniformSampler("gMatProp", 6);
-      storage->directionalShader->addUniformSampler("cascadeMaps[0]", 7);
-      storage->directionalShader->addUniformSampler("cascadeMaps[1]", 8);
-      storage->directionalShader->addUniformSampler("cascadeMaps[2]", 9);
 
       storage->hdrPostShader = shaderCache->getAsset("post_hdr");
-      storage->hdrPostShader->addUniformSampler("screenColour", 0);
-      storage->hdrPostShader->addUniformSampler("entityIDs", 1);
 
       storage->outlineShader = shaderCache->getAsset("post_entity_outline");
-      storage->outlineShader->addUniformSampler("entity", 0);
     }
 
     // Shutdown the renderer.
