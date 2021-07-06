@@ -53,7 +53,7 @@ namespace SciRenderer
     // Getters.
     GLuint getTexID(const MapType &type);
 
-    GLfloat& getGamma() { return this->gamma; }
+    GLfloat& getIntensity() { return this->intensity; }
     GLfloat& getRoughness() { return this->roughness; }
     Model* getCubeMesh() { return this->cube; }
     Shader* getCubeProg() { return this->cubeShader; }
@@ -80,7 +80,7 @@ namespace SciRenderer
     MapType   currentEnvironment;
 
     // Tone-mapped parameters.
-    GLfloat   gamma;
+    GLfloat   intensity;
     GLfloat   roughness;
 
     Shader*  cubeShader;

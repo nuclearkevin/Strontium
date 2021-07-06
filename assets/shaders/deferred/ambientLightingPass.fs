@@ -28,6 +28,8 @@ layout(binding = 4) uniform sampler2D gNormal;
 layout(binding = 5) uniform sampler2D gAlbedo;
 layout(binding = 6) uniform sampler2D gMatProp;
 
+uniform float intensity = 1.0;
+
 // Output colour variable.
 layout(location = 0) out vec4 fragColour;
 
@@ -56,7 +58,7 @@ void main()
   vec3 view = normalize(position - camera.position);
   vec3 reflection = reflect(view, normal);
 
-  float nDotV = max(dot(normal, -view), 0.0);
+  float nDotV = abs(dot(normal, -view));
   vec3 ks = SFresnelR(nDotV, F0, roughness);
   vec3 kd = (vec3(1.0) - ks) * (1.0 - roughness);
 
@@ -67,7 +69,7 @@ void main()
   vec2 brdfInt = texture(brdfLookUp, vec2(nDotV, roughness)).rg;
   ambientSpec = ambientSpec * (brdfInt.r * ks + brdfInt.g);
 
-	vec3 colour = (radiosity + (ambientDiff + ambientSpec) * ao);
+	vec3 colour = intensity * (radiosity + (ambientDiff + ambientSpec) * ao);
 
   fragColour = vec4(colour, 1.0);
 }

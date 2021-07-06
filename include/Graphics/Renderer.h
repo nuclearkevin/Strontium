@@ -1,4 +1,4 @@
-#define NUM_CASCADES 3
+#define NUM_CASCADES 4
 
 // Include guard.
 #pragma once
@@ -120,6 +120,7 @@ namespace SciRenderer
       Shader* outlineShader;
 
       Unique<EnvironmentMap> currentEnvironment;
+
       Shared<Camera> sceneCam;
 
       std::vector<DirectionalLight> directionalQueue;
@@ -144,12 +145,20 @@ namespace SciRenderer
       GLuint prefilterWidth;
       GLuint prefilterSamples;
 
+      // Cascaded shadow settings.
+      GLfloat cascadeLambda;
+      GLfloat sampleRadius;
+      GLuint cascadeSize;
+
       RendererState()
         : isForward(false)
         , skyboxWidth(512)
         , irradianceWidth(128)
         , prefilterWidth(512)
         , prefilterSamples(1024)
+        , cascadeLambda(0.5f)
+        , sampleRadius(1.5f)
+        , cascadeSize(2048)
       { }
     };
 

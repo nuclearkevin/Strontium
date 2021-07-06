@@ -5,8 +5,8 @@
 */
 
 #define PI 3.141592654
-#define MAX_MIP 4.0
-#define NUM_CASCADES 3
+#define THRESHHOLD 0.05
+#define NUM_CASCADES 4
 #define NUM_BLOCKER_SEARCHES 16
 #define NUM_PCF_SAMPLES 32
 
@@ -97,7 +97,8 @@ uniform float lIntensity;
 // Shadow map uniforms.
 uniform mat4 lightVP[NUM_CASCADES];
 uniform float cascadeSplits[NUM_CASCADES];
-layout(binding = 7) uniform sampler2DShadow cascadeMaps[NUM_CASCADES];
+uniform float sampleRadius = 1.5;
+layout(binding = 7) uniform sampler2D cascadeMaps[NUM_CASCADES];
 
 // Uniforms for the geometry buffer.
 uniform vec2 screenSize;
@@ -128,8 +129,8 @@ vec3 SFresnelR(float cosTheta, vec3 F0, float roughness);
 //------------------------------------------------------------------------------
 // Calculate if the fragment is in shadow or not.
 float calcShadow(uint cascadeIndex, vec3 position, vec3 normal, vec3 lightDir);
-// Functions for softening shadows.
-float calcPCFFactor(vec3 shadowCoords, uint cascadeIndex, float radius, float bias);
+// Varience shadow mapping.
+float varienceShadow(vec3 shadowCoords, uint cascadeIndex, float bias);
 
 void main()
 {
@@ -150,32 +151,32 @@ void main()
 
   float NDF = TRDistribution(normal, halfWay, roughness);
   float G = SSBGeometry(normal, view, light, roughness);
-  vec3 F = SFresnel(max(dot(halfWay, view), 0.0), F0);
+  vec3 F = SFresnel(max(dot(halfWay, view), THRESHHOLD), F0);
 
   vec3 kD = (vec3(1.0) - F) * (1.0 - metallic);
 
   vec3 num = NDF * G * F;
-  float den = 4.0 * max(dot(normal, view), 0.0) * max(dot(normal, light), 0.0);
-  vec3 spec = num / max(den, 0.001);
+  float den = 4.0 * max(dot(normal, view), THRESHHOLD) * max(dot(normal, light), THRESHHOLD);
+  vec3 spec = num / max(den, THRESHHOLD);
 
   vec4 clipSpacePos = camera.cameraView * vec4(position, 1.0);
   float shadowFactor = 1.0;
-  float tempShadowFactor = 1.0;
 
   for (uint i = 0; i < NUM_CASCADES; i++)
   {
-    if (clipSpacePos.z > -(cascadeSplits[i + 1] - 15.0f))
+    if (clipSpacePos.z > -(cascadeSplits[i]))
     {
       shadowFactor = calcShadow(i, position, normal, light);
-      tempShadowFactor = calcShadow(i + 1, position, normal, light);
-
-      float delta = clipSpacePos.z / -cascadeSplits[i + 1];
-      mix(shadowFactor, tempShadowFactor, delta);
       break;
     }
   }
 
-  fragColour = vec4(shadowFactor * (kD * albedo / PI + spec) * lColour * lIntensity * max(dot(normal, light), 0.0), 1.0);
+  fragColour = vec4(shadowFactor * (kD * albedo / PI + spec) * lColour * lIntensity * max(dot(normal, light), THRESHHOLD), 1.0);
+}
+
+vec2 samplePoisson(uint samplePos)
+{
+  return poissonDisk[samplePos % 64];
 }
 
 // Trowbridge-Reitz distribution function.
@@ -183,7 +184,7 @@ float TRDistribution(vec3 N, vec3 H, float roughness)
 {
   float alpha = roughness * roughness;
   float a2 = alpha * alpha;
-  float NdotH = max(dot(N, H), 0.0);
+  float NdotH = max(dot(N, H), THRESHHOLD);
   float NdotH2 = NdotH * NdotH;
 
   float nom = a2;
@@ -208,8 +209,8 @@ float Geometry(float NdotV, float roughness)
 // Smith's modified geometry function.
 float SSBGeometry(vec3 N, vec3 L, vec3 V, float roughness)
 {
-  float NdotV = max(dot(N, V), 0.0);
-  float NdotL = max(dot(N, L), 0.0);
+  float NdotV = max(dot(N, V), THRESHHOLD);
+  float NdotL = max(dot(N, L), THRESHHOLD);
   float g2 = Geometry(NdotV, roughness);
   float g1 = Geometry(NdotL, roughness);
 
@@ -219,17 +220,12 @@ float SSBGeometry(vec3 N, vec3 L, vec3 V, float roughness)
 // Schlick approximation to the Fresnel factor.
 vec3 SFresnel(float cosTheta, vec3 F0)
 {
-  return F0 + (1.0 - F0) * pow(max(1.0 - cosTheta, 0.0), 5.0);
+  return F0 + (1.0 - F0) * pow(max(1.0 - cosTheta, THRESHHOLD), 5.0);
 }
 
 vec3 SFresnelR(float cosTheta, vec3 F0, float roughness)
 {
-  return F0 + (max(vec3(1.0 - roughness), F0) - F0) * pow(max(1.0 - cosTheta, 0.0), 5.0);
-}
-
-vec2 samplePoisson(uint samplePos)
-{
-  return poissonDisk[samplePos % 64];
+  return F0 + (max(vec3(1.0 - roughness), F0) - F0) * pow(max(1.0 - cosTheta, THRESHHOLD), 5.0);
 }
 
 // Calculate if the fragment is in shadow or not.
@@ -244,21 +240,15 @@ float calcShadow(uint cascadeIndex, vec3 position, vec3 normal, vec3 lightDir)
   if (projCoords.z > 1.0)
     return 1.0;
 
-  return calcPCFFactor(projCoords, cascadeIndex, 1.5, bias);
+  return varienceShadow(projCoords, cascadeIndex, bias);
 }
 
-
-float calcPCFFactor(vec3 shadowCoords, uint cascadeIndex, float radius, float bias)
+float varienceShadow(vec3 shadowCoords, uint cascadeIndex, float bias)
 {
-  float sum = 0.0;
-  ivec2 shadowSize = textureSize(cascadeMaps[cascadeIndex], 0);
-  vec2 texelSize = 1.0 / vec2(shadowSize.x, shadowSize.y);
-
-  float z = 0.0;
-  for (uint i = 0; i < NUM_PCF_SAMPLES; i++)
-  {
-    sum += texture(cascadeMaps[cascadeIndex], vec3(shadowCoords.xy + samplePoisson(i) * texelSize * radius, shadowCoords.z - bias)).r;
-  }
-
-  return sum / NUM_PCF_SAMPLES;
+  vec2 moments = texture(cascadeMaps[cascadeIndex], shadowCoords.xy).rg;
+  float varience = moments.y - moments.x * moments.x;
+  float temp = texture(cascadeMaps[cascadeIndex], shadowCoords.xy).r;
+  float varienceShadowFactor = (varience * varience) / ((varience * varience) + ((shadowCoords.z - bias - temp) * (shadowCoords.z - bias - temp)));
+  float shadowFactor = shadowCoords.z - bias < temp ? 1.0 : varienceShadowFactor;
+  return shadowFactor;
 }

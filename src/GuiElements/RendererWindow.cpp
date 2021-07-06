@@ -6,6 +6,7 @@
 // ImGui includes.
 #include "imgui/imgui.h"
 #include "imgui/imgui_internal.h"
+#include "GuiElements/Styles.h"
 
 namespace SciRenderer
 {
@@ -23,12 +24,8 @@ namespace SciRenderer
   void
   RendererWindow::onImGuiRender(bool &isOpen, Shared<Scene> activeScene)
   {
+    auto storage = Renderer3D::getStorage();
     auto state = Renderer3D::getState();
-    int skyboxWidth = state->skyboxWidth;
-    int irradianceWidth = state->irradianceWidth;
-    int prefilterWidth = state->prefilterWidth;
-    int prefilterSamples = state->prefilterSamples;
-
     auto stats = Renderer3D::getStats();
 
     ImGui::Begin("Renderer Settings", &isOpen);
@@ -39,22 +36,63 @@ namespace SciRenderer
     ImGui::Text("Total lights: D-%u P-%u S-%u", stats->numDirLights,
                 stats->numPointLights, stats->numSpotLights);
 
-    if (ImGui::CollapsingHeader("Shadow Pass"))
+    if (ImGui::CollapsingHeader("Shadows"))
     {
-      auto storage = Renderer3D::getStorage();
+      Styles::drawFloatControl("Cascade Lambda", 0.5f, state->cascadeLambda, 0.0f, 0.01f, 0.5f, 1.0f);
+      Styles::drawFloatControl("Shadow Softness", 0.0f, state->sampleRadius, 0.0f, 0.01f, 0.0f, 5.0f);
 
-      static int cascadeIndex = 0;
-      ImGui::SliderInt("Cascade Index", &cascadeIndex, 0, 2);
+      int shadowWidth = state->cascadeSize;
+      if (ImGui::InputInt("Shadowmap Size", &shadowWidth))
+      {
+        shadowWidth = shadowWidth > 4096 ? 4096 : shadowWidth;
+        shadowWidth = shadowWidth < 512 ? 512 : shadowWidth;
 
-      ImGui::Image((ImTextureID) (unsigned long) storage->shadowBuffer[(unsigned int) cascadeIndex].getAttachID(FBOTargetParam::Depth),
-                   ImVec2(128.0f, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
+        // Compute the next or previous power of 2 and set the int to that.
+        if (shadowWidth - (int) state->cascadeSize < 0)
+        {
+          shadowWidth = std::pow(2, std::floor(std::log2(shadowWidth)));
+        }
+        else if (shadowWidth - (int) state->cascadeSize > 0)
+        {
+          shadowWidth = std::pow(2, std::floor(std::log2(shadowWidth)) + 1);
+        }
+
+        shadowWidth = std::pow(2, std::floor(std::log2(shadowWidth)));
+        state->cascadeSize = shadowWidth;
+
+        for (unsigned int i = 0; i < NUM_CASCADES; i++)
+          storage->shadowBuffer[i].resize(state->cascadeSize, state->cascadeSize);
+      }
+
+      static bool showMaps = false;
+      ImGui::Checkbox("Show shadow maps", &showMaps);
+
+      if (showMaps)
+      {
+        static int cascadeIndex = 0;
+        ImGui::SliderInt("Cascade Index", &cascadeIndex, 0, 3);
+        ImGui::Text("Depth:");
+        ImGui::Image((ImTextureID) (unsigned long) storage->shadowBuffer[(unsigned int) cascadeIndex].getAttachID(FBOTargetParam::Depth),
+                     ImVec2(128.0f, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
+        ImGui::Text("Moments");
+        ImGui::Image((ImTextureID) (unsigned long) storage->shadowBuffer[(unsigned int) cascadeIndex].getAttachID(FBOTargetParam::Colour0),
+                     ImVec2(128.0f, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
+      }
     }
 
-    if (ImGui::CollapsingHeader("Geometry Pass"))
+    if (ImGui::CollapsingHeader("Render Passes"))
     {
-      auto storage = Renderer3D::getStorage();
       auto bufferSize = storage->geometryPass.getSize();
       GLfloat ratio = bufferSize.x / bufferSize.y;
+
+      ImGui::Separator();
+      ImGui::Text("Lighting:");
+      ImGui::Separator();
+      ImGui::Image((ImTextureID) (unsigned long) storage->lightingPass.getAttachID(FBOTargetParam::Colour0),
+                   ImVec2(128.0f * ratio, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
+      ImGui::Separator();
+      ImGui::Text("GBuffer:");
+      ImGui::Separator();
       ImGui::Text("Positions:");
       ImGui::Image((ImTextureID) (unsigned long) storage->geometryPass.getAttachID(FBOTargetParam::Colour0),
                    ImVec2(128.0f * ratio, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
@@ -75,17 +113,13 @@ namespace SciRenderer
                    ImVec2(128.0f * ratio, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
     }
 
-    if (ImGui::CollapsingHeader("Lighting Pass"))
-    {
-      auto storage = Renderer3D::getStorage();
-      auto bufferSize = storage->lightingPass.getSize();
-      GLfloat ratio = bufferSize.x / bufferSize.y;
-      ImGui::Image((ImTextureID) (unsigned long) storage->lightingPass.getAttachID(FBOTargetParam::Colour0),
-                   ImVec2(128.0f * ratio, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
-    }
-
     if (ImGui::CollapsingHeader("Environment Map"))
     {
+      int skyboxWidth = state->skyboxWidth;
+      int irradianceWidth = state->irradianceWidth;
+      int prefilterWidth = state->prefilterWidth;
+      int prefilterSamples = state->prefilterSamples;
+
       if (ImGui::Button("Recompute Environment Map"))
       {
         auto ambient = Renderer3D::getStorage()->currentEnvironment.get();

@@ -319,8 +319,8 @@ namespace SciRenderer
         out << YAML::Key << "IrraRes" << YAML::Value << state->irradianceWidth;
         out << YAML::Key << "FiltRes" << YAML::Value << state->prefilterWidth;
         out << YAML::Key << "FiltSam" << YAML::Value << state->prefilterSamples;
-        out << YAML::Key << "IBLGamma" << YAML::Value << component.ambient->getGamma();
         out << YAML::Key << "IBLRough" << YAML::Value << component.ambient->getRoughness();
+        out << YAML::Key << "Intensity" << YAML::Value << component.ambient->getIntensity();
 
         out << YAML::EndMap;
       }
@@ -537,7 +537,9 @@ namespace SciRenderer
           state->prefilterSamples = ambientComponent["FiltSam"].as<GLuint>();
           storage->currentEnvironment->unloadEnvironment();
 
-          newEntity.addComponent<AmbientComponent>(iblImagePath);
+          auto& aComponent = newEntity.addComponent<AmbientComponent>(iblImagePath);
+          aComponent.ambient->getRoughness() = ambientComponent["IBLRough"].as<GLfloat>();
+          aComponent.ambient->getIntensity() = ambientComponent["Intensity"].as<GLfloat>();
         }
       }
 

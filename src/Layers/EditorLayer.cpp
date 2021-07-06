@@ -47,7 +47,7 @@ namespace SciRenderer
     auto cSpec = FBOCommands::getFloatColourSpec(FBOTargetParam::Colour0);
     this->drawBuffer->attachTexture2D(cSpec);
     cSpec = FBOCommands::getFloatColourSpec(FBOTargetParam::Colour1); // The ID texture.
-    cSpec.internal = TextureInternalFormats::R16F;
+    cSpec.internal = TextureInternalFormats::R16f;
     cSpec.format = TextureFormats::Red;
     cSpec.sWrap = TextureWrapParams::ClampEdges;
     cSpec.tWrap = TextureWrapParams::ClampEdges;

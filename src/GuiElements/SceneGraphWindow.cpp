@@ -447,7 +447,7 @@ namespace SciRenderer
         if (component.light.primaryLight && !isPrimaryLight)
         {
           auto dirLight = activeScene->sceneECS.view<DirectionalLightComponent>();
-          
+
           for (auto entity : dirLight)
           {
             auto& directional = dirLight.get<DirectionalLightComponent>(entity);
@@ -485,7 +485,7 @@ namespace SciRenderer
         ImGui::ColorEdit3("Colour", &component.light.colour.r);
         Styles::drawFloatControl("Radius", 0.0f, component.light.radius, 0.0f, 0.1f, 0.0f, 100.0f);
         Styles::drawFloatControl("Intensity", 0.0f, component.light.intensity,
-                                 0.0f, 0.1f, 0.0f, 10.0f);
+                                 0.0f, 0.1f, 0.0f, 100.0f);
         GLfloat innerAngle = glm::degrees(std::acos(component.light.innerCutoff));
         Styles::drawFloatControl("Inner Cutoff", 45.0f, innerAngle,
                                  0.0f, 0.1f, 0.0f, 360.0f);
@@ -501,6 +501,7 @@ namespace SciRenderer
         this->selectedEntity, [this](auto& component)
       {
         bool attachEnvi = false;
+        auto storage = Renderer3D::getStorage();
 
         static bool drawingMips = false;
 
@@ -518,7 +519,7 @@ namespace SciRenderer
           else
             component.ambient->setDrawingType(MapType::Skybox);
 
-          ImGui::DragFloat("Gamma", &component.ambient->getGamma(), 0.1f, 0.0f, 10.0f, "%.2f");
+          Styles::drawFloatControl("Intensity", 1.0f, component.ambient->getIntensity(), 0.0f, 0.1f, 0.0f, 100.0f);
         }
 
         if (attachEnvi)

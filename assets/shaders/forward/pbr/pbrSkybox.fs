@@ -4,8 +4,6 @@
 
 uniform samplerCube skybox;
 
-uniform float gamma = 2.2;
-
 uniform float roughness = 0.0;
 
 in VERT_OUT

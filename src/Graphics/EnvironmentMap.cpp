@@ -15,7 +15,7 @@ namespace SciRenderer
     , specPrefilter(nullptr)
     , brdfIntMap(nullptr)
     , currentEnvironment(MapType::Skybox)
-    , gamma(2.2f)
+    , intensity(1.0f)
     , roughness(0.0f)
     , filepath("")
   {
@@ -154,7 +154,6 @@ namespace SciRenderer
     this->cubeShader->bind();
     this->cubeShader->addUniformMatrix("vP", vP, GL_FALSE);
     this->cubeShader->addUniformSampler("skybox", 0);
-    this->cubeShader->addUniformFloat("gamma", this->gamma);
 
     if (this->currentEnvironment == MapType::Prefilter)
       this->cubeShader->addUniformFloat("roughness", this->roughness);

@@ -370,6 +370,12 @@ namespace SciRenderer
     glViewport(0, 0, this->width, this->height);
   }
 
+  void
+  FrameBuffer::setClearColour(const glm::vec4 &clearColour)
+  {
+    this->clearColour = clearColour;
+  }
+
   GLuint
   FrameBuffer::getRenderBufferID()
   {

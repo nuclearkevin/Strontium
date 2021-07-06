@@ -107,6 +107,9 @@ namespace SciRenderer
     void resize(GLuint width, GLuint height);
     void setViewport();
 
+    // Set the clear colour.
+    void setClearColour(const glm::vec4 &clearColour);
+
     // Clear the buffer.
     void clear();
 

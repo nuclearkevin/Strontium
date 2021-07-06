@@ -60,13 +60,15 @@ namespace SciRenderer
 
       // Prepare the shadow buffers.
       auto dSpec = FBOCommands::getDefaultDepthSpec();
+      auto vSpec = FBOCommands::getFloatColourSpec(FBOTargetParam::Colour0);
+      vSpec.internal = TextureInternalFormats::RG32f;
+      vSpec.format = TextureFormats::RG;
       for (unsigned int i = 0; i < NUM_CASCADES; i++)
       {
-        storage->shadowBuffer[i] = FrameBuffer(2048, 2048);
+        storage->shadowBuffer[i] = FrameBuffer(state->cascadeSize, state->cascadeSize);
+        storage->shadowBuffer[i].attachTexture2D(vSpec);
         storage->shadowBuffer[i].attachTexture2D(dSpec);
-        storage->shadowBuffer[i].bindTextureID(FBOTargetParam::Depth);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LESS);
+        storage->shadowBuffer[i].setClearColour(glm::vec4(1.0f));
       }
       storage->hasCascades = false;
 
@@ -346,7 +348,7 @@ namespace SciRenderer
         float p = (i + 1.0f) / (float) NUM_CASCADES;
         float log = near * std::pow(far / near, p);
         float uniform = near + (far - near) * p;
-        float d = 0.91f * (log - uniform) + uniform;
+        float d = state->cascadeLambda * (log - uniform) + uniform;
         cascadeSplits[i] = (d - near) / (far - near);
       }
 
@@ -502,6 +504,8 @@ namespace SciRenderer
             }
           }
         }
+        storage->shadowBuffer[i].bindTextureID(FBOTargetParam::Colour0);
+        glGenerateMipmap(GL_TEXTURE_2D);
 
         storage->shadowBuffer[i].unbind();
       }
@@ -534,6 +538,7 @@ namespace SciRenderer
       storage->geometryPass.bindTextureID(FBOTargetParam::Colour3, 6);
       // Screen size.
       storage->ambientShader->addUniformVector("screenSize", storage->lightingPass.getSize());
+      storage->ambientShader->addUniformFloat("intensity", storage->currentEnvironment->getIntensity());
       // Camera position.
       storage->ambientShader->addUniformVector("camera.position", storage->sceneCam->getCamPos());
 
@@ -565,7 +570,7 @@ namespace SciRenderer
             (std::string("cascadeSplits[") + std::to_string(i) + std::string("]")).c_str(),
             storage->cascadeSplits[i]);
 
-          storage->shadowBuffer[i].bindTextureID(FBOTargetParam::Depth, i + 7);
+          storage->shadowBuffer[i].bindTextureID(FBOTargetParam::Colour0, i + 7);
         }
         else
         {
@@ -577,6 +582,7 @@ namespace SciRenderer
             0.0f);
         }
       }
+      storage->directionalShader->addUniformFloat("sampleRadius", state->sampleRadius);
 
       for (auto& lights : storage->directionalQueue)
       {
