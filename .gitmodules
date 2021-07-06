@@ -13,9 +13,6 @@
 [submodule "vendor/stb"]
 	path = vendor/stb
 	url = https://github.com/nothings/stb.git
-[submodule "vendor/tinyobjloader"]
-	path = vendor/tinyobjloader
-	url = https://github.com/tinyobjloader/tinyobjloader.git
 [submodule "vendor/assimp"]
 	path = vendor/assimp
 	url = https://github.com/assimp/assimp.git
