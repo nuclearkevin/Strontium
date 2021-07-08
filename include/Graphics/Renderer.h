@@ -10,6 +10,7 @@
 #include "Core/ApplicationBase.h"
 #include "Graphics/VertexArray.h"
 #include "Graphics/Shaders.h"
+#include "Graphics/Compute.h"
 #include "Graphics/Meshes.h"
 #include "Graphics/Model.h"
 #include "Graphics/Material.h"
@@ -97,9 +98,10 @@ namespace SciRenderer
       // Geometric primatives for applying lights and effects.
       VertexArray fsq;
 
-      // The required buffers for processing.
+      // The required framebuffers.
       FrameBuffer geometryPass;
       FrameBuffer shadowBuffer[NUM_CASCADES];
+      FrameBuffer shadowEffectsBuffer;
       FrameBuffer lightingPass;
 
       // Items for the geometry pass.
@@ -116,6 +118,8 @@ namespace SciRenderer
       Shader* shadowShader;
       Shader* ambientShader;
       Shader* directionalShader;
+      Shader* horBlur;
+      Shader* verBlur;
       Shader* hdrPostShader;
       Shader* outlineShader;
 
@@ -147,7 +151,7 @@ namespace SciRenderer
 
       // Cascaded shadow settings.
       GLfloat cascadeLambda;
-      GLfloat sampleRadius;
+      GLfloat shadowTuning[NUM_CASCADES];
       GLuint cascadeSize;
 
       RendererState()
@@ -156,10 +160,14 @@ namespace SciRenderer
         , irradianceWidth(128)
         , prefilterWidth(512)
         , prefilterSamples(1024)
-        , cascadeLambda(0.5f)
-        , sampleRadius(1.5f)
+        , cascadeLambda(0.9f)
         , cascadeSize(2048)
-      { }
+      {
+        for (unsigned int i = 0; i < NUM_CASCADES; i++)
+        {
+          shadowTuning[i] = 80.0f;
+        }
+      }
     };
 
     struct RendererStats

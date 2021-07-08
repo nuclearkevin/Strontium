@@ -1,8 +1,10 @@
 #version 440
 
-layout(location = 0) out vec4 moments;
+uniform float shadowTuning = 1.0;
+
+layout(location = 0) out vec4 fragColour;
 
 void main()
 {
-  moments = vec4(vec2(gl_FragCoord.z, gl_FragCoord.z * gl_FragCoord.z), 1.0, 1.0);
+  fragColour = vec4(vec3(exp(shadowTuning * gl_FragCoord.z)), 1.0);
 }

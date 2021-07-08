@@ -450,7 +450,7 @@ namespace SciRenderer
 
       ComputeShader integrateBRDF = ComputeShader("./assets/shaders/compute/integrateBRDF.cs");
 
-      // Bind the irradiance map for writing to by the compute shader.
+      // Bind the integration map for writing to by the compute shader.
       glBindImageTexture(3, this->brdfIntMap->getID(), 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);
 
       // Launch the compute shader.

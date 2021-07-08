@@ -91,7 +91,7 @@ namespace SciRenderer
                          const bool &removeTex = true);
     void attachCubeMapFace(const FBOSpecification &spec, Shared<CubeMap> &map,
                            const bool &removeTex = true, GLuint mip = 0);
-    void attachRenderBuffer();
+    void attachRenderBuffer(RBOInternalFormat format = RBOInternalFormat::Depth32f);
     void attachRenderBuffer(Shared<RenderBuffer> buffer);
 
     // Unattach a 2D texture. This won't delete the texture.

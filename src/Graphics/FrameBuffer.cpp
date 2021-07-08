@@ -196,7 +196,7 @@ namespace SciRenderer
   }
 
   void
-  FrameBuffer::attachRenderBuffer()
+  FrameBuffer::attachRenderBuffer(RBOInternalFormat format)
   {
     Logger* logs = Logger::getInstance();
 
@@ -207,10 +207,17 @@ namespace SciRenderer
     }
     this->bind();
 
-    this->depthBuffer = createShared<RenderBuffer>(this->width, this->height);
-
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT,
-                              GL_RENDERBUFFER, this->depthBuffer->getID());
+    this->depthBuffer = createShared<RenderBuffer>(this->width, this->height,
+                                                   format);
+    if (format == RBOInternalFormat::Depth24 || format == RBOInternalFormat::Depth32f)
+      glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
+                                GL_RENDERBUFFER, this->depthBuffer->getID());
+    else if (format == RBOInternalFormat::Stencil)
+      glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT,
+                                GL_RENDERBUFFER, this->depthBuffer->getID());
+    else if (format == RBOInternalFormat::DepthStencil)
+      glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT,
+                                GL_RENDERBUFFER, this->depthBuffer->getID());
     this->unbind();
 
     this->clearFlags |= GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT;
@@ -229,8 +236,16 @@ namespace SciRenderer
     }
     this->bind();
 
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT,
-                              GL_RENDERBUFFER, buffer->getID());
+    auto format = buffer->getFormat();
+    if (format == RBOInternalFormat::Depth24 || format == RBOInternalFormat::Depth32f)
+      glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
+                                GL_RENDERBUFFER, this->depthBuffer->getID());
+    else if (format == RBOInternalFormat::Stencil)
+      glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT,
+                                GL_RENDERBUFFER, this->depthBuffer->getID());
+    else if (format == RBOInternalFormat::DepthStencil)
+      glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT,
+                                GL_RENDERBUFFER, this->depthBuffer->getID());
 
     this->unbind();
 
@@ -469,7 +484,7 @@ namespace SciRenderer
     FBOSpecification defaultDepth = FBOSpecification();
     defaultDepth.target = FBOTargetParam::Depth;
     defaultDepth.type = FBOTex2DParam::Texture2D;
-    defaultDepth.internal = TextureInternalFormats::Depth;
+    defaultDepth.internal = TextureInternalFormats::Depth32f;
     defaultDepth.format = TextureFormats::Depth;
     defaultDepth.dataType = TextureDataType::Floats;
     defaultDepth.sWrap = TextureWrapParams::Repeat;

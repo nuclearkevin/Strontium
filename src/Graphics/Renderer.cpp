@@ -61,8 +61,8 @@ namespace SciRenderer
       // Prepare the shadow buffers.
       auto dSpec = FBOCommands::getDefaultDepthSpec();
       auto vSpec = FBOCommands::getFloatColourSpec(FBOTargetParam::Colour0);
-      vSpec.internal = TextureInternalFormats::RG32f;
-      vSpec.format = TextureFormats::RG;
+      vSpec.internal = TextureInternalFormats::R32f;
+      vSpec.format = TextureFormats::Red;
       for (unsigned int i = 0; i < NUM_CASCADES; i++)
       {
         storage->shadowBuffer[i] = FrameBuffer(state->cascadeSize, state->cascadeSize);
@@ -70,6 +70,10 @@ namespace SciRenderer
         storage->shadowBuffer[i].attachTexture2D(dSpec);
         storage->shadowBuffer[i].setClearColour(glm::vec4(1.0f));
       }
+      storage->shadowEffectsBuffer = FrameBuffer(state->cascadeSize, state->cascadeSize);
+      storage->shadowEffectsBuffer.attachTexture2D(vSpec);
+      storage->shadowEffectsBuffer.attachTexture2D(dSpec);
+      storage->shadowEffectsBuffer.setClearColour(glm::vec4(1.0f));
       storage->hasCascades = false;
 
       storage->width = width;
@@ -105,15 +109,12 @@ namespace SciRenderer
 
       // Shaders for the various passes.
       storage->shadowShader = shaderCache->getAsset("shadow_shader");
-
       storage->geometryShader = shaderCache->getAsset("geometry_pass_shader");
-
       storage->ambientShader = shaderCache->getAsset("deferred_ambient");
-
       storage->directionalShader = shaderCache->getAsset("deferred_directional");
-
+      storage->horBlur = shaderCache->getAsset("post_hor_gaussian_blur");
+      storage->verBlur = shaderCache->getAsset("post_ver_gaussian_blur");
       storage->hdrPostShader = shaderCache->getAsset("post_hdr");
-
       storage->outlineShader = shaderCache->getAsset("post_entity_outline");
     }
 
@@ -490,6 +491,7 @@ namespace SciRenderer
           {
             storage->shadowShader->addUniformMatrix("lightVP", storage->cascades[i], GL_FALSE);
             storage->shadowShader->addUniformMatrix("model", pair.second, GL_FALSE);
+            storage->shadowShader->addUniformFloat("shadowTuning", state->shadowTuning[i]);
 
             for (auto& submesh : pair.first->getSubmeshes())
             {
@@ -504,12 +506,34 @@ namespace SciRenderer
             }
           }
         }
-        storage->shadowBuffer[i].bindTextureID(FBOTargetParam::Colour0);
-        glGenerateMipmap(GL_TEXTURE_2D);
+        storage->shadowBuffer[i].unbind();
+
+        // Apply a 2-pass 5 tap Gaussian blur to the shadow map.
+        // First pass (horizontal) is FBO attachment -> temp FBO.
+        glDepthMask(GL_FALSE);
+        RendererCommands::disable(RendererFunction::DepthTest);
+        storage->shadowEffectsBuffer.clear();
+        storage->shadowEffectsBuffer.bind();
+        storage->shadowEffectsBuffer.setViewport();
+
+        storage->shadowBuffer[i].bindTextureID(FBOTargetParam::Colour0, 0);
+        draw(&storage->fsq, storage->horBlur);
+
+        storage->shadowEffectsBuffer.unbind();
+
+        // Second pass (vertical) is temp FBO -> FBO attachment.
+        storage->shadowBuffer[i].clear();
+        storage->shadowBuffer[i].bind();
+        storage->shadowBuffer[i].setViewport();
+
+        storage->shadowEffectsBuffer.bindTextureID(FBOTargetParam::Colour0, 0);
+        draw(&storage->fsq, storage->verBlur);
 
         storage->shadowBuffer[i].unbind();
-      }
 
+        RendererCommands::enable(RendererFunction::DepthTest);
+        glDepthMask(GL_TRUE);
+      }
       storage->shadowQueue.clear();
     }
 
@@ -570,6 +594,10 @@ namespace SciRenderer
             (std::string("cascadeSplits[") + std::to_string(i) + std::string("]")).c_str(),
             storage->cascadeSplits[i]);
 
+          storage->directionalShader->addUniformFloat(
+            (std::string("shadowTuning[") + std::to_string(i) + std::string("]")).c_str(),
+            state->shadowTuning[i]);
+
           storage->shadowBuffer[i].bindTextureID(FBOTargetParam::Colour0, i + 7);
         }
         else
@@ -582,7 +610,6 @@ namespace SciRenderer
             0.0f);
         }
       }
-      storage->directionalShader->addUniformFloat("sampleRadius", state->sampleRadius);
 
       for (auto& lights : storage->directionalQueue)
       {

@@ -114,7 +114,8 @@ namespace SciRenderer
   //----------------------------------------------------------------------------
   enum class RBOInternalFormat
   {
-    Depth = GL_DEPTH_COMPONENT24,
+    Depth24 = GL_DEPTH_COMPONENT24,
+    Depth32f = GL_DEPTH_COMPONENT32F,
     Stencil = GL_STENCIL_INDEX8,
     DepthStencil = GL_DEPTH24_STENCIL8
   };
