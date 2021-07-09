@@ -133,6 +133,8 @@ namespace SciRenderer
     std::vector<Vertex> meshVertices;
     std::vector<GLuint> meshIndicies;
 
+    glm::vec3 meshMin = glm::vec3(std::numeric_limits<float>::max());
+    glm::vec3 meshMax = glm::vec3(std::numeric_limits<float>::min());;
     // Get the positions.
     if (mesh->HasPositions())
     {
@@ -150,8 +152,8 @@ namespace SciRenderer
         temp.w = 1.0f;
 
         meshVertices[i].position = temp;
-        this->minPos = glm::min(this->minPos, glm::vec3(temp));
-        this->maxPos = glm::max(this->maxPos, glm::vec3(temp));
+        meshMin = glm::min(meshMin, glm::vec3(temp));
+        meshMax = glm::max(meshMax, glm::vec3(temp));
       }
     }
     else
@@ -159,6 +161,8 @@ namespace SciRenderer
       // Nothing that can be done for this mesh as it has no data.
       return;
     }
+    this->minPos = glm::min(this->minPos, meshMin);
+    this->maxPos = glm::max(this->maxPos, meshMax);
 
     if (mesh->HasNormals())
     {
@@ -232,5 +236,7 @@ namespace SciRenderer
     std::string meshName = std::string(mesh->mName.C_Str());
     this->subMeshes.push_back(std::pair
       (meshName, createShared<Mesh>(meshName, meshVertices, meshIndicies, this)));
+    this->subMeshes.back().second->getMinPos() = meshMin;
+    this->subMeshes.back().second->getMaxPos() = meshMax;
   }
 }

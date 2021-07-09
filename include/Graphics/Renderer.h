@@ -8,6 +8,7 @@
 
 // Project includes.
 #include "Core/ApplicationBase.h"
+#include "Core/Math.h"
 #include "Graphics/VertexArray.h"
 #include "Graphics/Shaders.h"
 #include "Graphics/Compute.h"
@@ -126,6 +127,7 @@ namespace SciRenderer
       Unique<EnvironmentMap> currentEnvironment;
 
       Shared<Camera> sceneCam;
+      Frustum camFrustum;
 
       std::vector<DirectionalLight> directionalQueue;
       std::vector<PointLight> pointQueue;

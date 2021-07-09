@@ -137,6 +137,7 @@ namespace SciRenderer
     begin(GLuint width, GLuint height, Shared<Camera> sceneCam, bool isForward)
     {
       storage->sceneCam = sceneCam;
+      storage->camFrustum = buildCameraFrustum(sceneCam);
 
       // Resize the framebuffer at the start of a frame, if required.
       storage->width = width;
@@ -226,7 +227,16 @@ namespace SciRenderer
     submit(Model* data, ModelMaterial &materials, const glm::mat4 &model,
                 GLfloat id, bool drawSelectionMask)
     {
-      storage->renderQueue.emplace_back(data, &materials, model, id, drawSelectionMask);
+      // Cull the model early.
+      glm::vec3 min = glm::vec3(model * glm::vec4(data->getMinPos(), 1.0f));
+      glm::vec3 max = glm::vec3(model * glm::vec4(data->getMaxPos(), 1.0f));
+      glm::vec3 center = (min + max) / 2.0f;
+      GLfloat radius = glm::length(min + center);
+
+      if (AABBInFrustum(storage->camFrustum, min, max))
+      //if (sphereInFrustum(storage->camFrustum, center, radius))
+        storage->renderQueue.emplace_back(data, &materials, model, id, drawSelectionMask);
+
       storage->shadowQueue.emplace_back(data, model);
     }
 
@@ -275,6 +285,13 @@ namespace SciRenderer
         auto& [data, materials, transform, id, drawSelectionMask] = drawable;
         for (auto& pair : data->getSubmeshes())
         {
+          // Cull the submesh if it isn't in the frustum.
+          glm::vec3 min = glm::vec3(transform * glm::vec4(pair.second->getMinPos(), 1.0f));
+          glm::vec3 max = glm::vec3(transform * glm::vec4(pair.second->getMaxPos(), 1.0f));
+
+          if (!AABBInFrustum(storage->camFrustum, min, max))
+            continue;
+
           Material* material = materials->getMaterial(pair.first);
           if (!material)
           {

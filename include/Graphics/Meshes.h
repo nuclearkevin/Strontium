@@ -46,6 +46,8 @@ namespace SciRenderer
     // Getters.
     std::vector<Vertex>& getData() { return this->data; }
     std::vector<GLuint>& getIndices() { return this->indices; }
+    glm::vec3& getMinPos() { return this->minPos; }
+    glm::vec3& getMaxPos() { return this->maxPos; }
     VertexArray*  getVAO() { return this->vArray.get(); }
     std::string& getFilepath() { return this->filepath; }
     std::string& getName() { return this->name; }
@@ -56,12 +58,15 @@ namespace SciRenderer
   protected:
     // Mesh properties.
     bool loaded;
-    std::vector<Vertex>              data;
-    std::vector<GLuint>              indices;
-    bool                             hasUVs;
+    std::vector<Vertex> data;
+    std::vector<GLuint> indices;
+    bool hasUVs;
 
-    std::string                      filepath;
-    std::string                      name;
+    glm::vec3 minPos;
+    glm::vec3 maxPos;
+
+    std::string filepath;
+    std::string name;
 
     Model* parent;
 
