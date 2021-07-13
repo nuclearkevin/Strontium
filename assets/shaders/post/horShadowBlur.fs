@@ -10,13 +10,13 @@ void main()
 {
   vec2 texelSize = 1.0 / textureSize(inputTex, 0);
   vec2 fTexCoords = gl_FragCoord.xy * texelSize;
-  vec2 result = texture(inputTex, fTexCoords).rg * weights[0];
+  vec4 result = texture(inputTex, fTexCoords).rgba * weights[0];
 
   for (uint i = 1; i < 5; i++)
   {
-    result += texture(inputTex, fTexCoords + vec2(0, texelSize.y * i)).rg * weights[i];
-    result += texture(inputTex, fTexCoords - vec2(0, texelSize.y * i)).rg * weights[i];
+    result += texture(inputTex, fTexCoords + vec2(texelSize.x * i, 0)).rgba * weights[i];
+    result += texture(inputTex, fTexCoords - vec2(texelSize.x * i, 0)).rgba * weights[i];
   }
 
-  fragColour = vec4(result, 0.0, 1.0);
+  fragColour = result;
 }

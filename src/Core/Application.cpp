@@ -70,11 +70,11 @@ namespace SciRenderer
 
     this->shaderCache->attachAsset("post_hor_gaussian_blur",
       new Shader("./assets/shaders/post/postProcessingPass.vs",
-                 "./assets/shaders/post/horGaussBlur.fs"));
+                 "./assets/shaders/post/horShadowBlur.fs"));
 
     this->shaderCache->attachAsset("post_ver_gaussian_blur",
       new Shader("./assets/shaders/post/postProcessingPass.vs",
-                 "./assets/shaders/post/verGaussBlur.fs"));
+                 "./assets/shaders/post/verShadowBlur.fs"));
 
     this->shaderCache->attachAsset("fsq_shader",
       new Shader("./assets/shaders/viewport.vs",

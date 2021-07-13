@@ -1,10 +1,14 @@
 #version 440
 
-uniform float shadowTuning = 1.0;
+#define WARP 44.0
 
 layout(location = 0) out vec4 fragColour;
 
 void main()
 {
-  fragColour = vec4(vec3(exp(shadowTuning * gl_FragCoord.z)), 1.0);
+  float depth = gl_FragCoord.z;
+
+  float posMom1 = exp(WARP * depth);
+  float negMom1 = -1.0 * exp(-WARP * depth);
+  fragColour = vec4(posMom1, posMom1 * posMom1, negMom1, negMom1 * negMom1);
 }

@@ -153,7 +153,6 @@ namespace SciRenderer
 
       // Cascaded shadow settings.
       GLfloat cascadeLambda;
-      GLfloat shadowTuning[NUM_CASCADES];
       GLuint cascadeSize;
 
       RendererState()
@@ -164,12 +163,7 @@ namespace SciRenderer
         , prefilterSamples(1024)
         , cascadeLambda(0.9f)
         , cascadeSize(2048)
-      {
-        for (unsigned int i = 0; i < NUM_CASCADES; i++)
-        {
-          shadowTuning[i] = 80.0f;
-        }
-      }
+      { }
     };
 
     struct RendererStats

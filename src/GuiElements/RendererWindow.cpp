@@ -42,7 +42,6 @@ namespace SciRenderer
       ImGui::SliderInt("Cascade Index", &cascadeIndex, 0, NUM_CASCADES - 1);
 
       Styles::drawFloatControl("Cascade Lambda", 0.5f, state->cascadeLambda, 0.0f, 0.01f, 0.5f, 1.0f);
-      Styles::drawFloatControl("Shadow Tuning", 10.0f, state->shadowTuning[cascadeIndex], 0.0f, 0.01f, 0.0f, 80.0f);
 
       int shadowWidth = state->cascadeSize;
       if (ImGui::InputInt("Shadowmap Size", &shadowWidth))
@@ -77,7 +76,7 @@ namespace SciRenderer
         ImGui::Text("Depth:");
         ImGui::Image((ImTextureID) (unsigned long) storage->shadowBuffer[(unsigned int) cascadeIndex].getAttachID(FBOTargetParam::Depth),
                      ImVec2(128.0f, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
-        ImGui::Text("Exponential Depth");
+        ImGui::Text("Moments:");
         ImGui::Image((ImTextureID) (unsigned long) storage->shadowBuffer[(unsigned int) cascadeIndex].getAttachID(FBOTargetParam::Colour0),
                      ImVec2(128.0f, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
       }

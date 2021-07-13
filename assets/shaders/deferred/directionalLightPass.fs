@@ -7,8 +7,7 @@
 #define PI 3.141592654
 #define THRESHHOLD 0.05
 #define NUM_CASCADES 4
-#define NUM_BLOCKER_SEARCHES 16
-#define NUM_PCF_SAMPLES 32
+#define WARP 44.0
 
 struct Camera
 {
@@ -28,7 +27,7 @@ uniform float lIntensity;
 // Shadow map uniforms.
 uniform mat4 lightVP[NUM_CASCADES];
 uniform float cascadeSplits[NUM_CASCADES];
-uniform float shadowTuning[NUM_CASCADES];
+uniform float lightBleedReduction = 0.1;
 layout(binding = 7) uniform sampler2D cascadeMaps[NUM_CASCADES];
 
 // Uniforms for the geometry buffer.
@@ -150,6 +149,22 @@ vec3 SFresnelR(float cosTheta, vec3 F0, float roughness)
   return F0 + (max(vec3(1.0 - roughness), F0) - F0) * pow(max(1.0 - cosTheta, THRESHHOLD), 5.0);
 }
 
+vec2 warpDepth(float depth)
+{
+  float posWarp = exp(WARP * depth);
+  float negWarp = -1.0 * exp(-1.0 * WARP * depth);
+  return vec2(posWarp, negWarp);
+}
+
+float computeChebyshevBound(float moment1, float moment2, float depth)
+{
+  float variance2 = moment2 - moment1 * moment1;
+  float diff = depth - moment1;
+  float diff2 = diff * diff;
+
+  return moment1 < depth ? variance2 / (variance2 + diff2) : 1.0;
+}
+
 // Calculate if the fragment is in shadow or not, than applies exponential shadow mapping.
 float calcShadow(uint cascadeIndex, vec3 position, vec3 normal, vec3 lightDir)
 {
@@ -157,9 +172,12 @@ float calcShadow(uint cascadeIndex, vec3 position, vec3 normal, vec3 lightDir)
   vec3 projCoords = lightClipPos.xyz / lightClipPos.w;
   projCoords = 0.5 * projCoords + 0.5;
 
-  float expOccDepth = texture(cascadeMaps[cascadeIndex], projCoords.xy).r;
-  float expRecDepth = exp(-1.0 * shadowTuning[cascadeIndex] * projCoords.z);
-  float shadowFactor = clamp(expOccDepth * expRecDepth, 0.0, 1.0);
+  vec4 moments = texture(cascadeMaps[cascadeIndex], projCoords.xy).rgba;
+  vec2 warpedDepth = warpDepth(projCoords.z);
 
-  return projCoords.z > 1.0 ? 1.0 : shadowFactor;
+  float shadowFactor1 = computeChebyshevBound(moments.r, moments.g, warpedDepth.r);
+  float shadowFactor2 = computeChebyshevBound(moments.b, moments.a, warpedDepth.g);
+  float shadowFactor = min(shadowFactor1, shadowFactor2);
+
+  return shadowFactor;
 }

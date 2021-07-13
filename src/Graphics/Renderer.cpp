@@ -61,8 +61,8 @@ namespace SciRenderer
       // Prepare the shadow buffers.
       auto dSpec = FBOCommands::getDefaultDepthSpec();
       auto vSpec = FBOCommands::getFloatColourSpec(FBOTargetParam::Colour0);
-      vSpec.internal = TextureInternalFormats::R32f;
-      vSpec.format = TextureFormats::Red;
+      vSpec.internal = TextureInternalFormats::RGBA32f;
+      vSpec.format = TextureFormats::RGBA;
       for (unsigned int i = 0; i < NUM_CASCADES; i++)
       {
         storage->shadowBuffer[i] = FrameBuffer(state->cascadeSize, state->cascadeSize);
@@ -233,8 +233,7 @@ namespace SciRenderer
       glm::vec3 center = (min + max) / 2.0f;
       GLfloat radius = glm::length(min + center);
 
-      if (AABBInFrustum(storage->camFrustum, min, max))
-      //if (sphereInFrustum(storage->camFrustum, center, radius))
+      if (boundingBoxInFrustum(storage->camFrustum, min, max))
         storage->renderQueue.emplace_back(data, &materials, model, id, drawSelectionMask);
 
       storage->shadowQueue.emplace_back(data, model);
@@ -289,7 +288,7 @@ namespace SciRenderer
           glm::vec3 min = glm::vec3(transform * glm::vec4(pair.second->getMinPos(), 1.0f));
           glm::vec3 max = glm::vec3(transform * glm::vec4(pair.second->getMaxPos(), 1.0f));
 
-          if (!AABBInFrustum(storage->camFrustum, min, max))
+          if (!boundingBoxInFrustum(storage->camFrustum, min, max))
             continue;
 
           Material* material = materials->getMaterial(pair.first);
@@ -508,7 +507,6 @@ namespace SciRenderer
           {
             storage->shadowShader->addUniformMatrix("lightVP", storage->cascades[i], GL_FALSE);
             storage->shadowShader->addUniformMatrix("model", pair.second, GL_FALSE);
-            storage->shadowShader->addUniformFloat("shadowTuning", state->shadowTuning[i]);
 
             for (auto& submesh : pair.first->getSubmeshes())
             {
@@ -525,7 +523,7 @@ namespace SciRenderer
         }
         storage->shadowBuffer[i].unbind();
 
-        // Apply a 2-pass 5 tap Gaussian blur to the shadow map.
+        // Apply a 2-pass 9 tap Gaussian blur to the shadow map.
         // First pass (horizontal) is FBO attachment -> temp FBO.
         glDepthMask(GL_FALSE);
         RendererCommands::disable(RendererFunction::DepthTest);
@@ -610,10 +608,6 @@ namespace SciRenderer
           storage->directionalShader->addUniformFloat(
             (std::string("cascadeSplits[") + std::to_string(i) + std::string("]")).c_str(),
             storage->cascadeSplits[i]);
-
-          storage->directionalShader->addUniformFloat(
-            (std::string("shadowTuning[") + std::to_string(i) + std::string("]")).c_str(),
-            state->shadowTuning[i]);
 
           storage->shadowBuffer[i].bindTextureID(FBOTargetParam::Colour0, i + 7);
         }
