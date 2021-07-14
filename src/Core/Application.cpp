@@ -56,6 +56,10 @@ namespace SciRenderer
       new Shader("./assets/shaders/deferred/lightingPass.vs",
                  "./assets/shaders/deferred/ambientLightingPass.fs"));
 
+    this->shaderCache->attachAsset("deferred_directional_shadowed",
+      new Shader("./assets/shaders/deferred/lightingPass.vs",
+                 "./assets/shaders/deferred/directionalLightPassShadowed.fs"));
+
     this->shaderCache->attachAsset("deferred_directional",
       new Shader("./assets/shaders/deferred/lightingPass.vs",
                  "./assets/shaders/deferred/directionalLightPass.fs"));
@@ -75,6 +79,10 @@ namespace SciRenderer
     this->shaderCache->attachAsset("post_ver_gaussian_blur",
       new Shader("./assets/shaders/post/postProcessingPass.vs",
                  "./assets/shaders/post/verShadowBlur.fs"));
+
+    this->shaderCache->attachAsset("post_grid",
+      new Shader("./assets/shaders/post/postGrid.vs",
+                 "./assets/shaders/post/postGrid.fs"));
 
     this->shaderCache->attachAsset("fsq_shader",
       new Shader("./assets/shaders/viewport.vs",

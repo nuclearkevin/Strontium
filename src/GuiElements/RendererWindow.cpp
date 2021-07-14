@@ -33,7 +33,7 @@ namespace SciRenderer
     ImGui::Text("Drawcalls: %u", stats->drawCalls);
     ImGui::Text("Total vertices: %u", stats->numVertices);
     ImGui::Text("Total triangles: %u", stats->numTriangles);
-    ImGui::Text("Total lights: D-%u P-%u S-%u", stats->numDirLights,
+    ImGui::Text("Total lights: D: %u, P: %u, S: %u", stats->numDirLights,
                 stats->numPointLights, stats->numSpotLights);
 
     ImGui::Checkbox("Frustum Cull", &state->frustumCull);

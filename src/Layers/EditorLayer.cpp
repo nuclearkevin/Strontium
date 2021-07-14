@@ -53,7 +53,7 @@ namespace SciRenderer
     cSpec.tWrap = TextureWrapParams::ClampEdges;
     this->drawBuffer->attachTexture2D(cSpec);
     this->drawBuffer->setDrawBuffers();
-  	this->drawBuffer->attachRenderBuffer();
+  	this->drawBuffer->attachTexture2D(FBOCommands::getDefaultDepthSpec());
 
     // Setup stuff for the scene.
     this->currentScene = createShared<Scene>();

@@ -565,7 +565,7 @@ namespace SciRenderer
       auto rendererSettings = data["RendererSettings"];
       if (rendererSettings)
       {
-        auto shadowSettings = data["ShadowSettings"];
+        auto shadowSettings = rendererSettings["ShadowSettings"];
         if (shadowSettings)
         {
           auto state = Renderer3D::getState();

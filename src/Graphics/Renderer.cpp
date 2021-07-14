@@ -111,11 +111,13 @@ namespace SciRenderer
       storage->shadowShader = shaderCache->getAsset("shadow_shader");
       storage->geometryShader = shaderCache->getAsset("geometry_pass_shader");
       storage->ambientShader = shaderCache->getAsset("deferred_ambient");
+      storage->directionalShaderShadowed = shaderCache->getAsset("deferred_directional_shadowed");
       storage->directionalShader = shaderCache->getAsset("deferred_directional");
       storage->horBlur = shaderCache->getAsset("post_hor_gaussian_blur");
       storage->verBlur = shaderCache->getAsset("post_ver_gaussian_blur");
       storage->hdrPostShader = shaderCache->getAsset("post_hdr");
       storage->outlineShader = shaderCache->getAsset("post_entity_outline");
+      storage->gridShader = shaderCache->getAsset("post_grid");
     }
 
     // Shutdown the renderer.
@@ -388,14 +390,19 @@ namespace SciRenderer
 
       // Compute the lightspace matrices for each light for each cascade.
       storage->hasCascades = false;
+      glm::vec3 lightDir = glm::vec3(0.0f);
       for (auto& dirLight : storage->directionalQueue)
       {
-        float previousCascadeDistance = 0.0f;
-
         if (!dirLight.castShadows || !dirLight.primaryLight)
           continue;
 
         storage->hasCascades = true;
+        lightDir = glm::normalize(dirLight.direction);
+      }
+
+      if (storage->hasCascades)
+      {
+        float previousCascadeDistance = 0.0f;
 
         glm::mat4 cascadeViewMatrix[NUM_CASCADES];
         glm::mat4 cascadeProjMatrix[NUM_CASCADES];
@@ -451,14 +458,14 @@ namespace SciRenderer
 
           if (radius > sceneMaxRadius)
           {
-            cascadeViewMatrix[i] = glm::lookAt(glm::vec3(cascadeCenter) - glm::normalize(dirLight.direction) * minDims.z,
+            cascadeViewMatrix[i] = glm::lookAt(glm::vec3(cascadeCenter) - lightDir * minDims.z,
                                                glm::vec3(cascadeCenter), glm::vec3(0.0f, 0.0f, 1.0f));
             cascadeProjMatrix[i] = glm::ortho(minDims.x, maxDims.x, minDims.y,
                                               maxDims.y, -15.0f, maxDims.z - minDims.z + 15.0f);
           }
           else
           {
-            cascadeViewMatrix[i] = glm::lookAt(glm::vec3(cascadeCenter) + glm::normalize(dirLight.direction) * sceneMaxRadius,
+            cascadeViewMatrix[i] = glm::lookAt(glm::vec3(cascadeCenter) + lightDir * sceneMaxRadius,
                                                glm::vec3(cascadeCenter), glm::vec3(0.0f, 0.0f, 1.0f));
             cascadeProjMatrix[i] = glm::ortho(minDims.x, maxDims.x, minDims.y,
                                               maxDims.y, -15.0f, 2.0f * sceneMaxRadius + 15.0f);
@@ -593,46 +600,53 @@ namespace SciRenderer
       RendererCommands::blendFunction(BlendFunction::One, BlendFunction::One);
 
       // Screen size.
+      storage->directionalShaderShadowed->addUniformVector("screenSize", storage->lightingPass.getSize());
+      // Camera properties.
+      storage->directionalShaderShadowed->addUniformVector("camera.position", storage->sceneCam->getCamPos());
+      storage->directionalShaderShadowed->addUniformMatrix("camera.cameraView", storage->sceneCam->getViewMatrix(), GL_FALSE);
+
+      // Screen size.
       storage->directionalShader->addUniformVector("screenSize", storage->lightingPass.getSize());
-      // Camera position.
+      // Camera properties.
       storage->directionalShader->addUniformVector("camera.position", storage->sceneCam->getCamPos());
-      // Camera view-projection matrix.
       storage->directionalShader->addUniformMatrix("camera.cameraView", storage->sceneCam->getViewMatrix(), GL_FALSE);
-      // Setting the uniforms for cascaded shadows.
-      for (unsigned int i = 0; i < NUM_CASCADES; i++)
+
+      // Set the shadow map uniforms.
+      if (storage->hasCascades)
       {
-        if (storage->hasCascades)
+        for (unsigned int i = 0; i < NUM_CASCADES; i++)
         {
-          storage->directionalShader->addUniformMatrix(
+          storage->directionalShaderShadowed->addUniformMatrix(
             (std::string("lightVP[") + std::to_string(i) + std::string("]")).c_str(),
             storage->cascades[i], GL_FALSE);
-
-          storage->directionalShader->addUniformFloat(
+          storage->directionalShaderShadowed->addUniformFloat(
             (std::string("cascadeSplits[") + std::to_string(i) + std::string("]")).c_str(),
             storage->cascadeSplits[i]);
-
-          storage->directionalShader->addUniformFloat("lightBleedReduction", state->bleedReduction);
-
+          storage->directionalShaderShadowed->addUniformFloat("lightBleedReduction", state->bleedReduction);
           storage->shadowBuffer[i].bindTextureID(FBOTargetParam::Colour0, i + 7);
-        }
-        else
-        {
-          storage->directionalShader->addUniformMatrix(
-            (std::string("lightVP[") + std::to_string(i) + std::string("]")).c_str(),
-            glm::mat4(1.0f), GL_FALSE);
-          storage->directionalShader->addUniformFloat(
-            (std::string("cascadeSplits[") + std::to_string(i) + std::string("]")).c_str(),
-            0.0f);
         }
       }
 
-      for (auto& lights : storage->directionalQueue)
+      for (auto& light : storage->directionalQueue)
       {
-        storage->directionalShader->addUniformVector("lDirection", lights.direction);
-        storage->directionalShader->addUniformVector("lColour", lights.colour);
-        storage->directionalShader->addUniformFloat("lIntensity", lights.intensity);
+        if (light.castShadows && light.primaryLight)
+        {
+          // Light properties.
+          storage->directionalShaderShadowed->addUniformVector("lDirection", light.direction);
+          storage->directionalShaderShadowed->addUniformVector("lColour", light.colour);
+          storage->directionalShaderShadowed->addUniformFloat("lIntensity", light.intensity);
 
-        draw(&storage->fsq, storage->directionalShader);
+          draw(&storage->fsq, storage->directionalShaderShadowed);
+        }
+        else
+        {
+          // Light properties.
+          storage->directionalShader->addUniformVector("lDirection", light.direction);
+          storage->directionalShader->addUniformVector("lColour", light.colour);
+          storage->directionalShader->addUniformFloat("lIntensity", light.intensity);
+
+          draw(&storage->fsq, storage->directionalShader);
+        }
       }
 
       storage->directionalQueue.clear();
@@ -659,7 +673,8 @@ namespace SciRenderer
     }
 
     //--------------------------------------------------------------------------
-    // Post processing pass.
+    // Post processing pass. TODO: Move most of these to the editor window and a
+    // separate scene renderer?
     //--------------------------------------------------------------------------
     void
     postProcessPass(Shared<FrameBuffer> frontBuffer)
@@ -678,25 +693,32 @@ namespace SciRenderer
 
       draw(&storage->fsq, storage->hdrPostShader);
 
+      RendererCommands::enable(RendererFunction::Blending);
+      RendererCommands::blendEquation(BlendEquation::Additive);
+      RendererCommands::blendFunction(BlendFunction::One, BlendFunction::One);
+      RendererCommands::disable(RendererFunction::DepthTest);
+
+      //------------------------------------------------------------------------
+      // Grid post processing pass for the editor.
+      //------------------------------------------------------------------------
+      storage->gridShader->addUniformMatrix("invViewProj", glm::inverse(storage->sceneCam->getProjMatrix() * storage->sceneCam->getViewMatrix()), GL_FALSE);
+      storage->gridShader->addUniformMatrix("viewProj", storage->sceneCam->getProjMatrix() * storage->sceneCam->getViewMatrix(), GL_FALSE);
+      storage->geometryPass.bindTextureID(FBOTargetParam::Depth, 0);
+      draw(&storage->fsq, storage->gridShader);
+
       //------------------------------------------------------------------------
       // Edge detection post processing pass. Draws an outline around the
       // selected entity.
       //------------------------------------------------------------------------
       if (storage->drawEdge)
       {
-        RendererCommands::enable(RendererFunction::Blending);
-        RendererCommands::blendEquation(BlendEquation::Additive);
-        RendererCommands::blendFunction(BlendFunction::One, BlendFunction::One);
-        RendererCommands::disable(RendererFunction::DepthTest);
-
         storage->outlineShader->addUniformVector("screenSize", frontBuffer->getSize());
         storage->geometryPass.bindTextureID(FBOTargetParam::Colour4, 0);
 
         draw(&storage->fsq, storage->outlineShader);
-
-        RendererCommands::enable(RendererFunction::DepthTest);
-        RendererCommands::disable(RendererFunction::Blending);
       }
+      RendererCommands::enable(RendererFunction::DepthTest);
+      RendererCommands::disable(RendererFunction::Blending);
 
       frontBuffer->unbind();
     }

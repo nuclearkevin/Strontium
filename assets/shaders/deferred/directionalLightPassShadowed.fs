@@ -24,6 +24,12 @@ uniform vec3 lDirection;
 uniform vec3 lColour;
 uniform float lIntensity;
 
+// Shadow map uniforms.
+uniform mat4 lightVP[NUM_CASCADES];
+uniform float cascadeSplits[NUM_CASCADES];
+uniform float lightBleedReduction = 0.1;
+layout(binding = 7) uniform sampler2D cascadeMaps[NUM_CASCADES];
+
 // Uniforms for the geometry buffer.
 uniform vec2 screenSize;
 layout(binding = 3) uniform sampler2D gPosition;
@@ -45,6 +51,13 @@ float SSBGeometry(vec3 N, vec3 L, vec3 V, float roughness);
 vec3 SFresnel(float cosTheta, vec3 F0);
 // Schlick approximation to the Fresnel factor, with roughness!
 vec3 SFresnelR(float cosTheta, vec3 F0, float roughness);
+
+//------------------------------------------------------------------------------
+// Shadow calculations. Cascaded exponential variance shadow mapping!
+//------------------------------------------------------------------------------
+float calcShadow(uint cascadeIndex, vec3 position, vec3 normal, vec3 lightDir);
+float computeChebyshevBound(float moment1, float moment2, float depth);
+vec2 warpDepth(float depth);
 
 void main()
 {
@@ -73,7 +86,19 @@ void main()
   float den = 4.0 * max(dot(normal, view), THRESHHOLD) * max(dot(normal, light), THRESHHOLD);
   vec3 spec = num / max(den, THRESHHOLD);
 
-  fragColour = vec4((kD * albedo / PI + spec) * lColour * lIntensity * max(dot(normal, light), THRESHHOLD), 1.0);
+  vec4 clipSpacePos = camera.cameraView * vec4(position, 1.0);
+  float shadowFactor = 1.0;
+
+  for (uint i = 0; i < NUM_CASCADES; i++)
+  {
+    if (clipSpacePos.z > -(cascadeSplits[i]))
+    {
+      shadowFactor = calcShadow(i, position, normal, light);
+      break;
+    }
+  }
+
+  fragColour = vec4(shadowFactor * (kD * albedo / PI + spec) * lColour * lIntensity * max(dot(normal, light), THRESHHOLD), 1.0);
 }
 
 // Trowbridge-Reitz distribution function.
@@ -123,4 +148,40 @@ vec3 SFresnel(float cosTheta, vec3 F0)
 vec3 SFresnelR(float cosTheta, vec3 F0, float roughness)
 {
   return F0 + (max(vec3(1.0 - roughness), F0) - F0) * pow(max(1.0 - cosTheta, THRESHHOLD), 5.0);
+}
+
+vec2 warpDepth(float depth)
+{
+  float posWarp = exp(WARP * depth);
+  float negWarp = -1.0 * exp(-1.0 * WARP * depth);
+  return vec2(posWarp, negWarp);
+}
+
+float computeChebyshevBound(float moment1, float moment2, float depth)
+{
+  float variance2 = moment2 - moment1 * moment1;
+  float diff = depth - moment1;
+  float diff2 = diff * diff;
+  float pMax = clamp((variance2 / (variance2 + diff2) - lightBleedReduction) / (1.0 - lightBleedReduction), 0.0, 1.0);
+
+  return moment1 < depth ? pMax : 1.0;
+}
+
+// Calculate if the fragment is in shadow or not, than shadow mapping.
+float calcShadow(uint cascadeIndex, vec3 position, vec3 normal, vec3 lightDir)
+{
+  vec4 lightClipPos = lightVP[cascadeIndex] * vec4(position, 1.0);
+  vec3 projCoords = lightClipPos.xyz / lightClipPos.w;
+  projCoords = 0.5 * projCoords + 0.5;
+
+  float bias = max(0.05 * (1.0 - dot(normal, lightDir)), 0.005);
+
+  vec4 moments = texture(cascadeMaps[cascadeIndex], projCoords.xy).rgba;
+  vec2 warpedDepth = warpDepth(projCoords.z - bias);
+
+  float shadowFactor1 = computeChebyshevBound(moments.r, moments.g, warpedDepth.r);
+  float shadowFactor2 = computeChebyshevBound(moments.b, moments.a, warpedDepth.g);
+  float shadowFactor = min(shadowFactor1, shadowFactor2);
+
+  return shadowFactor;
 }

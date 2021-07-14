@@ -118,11 +118,13 @@ namespace SciRenderer
       Shader* geometryShader;
       Shader* shadowShader;
       Shader* ambientShader;
+      Shader* directionalShaderShadowed;
       Shader* directionalShader;
       Shader* horBlur;
       Shader* verBlur;
       Shader* hdrPostShader;
       Shader* outlineShader;
+      Shader* gridShader;
 
       Unique<EnvironmentMap> currentEnvironment;
 
