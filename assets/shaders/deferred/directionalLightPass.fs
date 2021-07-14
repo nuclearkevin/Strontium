@@ -57,6 +57,8 @@ vec3 SFresnelR(float cosTheta, vec3 F0, float roughness);
 //------------------------------------------------------------------------------
 // Calculate if the fragment is in shadow or not.
 float calcShadow(uint cascadeIndex, vec3 position, vec3 normal, vec3 lightDir);
+float computeChebyshevBound(float moment1, float moment2, float depth);
+vec2 warpDepth(float depth);
 
 void main()
 {
@@ -161,19 +163,22 @@ float computeChebyshevBound(float moment1, float moment2, float depth)
   float variance2 = moment2 - moment1 * moment1;
   float diff = depth - moment1;
   float diff2 = diff * diff;
+  float pMax = clamp((variance2 / (variance2 + diff2) - lightBleedReduction) / (1.0 - lightBleedReduction), 0.0, 1.0);
 
-  return moment1 < depth ? variance2 / (variance2 + diff2) : 1.0;
+  return moment1 < depth ? pMax : 1.0;
 }
 
-// Calculate if the fragment is in shadow or not, than applies exponential shadow mapping.
+// Calculate if the fragment is in shadow or not, than shadow mapping.
 float calcShadow(uint cascadeIndex, vec3 position, vec3 normal, vec3 lightDir)
 {
   vec4 lightClipPos = lightVP[cascadeIndex] * vec4(position, 1.0);
   vec3 projCoords = lightClipPos.xyz / lightClipPos.w;
   projCoords = 0.5 * projCoords + 0.5;
 
+  float bias = max(0.05 * (1.0 - dot(normal, lightDir)), 0.005);
+
   vec4 moments = texture(cascadeMaps[cascadeIndex], projCoords.xy).rgba;
-  vec2 warpedDepth = warpDepth(projCoords.z);
+  vec2 warpedDepth = warpDepth(projCoords.z - bias);
 
   float shadowFactor1 = computeChebyshevBound(moments.r, moments.g, warpedDepth.r);
   float shadowFactor2 = computeChebyshevBound(moments.b, moments.a, warpedDepth.g);

@@ -331,6 +331,8 @@ namespace SciRenderer
     void serializeScene(Shared<Scene> scene, const std::string &filepath,
                         const std::string &name)
     {
+      auto state = Renderer3D::getState();
+
       YAML::Emitter out;
       out << YAML::BeginMap;
       out << YAML::Key << "Scene" << YAML::Value << name;
@@ -346,6 +348,23 @@ namespace SciRenderer
       });
 
       out << YAML::EndSeq;
+
+      out << YAML::Key << "RendererSettings";
+      out << YAML::BeginMap;
+      out << YAML::Key << "BasicSettings";
+      out << YAML::BeginMap;
+      out << YAML::Key << "FrustumCull" << YAML::Value << state->frustumCull;
+      out << YAML::EndMap;
+
+      out << YAML::Key << "ShadowSettings";
+      out << YAML::BeginMap;
+      out << YAML::Key << "CascadeLambda" << YAML::Value << state->cascadeLambda;
+      out << YAML::Key << "CascadeSize" << YAML::Value << state->cascadeSize;
+      out << YAML::Key << "CascadeLightBleed" << YAML::Value << state->bleedReduction;
+      out << YAML::EndMap;
+
+      out << YAML::EndMap;
+
       out << YAML::EndMap;
 
       std::ofstream output(filepath, std::ofstream::trunc | std::ofstream::out);
@@ -540,6 +559,20 @@ namespace SciRenderer
           auto& aComponent = newEntity.addComponent<AmbientComponent>(iblImagePath);
           aComponent.ambient->getRoughness() = ambientComponent["IBLRough"].as<GLfloat>();
           aComponent.ambient->getIntensity() = ambientComponent["Intensity"].as<GLfloat>();
+        }
+      }
+
+      auto rendererSettings = data["RendererSettings"];
+      if (rendererSettings)
+      {
+        auto shadowSettings = data["ShadowSettings"];
+        if (shadowSettings)
+        {
+          auto state = Renderer3D::getState();
+
+          state->cascadeLambda = shadowSettings["CascadeLambda"].as<GLfloat>();
+          state->cascadeSize = shadowSettings["CascadeSize"].as<GLuint>();
+          state->bleedReduction = shadowSettings["CascadeLightBleed"].as<GLfloat>();
         }
       }
 

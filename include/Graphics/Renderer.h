@@ -144,6 +144,7 @@ namespace SciRenderer
     {
       // Settings for rendering.
       bool isForward;
+      bool frustumCull;
 
       // Environment map settings.
       GLuint skyboxWidth;
@@ -154,15 +155,18 @@ namespace SciRenderer
       // Cascaded shadow settings.
       GLfloat cascadeLambda;
       GLuint cascadeSize;
+      GLfloat bleedReduction;
 
       RendererState()
         : isForward(false)
+        , frustumCull(false)
         , skyboxWidth(512)
         , irradianceWidth(128)
         , prefilterWidth(512)
         , prefilterSamples(1024)
-        , cascadeLambda(0.9f)
+        , cascadeLambda(0.5f)
         , cascadeSize(2048)
+        , bleedReduction(0.2f)
       { }
     };
 

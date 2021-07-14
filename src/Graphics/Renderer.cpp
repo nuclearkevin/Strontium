@@ -233,7 +233,9 @@ namespace SciRenderer
       glm::vec3 center = (min + max) / 2.0f;
       GLfloat radius = glm::length(min + center);
 
-      if (boundingBoxInFrustum(storage->camFrustum, min, max))
+      if (boundingBoxInFrustum(storage->camFrustum, min, max) && state->frustumCull)
+        storage->renderQueue.emplace_back(data, &materials, model, id, drawSelectionMask);
+      else if (!state->frustumCull)
         storage->renderQueue.emplace_back(data, &materials, model, id, drawSelectionMask);
 
       storage->shadowQueue.emplace_back(data, model);
@@ -288,7 +290,7 @@ namespace SciRenderer
           glm::vec3 min = glm::vec3(transform * glm::vec4(pair.second->getMinPos(), 1.0f));
           glm::vec3 max = glm::vec3(transform * glm::vec4(pair.second->getMaxPos(), 1.0f));
 
-          if (!boundingBoxInFrustum(storage->camFrustum, min, max))
+          if (!boundingBoxInFrustum(storage->camFrustum, min, max) && state->frustumCull)
             continue;
 
           Material* material = materials->getMaterial(pair.first);
@@ -608,6 +610,8 @@ namespace SciRenderer
           storage->directionalShader->addUniformFloat(
             (std::string("cascadeSplits[") + std::to_string(i) + std::string("]")).c_str(),
             storage->cascadeSplits[i]);
+
+          storage->directionalShader->addUniformFloat("lightBleedReduction", state->bleedReduction);
 
           storage->shadowBuffer[i].bindTextureID(FBOTargetParam::Colour0, i + 7);
         }

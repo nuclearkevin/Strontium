@@ -36,12 +36,15 @@ namespace SciRenderer
     ImGui::Text("Total lights: D-%u P-%u S-%u", stats->numDirLights,
                 stats->numPointLights, stats->numSpotLights);
 
+    ImGui::Checkbox("Frustum Cull", &state->frustumCull);
+
     if (ImGui::CollapsingHeader("Shadows"))
     {
       static int cascadeIndex = 0;
       ImGui::SliderInt("Cascade Index", &cascadeIndex, 0, NUM_CASCADES - 1);
 
-      Styles::drawFloatControl("Cascade Lambda", 0.5f, state->cascadeLambda, 0.0f, 0.01f, 0.5f, 1.0f);
+      ImGui::SliderFloat("Cascade Lambda", &state->cascadeLambda, 0.5f, 1.0f);
+      ImGui::SliderFloat("Bleed Reduction", &state->bleedReduction, 0.0f, 0.9f);
 
       int shadowWidth = state->cascadeSize;
       if (ImGui::InputInt("Shadowmap Size", &shadowWidth))
