@@ -9,6 +9,7 @@
 #include "Graphics/Material.h"
 #include "Graphics/EnvironmentMap.h"
 #include "Graphics/Renderer.h"
+#include "Scenes/Entity.h"
 
 namespace SciRenderer
 {
@@ -49,12 +50,34 @@ namespace SciRenderer
     }
   };
 
+  struct ParentEntityComponent
+  {
+    Entity parent;
+
+    ParentEntityComponent(const ParentEntityComponent&) = default;
+
+    ParentEntityComponent(Entity parent)
+      : parent(parent)
+    { }
+
+    ParentEntityComponent() = default;
+  };
+
+  struct ChildEntityComponent
+  {
+    std::vector<Entity> children;
+
+    ChildEntityComponent(const ChildEntityComponent&) = default;
+
+    ChildEntityComponent() = default;
+  };
+
   // Entity transform component.
   struct TransformComponent
   {
     glm::vec3 translation;
-    glm::vec3 rotation;
-    glm::vec3 scale; // Euler angles. Pitch = x, yaw = y, roll = z.
+    glm::vec3 rotation; // Euler angles. Pitch = x, yaw = y, roll = z.
+    glm::vec3 scale;
 
     TransformComponent(const TransformComponent&) = default;
 

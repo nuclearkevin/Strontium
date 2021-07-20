@@ -28,7 +28,7 @@ namespace SciRenderer
   private:
     // Functions for UI.
     void drawEntityNode(Entity entity, Shared<Scene> activeScene);
-    void drawComponentNodes(Entity entity);
+    void drawComponentNodes(Entity entity, Shared<Scene> activeScene);
     void drawPropsWindow(bool &isOpen, Shared<Scene> activeScene);
 
     // TODO: Consider moving this to a separate window.

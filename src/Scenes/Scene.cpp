@@ -39,7 +39,7 @@ namespace SciRenderer
   void
   Scene::onUpdate(float dt)
   {
-    
+
   }
 
   void

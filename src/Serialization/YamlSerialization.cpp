@@ -207,6 +207,17 @@ namespace SciRenderer
         out << YAML::EndMap;
       }
 
+      if (entity.hasComponent<ChildEntityComponent>())
+      {
+        out << YAML::Key << "ChildEntities" << YAML::Value << YAML::BeginSeq;
+
+        auto& children = entity.getComponent<ChildEntityComponent>().children;
+        for (auto& child : children)
+          serializeEntity(out, child);
+
+        out << YAML::EndSeq;
+      }
+
       if (entity.hasComponent<TransformComponent>())
       {
         out << YAML::Key << "TransformComponent";
@@ -565,11 +576,17 @@ namespace SciRenderer
       auto rendererSettings = data["RendererSettings"];
       if (rendererSettings)
       {
+        auto state = Renderer3D::getState();
+
+        auto basicSettings = rendererSettings["BasicSettings"];
+        if (basicSettings)
+        {
+          state->frustumCull = basicSettings["FrustumCull"].as<bool>();
+        }
+
         auto shadowSettings = rendererSettings["ShadowSettings"];
         if (shadowSettings)
         {
-          auto state = Renderer3D::getState();
-
           state->cascadeLambda = shadowSettings["CascadeLambda"].as<GLfloat>();
           state->cascadeSize = shadowSettings["CascadeSize"].as<GLuint>();
           state->bleedReduction = shadowSettings["CascadeLightBleed"].as<GLfloat>();

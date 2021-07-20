@@ -5,7 +5,6 @@
 
 // Project includes.
 #include "Graphics/GraphicsSystem.h"
-#include "Scenes/Components.h"
 
 // Entity component system include.
 #include "entt.hpp"

@@ -6,6 +6,7 @@
 // Project includes.
 #include "Core/AssetManager.h"
 #include "GuiElements/Styles.h"
+#include "Scenes/Components.h"
 
 // ImGui includes.
 #include "imgui/imgui.h"
@@ -126,13 +127,14 @@ namespace SciRenderer
     {
       // Fetch the entity and its tag component.
       Entity current = Entity(entityID, activeScene.get());
-      this->drawEntityNode(current, activeScene);
+
+      if (!current.hasComponent<ParentEntityComponent>())
+        this->drawEntityNode(current, activeScene);
     });
 
     // Right-click on blank space to create a new entity.
 		if (ImGui::BeginPopupContextWindow(0, 1, false))
 		{
-      // Create a debug bunny entity.
       if (ImGui::MenuItem("New Model"))
       {
 				auto model = activeScene->createEntity("New Model");
@@ -185,6 +187,16 @@ namespace SciRenderer
   {
     if (this->deleteSelected)
     {
+      if (this->selectedEntity.hasComponent<ParentEntityComponent>())
+      {
+        auto& parent = this->selectedEntity.getComponent<ParentEntityComponent>();
+        auto& parentChildren = parent.parent.getComponent<ChildEntityComponent>().children;
+
+        auto pos = std::find(parentChildren.begin(), parentChildren.end(), this->selectedEntity);
+        if (pos != parentChildren.end())
+          parentChildren.erase(pos);
+      }
+
       activeScene->deleteEntity(this->selectedEntity);
       this->selectedEntity = Entity();
       this->deleteSelected = false;
@@ -316,6 +328,28 @@ namespace SciRenderer
         ImGui::EndMenu();
       }
 
+      if (ImGui::MenuItem("Add Child Entity"))
+      {
+        if (!entity.hasComponent<ChildEntityComponent>())
+        {
+          // Add the child entity component.
+          auto& children = entity.addComponent<ChildEntityComponent>();
+          auto child = activeScene->createEntity();
+          children.children.push_back(child);
+
+          // Add the parent component to the child.
+          child.addComponent<ParentEntityComponent>(entity);
+        }
+        else
+        {
+          auto& children = entity.getComponent<ChildEntityComponent>();
+
+          auto child = activeScene->createEntity();
+          children.children.push_back(child);
+          child.addComponent<ParentEntityComponent>(entity);
+        }
+      }
+
       if (ImGui::MenuItem("Create Copy of Entity"))
       {
         auto newEntity = activeScene->createEntity();
@@ -338,7 +372,7 @@ namespace SciRenderer
     // Open the list of attached components.
     if (opened)
     {
-      this->drawComponentNodes(entity);
+      this->drawComponentNodes(entity, activeScene);
       ImGui::TreePop();
     }
 
@@ -348,19 +382,39 @@ namespace SciRenderer
       if (this->selectedEntity == entity)
         this->deleteSelected = true;
       else
+      {
+        if (entity.hasComponent<ParentEntityComponent>())
+        {
+          auto& parent = entity.getComponent<ParentEntityComponent>();
+          auto& parentChildren = parent.parent.getComponent<ChildEntityComponent>().children;
+
+          auto pos = std::find(parentChildren.begin(), parentChildren.end(), entity);
+          if (pos != parentChildren.end())
+            parentChildren.erase(pos);
+        }
         activeScene->deleteEntity(entity);
+      }
     }
   }
 
   // Function for drawing sub-entities and components of an entity.
   void
-  SceneGraphWindow::drawComponentNodes(Entity entity)
+  SceneGraphWindow::drawComponentNodes(Entity entity, Shared<Scene> activeScene)
   {
     if (!entity)
       return;
 
     ImGuiTreeNodeFlags leafFlag = ImGuiTreeNodeFlags_Leaf
                                 | ImGuiTreeNodeFlags_NoTreePushOnOpen;
+
+    // Display the child entities
+    if (entity.hasComponent<ChildEntityComponent>())
+    {
+      auto& children = entity.getComponent<ChildEntityComponent>();
+      for (auto& child : children.children)
+        drawEntityNode(child, activeScene);
+    }
+
     // Display components here.
     if (entity.hasComponent<TransformComponent>())
     {
