@@ -52,6 +52,12 @@ namespace SciRenderer
 
     for (unsigned int i = 0; i < this->workers.size(); i++)
       this->push([](){ return; });
+
+    for (auto& worker : this->workers)
+    {
+      if (worker.joinable())
+        worker.join();
+    }
   }
 
   ThreadPool*
