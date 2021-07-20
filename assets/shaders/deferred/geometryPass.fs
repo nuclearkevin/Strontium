@@ -37,11 +37,10 @@ void main()
   gNormal = vec4(fragIn.fTBN * (texture(normalMap, fragIn.fTexCoords).xyz * 2.0 - 1.0), 1.0);
   gAlbedo = vec4(pow(texture(albedoMap, fragIn.fTexCoords).rgb * uAlbedo, vec3(2.2)), 1.0);
 
-  vec4 outMatProps = vec4(0.0);
-  outMatProps.r = texture(metallicMap, fragIn.fTexCoords).r * uMetallic;
-  outMatProps.g = texture(roughnessMap, fragIn.fTexCoords).r * uRoughness;
-  outMatProps.b = texture(aOcclusionMap, fragIn.fTexCoords).r * uAO;
-  outMatProps.a = 1.0;
-  gMatProp = outMatProps;
+  gMatProp.r = texture(metallicMap, fragIn.fTexCoords).r * uMetallic;
+  gMatProp.g = texture(roughnessMap, fragIn.fTexCoords).r * uRoughness;
+  gMatProp.b = texture(aOcclusionMap, fragIn.fTexCoords).r * uAO;
+  gMatProp.a = 1.0;
+
 	gIDMaskColour = vec4(uMaskColour, uID);
 }

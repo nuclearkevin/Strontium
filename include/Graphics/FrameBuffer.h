@@ -80,45 +80,40 @@ namespace SciRenderer
     FrameBuffer(GLuint width, GLuint height);
     ~FrameBuffer();
 
-    // Bind and unbind the framebuffer. Have to unbind before rendering to the
-    // default buffer.
+    // Bind/unbind the FBO or its attachments.
     void bind();
     void unbind();
+    void bindTextureID(const FBOTargetParam &attachment);
+    void bindTextureID(const FBOTargetParam &attachment, GLuint bindPoint);
 
     // Methods for texture/buffer generation and attachment.
     void attachTexture2D(const FBOSpecification &spec, const bool &removeTex = true);
     void attachTexture2D(const FBOSpecification &spec, Shared<Texture2D> &tex,
                          const bool &removeTex = true);
-    void attachCubeMapFace(const FBOSpecification &spec, Shared<CubeMap> &map,
-                           const bool &removeTex = true, GLuint mip = 0);
     void attachRenderBuffer(RBOInternalFormat format = RBOInternalFormat::Depth32f);
-    void attachRenderBuffer(Shared<RenderBuffer> buffer);
 
-    // Unattach a 2D texture. This won't delete the texture.
-    Shared<Texture2D> unattachTexture2D(const FBOTargetParam &attachment);
+    // Detach/reattach FBO attachments. Doesn't delete the attachment from the
+    // FBO's storage.
+    void detach(const FBOTargetParam &attachment);
+    void reattach(const FBOTargetParam &attachment);
 
-    void setDrawBuffers();
-    void bindTextureID(const FBOTargetParam &attachment);
-    void bindTextureID(const FBOTargetParam &attachment, GLuint bindPoint);
+    // Misc functions.
     void blitzToOther(FrameBuffer &target, const FBOTargetParam &type);
     GLint readPixel(const FBOTargetParam &target, const glm::vec2 &mousePos);
 
-    // Update the framebuffer size.
+    // Update FBO properties.
     void resize(GLuint width, GLuint height);
-    void setViewport();
-
-    // Set the clear colour.
     void setClearColour(const glm::vec4 &clearColour);
 
-    // Clear the buffer.
+    // Update the framebuffer state.
     void clear();
+    void setViewport();
+    void setDrawBuffers();
 
-    // Check if the framebuffer is valid.
     bool isValid();
-
     glm::vec2 getSize() { return glm::vec2(this->width, this->height); }
-    GLuint getAttachID(const FBOTargetParam &attachment);
-    GLuint getRenderBufferID();
+    GLuint getAttachID(const FBOTargetParam &attachment) { return this->textureAttachments.at(attachment).second->getID(); }
+    GLuint getRenderBufferID() { return this->depthBuffer != nullptr ? this->depthBuffer->getID() : 0; };
     GLuint getID() { return this->bufferID; }
   protected:
     GLuint bufferID;

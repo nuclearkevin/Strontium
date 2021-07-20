@@ -79,31 +79,11 @@ namespace SciRenderer
       storage->width = width;
       storage->height = height;
 
-      // The geoemtry pass framebuffer.
-      storage->geometryPass = FrameBuffer(width, height);
-      // The position texture.
-      auto cSpec = FBOCommands::getFloatColourSpec(FBOTargetParam::Colour0);
-      storage->geometryPass.attachTexture2D(cSpec);
-      // The normal texture.
-      cSpec = FBOCommands::getFloatColourSpec(FBOTargetParam::Colour1);
-      storage->geometryPass.attachTexture2D(cSpec);
-      // The albedo texture.
-      cSpec = FBOCommands::getFloatColourSpec(FBOTargetParam::Colour2);
-      storage->geometryPass.attachTexture2D(cSpec);
-      // The lighting materials texture.
-      cSpec = FBOCommands::getFloatColourSpec(FBOTargetParam::Colour3);
-      // The ID texture with a mask for the current selected entity.
-      storage->geometryPass.attachTexture2D(cSpec);
-      cSpec = FBOCommands::getFloatColourSpec(FBOTargetParam::Colour4);
-      cSpec.sWrap = TextureWrapParams::ClampEdges;
-      cSpec.tWrap = TextureWrapParams::ClampEdges;
-      storage->geometryPass.attachTexture2D(cSpec);
-      storage->geometryPass.setDrawBuffers();
-    	storage->geometryPass.attachTexture2D(dSpec);
+      storage->gBuffer.resize(width, height);
 
       // The lighting pass framebuffer.
       storage->lightingPass = FrameBuffer(width, height);
-      cSpec = FBOCommands::getFloatColourSpec(FBOTargetParam::Colour0);
+      auto cSpec = FBOCommands::getFloatColourSpec(FBOTargetParam::Colour0);
       storage->lightingPass.attachTexture2D(cSpec);
       storage->lightingPass.attachRenderBuffer();
 
@@ -142,16 +122,15 @@ namespace SciRenderer
       storage->camFrustum = buildCameraFrustum(sceneCam);
 
       // Resize the framebuffer at the start of a frame, if required.
-      storage->width = width;
-      storage->height = height;
       storage->isForward = isForward;
       storage->drawEdge = false;
 
-      auto geoSize = storage->geometryPass.getSize();
-      if (geoSize.x != width || geoSize.y != height)
+      if (storage->width != width || storage->height != height)
       {
-        storage->geometryPass.resize(width, height);
+        storage->gBuffer.resize(width, height);
         storage->lightingPass.resize(width, height);
+        storage->width = width;
+        storage->height = height;
       }
 
       // Reset the stats each frame.
@@ -279,9 +258,7 @@ namespace SciRenderer
     //--------------------------------------------------------------------------
     void geometryPass()
     {
-      storage->geometryPass.clear();
-      storage->geometryPass.bind();
-      storage->geometryPass.setViewport();
+      storage->gBuffer.beginGeoPass();
 
       for (auto& drawable : storage->renderQueue)
       {
@@ -336,7 +313,7 @@ namespace SciRenderer
         }
       }
 
-      storage->geometryPass.unbind();
+      storage->gBuffer.endGeoPass();
     }
 
     //--------------------------------------------------------------------------
@@ -534,7 +511,7 @@ namespace SciRenderer
 
         // Apply a 2-pass 9 tap Gaussian blur to the shadow map.
         // First pass (horizontal) is FBO attachment -> temp FBO.
-        glDepthMask(GL_FALSE);
+        RendererCommands::disableDepthMask();
         RendererCommands::disable(RendererFunction::DepthTest);
         storage->shadowEffectsBuffer.clear();
         storage->shadowEffectsBuffer.bind();
@@ -556,7 +533,7 @@ namespace SciRenderer
         storage->shadowBuffer[i].unbind();
 
         RendererCommands::enable(RendererFunction::DepthTest);
-        glDepthMask(GL_TRUE);
+        RendererCommands::enableDepthMask();
       }
       storage->shadowQueue.clear();
     }
@@ -580,10 +557,10 @@ namespace SciRenderer
       storage->currentEnvironment->bind(MapType::Prefilter, 1);
       storage->currentEnvironment->bind(MapType::Integration, 2);
       // Gbuffer textures.
-      storage->geometryPass.bindTextureID(FBOTargetParam::Colour0, 3);
-      storage->geometryPass.bindTextureID(FBOTargetParam::Colour1, 4);
-      storage->geometryPass.bindTextureID(FBOTargetParam::Colour2, 5);
-      storage->geometryPass.bindTextureID(FBOTargetParam::Colour3, 6);
+      storage->gBuffer.bindAttachment(FBOTargetParam::Colour0, 3);
+      storage->gBuffer.bindAttachment(FBOTargetParam::Colour1, 4);
+      storage->gBuffer.bindAttachment(FBOTargetParam::Colour2, 5);
+      storage->gBuffer.bindAttachment(FBOTargetParam::Colour3, 6);
       // Screen size.
       storage->ambientShader->addUniformVector("screenSize", storage->lightingPass.getSize());
       storage->ambientShader->addUniformFloat("intensity", storage->currentEnvironment->getIntensity());
@@ -666,7 +643,7 @@ namespace SciRenderer
       // Draw the skybox.
       //------------------------------------------------------------------------
       RendererCommands::enable(RendererFunction::DepthTest);
-      storage->geometryPass.blitzToOther(storage->lightingPass, FBOTargetParam::Depth);
+      storage->gBuffer.blitzToOther(storage->lightingPass, FBOTargetParam::Depth);
       drawEnvironment();
 
       storage->lightingPass.unbind();
@@ -689,7 +666,7 @@ namespace SciRenderer
       //------------------------------------------------------------------------
       storage->hdrPostShader->addUniformVector("screenSize", frontBuffer->getSize());
       storage->lightingPass.bindTextureID(FBOTargetParam::Colour0, 0);
-      storage->geometryPass.bindTextureID(FBOTargetParam::Colour4, 1);
+      storage->gBuffer.bindAttachment(FBOTargetParam::Colour4, 1);
 
       draw(&storage->fsq, storage->hdrPostShader);
 
@@ -701,10 +678,13 @@ namespace SciRenderer
       //------------------------------------------------------------------------
       // Grid post processing pass for the editor.
       //------------------------------------------------------------------------
-      storage->gridShader->addUniformMatrix("invViewProj", glm::inverse(storage->sceneCam->getProjMatrix() * storage->sceneCam->getViewMatrix()), GL_FALSE);
-      storage->gridShader->addUniformMatrix("viewProj", storage->sceneCam->getProjMatrix() * storage->sceneCam->getViewMatrix(), GL_FALSE);
-      storage->geometryPass.bindTextureID(FBOTargetParam::Depth, 0);
-      draw(&storage->fsq, storage->gridShader);
+      if (state->drawGrid)
+      {
+        storage->gridShader->addUniformMatrix("invViewProj", glm::inverse(storage->sceneCam->getProjMatrix() * storage->sceneCam->getViewMatrix()), GL_FALSE);
+        storage->gridShader->addUniformMatrix("viewProj", storage->sceneCam->getProjMatrix() * storage->sceneCam->getViewMatrix(), GL_FALSE);
+        storage->gBuffer.bindAttachment(FBOTargetParam::Depth, 0);
+        draw(&storage->fsq, storage->gridShader);
+      }
 
       //------------------------------------------------------------------------
       // Edge detection post processing pass. Draws an outline around the
@@ -713,7 +693,7 @@ namespace SciRenderer
       if (storage->drawEdge)
       {
         storage->outlineShader->addUniformVector("screenSize", frontBuffer->getSize());
-        storage->geometryPass.bindTextureID(FBOTargetParam::Colour4, 0);
+        storage->gBuffer.bindAttachment(FBOTargetParam::Colour4, 0);
 
         draw(&storage->fsq, storage->outlineShader);
       }

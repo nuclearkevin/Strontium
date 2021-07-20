@@ -3,6 +3,7 @@
 // Project includes.
 #include "Core/AssetManager.h"
 #include "GuiElements/Styles.h"
+#include "Scenes/Components.h"
 
 // ImGui includes.
 #include "imgui/imgui.h"

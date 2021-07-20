@@ -6,6 +6,7 @@
 #include "GuiElements/Styles.h"
 #include "GuiElements/Panels.h"
 #include "Serialization/YamlSerialization.h"
+#include "Scenes/Components.h"
 
 // Some math for decomposing matrix transformations.
 #include "glm/gtx/matrix_decompose.hpp"

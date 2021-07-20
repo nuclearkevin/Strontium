@@ -39,6 +39,8 @@ namespace SciRenderer
   {
     void enable(const RendererFunction &toEnable);
     void disable(const RendererFunction &toDisable);
+    void enableDepthMask();
+    void disableDepthMask();
     void blendEquation(const BlendEquation &equation);
     void blendFunction(const BlendFunction &source, const BlendFunction &target);
     void depthFunction(const DepthFunctions &function);

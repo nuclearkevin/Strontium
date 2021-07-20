@@ -2,6 +2,7 @@
 
 // Project includes.
 #include "Graphics/Camera.h"
+#include "Graphics/Renderer.h"
 #include "GuiElements/Styles.h"
 
 // ImGui includes.
@@ -21,6 +22,8 @@ namespace SciRenderer
   void
   CameraWindow::onImGuiRender(bool &isOpen, Shared<Scene> activeScene)
   {
+    auto state = Renderer3D::getState();
+
     auto& fov = this->camera->getHorFOV();
     auto& near = this->camera->getNear();
     auto& far = this->camera->getFar();
@@ -38,6 +41,10 @@ namespace SciRenderer
     ImGui::Text("Speed and Sentitivity");
     Styles::drawFloatControl("Speed", 2.5f, speed);
     Styles::drawFloatControl("Sensitivity", 0.1f, sense);
+
+    ImGui::Text("");
+    ImGui::Text("Editor Viewport Settings");
+    ImGui::Checkbox("Draw Grid", &state->drawGrid);
     ImGui::End();
 
     this->camera->updateProj(fov, aspect, near, far);

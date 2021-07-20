@@ -5,7 +5,7 @@
 */
 
 #define PI 3.141592654
-#define THRESHHOLD 0.05
+#define THRESHHOLD 0.00005
 #define NUM_CASCADES 4
 #define WARP 44.0
 

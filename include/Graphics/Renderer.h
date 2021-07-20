@@ -17,6 +17,7 @@
 #include "Graphics/Material.h"
 #include "Graphics/Camera.h"
 #include "Graphics/FrameBuffer.h"
+#include "Graphics/GeometryBuffer.h"
 #include "Graphics/EnvironmentMap.h"
 #include "Graphics/RendererCommands.h"
 
@@ -25,6 +26,15 @@
 
 namespace SciRenderer
 {
+  typedef int Renderer3DFlags;
+  enum Renderer3DFlags_
+  {
+    Renderer3DFlags_None = 0,
+    Renderer3DFlags_DrawMask = 1 << 0,
+    Renderer3DFlags_DrawGrid = 1 << 1,
+    Renderer3DFlags_DrawOutline = 1 << 2
+  };
+
   // The 3D renderer!
   namespace Renderer3D
   {
@@ -100,7 +110,7 @@ namespace SciRenderer
       VertexArray fsq;
 
       // The required framebuffers.
-      FrameBuffer geometryPass;
+      GeometryBuffer gBuffer;
       FrameBuffer shadowBuffer[NUM_CASCADES];
       FrameBuffer shadowEffectsBuffer;
       FrameBuffer lightingPass;
@@ -126,6 +136,9 @@ namespace SciRenderer
       Shader* outlineShader;
       Shader* gridShader;
 
+      ComputeShader comHorBlur;
+      ComputeShader comVerBlur;
+
       Unique<EnvironmentMap> currentEnvironment;
 
       Shared<Camera> sceneCam;
@@ -136,6 +149,8 @@ namespace SciRenderer
       std::vector<SpotLight> spotQueue;
 
       RendererStorage()
+        : comHorBlur("./assets/shaders/compute/horShadowBlur.cs")
+        , comVerBlur("./assets/shaders/compute/verShadowBlur.cs")
       {
         currentEnvironment = createUnique<EnvironmentMap>("./assets/models/cube.obj");
       }
@@ -159,6 +174,9 @@ namespace SciRenderer
       GLuint cascadeSize;
       GLfloat bleedReduction;
 
+      // Some editor settings.
+      bool drawGrid;
+
       RendererState()
         : isForward(false)
         , frustumCull(false)
@@ -169,6 +187,7 @@ namespace SciRenderer
         , cascadeLambda(0.5f)
         , cascadeSize(2048)
         , bleedReduction(0.2f)
+        , drawGrid(true)
       { }
     };
 

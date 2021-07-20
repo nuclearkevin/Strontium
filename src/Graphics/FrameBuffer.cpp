@@ -149,53 +149,6 @@ namespace SciRenderer
   }
 
   void
-  FrameBuffer::attachCubeMapFace(const FBOSpecification &spec, Shared<CubeMap> &map,
-                                 const bool &removeTex, GLuint mip)
-  {
-    Logger* logs = Logger::getInstance();
-
-    // Error check to make sure that:
-    // a) The attachment type is a cubemap
-    // b) THe dimensions agree.
-    GLuint faceID = static_cast<GLuint>(spec.type) -
-                    static_cast<GLuint>(FBOTex2DParam::CubeMapPX);
-    if (faceID < 0 || faceID > 5)
-    {
-      std::cout << "Cannot attach, face ID out of bounds!" << std::endl;
-      return;
-    }
-
-    if (map->width[faceID] != (GLuint) ((GLfloat) this->width / std::pow(0.5f, mip))
-        || map->height[faceID] != (GLuint) ((GLfloat) this->height / std::pow(0.5f, mip)))
-    {
-      std::cout << "Cannot attach this cubemap face, dimensions do not agree!"
-                << std::endl;
-      return;
-    }
-    this->bind();
-
-    // If an attachment target already exists, remove it from the map and add
-    // the new target.
-    auto targetLoc = this->textureAttachments.find(spec.target);
-    if (targetLoc != this->textureAttachments.end())
-      this->textureAttachments.erase(targetLoc);
-
-    Shared<Texture2D> tex = createShared<Texture2D>();
-    tex->getID() = map->getID();
-    tex->width = this->width;
-    tex->height = this->height;
-
-    glFramebufferTexture2D(GL_FRAMEBUFFER, static_cast<GLuint>(spec.target),
-                           static_cast<GLuint>(spec.type),
-                           tex->getID(), mip);
-    this->unbind();
-
-    this->clearFlags |= GL_COLOR_BUFFER_BIT;
-
-    this->textureAttachments.insert({ spec.target, { spec, tex } });
-  }
-
-  void
   FrameBuffer::attachRenderBuffer(RBOInternalFormat format)
   {
     Logger* logs = Logger::getInstance();
@@ -225,50 +178,21 @@ namespace SciRenderer
   }
 
   void
-  FrameBuffer::attachRenderBuffer(Shared<RenderBuffer> buffer)
+  FrameBuffer::detach(const FBOTargetParam &attachment)
   {
-    Logger* logs = Logger::getInstance();
-
-    if (this->depthBuffer != nullptr)
-    {
-      std::cout << "This framebuffer already has a render buffer" << std::endl;
-      return;
-    }
-    this->bind();
-
-    auto format = buffer->getFormat();
-    if (format == RBOInternalFormat::Depth24 || format == RBOInternalFormat::Depth32f)
-      glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
-                                GL_RENDERBUFFER, this->depthBuffer->getID());
-    else if (format == RBOInternalFormat::Stencil)
-      glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT,
-                                GL_RENDERBUFFER, this->depthBuffer->getID());
-    else if (format == RBOInternalFormat::DepthStencil)
-      glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT,
-                                GL_RENDERBUFFER, this->depthBuffer->getID());
-
-    this->unbind();
-
-    this->depthBuffer = buffer;
-    this->clearFlags |= GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT;
-    this->hasRenderBuffer = true;
+    auto& pair = this->textureAttachments.at(attachment);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, static_cast<GLuint>(pair.first.target),
+                           static_cast<GLuint>(pair.first.type),
+                           0, 0);
   }
 
-  // Unattach the texture and return it (if it exists).
-  Shared<Texture2D>
-  FrameBuffer::unattachTexture2D(const FBOTargetParam &attachment)
+  void
+  FrameBuffer::reattach(const FBOTargetParam &attachment)
   {
-    auto targetLoc = this->textureAttachments.find(attachment);
-    if (targetLoc != this->textureAttachments.end())
-    {
-      auto outTex = this->textureAttachments[attachment].second;
-      this->textureAttachments.erase(targetLoc);
-      return outTex;
-    }
-    else
-    {
-      return nullptr;
-    }
+    auto& pair = this->textureAttachments.at(attachment);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, static_cast<GLuint>(pair.first.target),
+                           static_cast<GLuint>(pair.first.type),
+                           pair.second->getID(), 0);
   }
 
   void
@@ -389,21 +313,6 @@ namespace SciRenderer
   FrameBuffer::setClearColour(const glm::vec4 &clearColour)
   {
     this->clearColour = clearColour;
-  }
-
-  GLuint
-  FrameBuffer::getRenderBufferID()
-  {
-    if (this->depthBuffer != nullptr)
-      return this->depthBuffer->getID();
-    else
-      return 0;
-  }
-
-  GLuint
-  FrameBuffer::getAttachID(const FBOTargetParam &attachment)
-  {
-    return this->textureAttachments.at(attachment).second->getID();
   }
 
   void

@@ -87,7 +87,7 @@ namespace SciRenderer
 
     if (ImGui::CollapsingHeader("Render Passes"))
     {
-      auto bufferSize = storage->geometryPass.getSize();
+      auto bufferSize = storage->gBuffer.getSize();
       GLfloat ratio = bufferSize.x / bufferSize.y;
 
       ImGui::Separator();
@@ -99,22 +99,22 @@ namespace SciRenderer
       ImGui::Text("GBuffer:");
       ImGui::Separator();
       ImGui::Text("Positions:");
-      ImGui::Image((ImTextureID) (unsigned long) storage->geometryPass.getAttachID(FBOTargetParam::Colour0),
+      ImGui::Image((ImTextureID) (unsigned long) storage->gBuffer.getAttachmentID(FBOTargetParam::Colour0),
                    ImVec2(128.0f * ratio, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
       ImGui::Text("Normals:");
-      ImGui::Image((ImTextureID) (unsigned long) storage->geometryPass.getAttachID(FBOTargetParam::Colour1),
+      ImGui::Image((ImTextureID) (unsigned long) storage->gBuffer.getAttachmentID(FBOTargetParam::Colour1),
                    ImVec2(128.0f * ratio, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
       ImGui::Text("Albedo:");
-      ImGui::Image((ImTextureID) (unsigned long) storage->geometryPass.getAttachID(FBOTargetParam::Colour2),
+      ImGui::Image((ImTextureID) (unsigned long) storage->gBuffer.getAttachmentID(FBOTargetParam::Colour2),
                    ImVec2(128.0f * ratio, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
       ImGui::Text("Materials:");
-      ImGui::Image((ImTextureID) (unsigned long) storage->geometryPass.getAttachID(FBOTargetParam::Colour3),
+      ImGui::Image((ImTextureID) (unsigned long) storage->gBuffer.getAttachmentID(FBOTargetParam::Colour3),
                    ImVec2(128.0f * ratio, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
       ImGui::Text("Entity Mask:");
-      ImGui::Image((ImTextureID) (unsigned long) storage->geometryPass.getAttachID(FBOTargetParam::Colour4),
+      ImGui::Image((ImTextureID) (unsigned long) storage->gBuffer.getAttachmentID(FBOTargetParam::Colour4),
                    ImVec2(128.0f * ratio, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
       ImGui::Text("Depth:");
-      ImGui::Image((ImTextureID) (unsigned long) storage->geometryPass.getAttachID(FBOTargetParam::Depth),
+      ImGui::Image((ImTextureID) (unsigned long) storage->gBuffer.getAttachmentID(FBOTargetParam::Depth),
                    ImVec2(128.0f * ratio, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
     }
 

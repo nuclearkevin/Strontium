@@ -15,6 +15,18 @@ namespace SciRenderer
   }
 
   void
+  RendererCommands::enableDepthMask()
+  {
+    glDepthMask(GL_TRUE);
+  }
+
+  void
+  RendererCommands::disableDepthMask()
+  {
+    glDepthMask(GL_FALSE);
+  }
+
+  void
   RendererCommands::blendEquation(const BlendEquation &equation)
   {
     glBlendEquation(static_cast<GLenum>(equation));
