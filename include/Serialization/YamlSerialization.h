@@ -13,9 +13,7 @@ namespace SciRenderer
   {
     void serializeScene(Shared<Scene> scene, const std::string &filepath,
                         const std::string &name = "Untitled");
-    void serializeSettings();
 
     bool deserializeScene(Shared<Scene> scene, const std::string &filepath);
-    bool deserializeSettings();
   }
 }

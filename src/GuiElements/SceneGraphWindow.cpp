@@ -103,6 +103,31 @@ namespace SciRenderer
   }
   //----------------------------------------------------------------------------
 
+  Entity
+  createChildEntity(Entity entity, Shared<Scene> activeScene, const std::string &name = "New Entity")
+  {
+    if (!entity.hasComponent<ChildEntityComponent>())
+    {
+      // Add the child entity component.
+      auto& children = entity.addComponent<ChildEntityComponent>();
+      auto child = activeScene->createEntity(name);
+      children.children.push_back(child);
+
+      // Add the parent component to the child.
+      child.addComponent<ParentEntityComponent>(entity);
+      return child;
+    }
+    else
+    {
+      auto& children = entity.getComponent<ChildEntityComponent>();
+
+      auto child = activeScene->createEntity(name);
+      children.children.push_back(child);
+      child.addComponent<ParentEntityComponent>(entity);
+      return child;
+    }
+  }
+
   // Fixed selection bug for now -> removed the ability to deselect entities.
   // TODO: Readd the ability to deselect entities.
   SceneGraphWindow::SceneGraphWindow()
@@ -328,26 +353,49 @@ namespace SciRenderer
         ImGui::EndMenu();
       }
 
-      if (ImGui::MenuItem("Add Child Entity"))
+      if (ImGui::BeginMenu("Add Child Entity"))
       {
-        if (!entity.hasComponent<ChildEntityComponent>())
+        if (ImGui::MenuItem("New Model"))
         {
-          // Add the child entity component.
-          auto& children = entity.addComponent<ChildEntityComponent>();
-          auto child = activeScene->createEntity();
-          children.children.push_back(child);
-
-          // Add the parent component to the child.
-          child.addComponent<ParentEntityComponent>(entity);
+  				auto model = createChildEntity(entity, activeScene, "New Model");
+          model.addComponent<TransformComponent>();
+          model.addComponent<RenderableComponent>();
         }
-        else
+
+        if (ImGui::BeginMenu("New Light"))
         {
-          auto& children = entity.getComponent<ChildEntityComponent>();
+          if (ImGui::MenuItem("Directional Light"))
+          {
 
-          auto child = activeScene->createEntity();
-          children.children.push_back(child);
-          child.addComponent<ParentEntityComponent>(entity);
+            auto light = createChildEntity(entity, activeScene, "New Directional Light");
+            light.addComponent<DirectionalLightComponent>();
+          }
+
+          if (ImGui::MenuItem("Point Light"))
+          {
+            auto light = createChildEntity(entity, activeScene, "New Point Light");
+            light.addComponent<PointLightComponent>();
+          }
+
+          if (ImGui::MenuItem("Spot Light"))
+          {
+            auto light = createChildEntity(entity, activeScene, "New Spot Light");
+            light.addComponent<SpotLightComponent>();
+          }
+
+          if (ImGui::MenuItem("Ambient Light"))
+          {
+            auto light = createChildEntity(entity, activeScene, "New Ambient Light");
+            light.addComponent<AmbientComponent>();
+          }
+
+          ImGui::EndMenu();
         }
+
+        if (ImGui::MenuItem("New Empty Entity"))
+  				createChildEntity(entity, activeScene);
+
+        ImGui::EndMenu();
       }
 
       if (ImGui::MenuItem("Create Copy of Entity"))

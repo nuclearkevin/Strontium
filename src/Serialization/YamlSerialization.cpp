@@ -121,7 +121,8 @@ namespace SciRenderer
     	return out;
     }
 
-    void serializeMaterial(YAML::Emitter &out, std::pair<std::string, Material> &pair)
+    void
+    serializeMaterial(YAML::Emitter &out, std::pair<std::string, Material> &pair)
     {
       auto textureCache = AssetManager<Texture2D>::getManager();
 
@@ -186,7 +187,8 @@ namespace SciRenderer
       out << YAML::EndMap;
     }
 
-    void serializeEntity(YAML::Emitter &out, Entity entity)
+    void
+    serializeEntity(YAML::Emitter &out, Entity entity)
     {
       if (!entity)
         return;
@@ -339,8 +341,9 @@ namespace SciRenderer
       out << YAML::EndMap;
     }
 
-    void serializeScene(Shared<Scene> scene, const std::string &filepath,
-                        const std::string &name)
+    void
+    serializeScene(Shared<Scene> scene, const std::string &filepath,
+                   const std::string &name)
     {
       auto state = Renderer3D::getState();
 
@@ -353,6 +356,9 @@ namespace SciRenderer
       {
         Entity entity(entityID, scene.get());
         if (!entity)
+          return;
+
+        if (entity.hasComponent<ParentEntityComponent>())
           return;
 
         serializeEntity(out, entity);
@@ -383,12 +389,8 @@ namespace SciRenderer
       output.close();
     }
 
-    void serializeSettings()
-    {
-
-    }
-
-    void deserializeMaterial(YAML::Node &mat, Entity entity)
+    void
+    deserializeMaterial(YAML::Node &mat, Entity entity)
     {
       auto matType = mat["MaterialType"];
       auto parsedSubmeshName = mat["AssociatedSubmesh"];
@@ -461,7 +463,127 @@ namespace SciRenderer
       }
     }
 
-    bool deserializeScene(Shared<Scene> scene, const std::string &filepath)
+    Entity
+    deserializeEntity(YAML::Node &entity, Shared<Scene> scene, Entity parent = Entity())
+    {
+      GLuint entityID = entity["EntityID"].as<GLuint>();
+
+      Entity newEntity = scene->createEntity(entityID);
+
+      auto nameComponent = entity["NameComponent"];
+      if (nameComponent)
+      {
+        std::string name = nameComponent["Name"].as<std::string>();
+        std::string description = nameComponent["Description"].as<std::string>();
+
+        auto& nComponent = newEntity.getComponent<NameComponent>();
+        nComponent.name = name;
+        nComponent.description = description;
+      }
+
+      auto childEntityComponents = entity["ChildEntities"];
+      if (childEntityComponents)
+      {
+        auto& children = newEntity.addComponent<ChildEntityComponent>().children;
+
+        for (auto childNode : childEntityComponents)
+        {
+          Entity child = deserializeEntity(childNode, scene, newEntity);
+          children.push_back(child);
+        }
+      }
+
+      if (parent)
+        newEntity.addComponent<ParentEntityComponent>(parent);
+
+      auto transformComponent = entity["TransformComponent"];
+      if (transformComponent)
+      {
+        glm::vec3 translation = transformComponent["Translation"].as<glm::vec3>();
+        glm::vec3 rotation = transformComponent["Rotation"].as<glm::vec3>();
+        glm::vec3 scale = transformComponent["Scale"].as<glm::vec3>();
+
+        newEntity.addComponent<TransformComponent>(translation, rotation, scale);
+      }
+
+      auto renderableComponent = entity["RenderableComponent"];
+      if (renderableComponent)
+      {
+        std::string modelPath = renderableComponent["ModelPath"].as<std::string>();
+        std::string modelName = renderableComponent["ModelName"].as<std::string>();
+        auto& rComponent = newEntity.addComponent<RenderableComponent>(modelName);
+
+        // If the path is "None" its an internal model asset.
+        // TODO: Handle internals separately.
+        if (modelPath != "None")
+        {
+          auto materials = renderableComponent["Material"];
+          if (materials)
+            for (auto mat : materials)
+              deserializeMaterial(mat, newEntity);
+          Model::asyncLoadModel(modelPath, modelName, &rComponent.materials);
+        }
+      }
+
+      auto directionalComponent = entity["DirectionalLightComponent"];
+      if (directionalComponent)
+      {
+        auto& dComponent = newEntity.addComponent<DirectionalLightComponent>();
+        dComponent.light.direction = directionalComponent["Direction"].as<glm::vec3>();
+        dComponent.light.colour = directionalComponent["Colour"].as<glm::vec3>();
+        dComponent.light.intensity = directionalComponent["Intensity"].as<GLfloat>();
+        dComponent.light.castShadows = directionalComponent["CastShadows"].as<bool>();
+        dComponent.light.primaryLight = directionalComponent["PrimaryLight"].as<bool>();
+      }
+
+      auto pointComponent = entity["PointLightComponent"];
+      if (pointComponent)
+      {
+        auto& pComponent = newEntity.addComponent<PointLightComponent>();
+        pComponent.light.position = pointComponent["Position"].as<glm::vec3>();
+        pComponent.light.colour = pointComponent["Colour"].as<glm::vec3>();
+        pComponent.light.intensity = pointComponent["Intensity"].as<GLfloat>();
+        pComponent.light.radius = pointComponent["Radius"].as<GLfloat>();
+        pComponent.light.castShadows = pointComponent["CastShadows"].as<bool>();
+      }
+
+      auto spotComponent = entity["SpotLightComponent"];
+      if (spotComponent)
+      {
+        auto& sComponent = newEntity.addComponent<SpotLightComponent>();
+        sComponent.light.position = spotComponent["Position"].as<glm::vec3>();
+        sComponent.light.direction = spotComponent["Direction"].as<glm::vec3>();
+        sComponent.light.colour = spotComponent["Colour"].as<glm::vec3>();
+        sComponent.light.intensity = spotComponent["Intensity"].as<GLfloat>();
+        sComponent.light.innerCutoff = spotComponent["InnerCutoff"].as<GLfloat>();
+        sComponent.light.outerCutoff = spotComponent["OuterCutoff"].as<GLfloat>();
+        sComponent.light.radius = spotComponent["Radius"].as<GLfloat>();
+        sComponent.light.castShadows = spotComponent["CastShadows"].as<bool>();
+      }
+
+      auto ambientComponent = entity["AmbientComponent"];
+      if (ambientComponent)
+      {
+        auto state = Renderer3D::getState();
+        auto storage = Renderer3D::getStorage();
+
+        std::string iblImagePath = ambientComponent["IBLPath"].as<std::string>();
+        state->skyboxWidth = ambientComponent["EnviRes"].as<GLuint>();
+        state->irradianceWidth = ambientComponent["IrraRes"].as<GLuint>();
+        state->prefilterWidth = ambientComponent["FiltRes"].as<GLuint>();
+        state->prefilterSamples = ambientComponent["FiltSam"].as<GLuint>();
+        storage->currentEnvironment->unloadEnvironment();
+
+        auto& aComponent = newEntity.addComponent<AmbientComponent>(iblImagePath);
+        aComponent.ambient->getRoughness() = ambientComponent["IBLRough"].as<GLfloat>();
+        aComponent.ambient->getIntensity() = ambientComponent["Intensity"].as<GLfloat>();
+      }
+
+      return newEntity;
+    }
+
+    bool
+    deserializeScene(Shared<Scene> scene, const std::string &filepath)
     {
       YAML::Node data = YAML::LoadFile(filepath);
 
@@ -473,105 +595,7 @@ namespace SciRenderer
         return false;
 
       for (auto entity : entities)
-      {
-        GLuint entityID = entity["EntityID"].as<GLuint>();
-
-        Entity newEntity = scene->createEntity(entityID);
-
-        auto nameComponent = entity["NameComponent"];
-        if (nameComponent)
-        {
-          std::string name = nameComponent["Name"].as<std::string>();
-          std::string description = nameComponent["Description"].as<std::string>();
-
-          auto& nComponent = newEntity.getComponent<NameComponent>();
-          nComponent.name = name;
-          nComponent.description = description;
-        }
-
-        auto transformComponent = entity["TransformComponent"];
-        if (transformComponent)
-        {
-          glm::vec3 translation = transformComponent["Translation"].as<glm::vec3>();
-          glm::vec3 rotation = transformComponent["Rotation"].as<glm::vec3>();
-          glm::vec3 scale = transformComponent["Scale"].as<glm::vec3>();
-
-          newEntity.addComponent<TransformComponent>(translation, rotation, scale);
-        }
-
-        auto renderableComponent = entity["RenderableComponent"];
-        if (renderableComponent)
-        {
-          std::string modelPath = renderableComponent["ModelPath"].as<std::string>();
-          std::string modelName = renderableComponent["ModelName"].as<std::string>();
-          auto& rComponent = newEntity.addComponent<RenderableComponent>(modelName);
-
-          // If the path is "None" its an internal model asset.
-          // TODO: Handle internals separately.
-          if (modelPath != "None")
-          {
-            auto materials = renderableComponent["Material"];
-            if (materials)
-              for (auto mat : materials)
-                deserializeMaterial(mat, newEntity);
-            Model::asyncLoadModel(modelPath, modelName, &rComponent.materials);
-          }
-        }
-
-        auto directionalComponent = entity["DirectionalLightComponent"];
-        if (directionalComponent)
-        {
-          auto& dComponent = newEntity.addComponent<DirectionalLightComponent>();
-          dComponent.light.direction = directionalComponent["Direction"].as<glm::vec3>();
-          dComponent.light.colour = directionalComponent["Colour"].as<glm::vec3>();
-          dComponent.light.intensity = directionalComponent["Intensity"].as<GLfloat>();
-          dComponent.light.castShadows = directionalComponent["CastShadows"].as<bool>();
-          dComponent.light.primaryLight = directionalComponent["PrimaryLight"].as<bool>();
-        }
-
-        auto pointComponent = entity["PointLightComponent"];
-        if (pointComponent)
-        {
-          auto& pComponent = newEntity.addComponent<PointLightComponent>();
-          pComponent.light.position = pointComponent["Position"].as<glm::vec3>();
-          pComponent.light.colour = pointComponent["Colour"].as<glm::vec3>();
-          pComponent.light.intensity = pointComponent["Intensity"].as<GLfloat>();
-          pComponent.light.radius = pointComponent["Radius"].as<GLfloat>();
-          pComponent.light.castShadows = pointComponent["CastShadows"].as<bool>();
-        }
-
-        auto spotComponent = entity["SpotLightComponent"];
-        if (spotComponent)
-        {
-          auto& sComponent = newEntity.addComponent<SpotLightComponent>();
-          sComponent.light.position = spotComponent["Position"].as<glm::vec3>();
-          sComponent.light.direction = spotComponent["Direction"].as<glm::vec3>();
-          sComponent.light.colour = spotComponent["Colour"].as<glm::vec3>();
-          sComponent.light.intensity = spotComponent["Intensity"].as<GLfloat>();
-          sComponent.light.innerCutoff = spotComponent["InnerCutoff"].as<GLfloat>();
-          sComponent.light.outerCutoff = spotComponent["OuterCutoff"].as<GLfloat>();
-          sComponent.light.radius = spotComponent["Radius"].as<GLfloat>();
-          sComponent.light.castShadows = spotComponent["CastShadows"].as<bool>();
-        }
-
-        auto ambientComponent = entity["AmbientComponent"];
-        if (ambientComponent)
-        {
-          auto state = Renderer3D::getState();
-          auto storage = Renderer3D::getStorage();
-
-          std::string iblImagePath = ambientComponent["IBLPath"].as<std::string>();
-          state->skyboxWidth = ambientComponent["EnviRes"].as<GLuint>();
-          state->irradianceWidth = ambientComponent["IrraRes"].as<GLuint>();
-          state->prefilterWidth = ambientComponent["FiltRes"].as<GLuint>();
-          state->prefilterSamples = ambientComponent["FiltSam"].as<GLuint>();
-          storage->currentEnvironment->unloadEnvironment();
-
-          auto& aComponent = newEntity.addComponent<AmbientComponent>(iblImagePath);
-          aComponent.ambient->getRoughness() = ambientComponent["IBLRough"].as<GLfloat>();
-          aComponent.ambient->getIntensity() = ambientComponent["Intensity"].as<GLfloat>();
-        }
-      }
+        deserializeEntity(entity, scene);
 
       auto rendererSettings = data["RendererSettings"];
       if (rendererSettings)
@@ -594,11 +618,6 @@ namespace SciRenderer
       }
 
       return true;
-    }
-
-    bool deserializeSettings()
-    {
-
     }
   }
 }
