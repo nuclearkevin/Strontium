@@ -17,7 +17,7 @@ namespace SciRenderer
 
   enum class FileSaveTargets
   {
-    TargetScene, TargetNone
+    TargetScene, TargetPrefab, TargetNone
   };
 
   class GuiWindow

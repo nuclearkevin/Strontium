@@ -27,6 +27,8 @@ namespace SciRenderer
     this->icons.insert({ "file", tex });
     tex = Texture2D::loadTexture2D("./assets/.icons/srfile.png", Texture2DParams(), false);
     this->icons.insert({ "srfile", tex });
+    tex = Texture2D::loadTexture2D("./assets/.icons/sfabfile.png", Texture2DParams(), false);
+    this->icons.insert({ "sfabfile", tex });
   }
 
   AssetBrowserWindow::~AssetBrowserWindow()
@@ -329,6 +331,11 @@ namespace SciRenderer
             ImGui::Image((ImTextureID) (unsigned long) this->icons["srfile"]->getID(),
                          ImVec2(64.0f, 64.0f), ImVec2(0, 1), ImVec2(1, 0));
           }
+          else if (fileExt == ".sfab")
+          {
+            ImGui::Image((ImTextureID) (unsigned long) this->icons["sfabfile"]->getID(),
+                         ImVec2(64.0f, 64.0f), ImVec2(0, 1), ImVec2(1, 0));
+          }
           else
           {
             ImGui::Image((ImTextureID) (unsigned long) this->icons["file"]->getID(),
@@ -352,6 +359,11 @@ namespace SciRenderer
         if (fileExt == ".srn")
         {
           ImGui::Image((ImTextureID) (unsigned long) this->icons["srfile"]->getID(),
+                       ImVec2(64.0f, 64.0f), ImVec2(0, 1), ImVec2(1, 0));
+        }
+        else if (fileExt == ".sfab")
+        {
+          ImGui::Image((ImTextureID) (unsigned long) this->icons["sfabfile"]->getID(),
                        ImVec2(64.0f, 64.0f), ImVec2(0, 1), ImVec2(1, 0));
         }
         else

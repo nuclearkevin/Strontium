@@ -13,7 +13,10 @@ namespace SciRenderer
   {
     void serializeScene(Shared<Scene> scene, const std::string &filepath,
                         const std::string &name = "Untitled");
+    void serializePrefab(Entity prefab, const std::string &filepath,
+                         const std::string &name = "Untitled Prefab");
 
     bool deserializeScene(Shared<Scene> scene, const std::string &filepath);
+    bool deserializePrefab(Shared<Scene> scene, const std::string &filepath);
   }
 }

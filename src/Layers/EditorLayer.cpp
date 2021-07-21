@@ -569,6 +569,10 @@ namespace SciRenderer
     // Load a SciRender scene file.
     if (filetype == ".srn")
       this->dndScenePath = filepath;
+
+    // Load a SciRender prefab object.
+    if (filetype == ".sfab")
+      YAMLSerialization::deserializePrefab(this->currentScene, filepath);
   }
 
   void

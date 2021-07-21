@@ -41,6 +41,7 @@ namespace SciRenderer
     Entity selectedEntity;
     std::string selectedString;
     FileLoadTargets fileTargets;
+    FileSaveTargets saveTargets;
 
     bool deleteSelected;
   };

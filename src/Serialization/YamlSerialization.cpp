@@ -209,6 +209,19 @@ namespace SciRenderer
         out << YAML::EndMap;
       }
 
+      if (entity.hasComponent<PrefabComponent>())
+      {
+        out << YAML::Key << "PrefabComponent";
+        out << YAML::BeginMap;
+
+        auto& component = entity.getComponent<PrefabComponent>();
+        out << YAML::Key << "Synch" << YAML::Value << component.synch;
+        out << YAML::Key << "PreFabID" << YAML::Value << component.prefabID;
+        out << YAML::Key << "PreFabPath" << YAML::Value << component.prefabPath;
+
+        out << YAML::EndMap;
+      }
+
       if (entity.hasComponent<ChildEntityComponent>())
       {
         out << YAML::Key << "ChildEntities" << YAML::Value << YAML::BeginSeq;
@@ -390,6 +403,24 @@ namespace SciRenderer
     }
 
     void
+    serializePrefab(Entity prefab, const std::string &filepath,
+                    const std::string &name)
+    {
+      YAML::Emitter out;
+      out << YAML::BeginMap;
+      out << YAML::Key << "PreFab" << YAML::Value << name;
+      out << YAML::Key << "EntityInfo";
+
+      serializeEntity(out, prefab);
+
+      out << YAML::EndMap;
+
+      std::ofstream output(filepath, std::ofstream::trunc | std::ofstream::out);
+      output << out.c_str();
+      output.close();
+    }
+
+    void
     deserializeMaterial(YAML::Node &mat, Entity entity)
     {
       auto matType = mat["MaterialType"];
@@ -479,6 +510,15 @@ namespace SciRenderer
         auto& nComponent = newEntity.getComponent<NameComponent>();
         nComponent.name = name;
         nComponent.description = description;
+      }
+
+      auto prefabComponent = entity["PrefabComponent"];
+      if (prefabComponent)
+      {
+        auto pfID = prefabComponent["PreFabID"].as<std::string>();
+        auto pfPath = prefabComponent["PreFabPath"].as<std::string>();
+        auto& pfComponent = newEntity.addComponent<PrefabComponent>(pfID, pfPath);
+        pfComponent.synch = prefabComponent["Synch"].as<bool>();
       }
 
       auto childEntityComponents = entity["ChildEntities"];
@@ -618,6 +658,29 @@ namespace SciRenderer
       }
 
       return true;
+    }
+
+    bool
+    deserializePrefab(Shared<Scene> scene, const std::string &filepath)
+    {
+      YAML::Node data = YAML::LoadFile(filepath);
+
+      if (!data["PreFab"])
+        return false;
+
+      auto preFabName = data["PreFab"].as<std::string>();
+
+      auto preFabInfo = data["EntityInfo"];
+      if (data["EntityInfo"])
+      {
+        auto preFabEntity = deserializeEntity(preFabInfo, scene);
+        preFabEntity.getComponent<NameComponent>().description = "Prefab: " + preFabName;
+        preFabEntity.addComponent<PrefabComponent>(preFabName, filepath);
+
+        return true;
+      }
+      else
+        return false;
     }
   }
 }

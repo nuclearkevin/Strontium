@@ -50,6 +50,10 @@ namespace SciRenderer
     }
   };
 
+  //----------------------------------------------------------------------------
+  // Internal components. Cannot be added or removed by a user.
+  //----------------------------------------------------------------------------
+  // A parent entity component so each child entity knows its parents.
   struct ParentEntityComponent
   {
     Entity parent;
@@ -63,6 +67,7 @@ namespace SciRenderer
     ParentEntityComponent() = default;
   };
 
+  // A child entity component so each parent component knows its children.
   struct ChildEntityComponent
   {
     std::vector<Entity> children;
@@ -71,6 +76,23 @@ namespace SciRenderer
 
     ChildEntityComponent() = default;
   };
+
+  // Prefab component so each prefab can be iterated over and updated in synch.
+  struct PrefabComponent
+  {
+    std::string prefabID;
+    std::string prefabPath;
+    bool synch;
+
+    PrefabComponent(const PrefabComponent&) = default;
+
+    PrefabComponent(const std::string &prefabID, const std::string &prefabPath)
+      : prefabID(prefabID)
+      , synch(false)
+      , prefabPath(prefabPath)
+    { }
+  };
+  //----------------------------------------------------------------------------
 
   // Entity transform component.
   struct TransformComponent

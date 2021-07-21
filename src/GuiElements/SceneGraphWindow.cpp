@@ -7,6 +7,7 @@
 #include "Core/AssetManager.h"
 #include "GuiElements/Styles.h"
 #include "Scenes/Components.h"
+#include "Serialization/YamlSerialization.h"
 
 // ImGui includes.
 #include "imgui/imgui.h"
@@ -134,6 +135,7 @@ namespace SciRenderer
     : GuiWindow()
     , selectedString("")
     , fileTargets(FileLoadTargets::TargetNone)
+    , saveTargets(FileSaveTargets::TargetNone)
     , deleteSelected(false)
   { }
 
@@ -290,6 +292,28 @@ namespace SciRenderer
         }
         break;
       }
+
+      case EventType::SaveFileEvent:
+      {
+        auto saveEvent = *(static_cast<SaveFileEvent*>(&event));
+
+        switch (this->saveTargets)
+        {
+          case FileSaveTargets::TargetPrefab:
+          {
+            auto& path = saveEvent.getAbsPath();
+            auto& name = saveEvent.getFileName();
+            auto fabName = name.substr(0, name.find_last_of('.'));
+
+            YAMLSerialization::serializePrefab(this->selectedEntity, path, fabName);
+            this->selectedEntity.addComponent<PrefabComponent>(fabName, path);
+            break;
+          }
+        }
+
+        this->saveTargets = FileSaveTargets::TargetNone;
+        break;
+      }
       default: break;
     }
   }
@@ -410,6 +434,15 @@ namespace SciRenderer
         copyComponent<SpotLightComponent>(entity, newEntity);
       }
 
+      if (ImGui::MenuItem("Register as PreFab"))
+      {
+        EventDispatcher* dispatcher = EventDispatcher::getInstance();
+        dispatcher->queueEvent(new OpenDialogueEvent(DialogueEventType::FileSave, ".sfab"));
+
+        this->saveTargets = FileSaveTargets::TargetPrefab;
+        this->selectedEntity = entity;
+      }
+
       // Check to see if we should delete the entity.
       if (ImGui::MenuItem("Delete Entity"))
         entityDeleted = true;
@@ -515,6 +548,31 @@ namespace SciRenderer
       ImGui::Text("Description:");
       if (ImGui::InputText("##desc", descBuffer, sizeof(descBuffer)))
         description = std::string(descBuffer);
+
+      drawComponentProperties<PrefabComponent>("Prefab Component",
+        this->selectedEntity, [](auto& component)
+      {
+        ImGui::Checkbox("Synch Prefab", &component.synch);
+
+        if (component.synch)
+        {
+          if (ImGui::Button("Push New Settings"))
+          {
+            
+          }
+        }
+        else
+        {
+          ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+          ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
+          ImGui::Button("Push New Settings");
+          ImGui::PopItemFlag();
+          ImGui::PopStyleVar();
+        }
+
+        ImGui::Text((std::string("Prefab ID: ") + component.prefabID).c_str());
+        ImGui::Text((std::string("Prefab path: ") + component.prefabPath).c_str());
+      });
 
       drawComponentProperties<TransformComponent>("Transform Component",
         this->selectedEntity, [](auto& component)
