@@ -31,6 +31,8 @@ namespace SciRenderer
     void drawComponentNodes(Entity entity, Shared<Scene> activeScene);
     void drawPropsWindow(bool &isOpen, Shared<Scene> activeScene);
 
+    void recursiveChildDelete(Entity parent, Shared<Scene> activeScene);
+
     // TODO: Consider moving this to a separate window.
     void drawMeshWindow(bool &isOpen);
 

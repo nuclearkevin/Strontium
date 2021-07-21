@@ -674,8 +674,6 @@ namespace SciRenderer
       if (data["EntityInfo"])
       {
         auto preFabEntity = deserializeEntity(preFabInfo, scene);
-        preFabEntity.getComponent<NameComponent>().description = "Prefab: " + preFabName;
-        preFabEntity.addComponent<PrefabComponent>(preFabName, filepath);
 
         return true;
       }

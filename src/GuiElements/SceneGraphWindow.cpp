@@ -104,6 +104,7 @@ namespace SciRenderer
   }
   //----------------------------------------------------------------------------
 
+  // Helper function to create a child entity.
   Entity
   createChildEntity(Entity entity, Shared<Scene> activeScene, const std::string &name = "New Entity")
   {
@@ -127,6 +128,23 @@ namespace SciRenderer
       child.addComponent<ParentEntityComponent>(entity);
       return child;
     }
+  }
+
+  // Helper function to recursively delete child entities.
+  void
+  SceneGraphWindow::recursiveChildDelete(Entity parent, Shared<Scene> activeScene)
+  {
+    if (parent.hasComponent<ChildEntityComponent>())
+    {
+      auto& children = parent.getComponent<ChildEntityComponent>().children;
+      for (auto& child : children)
+        recursiveChildDelete(child, activeScene);
+    }
+
+    if (parent == this->selectedEntity)
+      this->deleteSelected = true;
+    else
+      activeScene->deleteEntity(parent);
   }
 
   // Fixed selection bug for now -> removed the ability to deselect entities.
@@ -550,28 +568,34 @@ namespace SciRenderer
         description = std::string(descBuffer);
 
       drawComponentProperties<PrefabComponent>("Prefab Component",
-        this->selectedEntity, [](auto& component)
+        this->selectedEntity, [this, activeScene](auto& component)
       {
         ImGui::Checkbox("Synch Prefab", &component.synch);
 
+        auto tempID = component.prefabID;
+        auto tempPath = component.prefabPath;
+
         if (component.synch)
         {
-          if (ImGui::Button("Push New Settings"))
+          if (ImGui::Button("Push Prefab Settings"))
           {
-            
+            YAMLSerialization::serializePrefab(this->selectedEntity, component.prefabPath, component.prefabID);
+
+            auto autoPrefabs = activeScene->sceneECS.view<PrefabComponent>();
+            for (auto entity : autoPrefabs)
+            {
+              auto prefab = autoPrefabs.get<PrefabComponent>(entity);
+              if (prefab.synch && prefab.prefabID == tempID)
+              {
+                this->recursiveChildDelete(Entity(entity, activeScene.get()), activeScene);
+                YAMLSerialization::deserializePrefab(activeScene, tempPath);
+              }
+            }
           }
         }
-        else
-        {
-          ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
-          ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
-          ImGui::Button("Push New Settings");
-          ImGui::PopItemFlag();
-          ImGui::PopStyleVar();
-        }
 
-        ImGui::Text((std::string("Prefab ID: ") + component.prefabID).c_str());
-        ImGui::Text((std::string("Prefab path: ") + component.prefabPath).c_str());
+        ImGui::Text((std::string("Prefab ID: ") + tempID).c_str());
+        ImGui::Text((std::string("Prefab path: ") + tempPath).c_str());
       });
 
       drawComponentProperties<TransformComponent>("Transform Component",
