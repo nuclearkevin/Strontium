@@ -6,6 +6,7 @@ namespace SciRenderer
     : type(RuntimeType::Editor)
   {
     this->geoBuffer = FrameBuffer(0, 0);
+    this->geoBuffer.setClearColour(glm::vec4(0.0f));
 
     auto cSpec = FBOCommands::getFloatColourSpec(FBOTargetParam::Colour0);
     auto dSpec = FBOCommands::getDefaultDepthSpec();

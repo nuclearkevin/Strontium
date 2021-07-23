@@ -71,12 +71,51 @@ namespace SciRenderer
     {
       // Draw all the renderables with transforms.
       auto [transform, renderable] = drawables.get<TransformComponent, RenderableComponent>(entity);
+      glm::mat4 transformMatrix = (glm::mat4) transform;
+
+      // If a drawable item has a transform hierarchy, compute the global
+      // transforms from local transforms.
+      auto currentEntity = Entity(entity, this);
+      if (currentEntity.hasComponent<ParentEntityComponent>())
+        transformMatrix = computeGlobalTransform(currentEntity);
 
       bool selected = entity == selectedEntity;
 
       // Submit the mesh + material + transform to the deferred renderer queue.
       if (renderable)
-        Renderer3D::submit(renderable, renderable, transform, (GLfloat) (GLuint) entity, selected);
+        Renderer3D::submit(renderable, renderable, transformMatrix, static_cast<float>(entity), selected);
+    }
+  }
+
+  // Compute the global transform given a parent-child transform hierarchy.
+  // Only rotations and translation transforms.
+  glm::mat4
+  Scene::computeGlobalTransform(Entity entity)
+  {
+    if (entity.hasComponent<ParentEntityComponent>())
+    {
+      auto& parent = entity.getComponent<ParentEntityComponent>().parent;
+      if (entity.hasComponent<TransformComponent>())
+      {
+        auto& localTransform = entity.getComponent<TransformComponent>();
+        auto& localTranslation = localTransform.translation;
+        auto scalelessTransform = glm::translate(glm::mat4(1.0f), localTranslation);
+        return scalelessTransform * computeGlobalTransform(parent);
+      }
+      else
+        return computeGlobalTransform(parent);
+    }
+    else
+    {
+      if (entity.hasComponent<TransformComponent>())
+      {
+        auto& localTransform = entity.getComponent<TransformComponent>();
+        auto& localTranslation = localTransform.translation;
+        auto scalelessTransform = glm::translate(glm::mat4(1.0f), localTranslation);
+        return scalelessTransform;
+      }
+      else
+        return glm::mat4(1.0f);
     }
   }
 }

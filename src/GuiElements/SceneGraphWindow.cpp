@@ -241,6 +241,8 @@ namespace SciRenderer
         if (pos != parentChildren.end())
           parentChildren.erase(pos);
       }
+      if (this->selectedEntity.hasComponent<ChildEntityComponent>())
+        this->recursiveChildDelete(this->selectedEntity, activeScene);
 
       activeScene->deleteEntity(this->selectedEntity);
       this->selectedEntity = Entity();
@@ -323,8 +325,8 @@ namespace SciRenderer
             auto& name = saveEvent.getFileName();
             auto fabName = name.substr(0, name.find_last_of('.'));
 
-            YAMLSerialization::serializePrefab(this->selectedEntity, path, fabName);
             this->selectedEntity.addComponent<PrefabComponent>(fabName, path);
+            YAMLSerialization::serializePrefab(this->selectedEntity, path, fabName);
             break;
           }
         }
@@ -491,6 +493,9 @@ namespace SciRenderer
           if (pos != parentChildren.end())
             parentChildren.erase(pos);
         }
+        if (entity.hasComponent<ChildEntityComponent>())
+          this->recursiveChildDelete(entity, activeScene);
+
         activeScene->deleteEntity(entity);
       }
     }
@@ -567,19 +572,25 @@ namespace SciRenderer
       if (ImGui::InputText("##desc", descBuffer, sizeof(descBuffer)))
         description = std::string(descBuffer);
 
-      drawComponentProperties<PrefabComponent>("Prefab Component",
-        this->selectedEntity, [this, activeScene](auto& component)
+      if (this->selectedEntity.hasComponent<PrefabComponent>())
       {
-        ImGui::Checkbox("Synch Prefab", &component.synch);
+        auto& pfComponent = this->selectedEntity.getComponent<PrefabComponent>();
 
-        auto tempID = component.prefabID;
-        auto tempPath = component.prefabPath;
+        ImGui::Text(" ");
+        ImGui::Text("Prefab Settings");
+        ImGui::Separator();
+        ImGui::Checkbox("Synch Prefab", &pfComponent.synch);
 
-        if (component.synch)
+        auto tempID = pfComponent.prefabID;
+        auto tempPath = pfComponent.prefabPath;
+
+        ImGui::Text((std::string("Prefab ID: ") + tempID).c_str());
+        ImGui::Text((std::string("Prefab path: ") + tempPath).c_str());
+        if (pfComponent.synch)
         {
           if (ImGui::Button("Push Prefab Settings"))
           {
-            YAMLSerialization::serializePrefab(this->selectedEntity, component.prefabPath, component.prefabID);
+            YAMLSerialization::serializePrefab(this->selectedEntity, pfComponent.prefabPath, pfComponent.prefabID);
 
             auto autoPrefabs = activeScene->sceneECS.view<PrefabComponent>();
             for (auto entity : autoPrefabs)
@@ -593,10 +604,7 @@ namespace SciRenderer
             }
           }
         }
-
-        ImGui::Text((std::string("Prefab ID: ") + tempID).c_str());
-        ImGui::Text((std::string("Prefab path: ") + tempPath).c_str());
-      });
+      }
 
       drawComponentProperties<TransformComponent>("Transform Component",
         this->selectedEntity, [](auto& component)

@@ -267,7 +267,7 @@ namespace SciRenderer
     glReadBuffer(static_cast<GLenum>(target));
     GLfloat data;
     glReadPixels((GLint) mousePos.x, (GLint) mousePos.y, 1, 1, GL_RED, GL_FLOAT, &data);
-    return (GLint) data;
+    return static_cast<GLint>(data);
   }
 
   // Resize the framebuffer.
@@ -376,7 +376,7 @@ namespace SciRenderer
     FBOSpecification floatColour = FBOSpecification();
     floatColour.target = attach;
     floatColour.type = FBOTex2DParam::Texture2D;
-    floatColour.internal = TextureInternalFormats::RGBA16f;
+    floatColour.internal = TextureInternalFormats::RGBA32f;
     floatColour.format = TextureFormats::RGBA;
     floatColour.dataType = TextureDataType::Floats;
     floatColour.sWrap = TextureWrapParams::Repeat;

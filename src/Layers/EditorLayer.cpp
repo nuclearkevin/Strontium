@@ -48,7 +48,7 @@ namespace SciRenderer
     auto cSpec = FBOCommands::getFloatColourSpec(FBOTargetParam::Colour0);
     this->drawBuffer->attachTexture2D(cSpec);
     cSpec = FBOCommands::getFloatColourSpec(FBOTargetParam::Colour1); // The ID texture.
-    cSpec.internal = TextureInternalFormats::R16f;
+    cSpec.internal = TextureInternalFormats::R32f;
     cSpec.format = TextureFormats::Red;
     cSpec.sWrap = TextureWrapParams::ClampEdges;
     cSpec.tWrap = TextureWrapParams::ClampEdges;
@@ -703,7 +703,8 @@ namespace SciRenderer
     if (mousePos.x >= 0.0f && mousePos.y >= 0.0f &&
         mousePos.x < (editorSize).x && mousePos.y < (editorSize).y)
     {
-      GLint id = this->drawBuffer->readPixel(FBOTargetParam::Colour1, glm::vec2(mousePos.x, mousePos.y)) - 1.0f;
+      GLint id = this->drawBuffer->readPixel(FBOTargetParam::Colour1, glm::vec2(mousePos.x, mousePos.y)) - 1;
+
       if (id < 0)
       {
         static_cast<SceneGraphWindow*>(this->windows[0])->setSelectedEntity(Entity());

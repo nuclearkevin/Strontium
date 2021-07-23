@@ -29,6 +29,8 @@ namespace SciRenderer
     entt::registry& getRegistry() { return this->sceneECS; }
     std::string& getSaveFilepath() { return this->saveFilepath; }
   protected:
+    glm::mat4 computeGlobalTransform(Entity parent);
+    
     entt::registry sceneECS;
 
     std::string saveFilepath;

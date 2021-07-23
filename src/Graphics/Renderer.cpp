@@ -318,8 +318,6 @@ namespace SciRenderer
 
     //--------------------------------------------------------------------------
     // Deferred shadow mapping pass. Cascaded shadows for a "primary light".
-    // TODO: Compute the scene AABB and factor that in for cascade ortho
-    // calculations.
     //--------------------------------------------------------------------------
     void
     shadowPass()
@@ -422,7 +420,7 @@ namespace SciRenderer
             cascadeCenter += frustumCorners[j];
           cascadeCenter /= 8.0f;
 
-          // Find the minimum and maximum size of the cascade ortho matrix.
+          // Find the minimum and maximum size of the cascade ortho matrix. Bounding spheres!
           float radius = 0.0f;
           for (unsigned int j = 0; j < 8; j++)
           {
