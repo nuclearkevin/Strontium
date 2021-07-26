@@ -18,7 +18,7 @@ namespace SciRenderer
   class AssetBrowserWindow : public GuiWindow
   {
   public:
-    AssetBrowserWindow();
+    AssetBrowserWindow(EditorLayer* parentLayer);
     ~AssetBrowserWindow();
 
     void onImGuiRender(bool &isOpen, Shared<Scene> activeScene);

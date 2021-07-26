@@ -6,3 +6,4 @@
 #include "GuiElements/MaterialWindow.h"
 #include "GuiElements/AssetBrowserWindow.h"
 #include "GuiElements/RendererWindow.h"
+#include "GuiElements/ViewportWindow.h"

@@ -15,7 +15,7 @@ namespace SciRenderer
   class SceneGraphWindow : public GuiWindow
   {
   public:
-    SceneGraphWindow();
+    SceneGraphWindow(EditorLayer* parentLayer);
     ~SceneGraphWindow();
 
     void onImGuiRender(bool &isOpen, Shared<Scene> activeScene);

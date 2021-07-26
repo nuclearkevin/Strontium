@@ -10,8 +10,8 @@
 
 namespace SciRenderer
 {
-  RendererWindow::RendererWindow()
-    : GuiWindow()
+  RendererWindow::RendererWindow(EditorLayer* parentLayer)
+    : GuiWindow(parentLayer)
   {
 
   }

@@ -10,8 +10,8 @@
 
 namespace SciRenderer
 {
-  AssetBrowserWindow::AssetBrowserWindow()
-    : GuiWindow()
+  AssetBrowserWindow::AssetBrowserWindow(EditorLayer* parentLayer)
+    : GuiWindow(parentLayer)
     , currentDir("./assets")
     , drawCursor(0.0f, 0.0f)
     , loadingAsset(false)

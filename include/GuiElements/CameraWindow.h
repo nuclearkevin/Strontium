@@ -14,7 +14,7 @@ namespace SciRenderer
   class CameraWindow : public GuiWindow
   {
   public:
-    CameraWindow(Shared<Camera> camera);
+    CameraWindow(EditorLayer* parentLayer, Shared<Camera> camera);
     ~CameraWindow();
 
     void onImGuiRender(bool &isOpen, Shared<Scene> activeScene);

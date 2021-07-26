@@ -31,23 +31,17 @@ namespace SciRenderer
     virtual void onEvent(Event &event) override;
     virtual void onUpdate(float dt) override;
 
-  protected:
-    // Handle the drag and drop actions.
-    void DNDTarget();
-    void loadDNDAsset(const std::string &filepath);
+    void updateSelectedEntity(GLuint entityID);
 
+    Shared<Camera> getEditorCamera() { return this->editorCam; }
+    Shared<FrameBuffer> getFrontBuffer() { return this->drawBuffer; }
+    ImVec2& getEditorSize() { return this->editorSize; }
+    Entity getSelectedEntity();
+    std::string& getDNDScenePath() { return this->dndScenePath; }
+  protected:
     // Handle keyboard/mouse events.
     void onKeyPressEvent(KeyPressedEvent &keyEvent);
     void onMouseEvent(MouseClickEvent &mouseEvent);
-
-    // Screenpicking.
-    void selectEntity();
-
-    // Gizmo UI.
-    int gizmoType;
-    ImVec2 gizmoSelPos;
-    void manipulateEntity(Entity entity);
-    void drawGizmoSelector(ImVec2 windowPos, ImVec2 windowSize);
 
     // The current scene.
     Shared<Scene> currentScene;
@@ -69,6 +63,5 @@ namespace SciRenderer
     bool showPerf;
     bool showSceneGraph;
     ImVec2 editorSize;
-    ImVec2 bounds[2];
   };
 }

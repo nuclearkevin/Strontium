@@ -12,8 +12,8 @@
 
 namespace SciRenderer
 {
-  ShaderWindow::ShaderWindow()
-    : GuiWindow()
+  ShaderWindow::ShaderWindow(EditorLayer* parentLayer)
+    : GuiWindow(parentLayer)
     , selectedShader(nullptr)
     , shaderName("")
   {

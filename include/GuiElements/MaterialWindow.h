@@ -14,7 +14,7 @@ namespace SciRenderer
   class MaterialWindow : public GuiWindow
   {
   public:
-    MaterialWindow();
+    MaterialWindow(EditorLayer* parentLayer);
     ~MaterialWindow();
 
     void onImGuiRender(bool &isOpen, Shared<Scene> activeScene);

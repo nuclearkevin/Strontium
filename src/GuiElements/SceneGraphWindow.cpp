@@ -149,8 +149,8 @@ namespace SciRenderer
 
   // Fixed selection bug for now -> removed the ability to deselect entities.
   // TODO: Readd the ability to deselect entities.
-  SceneGraphWindow::SceneGraphWindow()
-    : GuiWindow()
+  SceneGraphWindow::SceneGraphWindow(EditorLayer* parentLayer)
+    : GuiWindow(parentLayer)
     , selectedString("")
     , fileTargets(FileLoadTargets::TargetNone)
     , saveTargets(FileSaveTargets::TargetNone)

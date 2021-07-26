@@ -14,7 +14,7 @@ namespace SciRenderer
   class FileBrowserWindow : public GuiWindow
   {
   public:
-    FileBrowserWindow();
+    FileBrowserWindow(EditorLayer* parentLayer);
     ~FileBrowserWindow();
 
     void onImGuiRender(bool &isOpen, Shared<Scene> activeScene);

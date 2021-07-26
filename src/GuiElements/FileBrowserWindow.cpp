@@ -2,8 +2,8 @@
 
 namespace SciRenderer
 {
-  FileBrowserWindow::FileBrowserWindow()
-    : GuiWindow()
+  FileBrowserWindow::FileBrowserWindow(EditorLayer* parentLayer)
+    : GuiWindow(parentLayer)
     , isOpen(false)
     , format(".")
     , mode(imgui_addons::ImGuiFileBrowser::DialogMode::SELECT)

@@ -2,8 +2,9 @@
 
 namespace SciRenderer
 {
-  GuiWindow::GuiWindow(bool isOpen)
-    : isOpen(isOpen)
+  GuiWindow::GuiWindow(EditorLayer* parentLayer, bool isOpen)
+    : parentLayer(parentLayer)
+    , isOpen(isOpen)
   { }
 
   GuiWindow::~GuiWindow()

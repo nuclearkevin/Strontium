@@ -11,8 +11,8 @@
 
 namespace SciRenderer
 {
-  CameraWindow::CameraWindow(Shared<Camera> camera)
-    : GuiWindow()
+  CameraWindow::CameraWindow(EditorLayer* parentLayer, Shared<Camera> camera)
+    : GuiWindow(parentLayer)
     , camera(camera)
   { }
 

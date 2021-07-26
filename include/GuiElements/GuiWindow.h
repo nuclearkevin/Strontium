@@ -20,10 +20,12 @@ namespace SciRenderer
     TargetScene, TargetPrefab, TargetNone
   };
 
+  class EditorLayer;
+
   class GuiWindow
   {
   public:
-    GuiWindow(bool isOpen = true);
+    GuiWindow(EditorLayer* parentLayer, bool isOpen = true);
     virtual ~GuiWindow();
 
     virtual void onImGuiRender(bool &isOpen, Shared<Scene> activeScene);
@@ -32,6 +34,7 @@ namespace SciRenderer
 
     bool isOpen;
 
-  private:
+  protected:
+    EditorLayer* parentLayer;
   };
 }

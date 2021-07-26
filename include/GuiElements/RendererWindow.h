@@ -15,7 +15,7 @@ namespace SciRenderer
   class RendererWindow : public GuiWindow
   {
   public:
-    RendererWindow();
+    RendererWindow(EditorLayer* parentLayer);
     ~RendererWindow();
 
     void onImGuiRender(bool &isOpen, Shared<Scene> activeScene);
