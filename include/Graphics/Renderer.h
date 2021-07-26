@@ -136,9 +136,6 @@ namespace SciRenderer
       Shader* outlineShader;
       Shader* gridShader;
 
-      ComputeShader comHorBlur;
-      ComputeShader comVerBlur;
-
       Unique<EnvironmentMap> currentEnvironment;
 
       Shared<Camera> sceneCam;
@@ -149,8 +146,6 @@ namespace SciRenderer
       std::vector<SpotLight> spotQueue;
 
       RendererStorage()
-        : comHorBlur("./assets/shaders/compute/horShadowBlur.cs")
-        , comVerBlur("./assets/shaders/compute/verShadowBlur.cs")
       {
         currentEnvironment = createUnique<EnvironmentMap>("./assets/models/cube.obj");
       }

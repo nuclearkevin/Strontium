@@ -72,7 +72,7 @@ void main()
 
   vec3 F0 = mix(vec3(0.04), albedo, metallic);
 
-  vec3 view = normalize(position - camera.position);
+  vec3 view = normalize(camera.position - position);
   vec3 light = normalize(lDirection);
   vec3 halfWay = normalize(view + light);
 
