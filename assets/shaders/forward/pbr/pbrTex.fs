@@ -40,6 +40,8 @@ uniform vec3 uAlbedo = vec3(1.0);
 uniform float uMetallic = 1.0;
 uniform float uRoughness = 1.0;
 uniform float uAO = 1.0;
+uniform float uEmiss = 0.0;
+uniform float uF0 = 0.04;
 uniform float uID = -1.0;
 uniform vec3 uMaskColour = vec3(0.0);
 
@@ -49,6 +51,7 @@ uniform sampler2D metallicMap;
 uniform sampler2D roughnessMap;
 uniform sampler2D normalMap;
 uniform sampler2D aOcclusionMap;
+uniform sampler2D specF0Map;
 
 // Uniforms for ambient lighting.
 uniform samplerCube irradianceMap;
@@ -78,7 +81,7 @@ void main()
 	frag.roughness = texture(roughnessMap, fragIn.fTexCoords).r * uRoughness;
 	frag.aOcclusion = texture(aOcclusionMap, fragIn.fTexCoords).r * uAO;
   frag.position = fragIn.fPosition;
-  frag.F0 = mix(vec3(0.04), frag.albedo, frag.metallic);
+  frag.F0 = mix(vec3(texture(specF0Map, fragIn.fTexCoords).r * uF0), frag.albedo, frag.metallic);
 
   vec3 view = normalize(fragIn.fPosition - camera.position);
   vec3 reflection = reflect(view, frag.normal);
@@ -94,7 +97,7 @@ void main()
   vec2 brdfInt = texture(brdfLookUp, vec2(nDotV, frag.roughness)).rg;
   ambientSpec = ambientSpec * (brdfInt.r * ks + brdfInt.g);
 
-	vec3 colour = (radiosity + (ambientDiff + ambientSpec) * frag.aOcclusion);
+	vec3 colour = (radiosity + uEmiss * frag.albedo + (ambientDiff + ambientSpec) * frag.aOcclusion);
 	// HDR correct.
 	colour = colour / (colour + vec3(1.0));
 	// Tone map, gamma correction.

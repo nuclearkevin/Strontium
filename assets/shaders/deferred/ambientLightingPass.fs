@@ -52,6 +52,7 @@ void main()
   float metallic = texture(gMatProp, fTexCoords).r;
   float roughness = texture(gMatProp, fTexCoords).g;
   float ao = texture(gMatProp, fTexCoords).b;
+  float emiss = texture(gMatProp, fTexCoords).a;
 
   vec3 F0 = mix(vec3(0.04), albedo, metallic);
 
@@ -62,14 +63,13 @@ void main()
   vec3 ks = SFresnelR(nDotV, F0, roughness);
   vec3 kd = (vec3(1.0) - ks) * (1.0 - roughness);
 
-	vec3 radiosity = vec3(0.0);
 	vec3 ambientDiff = kd * texture(irradianceMap, normal).rgb * albedo;
   vec3 ambientSpec = textureLod(reflectanceMap, reflection,
                                 roughness * MAX_MIP).rgb;
   vec2 brdfInt = texture(brdfLookUp, vec2(nDotV, roughness)).rg;
   ambientSpec = ambientSpec * (brdfInt.r * ks + brdfInt.g);
 
-	vec3 colour = intensity * (radiosity + (ambientDiff + ambientSpec) * ao);
+	vec3 colour = intensity * ((ambientDiff + ambientSpec) * ao) + albedo * emiss;
 
   fragColour = vec4(colour, 1.0);
 }

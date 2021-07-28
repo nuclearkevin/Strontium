@@ -22,6 +22,8 @@ uniform vec3 uAlbedo = vec3(1.0);
 uniform float uMetallic = 1.0;
 uniform float uRoughness = 1.0;
 uniform float uAO = 1.0;
+uniform float uEmiss = 0.0;
+uniform float uF0 = 0.04;
 uniform float uID = 0.0;
 uniform vec3 uMaskColour = vec3(0.0);
 
@@ -30,17 +32,19 @@ uniform sampler2D normalMap;
 uniform sampler2D roughnessMap;
 uniform sampler2D metallicMap;
 uniform sampler2D aOcclusionMap;
+uniform sampler2D specF0Map;
 
 void main()
 {
   gPosition = vec4(fragIn.fPosition, 1.0);
   gNormal = vec4(fragIn.fTBN * (texture(normalMap, fragIn.fTexCoords).xyz * 2.0 - 1.0), 1.0);
   gAlbedo = vec4(pow(texture(albedoMap, fragIn.fTexCoords).rgb * uAlbedo, vec3(2.2)), 1.0);
+	gAlbedo.a = texture(specF0Map, fragIn.fTexCoords).r * uF0;
 
   gMatProp.r = texture(metallicMap, fragIn.fTexCoords).r * uMetallic;
   gMatProp.g = texture(roughnessMap, fragIn.fTexCoords).r * uRoughness;
   gMatProp.b = texture(aOcclusionMap, fragIn.fTexCoords).r * uAO;
-  gMatProp.a = 1.0;
+  gMatProp.a = uEmiss;
 
 	gIDMaskColour = vec4(uMaskColour, uID);
 }

@@ -57,7 +57,7 @@ void main()
   float roughness = texture(gMatProp, fTexCoords).g;
   float ao = texture(gMatProp, fTexCoords).b;
 
-  vec3 F0 = mix(vec3(0.04), albedo, metallic);
+  vec3 F0 = mix(vec3(texture(gAlbedo, fTexCoords).a), albedo, metallic);
 
   vec3 view = normalize(position - camera.position);
   vec3 light = normalize(lDirection);

@@ -174,10 +174,8 @@ float calcShadow(uint cascadeIndex, vec3 position, vec3 normal, vec3 lightDir)
   vec3 projCoords = lightClipPos.xyz / lightClipPos.w;
   projCoords = 0.5 * projCoords + 0.5;
 
-  float bias = max(0.05 * (1.0 - dot(normal, lightDir)), 0.005);
-
   vec4 moments = texture(cascadeMaps[cascadeIndex], projCoords.xy).rgba;
-  vec2 warpedDepth = warpDepth(projCoords.z - bias);
+  vec2 warpedDepth = warpDepth(projCoords.z);
 
   float shadowFactor1 = computeChebyshevBound(moments.r, moments.g, warpedDepth.r);
   float shadowFactor2 = computeChebyshevBound(moments.b, moments.a, warpedDepth.g);

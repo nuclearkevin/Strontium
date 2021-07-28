@@ -25,11 +25,14 @@ namespace SciRenderer
         this->attachSampler2D("normalMap", texHandle);
         Texture2D::createMonoColour(glm::vec4(1.0f), texHandle);
         this->attachSampler2D("aOcclusionMap", texHandle);
+        this->attachSampler2D("specF0Map", texHandle);
 
         this->getVec3("uAlbedo") = glm::vec3(1.0f);
         this->getFloat("uMetallic") = 0.0f;
         this->getFloat("uRoughness") = 0.5f;
         this->getFloat("uAO") = 1.0f;
+        this->getFloat("uEmiss") = 0.0f;
+        this->getFloat("uF0") = 0.04f;
         break;
       }
       case MaterialType::Specular:

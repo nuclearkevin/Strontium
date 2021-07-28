@@ -25,6 +25,7 @@ namespace SciRenderer
   {
     auto modelAssets = AssetManager<Model>::getManager();
 
+    float fontSize = ImGui::GetFontSize();
     static bool showTexWindow = false;
     static std::string selectedType;
     std::string selectedMeshName;
@@ -52,6 +53,8 @@ namespace SciRenderer
               auto& uMetallic = material->getFloat("uMetallic");
               auto& uRoughness = material->getFloat("uRoughness");
               auto& uAO = material->getFloat("uAO");
+              auto& uEmiss = material->getFloat("uEmiss");
+              auto& uF0 = material->getFloat("uF0");
 
               // Draw all the associated texture maps for the entity.
               ImGui::Text("Albedo Map");
@@ -63,9 +66,16 @@ namespace SciRenderer
                 selectedType = "albedoMap";
               }
               this->DNDTarget(material, "albedoMap");
-              ImGui::PopID();
+              auto endCursorPos = ImGui::GetCursorPos();
               ImGui::SameLine();
+              ImGui::PopID();
+              auto cursorPos = ImGui::GetCursorPos();
               ImGui::ColorEdit3("##Albedo", &uAlbedo.r);
+              ImGui::SetCursorPos(ImVec2(cursorPos.x, cursorPos.y + fontSize + 8.0f));
+              ImGui::Text("Emissivity");
+              ImGui::SetCursorPos(ImVec2(cursorPos.x, cursorPos.y + 2 * fontSize + 12.0f));
+              ImGui::SliderFloat("##Emiss", &uEmiss, 0.0f, 10.0f);
+              ImGui::SetCursorPos(endCursorPos);
 
               ImGui::Text("Metallic Map");
               ImGui::PushID("Metallic Button");
@@ -106,6 +116,19 @@ namespace SciRenderer
               ImGui::SameLine();
               ImGui::SliderFloat("##AO", &uAO, 0.0f, 1.0f);
 
+              ImGui::Text("Specular F0 Map");
+              ImGui::PushID("F0 Button");
+              if (ImGui::ImageButton((ImTextureID) (unsigned long) material->getSampler2D("specF0Map")->getID(),
+                                     ImVec2(64, 64), ImVec2(0, 1), ImVec2(1, 0)))
+              {
+                showTexWindow = true;
+                selectedType = "specF0Map";
+              }
+              this->DNDTarget(material, "specF0Map");
+              ImGui::PopID();
+              ImGui::SameLine();
+              ImGui::SliderFloat("##F0", &uF0, 0.0f, 1.0f);
+
               ImGui::Text("Normal Map");
               ImGui::PushID("Normal Button");
               if (ImGui::ImageButton((ImTextureID) (unsigned long) material->getSampler2D("normalMap")->getID(),
@@ -123,6 +146,7 @@ namespace SciRenderer
         ImGui::End();
       }
     }
+
     if (showTexWindow)
       this->drawTextureWindow(selectedType, submesh, showTexWindow);
   }
@@ -136,15 +160,28 @@ namespace SciRenderer
   void
   MaterialWindow::onEvent(Event &event)
   {
-    if (!this->selectedEntity)
-      return;
-
     switch(event.getType())
     {
+      case EventType::EntitySwapEvent:
+      {
+        auto entSwapEvent = *(static_cast<EntitySwapEvent*>(&event));
+
+        auto entityID = entSwapEvent.getStoredEntity();
+        auto entityParentScene = entSwapEvent.getStoredScene();
+        if (entityID < 0)
+          this->selectedEntity = Entity();
+        else
+          this->selectedEntity = Entity((entt::entity) entityID, entityParentScene);
+        break;
+      }
+
       // Process a file loading event. Using enum barriers to prevent files from
       // being improperly loaded when this window didn't dispatch the event.
       case EventType::LoadFileEvent:
       {
+        if (!this->selectedEntity)
+          return;
+
         auto loadEvent = *(static_cast<LoadFileEvent*>(&event));
         auto& path = loadEvent.getAbsPath();
         auto& name = loadEvent.getFileName();
@@ -172,6 +209,9 @@ namespace SciRenderer
   MaterialWindow::drawTextureWindow(const std::string &type, Shared<Mesh> submesh,
                                     bool &isOpen)
   {
+    if (!this->selectedEntity)
+      return;
+
     auto textureCache = AssetManager<Texture2D>::getManager();
 
     Material* material = this->selectedEntity.getComponent<RenderableComponent>()
