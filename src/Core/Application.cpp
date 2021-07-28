@@ -38,6 +38,7 @@ namespace SciRenderer
     this->shaderCache.reset(AssetManager<Shader>::getManager());
     this->modelAssets.reset(AssetManager<Model>::getManager());
     this->texture2DAssets.reset(AssetManager<Texture2D>::getManager());
+    this->materialAssets.reset(AssetManager<Material>::getManager());
 
     // Load the shaders into a cache.
     this->shaderCache->attachAsset("pbr_shader",
@@ -89,10 +90,15 @@ namespace SciRenderer
                  "./assets/shaders/viewport.fs"));
 
     // Load the default assets.
+    // Default texture (an ugly purple) and the default material properties
+    // texture (white) and default normal map.
     this->texture2DAssets->setDefaultAsset(Texture2D::createMonoColour(
       glm::vec4(1.0f, 0.0f, 1.0f, 1.0f), Texture2DParams(), false));
     Texture2D::createMonoColour(glm::vec4(1.0f));
     Texture2D::createMonoColour(glm::vec4(0.5f, 0.5f, 1.0f, 1.0f));
+
+    // Default material.
+    this->materialAssets->setDefaultAsset(new Material());
 
     this->imLayer = new ImGuiLayer();
     this->pushOverlay(this->imLayer);

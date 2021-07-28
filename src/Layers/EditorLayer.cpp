@@ -107,6 +107,17 @@ namespace SciRenderer
         break;
       }
 
+      case EventType::EntityDeleteEvent:
+      {
+        auto entDeleteEvent = *(static_cast<EntityDeleteEvent*>(&event));
+        auto entityID = entDeleteEvent.getStoredEntity();
+        auto entityParentScene = entDeleteEvent.getStoredScene();
+
+        this->currentScene->recurseDeleteEntity(Entity((entt::entity) entityID, entityParentScene));
+
+        break;
+      }
+
       case EventType::LoadFileEvent:
       {
         auto loadEvent = *(static_cast<LoadFileEvent*>(&event));
@@ -173,10 +184,6 @@ namespace SciRenderer
     for (auto& window : this->windows)
       window->onUpdate(dt, this->currentScene);
 
-    // Update the selected entity for all the windows.
-    auto selectedEntity = static_cast<SceneGraphWindow*>(this->windows[0])->getSelectedEntity();
-    static_cast<MaterialWindow*>(this->windows[4])->setSelectedEntity(selectedEntity);
-
     // Update the size of the framebuffer to fit the editor window.
     glm::vec2 size = this->drawBuffer->getSize();
     if (this->editorSize.x != size.x || this->editorSize.y != size.y)
@@ -194,7 +201,7 @@ namespace SciRenderer
 
     // Draw the scene.
     Renderer3D::begin(this->editorSize.x, this->editorSize.y, this->editorCam, false);
-    this->currentScene->render(this->editorCam, selectedEntity);
+    this->currentScene->render(this->editorCam, this->getSelectedEntity());
     Renderer3D::end(this->drawBuffer);
 
     // Update the editor camera.
@@ -487,23 +494,6 @@ namespace SciRenderer
 
     // MUST KEEP THIS. Docking window end.
     ImGui::End();
-  }
-
-  void
-  EditorLayer::updateSelectedEntity(GLuint entityID)
-  {
-    if (entityID < 0)
-    {
-      static_cast<SceneGraphWindow*>(this->windows[0])->setSelectedEntity(Entity());
-      static_cast<MaterialWindow*>(this->windows[4])->setSelectedEntity(Entity());
-    }
-    else
-    {
-      static_cast<SceneGraphWindow*>(this->windows[0])->
-        setSelectedEntity(Entity((entt::entity) (GLuint) entityID, this->currentScene.get()));
-      static_cast<MaterialWindow*>(this->windows[4])->
-        setSelectedEntity(Entity((entt::entity) (GLuint) entityID, this->currentScene.get()));
-    }
   }
 
   void

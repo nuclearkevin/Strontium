@@ -32,7 +32,7 @@ namespace SciRenderer
 
       if (instance == nullptr)
       {
-        instance = new AssetManager<T>();
+        instance = new AssetManager<T>(defaultAsset);
         return instance;
       }
       else
@@ -73,7 +73,7 @@ namespace SciRenderer
     {
       if (handle == "None")
         return this->defaultAsset.get();
-        
+
       if (this->hasAsset(handle))
         return this->assetStorage.at(handle).get();
       else
@@ -102,7 +102,7 @@ namespace SciRenderer
     // Get a reference to the asset name storage.
     std::vector<AssetHandle>& getStorage() { return this->assetNames; }
   private:
-    AssetManager(T* defaultAsset = new T())
+    AssetManager(T* defaultAsset)
       : defaultAsset(defaultAsset)
     { }
 

@@ -31,10 +31,9 @@ namespace SciRenderer
     virtual void onEvent(Event &event) override;
     virtual void onUpdate(float dt) override;
 
-    void updateSelectedEntity(GLuint entityID);
-
     Shared<Camera> getEditorCamera() { return this->editorCam; }
     Shared<FrameBuffer> getFrontBuffer() { return this->drawBuffer; }
+    Shared<Scene> getActiveScene() { return this->currentScene; }
     ImVec2& getEditorSize() { return this->editorSize; }
     Entity getSelectedEntity();
     std::string& getDNDScenePath() { return this->dndScenePath; }

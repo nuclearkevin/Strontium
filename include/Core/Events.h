@@ -12,7 +12,8 @@ namespace SciRenderer
   {
     KeyPressedEvent, KeyReleasedEvent, KeyTypedEvent, MouseClickEvent,
     MouseReleasedEvent, MouseScrolledEvent, WindowCloseEvent, WindowResizeEvent,
-    OpenDialogueEvent, LoadFileEvent, SaveFileEvent, GuiEvent
+    OpenDialogueEvent, LoadFileEvent, SaveFileEvent, GuiEvent, EntitySwapEvent,
+    EntityDeleteEvent
   };
 
   enum class DialogueEventType
@@ -24,6 +25,9 @@ namespace SciRenderer
   {
     StartSpinnerEvent, EndSpinnerEvent
   };
+
+  // Forward declare classes which need to get shuffled around in events.
+  class Scene;
 
   //----------------------------------------------------------------------------
   // The generic event class which all events inherit from.
@@ -213,6 +217,38 @@ namespace SciRenderer
   private:
     GuiEventType guiEventType;
     std::string eventText;
+  };
+
+  //----------------------------------------------------------------------------
+  // The entity swapped event.
+  //----------------------------------------------------------------------------
+  class EntitySwapEvent : public Event
+  {
+  public:
+    EntitySwapEvent(GLint entityID, Scene* entityParentScene);
+    ~EntitySwapEvent() = default;
+
+    GLuint getStoredEntity() { return this->storedEntity; }
+    Scene* getStoredScene() { return this->entityParentScene; }
+  private:
+    GLint storedEntity;
+    Scene* entityParentScene;
+  };
+
+  //----------------------------------------------------------------------------
+  // The entity deleted event.
+  //----------------------------------------------------------------------------
+  class EntityDeleteEvent : public Event
+  {
+  public:
+    EntityDeleteEvent(GLint entityID, Scene* entityParentScene);
+    ~EntityDeleteEvent() = default;
+
+    GLuint getStoredEntity() { return this->storedEntity; }
+    Scene* getStoredScene() { return this->entityParentScene; }
+  private:
+    GLint storedEntity;
+    Scene* entityParentScene;
   };
 
   //----------------------------------------------------------------------------

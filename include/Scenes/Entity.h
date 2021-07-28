@@ -59,6 +59,7 @@ namespace SciRenderer
     operator bool() { return this->entityID != entt::null; }
     operator entt::entity() { return this->entityID; }
     operator GLuint() { return (GLuint) this->entityID; }
+    operator GLint() { return (GLint) (GLuint) this->entityID; }
     bool operator==(const Entity& other) { return this->entityID == other.entityID
                                            && this->parentScene == other.parentScene; }
     bool operator!=(const Entity& other) { return !(*this == other); }

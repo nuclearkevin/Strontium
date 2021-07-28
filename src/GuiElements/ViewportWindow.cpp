@@ -18,14 +18,7 @@ namespace SciRenderer
     : GuiWindow(parentLayer)
     , gizmoType(-1)
     , gizmoSelPos(-1.0f, -1.0f)
-  {
-
-  }
-
-  ViewportWindow::~ViewportWindow()
-  {
-
-  }
+  { }
 
   void
   ViewportWindow::onImGuiRender(bool &isOpen, Shared<Scene> activeScene)
@@ -175,7 +168,8 @@ namespace SciRenderer
     {
       GLint id = this->parentLayer->getFrontBuffer()->readPixel(FBOTargetParam::Colour1, glm::vec2(mousePos.x, mousePos.y)) - 1;
 
-      this->parentLayer->updateSelectedEntity(id);
+      EventDispatcher* dispatcher = EventDispatcher::getInstance();
+      dispatcher->queueEvent(new EntitySwapEvent(id, this->parentLayer->getActiveScene().get()));
     }
   }
 

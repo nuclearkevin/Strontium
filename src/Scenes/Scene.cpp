@@ -31,6 +31,38 @@ namespace SciRenderer
   }
 
   void
+  Scene::recurseDeleteEntity(Entity entity)
+  {
+    if (entity.hasComponent<ParentEntityComponent>())
+    {
+      auto& parent = entity.getComponent<ParentEntityComponent>().parent;
+      auto& parentChildren = parent.getComponent<ChildEntityComponent>().children;
+
+      auto pos = std::find(parentChildren.begin(), parentChildren.end(), entity);
+      if (pos != parentChildren.end())
+        parentChildren.erase(pos);
+
+      if (entity.hasComponent<ChildEntityComponent>())
+      {
+        auto& children = entity.getComponent<ChildEntityComponent>().children;
+        for (auto& child : children)
+          this->recurseDeleteEntity(child);
+      }
+    }
+    else
+    {
+      if (entity.hasComponent<ChildEntityComponent>())
+      {
+        auto& children = entity.getComponent<ChildEntityComponent>().children;
+        for (auto& child : children)
+          this->recurseDeleteEntity(child);
+      }
+    }
+    
+    this->deleteEntity(entity);
+  }
+
+  void
   Scene::deleteEntity(Entity entity)
   {
     this->sceneECS.destroy(entity);

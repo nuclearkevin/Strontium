@@ -19,7 +19,7 @@ namespace SciRenderer
   {
   public:
     ViewportWindow(EditorLayer* parentLayer);
-    ~ViewportWindow();
+    ~ViewportWindow() = default;
 
     void onImGuiRender(bool &isOpen, Shared<Scene> activeScene);
     void onUpdate(float dt, Shared<Scene> activeScene);

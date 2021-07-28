@@ -119,6 +119,24 @@ namespace SciRenderer
     , eventText(eventText)
   { }
 
+  //----------------------------------------------------------------------------
+  // The entity swapped event.
+  //----------------------------------------------------------------------------
+  EntitySwapEvent::EntitySwapEvent(GLint entityID, Scene* entityParentScene)
+    : Event(EventType::EntitySwapEvent, "Entity swap event")
+    , storedEntity(entityID)
+    , entityParentScene(entityParentScene)
+  { }
+
+  //----------------------------------------------------------------------------
+  // The entity deleted event.
+  //----------------------------------------------------------------------------
+  EntityDeleteEvent::EntityDeleteEvent(GLint entityID, Scene* entityParentScene)
+    : Event(EventType::EntityDeleteEvent, "Entity delete event")
+    , storedEntity(entityID)
+    , entityParentScene(entityParentScene)
+  { }
+
   // A utility downcast function which deletes the event.
   void
   Event::deleteEvent(Event* &event)
@@ -157,11 +175,14 @@ namespace SciRenderer
         case EventType::LoadFileEvent:
           delete static_cast<LoadFileEvent*>(event);
           break;
+        case EventType::SaveFileEvent:
+          delete static_cast<SaveFileEvent*>(event);
+          break;
         case EventType::GuiEvent:
           delete static_cast<GuiEvent*>(event);
           break;
-        case EventType::SaveFileEvent:
-          delete static_cast<SaveFileEvent*>(event);
+        case EventType::EntitySwapEvent:
+          delete static_cast<EntitySwapEvent*>(event);
           break;
       }
     }

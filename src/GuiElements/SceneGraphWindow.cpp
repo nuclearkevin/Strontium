@@ -230,39 +230,37 @@ namespace SciRenderer
   void
   SceneGraphWindow::onUpdate(float dt, Shared<Scene> activeScene)
   {
-    if (this->deleteSelected)
-    {
-      if (this->selectedEntity.hasComponent<ParentEntityComponent>())
-      {
-        auto& parent = this->selectedEntity.getComponent<ParentEntityComponent>();
-        auto& parentChildren = parent.parent.getComponent<ChildEntityComponent>().children;
 
-        auto pos = std::find(parentChildren.begin(), parentChildren.end(), this->selectedEntity);
-        if (pos != parentChildren.end())
-          parentChildren.erase(pos);
-      }
-      if (this->selectedEntity.hasComponent<ChildEntityComponent>())
-        this->recursiveChildDelete(this->selectedEntity, activeScene);
-
-      activeScene->deleteEntity(this->selectedEntity);
-      this->selectedEntity = Entity();
-      this->deleteSelected = false;
-    }
   }
 
   void
   SceneGraphWindow::onEvent(Event &event)
   {
-    if (!this->selectedEntity)
-      return;
-
     switch(event.getType())
     {
+      // Swap the selected entity to something else.
+      case EventType::EntitySwapEvent:
+      {
+        auto entSwapEvent = *(static_cast<EntitySwapEvent*>(&event));
+
+        auto entityID = entSwapEvent.getStoredEntity();
+        auto entityParentScene = entSwapEvent.getStoredScene();
+        if (entityID < 0)
+          this->selectedEntity = Entity();
+        else
+          this->selectedEntity = Entity((entt::entity) entityID, entityParentScene);
+
+        break;
+      }
+
       // Process a file loading event. Using enum barriers to prevent files from
       // being improperly loaded when this window didn't dispatch the event.
       // TODO: Bitmask instead of enums?
       case EventType::LoadFileEvent:
       {
+        if (!this->selectedEntity)
+          return;
+
         auto loadEvent = *(static_cast<LoadFileEvent*>(&event));
         auto& path = loadEvent.getAbsPath();
         auto& name = loadEvent.getFileName();
@@ -315,6 +313,9 @@ namespace SciRenderer
 
       case EventType::SaveFileEvent:
       {
+        if (!this->selectedEntity)
+          return;
+
         auto saveEvent = *(static_cast<SaveFileEvent*>(&event));
 
         switch (this->saveTargets)
@@ -355,6 +356,9 @@ namespace SciRenderer
     {
       if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH"))
       {
+        EventDispatcher* dispatcher = EventDispatcher::getInstance();
+        dispatcher->queueEvent(new EntitySwapEvent(entity, activeScene.get()));
+
         this->selectedEntity = entity;
         this->loadDNDAsset((char*) payload->Data);
       }
@@ -364,7 +368,12 @@ namespace SciRenderer
 
     // Set the new selected entity.
     if (ImGui::IsItemClicked())
+    {
+      EventDispatcher* dispatcher = EventDispatcher::getInstance();
+      dispatcher->queueEvent(new EntitySwapEvent(entity, activeScene.get()));
+
       this->selectedEntity = entity;
+    }
 
     // Menu with entity properties. Allows the addition and deletion of
     // components, copying of the entity and deletion of the entity.
@@ -460,12 +469,18 @@ namespace SciRenderer
         dispatcher->queueEvent(new OpenDialogueEvent(DialogueEventType::FileSave, ".sfab"));
 
         this->saveTargets = FileSaveTargets::TargetPrefab;
+
+        dispatcher->queueEvent(new EntitySwapEvent(entity, activeScene.get()));
+
         this->selectedEntity = entity;
       }
 
       // Check to see if we should delete the entity.
       if (ImGui::MenuItem("Delete Entity"))
-        entityDeleted = true;
+      {
+        EventDispatcher* dispatcher = EventDispatcher::getInstance();
+        dispatcher->queueEvent(new EntityDeleteEvent(entity, activeScene.get()));
+      }
 
       ImGui::EndPopup();
     }
@@ -475,29 +490,6 @@ namespace SciRenderer
     {
       this->drawComponentNodes(entity, activeScene);
       ImGui::TreePop();
-    }
-
-    // Delete the entity at the end of the draw session.
-    if (entityDeleted)
-    {
-      if (this->selectedEntity == entity)
-        this->deleteSelected = true;
-      else
-      {
-        if (entity.hasComponent<ParentEntityComponent>())
-        {
-          auto& parent = entity.getComponent<ParentEntityComponent>();
-          auto& parentChildren = parent.parent.getComponent<ChildEntityComponent>().children;
-
-          auto pos = std::find(parentChildren.begin(), parentChildren.end(), entity);
-          if (pos != parentChildren.end())
-            parentChildren.erase(pos);
-        }
-        if (entity.hasComponent<ChildEntityComponent>())
-          this->recursiveChildDelete(entity, activeScene);
-
-        activeScene->deleteEntity(entity);
-      }
     }
   }
 
