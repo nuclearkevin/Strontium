@@ -9,6 +9,7 @@
 
 // STL includes. Mutex for thread safety.
 #include <mutex>
+#include <functional>
 
 namespace SciRenderer
 {

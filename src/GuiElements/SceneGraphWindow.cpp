@@ -130,23 +130,6 @@ namespace SciRenderer
     }
   }
 
-  // Helper function to recursively delete child entities.
-  void
-  SceneGraphWindow::recursiveChildDelete(Entity parent, Shared<Scene> activeScene)
-  {
-    if (parent.hasComponent<ChildEntityComponent>())
-    {
-      auto& children = parent.getComponent<ChildEntityComponent>().children;
-      for (auto& child : children)
-        recursiveChildDelete(child, activeScene);
-    }
-
-    if (parent == this->selectedEntity)
-      this->deleteSelected = true;
-    else
-      activeScene->deleteEntity(parent);
-  }
-
   // Fixed selection bug for now -> removed the ability to deselect entities.
   // TODO: Readd the ability to deselect entities.
   SceneGraphWindow::SceneGraphWindow(EditorLayer* parentLayer)
@@ -154,7 +137,6 @@ namespace SciRenderer
     , selectedString("")
     , fileTargets(FileLoadTargets::TargetNone)
     , saveTargets(FileSaveTargets::TargetNone)
-    , deleteSelected(false)
   { }
 
   SceneGraphWindow::~SceneGraphWindow()
@@ -479,6 +461,7 @@ namespace SciRenderer
       if (ImGui::MenuItem("Delete Entity"))
       {
         EventDispatcher* dispatcher = EventDispatcher::getInstance();
+        dispatcher->queueEvent(new EntitySwapEvent(-1, activeScene.get()));
         dispatcher->queueEvent(new EntityDeleteEvent(entity, activeScene.get()));
       }
 
@@ -590,7 +573,10 @@ namespace SciRenderer
               auto prefab = autoPrefabs.get<PrefabComponent>(entity);
               if (prefab.synch && prefab.prefabID == tempID)
               {
-                this->recursiveChildDelete(Entity(entity, activeScene.get()), activeScene);
+                EventDispatcher* dispatcher = EventDispatcher::getInstance();
+                dispatcher->queueEvent(new EntitySwapEvent(-1, activeScene.get()));
+                dispatcher->queueEvent(new EntityDeleteEvent((GLint) entity, activeScene.get()));
+
                 YAMLSerialization::deserializePrefab(activeScene, tempPath);
               }
             }

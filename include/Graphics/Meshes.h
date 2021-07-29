@@ -21,12 +21,22 @@ namespace SciRenderer
     glm::vec2 uv;
     glm::vec3 tangent;
     glm::vec3 bitangent;
-    unsigned  id;
+
+    Vertex()
+      : position(0.0f, 0.0f, 0.0f, 1.0f)
+      , normal(0.0f)
+      , colour(1.0f)
+      , uv(0.0f)
+      , tangent(0.0f)
+      , bitangent(0.0f)
+    { }
   };
 
   class Mesh
   {
   public:
+    // Construct an empty mesh.
+    Mesh(const std::string &name, Model* parent);
     // Mesh class. Must be loaded in as a part of a parent model.
     Mesh(const std::string &name, const std::vector<Vertex> &vertices,
          const std::vector<GLuint> &indices, Model* parent);
@@ -35,13 +45,13 @@ namespace SciRenderer
 
     // Generate/delete the vertex array object.
     void generateVAO();
-
     void deleteVAO();
+
     // Debug function to dump to the console.
     void dumpMeshData();
 
-    // Set the mesh colour. TODO: Move to a material class.
-    void setColour(const glm::vec3 &colour);
+    // Set the loaded state.
+    void setLoaded(bool isLoaded) { this->loaded = isLoaded; }
 
     // Getters.
     std::vector<Vertex>& getData() { return this->data; }
@@ -60,7 +70,6 @@ namespace SciRenderer
     bool loaded;
     std::vector<Vertex> data;
     std::vector<GLuint> indices;
-    bool hasUVs;
 
     glm::vec3 minPos;
     glm::vec3 maxPos;

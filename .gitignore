@@ -12,9 +12,13 @@
 *.FBX
 *.tbscene
 *.psd
+*.psk
+*.dae
+*.smd
 *.zip
 *.srn
 *.sfab
+*.smtl
 
 # Ignore the ignore of important model files and hdr environments.
 !cube.obj

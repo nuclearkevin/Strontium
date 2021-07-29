@@ -1,7 +1,6 @@
 #include "Serialization/YamlSerialization.h"
 
 // Project includes.
-#include "Core/AssetManager.h"
 #include "Scenes/Components.h"
 #include "Scenes/Entity.h"
 #include "Graphics/Renderer.h"
@@ -122,26 +121,35 @@ namespace SciRenderer
     }
 
     void
-    serializeMaterial(YAML::Emitter &out, std::pair<std::string, Material> &pair)
+    serializeMaterial(YAML::Emitter &out, const AssetHandle &materialHandle)
     {
       auto textureCache = AssetManager<Texture2D>::getManager();
+      auto materialAssets = AssetManager<Material>::getManager();
+
+      auto material = materialAssets->getAsset(materialHandle);
 
       out << YAML::BeginMap;
 
+      // Save the material name.
+      out << YAML::Key << "MaterialName" << YAML::Value << materialHandle;
+      if (material->getFilepath() != "")
+      {
+        out << YAML::Key << "MaterialPath" << YAML::Value << material->getFilepath();
+        out << YAML::EndMap;
+        return;
+      }
+
       // Save the material type.
-      if (pair.second.getType() == MaterialType::PBR)
+      if (material->getType() == MaterialType::PBR)
         out << YAML::Key << "MaterialType" << YAML::Value << "pbr_shader";
-      else if (pair.second.getType() == MaterialType::Specular)
+      else if (material->getType() == MaterialType::Specular)
         out << YAML::Key << "MaterialType" << YAML::Value << "specular_shader";
       else
         out << YAML::Key << "MaterialType" << YAML::Value << "unknown_shader";
 
-      // Save the submesh which this acts on.
-      out << YAML::Key << "AssociatedSubmesh" << YAML::Value << pair.first;
-
       out << YAML::Key << "Floats";
       out << YAML::BeginSeq;
-      for (auto& uFloat : pair.second.getFloats())
+      for (auto& uFloat : material->getFloats())
       {
         out << YAML::BeginMap;
         out << YAML::Key << "UniformName" << YAML::Value << uFloat.first;
@@ -152,7 +160,7 @@ namespace SciRenderer
 
       out << YAML::Key << "Vec2s";
       out << YAML::BeginSeq;
-      for (auto& uVec2 : pair.second.getVec2s())
+      for (auto& uVec2 : material->getVec2s())
       {
         out << YAML::BeginMap;
         out << YAML::Key << "UniformName" << YAML::Value << uVec2.first;
@@ -163,7 +171,7 @@ namespace SciRenderer
 
       out << YAML::Key << "Vec3s";
       out << YAML::BeginSeq;
-      for (auto& uVec3 : pair.second.getVec3s())
+      for (auto& uVec3 : material->getVec3s())
       {
         out << YAML::BeginMap;
         out << YAML::Key << "UniformName" << YAML::Value << uVec3.first;
@@ -174,7 +182,7 @@ namespace SciRenderer
 
       out << YAML::Key << "Sampler2Ds";
       out << YAML::BeginSeq;
-      for (auto& uSampler2D : pair.second.getSampler2Ds())
+      for (auto& uSampler2D : material->getSampler2Ds())
       {
         out << YAML::BeginMap;
         out << YAML::Key << "SamplerName" << YAML::Value << uSampler2D.first;
@@ -187,11 +195,24 @@ namespace SciRenderer
       out << YAML::EndMap;
     }
 
+    void serializeMaterial(const AssetHandle &materialHandle,
+                           const std::string &filepath)
+    {
+      YAML::Emitter out;
+      serializeMaterial(out, materialHandle);
+
+      std::ofstream output(filepath, std::ofstream::trunc | std::ofstream::out);
+      output << out.c_str();
+      output.close();
+    }
+
     void
     serializeEntity(YAML::Emitter &out, Entity entity)
     {
       if (!entity)
         return;
+
+      auto materialAssets = AssetManager<Material>::getManager();
 
       // Serialize the entity.
       out << YAML::BeginMap;
@@ -263,12 +284,15 @@ namespace SciRenderer
           out << YAML::Key << "ModelPath" << YAML::Value << model->getFilepath();
           out << YAML::Key << "ModelName" << YAML::Value << component.meshName;
 
-          // TODO: Serialize materials.
           out << YAML::Key << "Material";
           out << YAML::BeginSeq;
           for (auto& pair : material.getStorage())
           {
-            serializeMaterial(out, pair);
+            auto material = materialAssets->getAsset(pair.first);
+            out << YAML::BeginMap;
+            out << YAML::Key << "SubmeshName" << YAML::Value << pair.first;
+            out << YAML::Key << "MaterialHandle" << YAML::Value << pair.second;
+            out << YAML::EndMap;
           }
           out << YAML::EndSeq;
 
@@ -359,6 +383,7 @@ namespace SciRenderer
                    const std::string &name)
     {
       auto state = Renderer3D::getState();
+      auto materialAssets = AssetManager<Material>::getManager();
 
       YAML::Emitter out;
       out << YAML::BeginMap;
@@ -395,6 +420,12 @@ namespace SciRenderer
 
       out << YAML::EndMap;
 
+      out << YAML::Key << "Materials";
+      out << YAML::BeginSeq;
+      for (auto& materialHandle : materialAssets->getStorage())
+        serializeMaterial(out, materialHandle);
+      out << YAML::EndSeq;
+
       out << YAML::EndMap;
 
       std::ofstream output(filepath, std::ofstream::trunc | std::ofstream::out);
@@ -421,25 +452,43 @@ namespace SciRenderer
     }
 
     void
-    deserializeMaterial(YAML::Node &mat, Entity entity)
+    deserializeMaterial(YAML::Node &mat, bool override = false, const std::string &filepath = "")
     {
-      auto matType = mat["MaterialType"];
-      auto parsedSubmeshName = mat["AssociatedSubmesh"];
-      auto& modelMaterial = entity.getComponent<RenderableComponent>().materials;
+      auto materialAssets = AssetManager<Material>::getManager();
 
-      std::string shaderName, submeshName;
-      if (matType && parsedSubmeshName)
+      auto parsedMaterialName = mat["MaterialName"];
+      auto parsedMaterialPath = mat["MaterialPath"];
+
+      std::string materialPath = "";
+      if (parsedMaterialPath && override)
       {
-        shaderName = matType.as<std::string>();
-        submeshName = parsedSubmeshName.as<std::string>();
-        if (shaderName == "pbr_shader")
-          modelMaterial.attachMesh(submeshName, MaterialType::PBR);
-        else if (shaderName == "specular_shader")
-          modelMaterial.attachMesh(submeshName, MaterialType::Specular);
-        else
-          modelMaterial.attachMesh(submeshName, MaterialType::Unknown);
+        materialPath = parsedMaterialPath.as<std::string>();
+        AssetHandle handle;
+        deserializeMaterial(materialPath, handle);
+        return;
+      }
+      else if (!parsedMaterialPath && filepath != "")
+        materialPath = filepath;
 
-        auto meshMaterial = modelMaterial.getMaterial(submeshName);
+      auto matType = mat["MaterialType"];
+
+      std::string shaderName, materialName;
+      if (matType && parsedMaterialName)
+      {
+        Material* outMat;
+
+        shaderName = matType.as<std::string>();
+        materialName = parsedMaterialName.as<std::string>();
+        if (shaderName == "pbr_shader")
+          outMat = new Material(MaterialType::PBR);
+        else if (shaderName == "specular_shader")
+          outMat = new Material(MaterialType::Specular);
+        else
+          outMat = new Material(MaterialType::Unknown);
+
+        materialAssets->attachAsset(materialName, outMat);
+
+        outMat->getFilepath() = materialPath;
 
         auto floats = mat["Floats"];
         if (floats)
@@ -448,7 +497,7 @@ namespace SciRenderer
           {
             auto uName = uFloat["UniformName"];
             if (uName)
-              meshMaterial->getFloat(uName.as<std::string>()) = uFloat["UniformValue"].as<GLfloat>();
+              outMat->getFloat(uName.as<std::string>()) = uFloat["UniformValue"].as<GLfloat>();
           }
         }
 
@@ -459,7 +508,7 @@ namespace SciRenderer
           {
             auto uName = uVec2["UniformName"];
             if (uName)
-              meshMaterial->getVec2(uName.as<std::string>()) = uVec2["UniformValue"].as<glm::vec2>();
+              outMat->getVec2(uName.as<std::string>()) = uVec2["UniformValue"].as<glm::vec2>();
           }
         }
 
@@ -470,7 +519,7 @@ namespace SciRenderer
           {
             auto uName = uVec3["UniformName"];
             if (uName)
-              meshMaterial->getVec3(uName.as<std::string>()) = uVec3["UniformValue"].as<glm::vec3>();
+              outMat->getVec3(uName.as<std::string>()) = uVec3["UniformValue"].as<glm::vec3>();
           }
         }
 
@@ -486,12 +535,25 @@ namespace SciRenderer
                 continue;
 
               Texture2D::loadImageAsync(uSampler2D["ImagePath"].as<std::string>());
-              meshMaterial->attachSampler2D(uSampler2D["SamplerName"].as<std::string>(),
-                                            uSampler2D["SamplerHandle"].as<std::string>());
+              outMat->attachSampler2D(uSampler2D["SamplerName"].as<std::string>(),
+                                      uSampler2D["SamplerHandle"].as<std::string>());
             }
           }
         }
       }
+    }
+
+    bool deserializeMaterial(const std::string &filepath, AssetHandle &handle, bool override)
+    {
+      YAML::Node data = YAML::LoadFile(filepath);
+
+      if (!data["MaterialName"])
+        return false;
+
+      handle = data["MaterialName"].as<std::string>();
+
+      deserializeMaterial(data, false, filepath);
+      return true;
     }
 
     Entity
@@ -559,8 +621,13 @@ namespace SciRenderer
         {
           auto materials = renderableComponent["Material"];
           if (materials)
+          {
             for (auto mat : materials)
-              deserializeMaterial(mat, newEntity);
+            {
+              rComponent.materials.attachMesh(mat["SubmeshName"].as<std::string>(),
+                                              mat["MaterialHandle"].as<std::string>());
+            }
+          }
           Model::asyncLoadModel(modelPath, modelName, &rComponent.materials);
         }
       }
@@ -655,6 +722,13 @@ namespace SciRenderer
           state->cascadeSize = shadowSettings["CascadeSize"].as<GLuint>();
           state->bleedReduction = shadowSettings["CascadeLightBleed"].as<GLfloat>();
         }
+      }
+
+      auto materials = data["Materials"];
+      if (materials)
+      {
+        for (auto mat : materials)
+          deserializeMaterial(mat, true);
       }
 
       return true;

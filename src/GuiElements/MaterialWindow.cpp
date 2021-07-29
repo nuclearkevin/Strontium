@@ -3,7 +3,7 @@
 // Project includes.
 #include "Core/AssetManager.h"
 #include "GuiElements/Styles.h"
-#include "Scenes/Components.h"
+#include "Serialization/YamlSerialization.h"
 
 // ImGui includes.
 #include "imgui/imgui.h"
@@ -13,6 +13,7 @@ namespace SciRenderer
 {
   MaterialWindow::MaterialWindow(EditorLayer* parentLayer)
     : GuiWindow(parentLayer)
+    , newMaterialName("")
   { }
 
   MaterialWindow::~MaterialWindow()
@@ -24,138 +25,188 @@ namespace SciRenderer
   MaterialWindow::onImGuiRender(bool &isOpen, Shared<Scene> activeScene)
   {
     auto modelAssets = AssetManager<Model>::getManager();
+    auto materialAssets = AssetManager<Material>::getManager();
 
     float fontSize = ImGui::GetFontSize();
     static bool showTexWindow = false;
-    static std::string selectedType;
-    std::string selectedMeshName;
-    Shared<Mesh> submesh;
+    static bool showMaterialWindow = false;
+    static bool showNewMaterialWindow = false;
+    static std::string selectedType, submesh;
 
-    if (this->selectedEntity)
+    if (!this->selectedEntity)
+      return;
+
+    if (!this->selectedEntity.hasComponent<RenderableComponent>())
+      return;
+
+    ImGui::Begin("Materials", &isOpen);
+
+    auto& rComponent = this->selectedEntity.getComponent<RenderableComponent>();
+    if (rComponent)
     {
-      if (this->selectedEntity.hasComponent<RenderableComponent>())
+      auto& submeshes = modelAssets->getAsset(rComponent.meshName)->getSubmeshes();
+      for (auto& pair : submeshes)
       {
-        ImGui::Begin("Materials", &isOpen);
+        ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_SpanAvailWidth
+                                 | ImGuiTreeNodeFlags_OpenOnArrow
+                                 | ImGuiTreeNodeFlags_OpenOnDoubleClick;
 
-        auto& rComponent = this->selectedEntity.getComponent<RenderableComponent>();
+        bool opened = ImGui::TreeNodeEx((pair.first + "##" + std::to_string((unsigned long) pair.second.get())).c_str(), flags);
+        if (!opened)
+          continue;
 
-        if (rComponent)
+        this->DNDMaterialTarget(pair.first);
+
+        auto material = rComponent.materials.getMaterial(pair.second->getName());
+
+        ImGui::Text("Material Name: %s", rComponent.materials.getMaterialHandle(pair.second->getName()).c_str());
+        if (material->getFilepath() != "")
+          ImGui::Text("Material Path: %s", material->getFilepath().c_str());
+
+        // Material settings for the submesh.
+        if (ImGui::Button(("Change Material##" + std::to_string((unsigned long) pair.second.get())).c_str()))
         {
-          for (auto& pair : modelAssets->getAsset(rComponent.meshName)->getSubmeshes())
-          {
-            if (ImGui::CollapsingHeader((pair.first + "##" + std::to_string((unsigned long) pair.second.get())).c_str()))
-            {
-              selectedMeshName = pair.first;
-              submesh = pair.second;
-
-              auto material = rComponent.materials.getMaterial(pair.second->getName());
-              auto& uAlbedo = material->getVec3("uAlbedo");
-              auto& uMetallic = material->getFloat("uMetallic");
-              auto& uRoughness = material->getFloat("uRoughness");
-              auto& uAO = material->getFloat("uAO");
-              auto& uEmiss = material->getFloat("uEmiss");
-              auto& uF0 = material->getFloat("uF0");
-
-              // Draw all the associated texture maps for the entity.
-              ImGui::Text("Albedo Map");
-              ImGui::PushID("Albedo Button");
-              if (ImGui::ImageButton((ImTextureID) (unsigned long) material->getSampler2D("albedoMap")->getID(),
-                                     ImVec2(64, 64), ImVec2(0, 1), ImVec2(1, 0)))
-              {
-                showTexWindow = true;
-                selectedType = "albedoMap";
-              }
-              this->DNDTarget(material, "albedoMap");
-              auto endCursorPos = ImGui::GetCursorPos();
-              ImGui::SameLine();
-              ImGui::PopID();
-              auto cursorPos = ImGui::GetCursorPos();
-              ImGui::ColorEdit3("##Albedo", &uAlbedo.r);
-              ImGui::SetCursorPos(ImVec2(cursorPos.x, cursorPos.y + fontSize + 8.0f));
-              ImGui::Text("Emissivity");
-              ImGui::SetCursorPos(ImVec2(cursorPos.x, cursorPos.y + 2 * fontSize + 12.0f));
-              ImGui::SliderFloat("##Emiss", &uEmiss, 0.0f, 10.0f);
-              ImGui::SetCursorPos(endCursorPos);
-
-              ImGui::Text("Metallic Map");
-              ImGui::PushID("Metallic Button");
-              if (ImGui::ImageButton((ImTextureID) (unsigned long) material->getSampler2D("metallicMap")->getID(),
-                                     ImVec2(64, 64), ImVec2(0, 1), ImVec2(1, 0)))
-              {
-                showTexWindow = true;
-                selectedType = "metallicMap";
-              }
-              this->DNDTarget(material, "metallicMap");
-              ImGui::PopID();
-              ImGui::SameLine();
-              ImGui::SliderFloat("##Metallic", &uMetallic, 0.0f, 1.0f);
-
-              ImGui::Text("Roughness Map");
-              ImGui::PushID("Roughness Button");
-              if (ImGui::ImageButton((ImTextureID) (unsigned long) material->getSampler2D("roughnessMap")->getID(),
-                                     ImVec2(64, 64), ImVec2(0, 1), ImVec2(1, 0)))
-              {
-                showTexWindow = true;
-                selectedType = "roughnessMap";
-              }
-              this->DNDTarget(material, "roughnessMap");
-              ImGui::PopID();
-              ImGui::SameLine();
-              ImGui::SliderFloat("##Roughness", &uRoughness, 0.01f, 1.0f);
-
-              ImGui::Text("Ambient Occlusion Map");
-              ImGui::PushID("Ambient Button");
-              if (ImGui::ImageButton((ImTextureID) (unsigned long) material->getSampler2D("aOcclusionMap")->getID(),
-                                     ImVec2(64, 64), ImVec2(0, 1), ImVec2(1, 0)))
-              {
-                showTexWindow = true;
-                selectedType = "aOcclusionMap";
-              }
-              this->DNDTarget(material, "aOcclusionMap");
-              ImGui::PopID();
-              ImGui::SameLine();
-              ImGui::SliderFloat("##AO", &uAO, 0.0f, 1.0f);
-
-              ImGui::Text("Specular F0 Map");
-              ImGui::PushID("F0 Button");
-              if (ImGui::ImageButton((ImTextureID) (unsigned long) material->getSampler2D("specF0Map")->getID(),
-                                     ImVec2(64, 64), ImVec2(0, 1), ImVec2(1, 0)))
-              {
-                showTexWindow = true;
-                selectedType = "specF0Map";
-              }
-              this->DNDTarget(material, "specF0Map");
-              ImGui::PopID();
-              ImGui::SameLine();
-              ImGui::SliderFloat("##F0", &uF0, 0.0f, 1.0f);
-
-              ImGui::Text("Normal Map");
-              ImGui::PushID("Normal Button");
-              if (ImGui::ImageButton((ImTextureID) (unsigned long) material->getSampler2D("normalMap")->getID(),
-                                     ImVec2(64, 64), ImVec2(0, 1), ImVec2(1, 0)))
-              {
-                showTexWindow = true;
-                selectedType = "normalMap";
-              }
-              this->DNDTarget(material, "normalMap");
-              ImGui::PopID();
-            }
-          }
+          showMaterialWindow = true;
+          submesh = pair.first;
         }
 
-        ImGui::End();
+        ImGui::SameLine();
+        if (ImGui::Button(("New Material##" + std::to_string((unsigned long) pair.second.get())).c_str()))
+        {
+          showNewMaterialWindow = true;
+          submesh = pair.first;
+        }
+
+        ImGui::SameLine();
+        if (ImGui::Button(("Save Material##" + std::to_string((unsigned long) pair.second.get())).c_str()))
+        {
+          EventDispatcher* dispatcher = EventDispatcher::getInstance();
+          dispatcher->queueEvent(new OpenDialogueEvent(DialogueEventType::FileSave,
+                                                       ".smtl"));
+          this->selectedHandle = rComponent.materials.getMaterialHandle(pair.second->getName());
+          this->fileSaveTarget = FileSaveTargets::TargetMaterial;
+        }
+
+        // Actual material properties.
+        ImGui::Indent();
+        if (ImGui::CollapsingHeader(("Material Properties##" + std::to_string((unsigned long) pair.second.get())).c_str(), ImGuiTreeNodeFlags_DefaultOpen))
+        {
+          auto& materialPipeline = material->getPipeline();
+
+          auto& uAlbedo = material->getVec3("uAlbedo");
+          auto& uMetallic = material->getFloat("uMetallic");
+          auto& uRoughness = material->getFloat("uRoughness");
+          auto& uAO = material->getFloat("uAO");
+          auto& uEmiss = material->getFloat("uEmiss");
+          auto& uF0 = material->getFloat("uF0");
+
+          // Draw all the associated texture maps for the entity.
+          ImGui::Text("Albedo Map");
+          ImGui::PushID("Albedo Button");
+          if (ImGui::ImageButton((ImTextureID) (unsigned long) material->getSampler2D("albedoMap")->getID(),
+                                 ImVec2(64, 64), ImVec2(0, 1), ImVec2(1, 0)))
+          {
+            showTexWindow = true;
+            selectedType = "albedoMap";
+            submesh = pair.first;
+          }
+          this->DNDTextureTarget(material, "albedoMap");
+          auto endCursorPos = ImGui::GetCursorPos();
+          ImGui::SameLine();
+          ImGui::PopID();
+          auto cursorPos = ImGui::GetCursorPos();
+          ImGui::ColorEdit3("##Albedo", &uAlbedo.r);
+          ImGui::SetCursorPos(ImVec2(cursorPos.x, cursorPos.y + fontSize + 8.0f));
+          ImGui::Text("Emissivity");
+          ImGui::SetCursorPos(ImVec2(cursorPos.x, cursorPos.y + 2 * fontSize + 12.0f));
+          ImGui::SliderFloat("##Emiss", &uEmiss, 0.0f, 10.0f);
+          ImGui::SetCursorPos(endCursorPos);
+
+          ImGui::Text("Metallic Map");
+          ImGui::PushID("Metallic Button");
+          if (ImGui::ImageButton((ImTextureID) (unsigned long) material->getSampler2D("metallicMap")->getID(),
+                                 ImVec2(64, 64), ImVec2(0, 1), ImVec2(1, 0)))
+          {
+            showTexWindow = true;
+            selectedType = "metallicMap";
+            submesh = pair.first;
+          }
+          this->DNDTextureTarget(material, "metallicMap");
+          ImGui::PopID();
+          ImGui::SameLine();
+          ImGui::SliderFloat("##Metallic", &uMetallic, 0.0f, 1.0f);
+
+          ImGui::Text("Roughness Map");
+          ImGui::PushID("Roughness Button");
+          if (ImGui::ImageButton((ImTextureID) (unsigned long) material->getSampler2D("roughnessMap")->getID(),
+                                 ImVec2(64, 64), ImVec2(0, 1), ImVec2(1, 0)))
+          {
+            showTexWindow = true;
+            selectedType = "roughnessMap";
+            submesh = pair.first;
+          }
+          this->DNDTextureTarget(material, "roughnessMap");
+          ImGui::PopID();
+          ImGui::SameLine();
+          ImGui::SliderFloat("##Roughness", &uRoughness, 0.01f, 1.0f);
+
+          ImGui::Text("Ambient Occlusion Map");
+          ImGui::PushID("Ambient Button");
+          if (ImGui::ImageButton((ImTextureID) (unsigned long) material->getSampler2D("aOcclusionMap")->getID(),
+                                 ImVec2(64, 64), ImVec2(0, 1), ImVec2(1, 0)))
+          {
+            showTexWindow = true;
+            selectedType = "aOcclusionMap";
+            submesh = pair.first;
+          }
+          this->DNDTextureTarget(material, "aOcclusionMap");
+          ImGui::PopID();
+          ImGui::SameLine();
+          ImGui::SliderFloat("##AO", &uAO, 0.0f, 1.0f);
+
+          ImGui::Text("Specular F0 Map");
+          ImGui::PushID("F0 Button");
+          if (ImGui::ImageButton((ImTextureID) (unsigned long) material->getSampler2D("specF0Map")->getID(),
+                                 ImVec2(64, 64), ImVec2(0, 1), ImVec2(1, 0)))
+          {
+            showTexWindow = true;
+            selectedType = "specF0Map";
+            submesh = pair.first;
+          }
+          this->DNDTextureTarget(material, "specF0Map");
+          ImGui::PopID();
+          ImGui::SameLine();
+          ImGui::SliderFloat("##F0", &uF0, 0.0f, 1.0f);
+
+          ImGui::Text("Normal Map");
+          ImGui::PushID("Normal Button");
+          if (ImGui::ImageButton((ImTextureID) (unsigned long) material->getSampler2D("normalMap")->getID(),
+                                 ImVec2(64, 64), ImVec2(0, 1), ImVec2(1, 0)))
+          {
+            showTexWindow = true;
+            selectedType = "normalMap";
+            submesh = pair.first;
+          }
+          this->DNDTextureTarget(material, "normalMap");
+          ImGui::PopID();
+        }
+        ImGui::Unindent();
+        ImGui::TreePop();
       }
+      ImGui::End();
     }
 
     if (showTexWindow)
       this->drawTextureWindow(selectedType, submesh, showTexWindow);
+    if (showMaterialWindow)
+      this->drawMaterialWindow(submesh, showMaterialWindow);
+    if (showNewMaterialWindow)
+      this->drawNewMaterialWindow(submesh, showNewMaterialWindow);
   }
 
   void
   MaterialWindow::onUpdate(float dt, Shared<Scene> activeScene)
-  {
-
-  }
+  { }
 
   void
   MaterialWindow::onEvent(Event &event)
@@ -172,6 +223,30 @@ namespace SciRenderer
           this->selectedEntity = Entity();
         else
           this->selectedEntity = Entity((entt::entity) entityID, entityParentScene);
+        break;
+      }
+
+      case EventType::SaveFileEvent:
+      {
+        auto saveEvent = *(static_cast<SaveFileEvent*>(&event));
+
+        auto& path = saveEvent.getAbsPath();
+        auto& name = saveEvent.getFileName();
+
+        switch (this->fileSaveTarget)
+        {
+          case FileSaveTargets::TargetMaterial:
+          {
+            auto material = AssetManager<Material>::getManager()->getAsset(this->selectedHandle);
+            material->getFilepath() = path;
+
+            YAMLSerialization::serializeMaterial(this->selectedHandle, path);
+            this->fileSaveTarget = FileSaveTargets::TargetNone;
+            this->selectedHandle = "";
+            break;
+          }
+        }
+
         break;
       }
 
@@ -206,7 +281,7 @@ namespace SciRenderer
   }
 
   void
-  MaterialWindow::drawTextureWindow(const std::string &type, Shared<Mesh> submesh,
+  MaterialWindow::drawTextureWindow(const std::string &type, const std::string &submesh,
                                     bool &isOpen)
   {
     if (!this->selectedEntity)
@@ -215,7 +290,7 @@ namespace SciRenderer
     auto textureCache = AssetManager<Texture2D>::getManager();
 
     Material* material = this->selectedEntity.getComponent<RenderableComponent>()
-                                             .materials.getMaterial(submesh->getName());
+                                             .materials.getMaterial(submesh);
 
     ImGui::Begin("Select Texture", &isOpen);
     if (ImGui::Button("Load New Texture"))
@@ -230,48 +305,100 @@ namespace SciRenderer
       isOpen = false;
     }
 
-    for (auto& name : textureCache->getStorage())
+    for (auto& handle : textureCache->getStorage())
     {
-      ImGuiTreeNodeFlags flags = ((this->selectedString == name) ? ImGuiTreeNodeFlags_Selected : 0);
+      ImGuiTreeNodeFlags flags = ((this->selectedHandle == handle) ? ImGuiTreeNodeFlags_Selected : 0);
       flags |= ImGuiTreeNodeFlags_NoTreePushOnOpen | ImGuiTreeNodeFlags_OpenOnArrow
             | ImGuiTreeNodeFlags_Bullet | ImGuiTreeNodeFlags_OpenOnDoubleClick;
 
-      auto texture = textureCache->getAsset(name);
+      auto texture = textureCache->getAsset(handle);
       ImGui::Image((ImTextureID) (unsigned long) texture->getID(),
                    ImVec2(64, 64), ImVec2(0, 1), ImVec2(1, 0));
 
       if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(0))
       {
-        material->attachSampler2D(type, name);
+        material->attachSampler2D(type, handle);
         isOpen = false;
-        this->selectedString = "";
+        this->selectedHandle = "";
       }
 
       ImGui::SameLine();
-      bool opened = ImGui::TreeNodeEx((void*) (sizeof(char) * name.size()), flags, name.c_str());
+      bool opened = ImGui::TreeNodeEx((void*) (sizeof(char) * handle.size()), flags, handle.c_str());
 
       if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(0))
       {
-        material->attachSampler2D(type, name);
+        material->attachSampler2D(type, handle);
         isOpen = false;
-        this->selectedString = "";
+        this->selectedHandle = "";
       }
     }
     ImGui::End();
 
     if (!isOpen)
-      this->selectedString = "";
+      this->selectedHandle = "";
   }
 
   void
-  MaterialWindow::DNDTarget(Material* material, const std::string &selectedType)
+  MaterialWindow::drawMaterialWindow(const std::string &submesh, bool &isOpen)
+  {
+    auto materialAssets = AssetManager<Material>::getManager();
+
+    auto& rComponent = this->selectedEntity.getComponent<RenderableComponent>();
+
+    ImGui::Begin("Select Material", &isOpen);
+    for (auto& handle : materialAssets->getStorage())
+    {
+      ImGuiTreeNodeFlags flags = ((this->selectedHandle == handle) ? ImGuiTreeNodeFlags_Selected : 0);
+      flags |= ImGuiTreeNodeFlags_NoTreePushOnOpen | ImGuiTreeNodeFlags_OpenOnArrow
+            | ImGuiTreeNodeFlags_Bullet | ImGuiTreeNodeFlags_OpenOnDoubleClick;
+
+      bool opened = ImGui::TreeNodeEx((void*) (sizeof(char) * handle.size()), flags, handle.c_str());
+
+      if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(0))
+      {
+        rComponent.materials.swapMaterial(submesh, handle);
+        isOpen = false;
+      }
+    }
+
+    ImGui::End();
+  }
+
+  void
+  MaterialWindow::drawNewMaterialWindow(const std::string &submesh, bool &isOpen)
+  {
+    char nameBuffer[256];
+    memset(nameBuffer, 0, sizeof(nameBuffer));
+    std::strncpy(nameBuffer, this->newMaterialName.c_str(), sizeof(nameBuffer));
+
+    ImGui::Begin("New Material Name", &isOpen, ImGuiWindowFlags_AlwaysAutoResize);
+    ImGui::Text("Name:");
+    if (ImGui::InputText("##name", nameBuffer, sizeof(nameBuffer)))
+      this->newMaterialName = std::string(nameBuffer);
+
+    if (ImGui::Button("Create"))
+    {
+      auto materialAssets = AssetManager<Material>::getManager();
+      auto& rComponent = this->selectedEntity.getComponent<RenderableComponent>();
+
+      materialAssets->attachAsset(this->newMaterialName, new Material());
+      rComponent.materials.swapMaterial(submesh, this->newMaterialName);
+
+      this->newMaterialName = "";
+      isOpen = false;
+    }
+    ImGui::End();
+  }
+
+  void
+  MaterialWindow::DNDTextureTarget(Material* material, const std::string &selectedType)
   {
     if (ImGui::BeginDragDropTarget())
     {
       if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH"))
       {
         this->selectedMatTex = std::make_pair(material, selectedType);
-        this->loadDNDAsset((char*) payload->Data);
+        this->loadDNDTextureAsset((char*) payload->Data);
       }
 
       ImGui::EndDragDropTarget();
@@ -279,11 +406,20 @@ namespace SciRenderer
   }
 
   void
-  MaterialWindow::loadDNDAsset(const std::string &filepath)
+  MaterialWindow::DNDMaterialTarget(const std::string &subMesh)
   {
-    if (!this->selectedEntity)
-      return;
+    if (ImGui::BeginDragDropTarget())
+    {
+      if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH"))
+        this->loadDNDMaterial((char*) payload->Data, subMesh);
 
+      ImGui::EndDragDropTarget();
+    }
+  }
+
+  void
+  MaterialWindow::loadDNDTextureAsset(const std::string &filepath)
+  {
     std::string filename = filepath.substr(filepath.find_last_of('/') + 1);
     std::string filetype = filename.substr(filename.find_last_of('.'));
 
@@ -294,5 +430,26 @@ namespace SciRenderer
     }
 
     this->selectedMatTex = std::make_pair(nullptr, "");
+  }
+
+  void
+  MaterialWindow::loadDNDMaterial(const std::string &filepath, const std::string &subMesh)
+  {
+    auto materialAssets = AssetManager<Material>::getManager();
+
+    std::string filename = filepath.substr(filepath.find_last_of('/') + 1);
+    std::string filetype = filename.substr(filename.find_last_of('.'));
+
+    if (!(filetype == ".smtl"))
+      return;
+
+    AssetHandle handle;
+    if (!YAMLSerialization::deserializeMaterial(filepath, handle))
+      return;
+
+    materialAssets->getAsset(handle)->getFilepath() = filepath;
+
+    auto& rComponent = this->selectedEntity.getComponent<RenderableComponent>();
+    rComponent.materials.swapMaterial(subMesh, handle);
   }
 }

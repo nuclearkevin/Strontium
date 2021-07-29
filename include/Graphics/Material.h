@@ -23,7 +23,7 @@ namespace SciRenderer
   class Material
   {
   public:
-    Material(MaterialType type = MaterialType::PBR);
+    Material(MaterialType type = MaterialType::PBR, const std::string &filepath = "");
     ~Material();
 
     // Prepare for drawing.
@@ -47,8 +47,12 @@ namespace SciRenderer
     //Texture3D* getSampler1D(const std::string &samplerName);
     //CubeMap* getSamplerCubemap(const std::string &samplerName);
 
-    // Get the shader type.
+    // Get the filepath.
+    std::string& getFilepath() { return this->filepath; }
+
+    // Get the shader and pipeline type.
     MaterialType& getType() { return this->type; }
+    bool& getPipeline() { return this->pipeline; }
 
     // Get the shader program.
     Shader* getShader() { return this->program; }
@@ -103,8 +107,12 @@ namespace SciRenderer
     // Reflect the attached shader.
     void reflect();
 
-    // The material type.
+    // The location (if any) on disk.
+    std::string filepath;
+
+    // The material type and pipeline.
     MaterialType type;
+    bool pipeline;
 
     // The shader and shader data.
     Shader* program;
@@ -130,12 +138,15 @@ namespace SciRenderer
     ~ModelMaterial() = default;
 
     void attachMesh(const std::string &meshName, MaterialType type = MaterialType::PBR);
+    void attachMesh(const std::string &meshName, const AssetHandle &material);
+    void swapMaterial(const std::string &meshName, const AssetHandle &newMaterial);
 
     Material* getMaterial(const std::string &meshName);
+    AssetHandle getMaterialHandle(const std::string &meshName);
 
     // Get the storage.
-    std::vector<std::pair<std::string, Material>>& getStorage() { return this->materials; };
+    std::vector<std::pair<std::string, AssetHandle>>& getStorage() { return this->materials; };
   private:
-    std::vector<std::pair<std::string, Material>> materials;
+    std::vector<std::pair<std::string, AssetHandle>> materials;
   };
 }

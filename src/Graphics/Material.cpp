@@ -5,8 +5,10 @@
 
 namespace SciRenderer
 {
-  Material::Material(MaterialType type)
-    : type(type)
+  Material::Material(MaterialType type, const std::string &filepath)
+    : filepath(filepath)
+    , type(type)
+    , pipeline(false)
   {
     auto shaderCache = AssetManager<Shader>::getManager();
     switch (type)
@@ -65,16 +67,16 @@ namespace SciRenderer
     {
       switch (pair.second)
       {
-        case UniformType::Float: this->floats.push_back({ pair.first, 1.0f }); break;
-        case UniformType::Vec2: this->vec2s.push_back({ pair.first, glm::vec2(1.0f) }); break;
-        case UniformType::Vec3: this->vec3s.push_back({ pair.first, glm::vec3(1.0f) }); break;
-        case UniformType::Vec4: this->vec4s.push_back({ pair.first, glm::vec4(1.0f) }); break;
-        case UniformType::Mat3: this->mat3s.push_back({ pair.first, glm::mat3(1.0f) }); break;
-        case UniformType::Mat4: this->mat4s.push_back({ pair.first, glm::mat4(1.0f) }); break;
-        case UniformType::Sampler1D: this->sampler1Ds.push_back({ pair.first, "None" }); break;
-        case UniformType::Sampler2D: this->sampler2Ds.push_back({ pair.first, "None" }); break;
-        case UniformType::Sampler3D: this->sampler3Ds.push_back({ pair.first, "None" }); break;
-        case UniformType::SamplerCube: this->samplerCubes.push_back({ pair.first, "None" }); break;
+        case UniformType::Float: this->floats.emplace_back(pair.first, 1.0f); break;
+        case UniformType::Vec2: this->vec2s.emplace_back(pair.first, glm::vec2(1.0f)); break;
+        case UniformType::Vec3: this->vec3s.emplace_back(pair.first, glm::vec3(1.0f)); break;
+        case UniformType::Vec4: this->vec4s.emplace_back(pair.first, glm::vec4(1.0f)); break;
+        case UniformType::Mat3: this->mat3s.emplace_back(pair.first, glm::mat3(1.0f)); break;
+        case UniformType::Mat4: this->mat4s.emplace_back(pair.first, glm::mat4(1.0f)); break;
+        case UniformType::Sampler1D: this->sampler1Ds.emplace_back(pair.first, "None"); break;
+        case UniformType::Sampler2D: this->sampler2Ds.emplace_back(pair.first, "None"); break;
+        case UniformType::Sampler3D: this->sampler3Ds.emplace_back(pair.first, "None"); break;
+        case UniformType::SamplerCube: this->samplerCubes.emplace_back(pair.first, "None"); break;
       }
     }
   }
@@ -288,19 +290,53 @@ namespace SciRenderer
   void
   ModelMaterial::attachMesh(const std::string &meshName, MaterialType type)
   {
-    if (!Utilities::pairSearch<std::string, Material>(this->materials, meshName))
-      this->materials.push_back(std::make_pair(meshName, Material(type)));
+    auto materialAssets = AssetManager<Material>::getManager();
+
+    if (!Utilities::pairSearch<std::string, AssetHandle>(this->materials, meshName))
+    {
+      materialAssets->attachAsset(meshName, new Material(type));
+      this->materials.emplace_back(meshName, meshName);
+    }
+  }
+
+  void
+  ModelMaterial::attachMesh(const std::string &meshName, const AssetHandle &material)
+  {
+    if (!Utilities::pairSearch<std::string, AssetHandle>(this->materials, meshName))
+      this->materials.emplace_back(meshName, material);
+  }
+
+  void
+  ModelMaterial::swapMaterial(const std::string &meshName, const AssetHandle &newMaterial)
+  {
+    auto loc = Utilities::pairGet<std::string, AssetHandle>(this->materials, meshName);
+
+    if (loc != this->materials.end())
+      loc->second = newMaterial;
   }
 
   // Get a material given the mesh.
   Material*
   ModelMaterial::getMaterial(const std::string &meshName)
   {
-    auto loc = Utilities::pairGet<std::string, Material>(this->materials, meshName);
+    auto materialAssets = AssetManager<Material>::getManager();
+
+    auto loc = Utilities::pairGet<std::string, AssetHandle>(this->materials, meshName);
 
     if (loc != this->materials.end())
-      return &loc->second;
+      return materialAssets->getAsset(loc->second);
 
     return nullptr;
+  }
+
+  AssetHandle
+  ModelMaterial::getMaterialHandle(const std::string &meshName)
+  {
+    auto loc = Utilities::pairGet<std::string, AssetHandle>(this->materials, meshName);
+
+    if (loc != this->materials.end())
+      return loc->second;
+
+    return AssetHandle();
   }
 }

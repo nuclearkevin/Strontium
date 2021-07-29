@@ -99,8 +99,10 @@ namespace SciRenderer
 
       textureCache->attachAsset(image.name, outTex);
 
-      logs->logMessage(LogMessage("Loaded texture: " + image.name + ".",
-                                  true, true));
+      logs->logMessage(LogMessage("Loaded texture: " + image.name + " " +
+                                  "(W: " + std::to_string(image.width) + ", H: " +
+                                  std::to_string(image.height) + ", N: "
+                                  + std::to_string(image.n) + ").", true, true));
 
       stbi_image_free(image.data);
       asyncTexQueue.pop();

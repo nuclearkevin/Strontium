@@ -5,14 +5,20 @@
 
 namespace SciRenderer
 {
+  Mesh::Mesh(const std::string &name, Model* parent)
+    : loaded(false)
+    , name(name)
+    , parent(parent)
+  { }
+
   Mesh::Mesh(const std::string &name, const std::vector<Vertex> &vertices,
              const std::vector<GLuint> &indices, Model* parent)
     : loaded(true)
     , data(vertices)
     , indices(indices)
-    , hasUVs(false)
     , vArray(nullptr)
     , name(name)
+    , parent(parent)
   { }
 
   Mesh::~Mesh()
@@ -33,13 +39,6 @@ namespace SciRenderer
     this->vArray->addAttribute(3, AttribType::Vec3, GL_FALSE, sizeof(Vertex), offsetof(Vertex, uv));
     this->vArray->addAttribute(4, AttribType::Vec3, GL_FALSE, sizeof(Vertex), offsetof(Vertex, tangent));
     this->vArray->addAttribute(5, AttribType::Vec3, GL_FALSE, sizeof(Vertex), offsetof(Vertex, bitangent));
-  }
-
-  void
-  Mesh::setColour(const glm::vec3 &colour)
-  {
-    for (unsigned i = 0; i < this->data.size(); i++)
-      this->data[i].colour = colour;
   }
 
   // Debugging helper function to dump mesh data to the console.

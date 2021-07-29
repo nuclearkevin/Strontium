@@ -17,7 +17,7 @@ namespace SciRenderer
 
   enum class FileSaveTargets
   {
-    TargetScene, TargetPrefab, TargetNone
+    TargetScene, TargetPrefab, TargetMaterial, TargetNone
   };
 
   class EditorLayer;

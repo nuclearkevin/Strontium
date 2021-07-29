@@ -130,30 +130,33 @@ namespace SciRenderer
   void
   Model::processMesh(aiMesh* mesh, const aiScene* scene)
   {
-    std::vector<Vertex> meshVertices;
-    std::vector<GLuint> meshIndicies;
+    std::string meshName = std::string(mesh->mName.C_Str());
+    this->subMeshes.emplace_back(meshName, createShared<Mesh>(meshName, this));
+    auto& meshVertices = this->subMeshes.back().second->getData();
+    auto& meshIndicies = this->subMeshes.back().second->getIndices();
 
-    glm::vec3 meshMin = glm::vec3(std::numeric_limits<float>::max());
-    glm::vec3 meshMax = glm::vec3(std::numeric_limits<float>::min());;
+    auto& meshMin = this->subMeshes.back().second->getMinPos();
+    auto& meshMax = this->subMeshes.back().second->getMaxPos();
+    meshMin = glm::vec3(std::numeric_limits<float>::max());
+    meshMax = glm::vec3(std::numeric_limits<float>::min());
+    
     // Get the positions.
     if (mesh->HasPositions())
     {
       meshVertices.reserve(mesh->mNumVertices);
 
       for (GLuint i = 0; i < mesh->mNumVertices; i++)
-        meshVertices.push_back(Vertex());
+        meshVertices.emplace_back();
 
-      glm::vec4 temp;
       for (GLuint i = 0; i < mesh->mNumVertices; i++)
       {
-        temp.x = mesh->mVertices[i].x;
-        temp.y = mesh->mVertices[i].y;
-        temp.z = mesh->mVertices[i].z;
-        temp.w = 1.0f;
+        meshVertices[i].position.x = mesh->mVertices[i].x;
+        meshVertices[i].position.y = mesh->mVertices[i].y;
+        meshVertices[i].position.z = mesh->mVertices[i].z;
+        meshVertices[i].position.w = 1.0f;
 
-        meshVertices[i].position = temp;
-        meshMin = glm::min(meshMin, glm::vec3(temp));
-        meshMax = glm::max(meshMax, glm::vec3(temp));
+        meshMin = glm::min(meshMin, glm::vec3(meshVertices[i].position));
+        meshMax = glm::max(meshMax, glm::vec3(meshVertices[i].position));
       }
     }
     else
@@ -166,35 +169,28 @@ namespace SciRenderer
 
     if (mesh->HasNormals())
     {
-      glm::vec3 temp;
       for (GLuint i = 0; i < mesh->mNumVertices; i++)
       {
-        temp.x = mesh->mNormals[i].x;
-        temp.y = mesh->mNormals[i].y;
-        temp.z = mesh->mNormals[i].z;
-
-        meshVertices[i].normal = temp;
+        meshVertices[i].normal.x = mesh->mNormals[i].x;
+        meshVertices[i].normal.y = mesh->mNormals[i].y;
+        meshVertices[i].normal.z = mesh->mNormals[i].z;
       }
     }
 
     // Load the vertex colours in as white. TODO: Load actual vertex colours.
     {
-      glm::vec3 temp = glm::vec3(1.0f);
       for (GLuint i = 0; i < mesh->mNumVertices; i++)
-        meshVertices[i].colour = temp;
+        meshVertices[i].colour = glm::vec3(1.0f);
     }
 
     // Get the UV's, but only supporting a single UV channel for now.
     if (mesh->mTextureCoords[0])
     {
       // Loop over the texture coords and assign them.
-      glm::vec2 temp;
       for (GLuint i = 0; i < mesh->mNumVertices; i++)
       {
-        temp.x = mesh->mTextureCoords[0][i].x;
-        temp.y = mesh->mTextureCoords[0][i].y;
-
-        meshVertices[i].uv = temp;
+        meshVertices[i].uv.x = mesh->mTextureCoords[0][i].x;
+        meshVertices[i].uv.y = mesh->mTextureCoords[0][i].y;
       }
     }
     else
@@ -208,23 +204,20 @@ namespace SciRenderer
     // Fetch the tangents and bitangents.
     if (mesh->HasTangentsAndBitangents())
     {
-      glm::vec3 temp1, temp2;
       for (GLuint i = 0; i <mesh->mNumVertices; i++)
       {
-        temp1.x = mesh->mTangents[i].x;
-        temp1.y = mesh->mTangents[i].y;
-        temp1.z = mesh->mTangents[i].z;
+        meshVertices[i].tangent.x = mesh->mTangents[i].x;
+        meshVertices[i].tangent.y = mesh->mTangents[i].y;
+        meshVertices[i].tangent.z = mesh->mTangents[i].z;
 
-        temp2.x = mesh->mBitangents[i].x;
-        temp2.y = mesh->mBitangents[i].y;
-        temp2.z = mesh->mBitangents[i].z;
-
-        meshVertices[i].tangent = temp1;
-        meshVertices[i].bitangent = temp2;
+        meshVertices[i].bitangent.x = mesh->mBitangents[i].x;
+        meshVertices[i].bitangent.y = mesh->mBitangents[i].y;
+        meshVertices[i].bitangent.z = mesh->mBitangents[i].z;
       }
     }
 
     // Fetch the indicies.
+    meshIndicies.reserve(mesh->mNumFaces * 3);
     for (GLuint i = 0; i < mesh->mNumFaces; i++)
     {
       aiFace face = mesh->mFaces[i];
@@ -233,10 +226,6 @@ namespace SciRenderer
         meshIndicies.push_back(face.mIndices[j]);
     }
 
-    std::string meshName = std::string(mesh->mName.C_Str());
-    this->subMeshes.push_back(std::pair
-      (meshName, createShared<Mesh>(meshName, meshVertices, meshIndicies, this)));
-    this->subMeshes.back().second->getMinPos() = meshMin;
-    this->subMeshes.back().second->getMaxPos() = meshMax;
+    this->subMeshes.back().second->setLoaded(true);
   }
 }

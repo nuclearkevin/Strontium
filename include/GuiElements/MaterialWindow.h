@@ -8,6 +8,7 @@
 #include "GuiElements/GuiWindow.h"
 #include "Scenes/Scene.h"
 #include "Scenes/Entity.h"
+#include "Scenes/Components.h"
 
 namespace SciRenderer
 {
@@ -23,17 +24,23 @@ namespace SciRenderer
 
     Entity getSelectedEntity() { return this->selectedEntity; }
     void setSelectedEntity(Entity newEnt) { this->selectedEntity = newEnt; }
-
   private:
-    Entity selectedEntity;
-    std::string selectedString;
-    FileLoadTargets fileTargets;
-    std::pair<Material*, std::string> selectedMatTex;
-
-    void drawTextureWindow(const std::string &type, Shared<Mesh> submesh, bool &isOpen);
+    void drawTextureWindow(const std::string &type, const std::string &submesh,
+                           bool &isOpen);
+    void drawMaterialWindow(const std::string &submesh, bool &isOpen);
+    void drawNewMaterialWindow(const std::string &submesh, bool &isOpen);
 
     // Load an asset from a drag and drop action.
-    void DNDTarget(Material* material, const std::string &selectedType);
-    void loadDNDAsset(const std::string &filepath);
+    void DNDTextureTarget(Material* material, const std::string &selectedType);
+    void DNDMaterialTarget(const std::string &subMesh);
+    void loadDNDTextureAsset(const std::string &filepath);
+    void loadDNDMaterial(const std::string &filepath, const std::string &subMesh);
+
+    Entity selectedEntity;
+    AssetHandle selectedHandle;
+    std::string newMaterialName;
+    FileLoadTargets fileTargets;
+    FileSaveTargets fileSaveTarget;
+    std::pair<Material*, std::string> selectedMatTex;
   };
 }
