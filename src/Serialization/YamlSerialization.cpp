@@ -121,7 +121,7 @@ namespace SciRenderer
     }
 
     void
-    serializeMaterial(YAML::Emitter &out, const AssetHandle &materialHandle)
+    serializeMaterial(YAML::Emitter &out, const AssetHandle &materialHandle, bool override = false)
     {
       auto textureCache = AssetManager<Texture2D>::getManager();
       auto materialAssets = AssetManager<Material>::getManager();
@@ -132,7 +132,7 @@ namespace SciRenderer
 
       // Save the material name.
       out << YAML::Key << "MaterialName" << YAML::Value << materialHandle;
-      if (material->getFilepath() != "")
+      if (material->getFilepath() != "" && override)
       {
         out << YAML::Key << "MaterialPath" << YAML::Value << material->getFilepath();
         out << YAML::EndMap;
@@ -423,7 +423,7 @@ namespace SciRenderer
       out << YAML::Key << "Materials";
       out << YAML::BeginSeq;
       for (auto& materialHandle : materialAssets->getStorage())
-        serializeMaterial(out, materialHandle);
+        serializeMaterial(out, materialHandle, true);
       out << YAML::EndSeq;
 
       out << YAML::EndMap;

@@ -33,7 +33,6 @@ namespace SciRenderer
     virtual void onEvent(Event &event);
 
     bool isOpen;
-
   protected:
     EditorLayer* parentLayer;
   };

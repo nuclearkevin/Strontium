@@ -238,11 +238,12 @@ namespace SciRenderer
           case FileSaveTargets::TargetMaterial:
           {
             auto material = AssetManager<Material>::getManager()->getAsset(this->selectedHandle);
-            material->getFilepath() = path;
 
             YAMLSerialization::serializeMaterial(this->selectedHandle, path);
             this->fileSaveTarget = FileSaveTargets::TargetNone;
             this->selectedHandle = "";
+
+            material->getFilepath() = path;
             break;
           }
         }
