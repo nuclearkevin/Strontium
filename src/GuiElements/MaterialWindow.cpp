@@ -88,7 +88,6 @@ namespace SciRenderer
         }
 
         // Actual material properties.
-        ImGui::Indent();
         if (ImGui::CollapsingHeader(("Material Properties##" + std::to_string((unsigned long) pair.second.get())).c_str(), ImGuiTreeNodeFlags_DefaultOpen))
         {
           auto& materialPipeline = material->getPipeline();
@@ -190,7 +189,6 @@ namespace SciRenderer
           this->DNDTextureTarget(material, "normalMap");
           ImGui::PopID();
         }
-        ImGui::Unindent();
         ImGui::TreePop();
       }
       ImGui::End();

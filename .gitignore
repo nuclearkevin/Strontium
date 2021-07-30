@@ -41,5 +41,6 @@ Application
 
 # Allow some directories (fonts, icons, etc.).
 !**/inputs/*.txt
+!**/media/*.png
 !**/assets/.icons/*.png
 !**/assets/.fonts/*.txt

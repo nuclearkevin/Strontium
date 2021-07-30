@@ -1,23 +1,47 @@
-# SciRender
+# SR
 ## About this project
-Yet another open-source rendering engine / graphics sandbox using OpenGL. This project started while I was taking a class on intermediate computer graphics (as I intended to use it to implement various algorithms learned in class), but has spiraled out of control to become something far more than just a practice repo.
+Yet another open-source game engine using OpenGL. This project started while I was taking a class on intermediate computer graphics (as I intended to use it to implement various algorithms learned in class), but has spiraled out of control to become something far more than just a practice repo.
 
-This project is not intended to be a high performance rendering engine, but rather a sandbox for experimenting with various techniques commonly used for realtime and photorealistic rendering. It has the following tentative list of planned features:
-- In-app scene selection, modification and serialization.
-- Scene and model loading for common file formats (using Assimp).
-- A deferred (physically based) 3D renderer with light volumes.
-  - Cascaded softshadows for point lights, spotlights and uniform lights.
+### Current Features
+- Graphics:
+  - A deferred 3D physically based rendering using the Cook-Torrance BRDF.
+  - Image-based ambient lighting using HDR environment maps.
+  - Directional sky lighting.
+  - Cascaded exponentially warped shadow maps utilizing parallel splits.
+  - Physically-based materials using a metallic workflow.
+  - HDR rendering.
+- Other:
+  - Custom scene serialization and loading.
+  - Custom material serialization and loading.
+  - A syncable prefab system for rapid scene prototyping.
+  - Live shader editing and reloading.
+  - Multithreaded asset loading for many supported model formats (using Assimp) and images.
+  - A modern editor (with docking) designed with rapid prototyping in mind.
+  - And lots more!
+
+### Planned Features
+- Graphics:
+  - 2D rendering for particles, sprites and billboards.
+  - Point and spot lights.
+  - Transparent support.
+  - Volumetric directional lighting.
   - Screen space ambient occlusion.
-  - Screen space reflections (single bounce).
-  - Transparent support (using model sorting).
-- A deferred 2D renderer for sprites, billboards, etc.
-- A global illumination engine for rendering a static image of the scene.
-- Physics simulations (possibly as extra modules).
-  - Starting with 2D physics, might do 3D physics afterwards.
-- Vulkan support.
+  - Screen space reflections.
+  - Screen space voxel global illumination.
+  - Additional shadow mapping options for user defined light sources.
+  - Skeletal animation.
+- Physics using NVIDIA PhysX.
+- C# Scripting using Mono:
+  - Large portions of the internal engine exposed to user scripting.
+  - Completely scriptable render pipeline.
+- Other:
+  - Asset caching and optimization.
+  - Automatic material loading for common file varieties.
+  - Multi-OS support.
+  - DX11 support with live API switching.
 
-## Building SciRender
-SciRender builds using GNU make. Additionally, GLFW requires CMake and the `xorg-dev` packages. Assimp also requires CMake. Ensure you have these dependencies installed before building SciRender, which can be done with the steps below:
+## Building SR
+SR builds using GNU make. GLFW and Assimp require CMake, while GLFW also requires the `xorg-dev` package. Ensure you have these dependencies installed before building SR. The steps below are currently outdated as this project is moving towards a more formal buildsystem using CMake.
 ```bash
 # Clone the project and initialize submodules.
 git clone https://github.com/ksawatzky777/SciRender.git --recursive
@@ -37,7 +61,7 @@ Finally, you can run the application with the following bash command:
 ```bash
 ./Application
 ```
-As of right now, this project only builds successfully on Linux (I develope and test on Debian-Ubuntu). I aim to eventually support Windows builds using Visual Studios, but thats a goal for the future. Linux will be the only supported build for now.
+Currently only Ubuntu builds are supported, although care has been taken to ensure that this project is as platform agnostic as possible. Windows builds will be supported in the future as this project matures.
 
 ## Credits
 A massive thanks goes out to [Yan Chernikov](https://github.com/TheCherno) and his several Youtube series on
