@@ -1,4 +1,4 @@
-# SR
+# <h1 align="center">Strontium</h1>
 ## About this project
 Yet another open-source game engine using OpenGL. This project started while I was taking a class on intermediate computer graphics (as I intended to use it to implement various algorithms learned in class), but has spiraled out of control to become something far more than just a practice repo.
 
