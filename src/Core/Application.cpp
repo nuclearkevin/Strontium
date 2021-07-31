@@ -85,10 +85,6 @@ namespace SciRenderer
       new Shader("./assets/shaders/post/postGrid.vs",
                  "./assets/shaders/post/postGrid.fs"));
 
-    this->shaderCache->attachAsset("fsq_shader",
-      new Shader("./assets/shaders/viewport.vs",
-                 "./assets/shaders/viewport.fs"));
-
     // Load the default assets.
     // Default texture (an ugly purple) and the default material properties
     // texture (white) and default normal map.

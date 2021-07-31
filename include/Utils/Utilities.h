@@ -1,5 +1,7 @@
 #pragma once
 
+#include <vector>
+
 namespace SciRenderer
 {
   namespace Utilities
@@ -18,7 +20,7 @@ namespace SciRenderer
     }
 
     template <typename U, typename T>
-    std::vector<std::pair<U, T>>::iterator
+    typename std::vector<std::pair<U, T>>::iterator
     pairGet(std::vector<std::pair<U, T>> &list, const U &name)
     {
       auto loc = std::find_if(list.begin(), list.end(),

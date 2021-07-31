@@ -31,11 +31,19 @@ namespace SciRenderer
     void drawComponentNodes(Entity entity, Shared<Scene> activeScene);
     void drawPropsWindow(bool &isOpen, Shared<Scene> activeScene);
 
+    void drawDirectionalWidget();
+
     // TODO: Consider moving this to a separate window.
     void drawMeshWindow(bool &isOpen);
 
     // Load an asset from a drag and drop action.
     void loadDNDAsset(const std::string &filepath);
+
+    // Items for a widget which makes modifying a directional light easier.
+    Shared<FrameBuffer> dirBuffer;
+    Model sphere;
+    Shader dirWidgetShader;
+    float widgetWidth;
 
     // Various buffers and selections.
     Entity selectedEntity;

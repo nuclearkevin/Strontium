@@ -18,7 +18,7 @@ namespace SciRenderer
   class EnvironmentMap
   {
   public:
-    EnvironmentMap(const std::string &cubeMeshPath);
+    EnvironmentMap();
     ~EnvironmentMap();
 
     // Load a 2D equirectangular map. Assumes that the map is HDR by default.
@@ -55,7 +55,7 @@ namespace SciRenderer
 
     GLfloat& getIntensity() { return this->intensity; }
     GLfloat& getRoughness() { return this->roughness; }
-    Model* getCubeMesh() { return this->cube; }
+    Model* getCubeMesh() { return &this->cube; }
     Shader* getCubeProg() { return this->cubeShader; }
     std::string& getFilepath() { return this->filepath; }
     bool hasEqrMap() { return this->erMap != nullptr; }
@@ -85,6 +85,6 @@ namespace SciRenderer
 
     Shader*  cubeShader;
 
-    Model*    cube;
+    Model    cube;
   };
 }

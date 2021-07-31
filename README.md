@@ -1,10 +1,10 @@
 # <h1 align="center">Strontium</h1>
-## About this project
-Yet another open-source game engine using OpenGL. This project started while I was taking a class on intermediate computer graphics (as I intended to use it to implement various algorithms learned in class), but has spiraled out of control to become something far more than just a practice repo.
+<p align="center"> Yet another open-source C++17 game engine using OpenGL. </p>
+This project started while I was taking a class on intermediate computer graphics, but has spiraled out of control to become something far more than just a practice repo.
 
 ![cerberus](https://github.com/ksawatzky777/SciRender/blob/main/media/cerberus.png)
 
-### Current Features
+### <h1 align="center">Current Features</h1>
 - Graphics:
   - A deferred 3D physically based rendering using the Cook-Torrance BRDF.
   - Image-based ambient lighting using HDR environment maps.
@@ -21,7 +21,7 @@ Yet another open-source game engine using OpenGL. This project started while I w
   - A modern editor (with docking) designed with rapid prototyping in mind.
   - And lots more!
 
-### Planned Features
+### <h1 align="center">Planned Features</h1>
 - Graphics:
   - 2D rendering for particles, sprites and billboards.
   - Point and spot lights.
@@ -42,8 +42,8 @@ Yet another open-source game engine using OpenGL. This project started while I w
   - Multi-OS support.
   - DX11 support with live API switching.
 
-## Building SR
-SR builds using GNU make. GLFW and Assimp require CMake, while GLFW also requires the `xorg-dev` package. Ensure you have these dependencies installed before building SR. The steps below are currently outdated as this project is moving towards a more formal buildsystem using CMake.
+## Building
+Strontium builds using GNU make. GLFW and Assimp require CMake, while GLFW also requires the `xorg-dev` package. Ensure you have these dependencies installed before building Strontium. The steps below are currently outdated as this project is moving towards a more formal buildsystem using CMake.
 ```bash
 # Clone the project and initialize submodules.
 git clone https://github.com/ksawatzky777/SciRender.git --recursive

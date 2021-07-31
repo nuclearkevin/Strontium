@@ -16,10 +16,6 @@ namespace SciRenderer
     void lightingPass();
     void postProcessPass(Shared<FrameBuffer> frontBuffer);
 
-    // Draw the data given, forward rendering style.
-    void draw(VertexArray* data, Shader* program);
-    void drawEnvironment();
-
     RendererStorage* storage;
     RendererState* state;
     RendererStats* stats;

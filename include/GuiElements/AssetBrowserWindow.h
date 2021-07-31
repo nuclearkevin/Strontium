@@ -24,7 +24,6 @@ namespace SciRenderer
     void onImGuiRender(bool &isOpen, Shared<Scene> activeScene);
     void onUpdate(float dt, Shared<Scene> activeScene);
     void onEvent(Event &event);
-
   private:
     // Draw the directory tree structure.
     void drawDirectoryTree(const std::string &root = "./assets");
@@ -32,8 +31,11 @@ namespace SciRenderer
 
     // Draw the file and folder icons as selectables. They're separate so
     // folders get sorted to the front.
-    void drawFolders(Shared<Scene> activeScene, float &maxCursorYPos);
-    void drawFiles(Shared<Scene> activeScene, float &maxCursorYPos);
+    void drawFolders(Shared<Scene> activeScene);
+    void drawFiles(Shared<Scene> activeScene);
+
+    // Handle creation of assets.
+    void createMaterial();
 
     std::string currentDir;
     ImVec2 drawCursor;

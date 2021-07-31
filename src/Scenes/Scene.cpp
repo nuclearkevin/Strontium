@@ -58,7 +58,7 @@ namespace SciRenderer
           this->recurseDeleteEntity(child);
       }
     }
-    
+
     this->deleteEntity(entity);
   }
 
@@ -78,11 +78,12 @@ namespace SciRenderer
   Scene::render(Shared<Camera> sceneCamera, Entity selectedEntity)
   {
     // Group together the lights and submit them to the renderer.
-    auto dirLight = this->sceneECS.view<DirectionalLightComponent>();
+    auto dirLight = this->sceneECS.group<DirectionalLightComponent>(entt::get<TransformComponent>);
     for (auto entity : dirLight)
     {
-      auto directional = dirLight.get<DirectionalLightComponent>(entity);
-      Renderer3D::submit(directional);
+      auto [directional, transform] = dirLight.get<DirectionalLightComponent, TransformComponent>(entity);
+      directional.light.direction = glm::vec3(glm::toMat4(glm::quat(transform.rotation)) * glm::vec4(0.0f, -1.0f, 0.0f, 0.0f));
+      Renderer3D::submit(directional.light);
     }
     auto pointLight = this->sceneECS.group<PointLightComponent>(entt::get<TransformComponent>);
     for (auto entity : pointLight)

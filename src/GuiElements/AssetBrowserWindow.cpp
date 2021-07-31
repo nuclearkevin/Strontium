@@ -40,7 +40,7 @@ namespace SciRenderer
   void
   AssetBrowserWindow::onImGuiRender(bool &isOpen, Shared<Scene> activeScene)
   {
-    ImGui::Begin("Content Browser:", &isOpen);
+    ImGui::Begin("Content Browser", &isOpen);
 
     // A check to make sure the current directory exists. If it doesn't, we move
     // back one directory and try again. If 'assets' doesn't exist we quit early,
@@ -61,12 +61,10 @@ namespace SciRenderer
     ImGui::SameLine();
     ImGui::BeginChild("Content");
 
-    float fontSize = ImGui::GetFontSize();
-    ImGuiSelectableFlags flags = ImGuiSelectableFlags_AllowDoubleClick
-                               | ImGuiSelectableFlags_AllowItemOverlap;
-
-    ImVec2 textSize;
-    ImVec2 cursorPos = ImGui::GetCursorPos();
+    float cellSize = 64.0f + 16.0f;
+    float panelWidth = ImGui::GetContentRegionAvail().x;
+    int numColumns = (int) (panelWidth / cellSize);
+    numColumns = numColumns < 1 ? 1 : numColumns;
 
     // Draws the go back icon to return to the parent directory of the current
     // directory. Stops at 'assets'.
@@ -75,31 +73,47 @@ namespace SciRenderer
       std::string prevFolderName = this->currentDir.substr(0, this->currentDir.find_last_of('/'));
       prevFolderName = prevFolderName.substr(prevFolderName.find_last_of('/') + 1);
 
-      ImGui::Selectable("##goback", false, flags, ImVec2(64.0f, 64.0f));
+      ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
+      ImGui::ImageButton((ImTextureID) (unsigned long) this->icons["backfolder"]->getID(),
+                         ImVec2(64.0f, 64.0f), ImVec2(0, 1), ImVec2(1, 0));
+      ImGui::PopStyleColor();
 
       if (ImGui::IsMouseDoubleClicked(0) && ImGui::IsItemHovered())
         this->currentDir = this->currentDir.substr(0, this->currentDir.find_last_of('/'));
-
-      ImGui::SetCursorPos(cursorPos);
-      ImGui::Image((ImTextureID) (unsigned long) this->icons["backfolder"]->getID(),
-                   ImVec2(64.0f, 64.0f), ImVec2(0, 1), ImVec2(1, 0));
     }
     else
     {
       ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
       ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
-      ImGui::Selectable("##goback", false, flags, ImVec2(64.0f, 64.0f));
-      ImGui::SetCursorPos(cursorPos);
-      ImGui::Image((ImTextureID) (unsigned long) this->icons["backfolder"]->getID(),
-                   ImVec2(64.0f, 64.0f), ImVec2(0, 1), ImVec2(1, 0));
+      ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
+      ImGui::ImageButton((ImTextureID) (unsigned long) this->icons["backfolder"]->getID(),
+                         ImVec2(64.0f, 64.0f), ImVec2(0, 1), ImVec2(1, 0));
+      ImGui::PopStyleColor();
       ImGui::PopItemFlag();
       ImGui::PopStyleVar();
     }
-    ImGui::SetCursorPos(ImVec2(cursorPos.x + 64.0f + 8.0f, cursorPos.y));
 
-    float maxCursorYPos = 0;
-    this->drawFolders(activeScene, maxCursorYPos);
-    this->drawFiles(activeScene, maxCursorYPos);
+    ImGui::Columns(numColumns, 0, false);
+    this->drawFolders(activeScene);
+    this->drawFiles(activeScene);
+
+    if (ImGui::BeginPopupContextWindow(0, ImGuiPopupFlags_MouseButtonRight, false))
+    {
+      if (ImGui::MenuItem("New Folder"))
+      {
+
+      }
+      if (ImGui::MenuItem("New Material"))
+      {
+
+      }
+      if (ImGui::MenuItem("New Prefab"))
+      {
+
+      }
+
+      ImGui::EndPopup();
+    }
 
     ImGui::EndChild();
     ImGui::End();
@@ -235,14 +249,10 @@ namespace SciRenderer
   }
 
   void
-  AssetBrowserWindow::drawFolders(Shared<Scene> activeScene, float &maxCursorYPos)
+  AssetBrowserWindow::drawFolders(Shared<Scene> activeScene)
   {
-    float fontSize = ImGui::GetFontSize();
-
     ImGuiSelectableFlags flags = ImGuiSelectableFlags_AllowDoubleClick
                                | ImGuiSelectableFlags_AllowItemOverlap;
-
-    ImVec2 textSize, cursorPos;
 
     // Iterate over the directory and find all the folders.
     for (const auto& entry : std::filesystem::directory_iterator(this->currentDir))
@@ -256,53 +266,25 @@ namespace SciRenderer
         if (folderName[0] == '.')
           continue;
 
-        textSize = ImGui::CalcTextSize(folderName.c_str());
-        cursorPos = ImGui::GetCursorPos();
-
-        ImGui::Selectable((std::string("##") + folderName).c_str(), false, flags, ImVec2(64.0f, 64.0f));
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
+        ImGui::ImageButton((ImTextureID) (unsigned long) this->icons["folder"]->getID(),
+                     ImVec2(64.0f, 64.0f), ImVec2(0, 1), ImVec2(1, 0));
+        ImGui::PopStyleColor();
 
         if (ImGui::IsMouseDoubleClicked(0) && ImGui::IsItemHovered())
           this->currentDir = this->currentDir + "/" + folderName;
 
-        ImGui::SetCursorPos(cursorPos);
-        ImGui::Image((ImTextureID) (unsigned long) this->icons["folder"]->getID(),
-                     ImVec2(64.0f, 64.0f), ImVec2(0, 1), ImVec2(1, 0));
+        ImGui::TextWrapped(folderName.c_str());
 
-        // Align the folder text so the icons are evenly spaced out.
-        unsigned int numChars = (unsigned int) (2 * 64.0f / fontSize);
-        unsigned int stringPos = 0;
-        float yPos = cursorPos.y + 64.0f + fontSize;
-        unsigned int stride;
-        for (unsigned int i = 0; i < (unsigned int) (textSize.x / 64.0f) + 1; i++)
-        {
-          ImGui::SetCursorPos(ImVec2(cursorPos.x, yPos));
-
-          stride = ((stringPos + numChars) < folderName.size()) ? numChars : folderName.size() - stringPos;
-
-          ImGui::Text(folderName.substr(stringPos, stride).c_str());
-          stringPos += numChars;
-          yPos += fontSize;
-        }
-
-        // Handle the content potentially being offscreen for small
-        // content browsers. Move offscreen content to a new line.
-        maxCursorYPos = std::max(std::ceil((textSize.x / 64.0f) + 1.0f) * fontSize + cursorPos.y + 64.0f + fontSize, maxCursorYPos);
-        ImVec2 windowSize = ImGui::GetWindowSize();
-        if (windowSize.x - (64.0f + 8.0f) > cursorPos.x + 64.0f + 8.0f)
-          ImGui::SetCursorPos(ImVec2(cursorPos.x + 64.0f + 8.0f, cursorPos.y));
-        else
-          ImGui::SetCursorPos(ImVec2(0.0f, maxCursorYPos));
+        ImGui::NextColumn();
       }
     }
   }
 
   void
-  AssetBrowserWindow::drawFiles(Shared<Scene> activeScene, float &maxCursorYPos)
+  AssetBrowserWindow::drawFiles(Shared<Scene> activeScene)
   {
-    float fontSize = ImGui::GetFontSize();
     ImGuiSelectableFlags flags = ImGuiSelectableFlags_AllowItemOverlap;
-
-    ImVec2 textSize, cursorPos;
 
     // Iterate over the directory and find all the files.
     for (const auto& entry : std::filesystem::directory_iterator(this->currentDir))
@@ -317,10 +299,10 @@ namespace SciRenderer
         if (filename[0] == '.')
           continue;
 
-        textSize = ImGui::CalcTextSize(filename.c_str());
-        cursorPos = ImGui::GetCursorPos();
-
-        ImGui::Selectable((std::string("##") + filename).c_str(), false, flags, ImVec2(64.0f, 64.0f));
+        auto cursorPos = ImGui::GetCursorPos();
+        ImGui::Selectable(std::string("##" + filename).c_str(), false,
+                          ImGuiSelectableFlags_AllowItemOverlap,
+                          ImVec2(64.0f, 64.0f));
 
         // Setting up the drag and drop source for the filepath.
         if (ImGui::BeginDragDropSource())
@@ -343,7 +325,6 @@ namespace SciRenderer
           }
           ImGui::Text(filename.c_str());
 
-          // The things I'll do to get a proper payload...
           std::string filepath = entry.path().string();
           char pathBuffer[256];
           memset(pathBuffer, 0, sizeof(pathBuffer));
@@ -354,8 +335,8 @@ namespace SciRenderer
           ImGui::EndDragDropSource();
         }
 
-        ImGui::SetCursorPos(cursorPos);
         // The items to be dragged along with the cursor.
+        ImGui::SetCursorPos(cursorPos);
         if (fileExt == ".srn")
         {
           ImGui::Image((ImTextureID) (unsigned long) this->icons["srfile"]->getID(),
@@ -371,32 +352,17 @@ namespace SciRenderer
           ImGui::Image((ImTextureID) (unsigned long) this->icons["file"]->getID(),
                        ImVec2(64.0f, 64.0f), ImVec2(0, 1), ImVec2(1, 0));
         }
+        ImGui::TextWrapped(filename.c_str());
 
-        // Align the file text so the icons are evenly spaced out.
-        unsigned int numChars = (unsigned int) (2 * 64.0f / fontSize);
-        unsigned int stringPos = 0;
-        float yPos = cursorPos.y + 64.0f + fontSize;
-        unsigned int stride;
-        for (unsigned int i = 0; i < (unsigned int) (textSize.x / 64.0f) + 1; i++)
-        {
-          ImGui::SetCursorPos(ImVec2(cursorPos.x, yPos));
-
-          stride = ((stringPos + numChars) < filename.size()) ? numChars : filename.size() - stringPos;
-
-          ImGui::Text(filename.substr(stringPos, stride).c_str());
-          stringPos += numChars;
-          yPos += fontSize;
-        }
-
-        // Handle the content potentially being offscreen for small
-        // content browsers. Move offscreen content to a new line.
-        maxCursorYPos = std::max(std::ceil((textSize.x / 64.0f) + 1.0f) * fontSize + cursorPos.y + 64.0f + fontSize, maxCursorYPos);
-        ImVec2 windowSize = ImGui::GetWindowSize();
-        if (windowSize.x - (64.0f + 8.0f) > cursorPos.x + 64.0f + 8.0f)
-          ImGui::SetCursorPos(ImVec2(cursorPos.x + 64.0f + 8.0f, cursorPos.y));
-        else
-          ImGui::SetCursorPos(ImVec2(0.0f, maxCursorYPos));
+        ImGui::NextColumn();
       }
     }
+  }
+
+  // Handle creation of assets.
+  void
+  AssetBrowserWindow::createMaterial()
+  {
+
   }
 }

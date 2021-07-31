@@ -8,7 +8,7 @@
 
 namespace SciRenderer
 {
-  EnvironmentMap::EnvironmentMap(const std::string &cubeMeshPath)
+  EnvironmentMap::EnvironmentMap()
     : erMap(nullptr)
     , skybox(nullptr)
     , irradiance(nullptr)
@@ -25,9 +25,7 @@ namespace SciRenderer
     this->cubeShader = new Shader("./assets/shaders/forward/pbr/pbrSkybox.vs", "./assets/shaders/forward/pbr/pbrSkybox.fs");
     shaderCache->attachAsset("skybox_shader", this->cubeShader);
 
-    this->cube = new Model();
-    this->cube->loadModel(cubeMeshPath);
-    modelManager->attachAsset("skyboxcube.obj", cube);
+    this->cube.loadModel("./assets/.internal/cube.fbx");
   }
 
   EnvironmentMap::~EnvironmentMap()
@@ -160,7 +158,7 @@ namespace SciRenderer
 
     this->bind(this->currentEnvironment, 0);
 
-    for (auto& pair : this->cube->getSubmeshes())
+    for (auto& pair : this->cube.getSubmeshes())
     {
       if (!pair.second->hasVAO())
         pair.second->generateVAO();

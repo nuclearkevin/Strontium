@@ -5,6 +5,7 @@
 
 // Project includes.
 #include "Core/AssetManager.h"
+#include "Graphics/Renderer.h"
 #include "GuiElements/Styles.h"
 #include "Scenes/Components.h"
 #include "Serialization/YamlSerialization.h"
@@ -137,7 +138,17 @@ namespace SciRenderer
     , selectedString("")
     , fileTargets(FileLoadTargets::TargetNone)
     , saveTargets(FileSaveTargets::TargetNone)
-  { }
+    , dirWidgetShader("./assets/shaders/mesh.vs", "./assets/shaders/widgets/dirWidget.fs")
+    , widgetWidth(0.0f)
+  {
+    auto cSpec = FBOCommands::getFloatColourSpec(FBOTargetParam::Colour0);
+    this->dirBuffer = createShared<FrameBuffer>(512, 512);
+    this->dirBuffer->attachTexture2D(cSpec);
+    this->dirBuffer->attachRenderBuffer();
+    this->dirBuffer->setClearColour(glm::vec4(1.0f));
+
+    this->sphere.loadModel("./assets/.internal/sphere.fbx");
+  }
 
   SceneGraphWindow::~SceneGraphWindow()
   { }
@@ -160,7 +171,7 @@ namespace SciRenderer
     });
 
     // Right-click on blank space to create a new entity.
-		if (ImGui::BeginPopupContextWindow(0, 1, false))
+		if (ImGui::BeginPopupContextWindow(0, ImGuiPopupFlags_MouseButtonRight, false))
 		{
       if (ImGui::MenuItem("New Model"))
       {
@@ -175,18 +186,21 @@ namespace SciRenderer
         {
           auto light = activeScene->createEntity("New Directional Light");
           light.addComponent<DirectionalLightComponent>();
+          light.addComponent<TransformComponent>();
         }
 
         if (ImGui::MenuItem("Point Light"))
         {
           auto light = activeScene->createEntity("New Point Light");
           light.addComponent<PointLightComponent>();
+          light.addComponent<TransformComponent>();
         }
 
         if (ImGui::MenuItem("Spot Light"))
         {
           auto light = activeScene->createEntity("New Spot Light");
           light.addComponent<SpotLightComponent>();
+          light.addComponent<TransformComponent>();
         }
 
         if (ImGui::MenuItem("Ambient Light"))
@@ -212,7 +226,46 @@ namespace SciRenderer
   void
   SceneGraphWindow::onUpdate(float dt, Shared<Scene> activeScene)
   {
+    // Update the widget for directional lights.
+    if (this->selectedEntity)
+    {
+      if (this->selectedEntity.hasComponent<TransformComponent>() &&
+          this->selectedEntity.hasComponent<DirectionalLightComponent>())
+      {
+        auto& transform = this->selectedEntity.getComponent<TransformComponent>();
+        auto& light = this->selectedEntity.getComponent<DirectionalLightComponent>();
 
+        auto lightDir = glm::vec3(glm::toMat4(glm::quat(transform.rotation))
+                        * glm::vec4(0.0f, -1.0f, 0.0f, 0.0f));
+
+        this->dirBuffer->clear();
+        this->dirBuffer->bind();
+        this->dirBuffer->setViewport();
+
+        auto model = glm::mat4(1.0);
+        auto view = glm::lookAt(glm::vec3(0.0f, 4.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+        auto projection = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 10.0f);
+        auto mVP = projection * view * model;
+        this->dirWidgetShader.addUniformMatrix("mVP", mVP, GL_FALSE);
+        this->dirWidgetShader.addUniformMatrix("normalMat", glm::transpose(glm::inverse(glm::mat3(model))), GL_FALSE);
+        this->dirWidgetShader.addUniformMatrix("model", model, GL_FALSE);
+        this->dirWidgetShader.addUniformVector("lDirection", lightDir);
+
+        for (auto& pair : this->sphere.getSubmeshes())
+        {
+          if (pair.second->hasVAO())
+            Renderer3D::draw(pair.second->getVAO(), &this->dirWidgetShader);
+          else
+          {
+            pair.second->generateVAO();
+            if (pair.second->hasVAO())
+              Renderer3D::draw(pair.second->getVAO(), &this->dirWidgetShader);
+          }
+        }
+
+        this->dirBuffer->unbind();
+      }
+    }
   }
 
   void
@@ -404,18 +457,21 @@ namespace SciRenderer
 
             auto light = createChildEntity(entity, activeScene, "New Directional Light");
             light.addComponent<DirectionalLightComponent>();
+            light.addComponent<TransformComponent>();
           }
 
           if (ImGui::MenuItem("Point Light"))
           {
             auto light = createChildEntity(entity, activeScene, "New Point Light");
             light.addComponent<PointLightComponent>();
+            light.addComponent<TransformComponent>();
           }
 
           if (ImGui::MenuItem("Spot Light"))
           {
             auto light = createChildEntity(entity, activeScene, "New Spot Light");
             light.addComponent<SpotLightComponent>();
+            light.addComponent<TransformComponent>();
           }
 
           if (ImGui::MenuItem("Ambient Light"))
@@ -633,6 +689,8 @@ namespace SciRenderer
         Styles::drawVec3Controls("Direction", glm::vec3(0.0f), component.light.direction,
                                  0.0f, 0.01f, -1.0f, 1.0f);
         ImGui::PopID();
+
+        this->drawDirectionalWidget();
       });
 
       drawComponentProperties<PointLightComponent>("Point Light Component",
@@ -703,6 +761,19 @@ namespace SciRenderer
     }
 
     ImGui::End();
+  }
+
+  void
+  SceneGraphWindow::drawDirectionalWidget()
+  {
+    this->widgetWidth = ImGui::GetWindowSize().x / 2.0f;
+    ImGui::Separator();
+    ImGui::Text("Window size: %f, %f", this->widgetWidth, this->widgetWidth);
+    ImGui::BeginChild("LightDirection", ImVec2(this->widgetWidth, this->widgetWidth));
+    ImGui::Image((ImTextureID) (unsigned long) this->dirBuffer->getAttachID(FBOTargetParam::Colour0),
+                 ImVec2(this->widgetWidth, this->widgetWidth), ImVec2(0, 1), ImVec2(1, 0));
+    ImGui::EndChild();
+    ImGui::Separator();
   }
 
   void

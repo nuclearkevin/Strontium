@@ -147,7 +147,7 @@ namespace SciRenderer
 
       RendererStorage()
       {
-        currentEnvironment = createUnique<EnvironmentMap>("./assets/models/cube.obj");
+        currentEnvironment = createUnique<EnvironmentMap>();
       }
     };
 
@@ -212,6 +212,10 @@ namespace SciRenderer
     RendererStorage* getStorage();
     RendererState* getState();
     RendererStats* getStats();
+
+    // Draw the data given, forward rendering.
+    void draw(VertexArray* data, Shader* program);
+    void drawEnvironment();
 
     // Generic begin and end for the renderer.
     void begin(GLuint width, GLuint height, Shared<Camera> sceneCam, bool isForward = false);

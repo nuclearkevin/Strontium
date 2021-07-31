@@ -40,7 +40,7 @@ Application
 /.idea/*
 
 # Allow some directories (fonts, icons, etc.).
-!**/inputs/*.txt
-!**/media/*.png
-!**/assets/.icons/*.png
-!**/assets/.fonts/*.txt
+!**/media/*
+!**/assets/.internal/*
+!**/assets/.icons/*
+!**/assets/.fonts/*

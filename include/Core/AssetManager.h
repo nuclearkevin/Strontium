@@ -43,7 +43,7 @@ namespace SciRenderer
     // Check to see if the map has an asset.
     bool hasAsset(const AssetHandle &handle)
     {
-      return this->assetStorage.contains(handle);
+      return this->assetStorage.count(handle) > 0;
     }
 
     // Attach an asset to the manager.
@@ -98,6 +98,13 @@ namespace SciRenderer
       std::lock_guard<std::mutex> guard(assetMutex);
 
       this->defaultAsset.reset(asset);
+    }
+
+    void getDefaultAsset()
+    {
+      std::lock_guard<std::mutex> guard(assetMutex);
+
+      return this->defaultAsset.get();
     }
 
     // Get a reference to the asset name storage.
