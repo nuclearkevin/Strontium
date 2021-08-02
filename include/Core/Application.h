@@ -1,7 +1,7 @@
 #pragma once
 
 // Macro include file.
-#include "SciRenderPCH.h"
+#include "StrontiumPCH.h"
 
 // Project includes.
 #include "Core/ApplicationBase.h"
@@ -15,7 +15,7 @@
 
 int main(int argc, char** argv);
 
-namespace SciRenderer
+namespace Strontium
 {
   // Singleton application class.
   class Application

@@ -1,7 +1,7 @@
 #pragma once
 
 // Macro include file.
-#include "SciRenderPCH.h"
+#include "StrontiumPCH.h"
 
 // Project includes.
 #include "Core/ApplicationBase.h"
@@ -9,7 +9,7 @@
 // STL includes.
 #include <mutex>
 
-namespace SciRenderer
+namespace Strontium
 {
   // Parameters for textures.
   enum class TextureInternalFormats

@@ -1,7 +1,7 @@
 // Project includes.
 #include "Graphics/Buffers.h"
 
-namespace SciRenderer
+namespace Strontium
 {
   //----------------------------------------------------------------------------
   // Vertex buffer here.

@@ -3,7 +3,7 @@
 // Project includes.
 #include "Core/Logs.h"
 
-namespace SciRenderer
+namespace Strontium
 {
   FrameBuffer::FrameBuffer()
     : depthBuffer(nullptr)

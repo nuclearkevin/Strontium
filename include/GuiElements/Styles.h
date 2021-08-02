@@ -1,16 +1,19 @@
 #pragma once
 
 // Macro include file.
-#include "SciRenderPCH.h"
+#include "StrontiumPCH.h"
 
 // ImGui includes.
 #include "imgui/imgui.h"
 #include "imgui/imgui_internal.h"
 
+// Font awesome includes.
+#include "GuiElements/IconsFontAwesome4.h"
+
 // ImGui text editor include.
 #include "imguitexteditor/TextEditor.h"
 
-namespace SciRenderer
+namespace Strontium
 {
   namespace Styles
   {

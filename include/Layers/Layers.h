@@ -1,12 +1,12 @@
 #pragma once
 
 // Macro include file.
-#include "SciRenderPCH.h"
+#include "StrontiumPCH.h"
 
 // Project includes.
 #include "Core/Events.h"
 
-namespace SciRenderer
+namespace Strontium
 {
   // A layer class which determines the order things are drawn to the screen.
   // Also holds the scenes and other fun stuff.

@@ -1,12 +1,12 @@
 #pragma once
 
 // Macro include file.
-#include "SciRenderPCH.h"
+#include "StrontiumPCH.h"
 
 // STL includes.
 #include <mutex>
 
-namespace SciRenderer
+namespace Strontium
 {
   enum class EventType
   {

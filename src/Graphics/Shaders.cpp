@@ -5,7 +5,7 @@
 // Project includes.
 #include "Core/Logs.h"
 
-namespace SciRenderer
+namespace Strontium
 {
 	// Constructor and destructor.
 	Shader::Shader()

@@ -1,13 +1,13 @@
 #pragma once
 
 // Macro include file.
-#include "SciRenderPCH.h"
+#include "StrontiumPCH.h"
 
 // Project includes.
 #include "Core/ApplicationBase.h"
 #include "Graphics/GraphicsContext.h"
 
-namespace SciRenderer
+namespace Strontium
 {
   // A wrapper class for the GLFW window functionality.
   class Window

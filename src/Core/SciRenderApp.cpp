@@ -2,23 +2,23 @@
 #include "Core/EntryPoint.h"
 #include "Layers/EditorLayer.h"
 
-namespace SciRenderer
+namespace Strontium
 {
-  class SciRenderApp : public Application
+  class StrontiumApp : public Application
   {
   public:
-    SciRenderApp()
+    StrontiumApp()
       : Application("SR - Editor")
     {
       this->pushLayer(new EditorLayer());
     }
 
-    ~SciRenderApp()
+    ~StrontiumApp()
     { }
   };
 
   Application* makeApplication()
   {
-    return new SciRenderApp();
+    return new StrontiumApp();
   }
 }

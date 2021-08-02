@@ -11,7 +11,7 @@
 #include "Core/ThreadPool.h"
 #include "GuiElements/Styles.h"
 
-namespace SciRenderer
+namespace Strontium
 {
   //----------------------------------------------------------------------------
   // 2D textures.
@@ -112,6 +112,17 @@ namespace SciRenderer
   void
   Texture2D::loadImageAsync(const std::string &filepath, const Texture2DParams &params)
   {
+    // Fetch the logs.
+    Logger* logs = Logger::getInstance();
+
+    // Check if the file is valid or not.
+    std::ifstream test(filepath);
+    if (!test)
+    {
+      logs->logMessage(LogMessage("Error, file " + filepath + " cannot be opened.", true, true));
+      return;
+    }
+
     // Fetch the thread pool and event dispatcher.
     auto workerGroup = ThreadPool::getInstance(2);
 

@@ -1,6 +1,6 @@
 #include "GuiElements/FileBrowserWindow.h"
 
-namespace SciRenderer
+namespace Strontium
 {
   FileBrowserWindow::FileBrowserWindow(EditorLayer* parentLayer)
     : GuiWindow(parentLayer)

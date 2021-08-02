@@ -1,6 +1,6 @@
 #include "GuiElements/GuiWindow.h"
 
-namespace SciRenderer
+namespace Strontium
 {
   GuiWindow::GuiWindow(EditorLayer* parentLayer, bool isOpen)
     : parentLayer(parentLayer)

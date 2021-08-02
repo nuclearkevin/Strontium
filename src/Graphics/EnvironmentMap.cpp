@@ -6,7 +6,7 @@
 #include "Graphics/Buffers.h"
 #include "Graphics/Compute.h"
 
-namespace SciRenderer
+namespace Strontium
 {
   EnvironmentMap::EnvironmentMap()
     : erMap(nullptr)
@@ -158,10 +158,10 @@ namespace SciRenderer
 
     this->bind(this->currentEnvironment, 0);
 
-    for (auto& pair : this->cube.getSubmeshes())
+    for (auto& submesh : this->cube.getSubmeshes())
     {
-      if (!pair.second->hasVAO())
-        pair.second->generateVAO();
+      if (!submesh.hasVAO())
+        submesh.generateVAO();
     }
   }
 

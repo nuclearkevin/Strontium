@@ -1,6 +1,6 @@
 #include "Graphics/RendererCommands.h"
 
-namespace SciRenderer
+namespace Strontium
 {
   void
   RendererCommands::enable(const RendererFunction &toEnable)

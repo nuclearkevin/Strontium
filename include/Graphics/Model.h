@@ -1,7 +1,7 @@
 #pragma once
 
 // Macro include file.
-#include "SciRenderPCH.h"
+#include "StrontiumPCH.h"
 
 // Project includes.
 #include "Core/ApplicationBase.h"
@@ -17,7 +17,7 @@
 // STL includes.
 #include <mutex>
 
-namespace SciRenderer
+namespace Strontium
 {
   // Model class
   class Model
@@ -42,21 +42,20 @@ namespace SciRenderer
     // Get the submeshes for the model.
     glm::vec3& getMinPos() { return this->minPos; }
     glm::vec3& getMaxPos() { return this->maxPos; }
-    std::vector<std::pair<std::string, Shared<Mesh>>>& getSubmeshes() { return this->subMeshes; }
+    std::vector<Mesh>& getSubmeshes() { return this->subMeshes; }
     std::string& getFilepath() { return this->filepath; }
-  protected:
+  private:
+    void processNode(aiNode* node, const aiScene* scene);
+    void processMesh(aiMesh* mesh, const aiScene* scene);
+
+    std::vector<Mesh> subMeshes;
     bool loaded;
-    std::vector<std::pair<std::string, Shared<Mesh>>> subMeshes;
 
     glm::vec3 minPos;
     glm::vec3 maxPos;
 
     std::string filepath;
     std::string name;
-
-  private:
-    void processNode(aiNode* node, const aiScene* scene);
-    void processMesh(aiMesh* mesh, const aiScene* scene);
 
     friend class Mesh;
   };

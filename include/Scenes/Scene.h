@@ -1,7 +1,7 @@
 #pragma once
 
 // Macro include file.
-#include "SciRenderPCH.h"
+#include "StrontiumPCH.h"
 
 // Project includes.
 #include "Graphics/GraphicsSystem.h"
@@ -9,7 +9,7 @@
 // Entity component system include.
 #include "entt.hpp"
 
-namespace SciRenderer
+namespace Strontium
 {
   class Entity;
 

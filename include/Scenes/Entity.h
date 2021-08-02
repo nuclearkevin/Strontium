@@ -1,7 +1,7 @@
 #pragma once
 
 // Macro include file.
-#include "SciRenderPCH.h"
+#include "StrontiumPCH.h"
 
 // Entity component system include.
 #include "entt.hpp"
@@ -9,7 +9,7 @@
 // Project includes.
 #include "Scenes/Scene.h"
 
-namespace SciRenderer
+namespace Strontium
 {
   // Entity class, which wraps up the entt ECS functionality to make it easier
   // to use.
@@ -58,6 +58,7 @@ namespace SciRenderer
     // Operator overloading to make using this wrapper easier.
     operator bool() { return this->entityID != entt::null; }
     operator entt::entity() { return this->entityID; }
+    operator Scene*() { return this->parentScene; }
     operator GLuint() { return (GLuint) this->entityID; }
     operator GLint() { return (GLint) (GLuint) this->entityID; }
     bool operator==(const Entity& other) { return this->entityID == other.entityID

@@ -3,7 +3,7 @@
 // Project includes.
 #include "Core/Events.h"
 
-namespace SciRenderer
+namespace Strontium
 {
   GLuint Window::windowInstances = 0;
 

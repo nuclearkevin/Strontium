@@ -9,7 +9,7 @@
 #include "imgui/imgui.h"
 #include "imgui/imgui_internal.h"
 
-namespace SciRenderer
+namespace Strontium
 {
   MaterialWindow::MaterialWindow(EditorLayer* parentLayer)
     : GuiWindow(parentLayer)
@@ -31,7 +31,7 @@ namespace SciRenderer
     static bool showTexWindow = false;
     static bool showMaterialWindow = false;
     static bool showNewMaterialWindow = false;
-    static std::string selectedType, submesh;
+    static std::string selectedType, submeshHandle;
 
     if (!this->selectedEntity)
       return;
@@ -45,50 +45,50 @@ namespace SciRenderer
     if (rComponent)
     {
       auto& submeshes = modelAssets->getAsset(rComponent.meshName)->getSubmeshes();
-      for (auto& pair : submeshes)
+      for (auto& submesh : submeshes)
       {
         ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_SpanAvailWidth
                                  | ImGuiTreeNodeFlags_OpenOnArrow
                                  | ImGuiTreeNodeFlags_OpenOnDoubleClick;
 
-        bool opened = ImGui::TreeNodeEx((pair.first + "##" + std::to_string((unsigned long) pair.second.get())).c_str(), flags);
+        bool opened = ImGui::TreeNodeEx((submesh.getName() + "##" + std::to_string((unsigned long) &submesh)).c_str(), flags);
         if (!opened)
           continue;
 
-        this->DNDMaterialTarget(pair.first);
+        this->DNDMaterialTarget(submesh.getName());
 
-        auto material = rComponent.materials.getMaterial(pair.second->getName());
+        auto material = rComponent.materials.getMaterial(submesh.getName());
 
-        ImGui::Text("Material Name: %s", rComponent.materials.getMaterialHandle(pair.second->getName()).c_str());
+        ImGui::Text("Material Name: %s", rComponent.materials.getMaterialHandle(submesh.getName()).c_str());
         if (material->getFilepath() != "")
           ImGui::Text("Material Path: %s", material->getFilepath().c_str());
 
         // Material settings for the submesh.
-        if (ImGui::Button(("Change Material##" + std::to_string((unsigned long) pair.second.get())).c_str()))
+        if (ImGui::Button(("Change Material##" + std::to_string((unsigned long) &submesh)).c_str()))
         {
           showMaterialWindow = true;
-          submesh = pair.first;
+          submeshHandle = submesh.getName();
         }
 
         ImGui::SameLine();
-        if (ImGui::Button(("New Material##" + std::to_string((unsigned long) pair.second.get())).c_str()))
+        if (ImGui::Button(("New Material##" + std::to_string((unsigned long) &submesh)).c_str()))
         {
           showNewMaterialWindow = true;
-          submesh = pair.first;
+          submeshHandle = submesh.getName();
         }
 
         ImGui::SameLine();
-        if (ImGui::Button(("Save Material##" + std::to_string((unsigned long) pair.second.get())).c_str()))
+        if (ImGui::Button(("Save Material##" + std::to_string((unsigned long) &submesh)).c_str()))
         {
           EventDispatcher* dispatcher = EventDispatcher::getInstance();
           dispatcher->queueEvent(new OpenDialogueEvent(DialogueEventType::FileSave,
                                                        ".smtl"));
-          this->selectedHandle = rComponent.materials.getMaterialHandle(pair.second->getName());
+          this->selectedHandle = rComponent.materials.getMaterialHandle(submesh.getName());
           this->fileSaveTarget = FileSaveTargets::TargetMaterial;
         }
 
         // Actual material properties.
-        if (ImGui::CollapsingHeader(("Material Properties##" + std::to_string((unsigned long) pair.second.get())).c_str(), ImGuiTreeNodeFlags_DefaultOpen))
+        if (ImGui::CollapsingHeader(("Material Properties##" + std::to_string((unsigned long) &submesh)).c_str(), ImGuiTreeNodeFlags_DefaultOpen))
         {
           auto& materialPipeline = material->getPipeline();
 
@@ -107,7 +107,7 @@ namespace SciRenderer
           {
             showTexWindow = true;
             selectedType = "albedoMap";
-            submesh = pair.first;
+            submeshHandle = submesh.getName();
           }
           this->DNDTextureTarget(material, "albedoMap");
           auto endCursorPos = ImGui::GetCursorPos();
@@ -128,7 +128,7 @@ namespace SciRenderer
           {
             showTexWindow = true;
             selectedType = "metallicMap";
-            submesh = pair.first;
+            submeshHandle = submesh.getName();
           }
           this->DNDTextureTarget(material, "metallicMap");
           ImGui::PopID();
@@ -142,7 +142,7 @@ namespace SciRenderer
           {
             showTexWindow = true;
             selectedType = "roughnessMap";
-            submesh = pair.first;
+            submeshHandle = submesh.getName();
           }
           this->DNDTextureTarget(material, "roughnessMap");
           ImGui::PopID();
@@ -156,7 +156,7 @@ namespace SciRenderer
           {
             showTexWindow = true;
             selectedType = "aOcclusionMap";
-            submesh = pair.first;
+            submeshHandle = submesh.getName();
           }
           this->DNDTextureTarget(material, "aOcclusionMap");
           ImGui::PopID();
@@ -170,7 +170,7 @@ namespace SciRenderer
           {
             showTexWindow = true;
             selectedType = "specF0Map";
-            submesh = pair.first;
+            submeshHandle = submesh.getName();
           }
           this->DNDTextureTarget(material, "specF0Map");
           ImGui::PopID();
@@ -184,22 +184,22 @@ namespace SciRenderer
           {
             showTexWindow = true;
             selectedType = "normalMap";
-            submesh = pair.first;
+            submeshHandle = submesh.getName();
           }
           this->DNDTextureTarget(material, "normalMap");
           ImGui::PopID();
         }
         ImGui::TreePop();
       }
-      ImGui::End();
     }
+    ImGui::End();
 
     if (showTexWindow)
-      this->drawTextureWindow(selectedType, submesh, showTexWindow);
+      this->drawTextureWindow(selectedType, submeshHandle, showTexWindow);
     if (showMaterialWindow)
-      this->drawMaterialWindow(submesh, showMaterialWindow);
+      this->drawMaterialWindow(submeshHandle, showMaterialWindow);
     if (showNewMaterialWindow)
-      this->drawNewMaterialWindow(submesh, showNewMaterialWindow);
+      this->drawNewMaterialWindow(submeshHandle, showNewMaterialWindow);
   }
 
   void

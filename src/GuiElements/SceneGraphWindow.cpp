@@ -14,7 +14,13 @@
 #include "imgui/imgui.h"
 #include "imgui/imgui_internal.h"
 
-namespace SciRenderer
+// Some math for decomposing matrix transformations.
+#include "glm/gtx/matrix_decompose.hpp"
+
+// ImGizmo goodies.
+#include "imguizmo/ImGuizmo.h"
+
+namespace Strontium
 {
   // Templated helper functions for components.
   //----------------------------------------------------------------------------
@@ -132,7 +138,7 @@ namespace SciRenderer
   }
 
   // Fixed selection bug for now -> removed the ability to deselect entities.
-  // TODO: Readd the ability to deselect entities.
+  // TODO: Re-add the ability to deselect entities.
   SceneGraphWindow::SceneGraphWindow(EditorLayer* parentLayer)
     : GuiWindow(parentLayer)
     , selectedString("")
@@ -145,7 +151,7 @@ namespace SciRenderer
     this->dirBuffer = createShared<FrameBuffer>(512, 512);
     this->dirBuffer->attachTexture2D(cSpec);
     this->dirBuffer->attachRenderBuffer();
-    this->dirBuffer->setClearColour(glm::vec4(1.0f));
+    this->dirBuffer->setClearColour(glm::vec4(0.0f));
 
     this->sphere.loadModel("./assets/.internal/sphere.fbx");
   }
@@ -217,6 +223,7 @@ namespace SciRenderer
 
 			ImGui::EndPopup();
 		}
+
     ImGui::End();
 
     if (openPropWindow)
@@ -225,48 +232,7 @@ namespace SciRenderer
 
   void
   SceneGraphWindow::onUpdate(float dt, Shared<Scene> activeScene)
-  {
-    // Update the widget for directional lights.
-    if (this->selectedEntity)
-    {
-      if (this->selectedEntity.hasComponent<TransformComponent>() &&
-          this->selectedEntity.hasComponent<DirectionalLightComponent>())
-      {
-        auto& transform = this->selectedEntity.getComponent<TransformComponent>();
-        auto& light = this->selectedEntity.getComponent<DirectionalLightComponent>();
-
-        auto lightDir = glm::vec3(glm::toMat4(glm::quat(transform.rotation))
-                        * glm::vec4(0.0f, -1.0f, 0.0f, 0.0f));
-
-        this->dirBuffer->clear();
-        this->dirBuffer->bind();
-        this->dirBuffer->setViewport();
-
-        auto model = glm::mat4(1.0);
-        auto view = glm::lookAt(glm::vec3(0.0f, 4.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-        auto projection = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 10.0f);
-        auto mVP = projection * view * model;
-        this->dirWidgetShader.addUniformMatrix("mVP", mVP, GL_FALSE);
-        this->dirWidgetShader.addUniformMatrix("normalMat", glm::transpose(glm::inverse(glm::mat3(model))), GL_FALSE);
-        this->dirWidgetShader.addUniformMatrix("model", model, GL_FALSE);
-        this->dirWidgetShader.addUniformVector("lDirection", lightDir);
-
-        for (auto& pair : this->sphere.getSubmeshes())
-        {
-          if (pair.second->hasVAO())
-            Renderer3D::draw(pair.second->getVAO(), &this->dirWidgetShader);
-          else
-          {
-            pair.second->generateVAO();
-            if (pair.second->hasVAO())
-              Renderer3D::draw(pair.second->getVAO(), &this->dirWidgetShader);
-          }
-        }
-
-        this->dirBuffer->unbind();
-      }
-    }
-  }
+  { }
 
   void
   SceneGraphWindow::onEvent(Event &event)
@@ -384,22 +350,10 @@ namespace SciRenderer
     flags |= ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_OpenOnArrow
           | ImGuiTreeNodeFlags_OpenOnDoubleClick;
 
+    if (entity.hasComponent<PrefabComponent>())
+      ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.54f, 0.11f, 0.0f, 1.0f));
+
     bool opened = ImGui::TreeNodeEx((void*)(uint64_t)(uint32_t)entity, flags, nameTag.c_str());
-
-    // Drag and drop targets!
-    if (ImGui::BeginDragDropTarget())
-    {
-      if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH"))
-      {
-        EventDispatcher* dispatcher = EventDispatcher::getInstance();
-        dispatcher->queueEvent(new EntitySwapEvent(entity, activeScene.get()));
-
-        this->selectedEntity = entity;
-        this->loadDNDAsset((char*) payload->Data);
-      }
-
-      ImGui::EndDragDropTarget();
-    }
 
     // Set the new selected entity.
     if (ImGui::IsItemClicked())
@@ -412,7 +366,6 @@ namespace SciRenderer
 
     // Menu with entity properties. Allows the addition and deletion of
     // components, copying of the entity and deletion of the entity.
-    bool entityDeleted = false;
     if (ImGui::BeginPopupContextItem())
     {
       if (ImGui::BeginMenu("Attach Component"))
@@ -530,6 +483,9 @@ namespace SciRenderer
       this->drawComponentNodes(entity, activeScene);
       ImGui::TreePop();
     }
+
+    if (entity.hasComponent<PrefabComponent>())
+      ImGui::PopStyleColor();
   }
 
   // Function for drawing sub-entities and components of an entity.
@@ -653,14 +609,32 @@ namespace SciRenderer
       drawComponentProperties<RenderableComponent>("Renderable Component",
         this->selectedEntity, [this](auto& component)
       {
-        static bool showMeshWindow = false;
+        Model* componentModel = component;
+        char nameBuffer[256];
+        memset(nameBuffer, 0, sizeof(nameBuffer));
+        if (componentModel)
+          std::strncpy(nameBuffer, componentModel->getFilepath().c_str(), sizeof(nameBuffer));
 
-        ImGui::Text((std::string("Mesh: ") + component.meshName).c_str());
-        if (ImGui::Button("Select New Mesh"))
-          showMeshWindow = true;
+        if (ImGui::Button(ICON_FA_FOLDER_OPEN))
+        {
+          EventDispatcher* dispatcher = EventDispatcher::getInstance();
+          dispatcher->queueEvent(new OpenDialogueEvent(DialogueEventType::FileOpen,
+                                                       ".obj,.FBX,.fbx"));
 
-        if (showMeshWindow)
-          this->drawMeshWindow(showMeshWindow);
+          this->fileTargets = FileLoadTargets::TargetModel;
+        }
+
+        ImGui::SameLine();
+        ImGui::InputText("##modelPath", nameBuffer, sizeof(nameBuffer), ImGuiInputTextFlags_ReadOnly);
+
+        // Drag and drop targets!
+        if (ImGui::BeginDragDropTarget())
+        {
+          if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH"))
+            this->loadDNDAsset((char*) payload->Data);
+
+          ImGui::EndDragDropTarget();
+        }
       });
 
       drawComponentProperties<DirectionalLightComponent>("Directional Light Component",
@@ -668,6 +642,8 @@ namespace SciRenderer
       {
         ImGui::PushID("DirectionalLight");
 
+        auto& lightDir = component.light.direction;
+        ImGui::Text("Light direction: (%f, %f, %f)", lightDir.x, lightDir.y, lightDir.z);
         bool isPrimaryLight = component.light.primaryLight;
         ImGui::Checkbox("Primary Light", &component.light.primaryLight);
         if (component.light.primaryLight && !isPrimaryLight)
@@ -686,8 +662,6 @@ namespace SciRenderer
         ImGui::ColorEdit3("Colour", &component.light.colour.r);
         Styles::drawFloatControl("Intensity", 0.0f, component.light.intensity,
                                  0.0f, 0.1f, 0.0f, 100.0f);
-        Styles::drawVec3Controls("Direction", glm::vec3(0.0f), component.light.direction,
-                                 0.0f, 0.01f, -1.0f, 1.0f);
         ImGui::PopID();
 
         this->drawDirectionalWidget();
@@ -728,13 +702,17 @@ namespace SciRenderer
       drawComponentProperties<AmbientComponent>("Ambient Light Component",
         this->selectedEntity, [this](auto& component)
       {
-        bool attachEnvi = false;
         auto storage = Renderer3D::getStorage();
 
         static bool drawingMips = false;
 
         if (ImGui::Button("Load New Environment"))
-          attachEnvi = true;
+        {
+          EventDispatcher* dispatcher = EventDispatcher::getInstance();
+          dispatcher->queueEvent(new OpenDialogueEvent(DialogueEventType::FileOpen, ".hdr"));
+
+          this->fileTargets = FileLoadTargets::TargetEnvironment;
+        }
 
         if (component.ambient->hasEqrMap())
         {
@@ -749,31 +727,99 @@ namespace SciRenderer
 
           Styles::drawFloatControl("Intensity", 1.0f, component.ambient->getIntensity(), 0.0f, 0.1f, 0.0f, 100.0f);
         }
-
-        if (attachEnvi)
-        {
-          EventDispatcher* dispatcher = EventDispatcher::getInstance();
-          dispatcher->queueEvent(new OpenDialogueEvent(DialogueEventType::FileOpen, ".hdr"));
-
-          this->fileTargets = FileLoadTargets::TargetEnvironment;
-        }
       });
     }
 
     ImGui::End();
   }
 
+  // Draw an
   void
   SceneGraphWindow::drawDirectionalWidget()
   {
-    this->widgetWidth = ImGui::GetWindowSize().x / 2.0f;
-    ImGui::Separator();
-    ImGui::Text("Window size: %f, %f", this->widgetWidth, this->widgetWidth);
-    ImGui::BeginChild("LightDirection", ImVec2(this->widgetWidth, this->widgetWidth));
-    ImGui::Image((ImTextureID) (unsigned long) this->dirBuffer->getAttachID(FBOTargetParam::Colour0),
-                 ImVec2(this->widgetWidth, this->widgetWidth), ImVec2(0, 1), ImVec2(1, 0));
-    ImGui::EndChild();
-    ImGui::Separator();
+    if (this->selectedEntity.hasComponent<TransformComponent>() &&
+        this->selectedEntity.hasComponent<DirectionalLightComponent>())
+    {
+      auto model = glm::mat4(1.0);
+      auto viewPos = glm::vec3(2.0f);
+      auto viewDir = glm::normalize(glm::vec3(0.0f, 0.0f, 0.0f) - viewPos);
+      auto view = glm::lookAt(viewPos, viewPos + viewDir, glm::vec3(0.0f, 1.0f, 0.0f));
+      auto projection = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 10.0f);
+      auto mVP = projection * view * model;
+
+      auto& transform = this->selectedEntity.getComponent<TransformComponent>();
+      auto& light = this->selectedEntity.getComponent<DirectionalLightComponent>();
+
+      auto lightDir = -1.0f * glm::vec3(glm::toMat4(glm::quat(transform.rotation))
+                            * glm::vec4(0.0f, -1.0f, 0.0f, 0.0f));
+
+      this->dirBuffer->clear();
+      this->dirBuffer->bind();
+      this->dirBuffer->setViewport();
+
+      this->dirWidgetShader.addUniformMatrix("mVP", mVP, GL_FALSE);
+      this->dirWidgetShader.addUniformMatrix("normalMat", glm::transpose(glm::inverse(glm::mat3(model))), GL_FALSE);
+      this->dirWidgetShader.addUniformMatrix("model", model, GL_FALSE);
+      this->dirWidgetShader.addUniformVector("lDirection", lightDir);
+
+      for (auto& submesh : this->sphere.getSubmeshes())
+      {
+        if (submesh.hasVAO())
+          Renderer3D::draw(submesh.getVAO(), &this->dirWidgetShader);
+        else
+        {
+          submesh.generateVAO();
+          if (submesh.hasVAO())
+            Renderer3D::draw(submesh.getVAO(), &this->dirWidgetShader);
+        }
+      }
+
+      this->dirBuffer->unbind();
+
+      this->widgetWidth = ImGui::GetWindowSize().x * 0.75f;
+      ImGui::BeginChild("LightDirection", ImVec2(this->widgetWidth, this->widgetWidth));
+      ImGui::Image((ImTextureID) (unsigned long) this->dirBuffer->getAttachID(FBOTargetParam::Colour0),
+                   ImVec2(this->widgetWidth, this->widgetWidth), ImVec2(0, 1), ImVec2(1, 0));
+
+      // ImGuizmo boilerplate. Prepare the drawing context and set the window to
+      // draw the gizmos to.
+      ImGuizmo::SetOrthographic(false);
+      ImGuizmo::SetDrawlist();
+
+      auto windowMin = ImGui::GetWindowContentRegionMin();
+      auto windowMax = ImGui::GetWindowContentRegionMax();
+      auto windowOffset = ImGui::GetWindowPos();
+      ImVec2 bounds[2];
+      bounds[0] = ImVec2(windowMin.x + windowOffset.x,
+                         windowMin.y + windowOffset.y);
+      bounds[1] = ImVec2(windowMax.x + windowOffset.x,
+                         windowMax.y + windowOffset.y);
+
+      ImGuizmo::SetRect(bounds[0].x - 100.0f, bounds[0].y - 100.0f,
+                        (bounds[1].x - bounds[0].x) + 200.0f,
+                        (bounds[1].y - bounds[0].y) + 200.0f);
+
+      glm::mat4 transformMatrix = transform;
+
+      // Manipulate the matrix. TODO: Add snapping.
+      ImGuizmo::Manipulate(glm::value_ptr(view), glm::value_ptr(projection),
+                           ImGuizmo::ROTATE, ImGuizmo::WORLD,
+                           glm::value_ptr(transformMatrix), nullptr, nullptr);
+
+      if (ImGuizmo::IsUsing())
+      {
+        glm::vec3 translation, scale, skew;
+        glm::vec4 perspective;
+        glm::quat rotation;
+        glm::decompose(transformMatrix, scale, rotation, translation, skew, perspective);
+
+        transform.translation = translation;
+        transform.rotation = glm::eulerAngles(rotation);
+        transform.scale = scale;
+      }
+
+      ImGui::EndChild();
+    }
   }
 
   void
@@ -798,52 +844,5 @@ namespace SciRenderer
       auto& renderable = this->selectedEntity.addComponent<RenderableComponent>(filename);
       Model::asyncLoadModel(filepath, filename, &renderable.materials);
     }
-  }
-
-  // Draw the mesh selection window.
-  void
-  SceneGraphWindow::drawMeshWindow(bool &isOpen)
-  {
-    // Get the asset caches.
-    auto modelAssets = AssetManager<Model>::getManager();
-    auto shaderCache = AssetManager<Shader>::getManager();
-
-    ImGui::Begin("Mesh Assets", &isOpen);
-
-    // Button to load in a new mesh asset.
-    if (ImGui::Button("Load New Mesh"))
-    {
-      EventDispatcher* dispatcher = EventDispatcher::getInstance();
-      dispatcher->queueEvent(new OpenDialogueEvent(DialogueEventType::FileOpen,
-                                                   ".obj,.FBX,.fbx"));
-
-      this->fileTargets = FileLoadTargets::TargetModel;
-      isOpen = false;
-    }
-
-    // Loop over all the loaded models and display each for selection.
-    for (auto& name : modelAssets->getStorage())
-    {
-      ImGuiTreeNodeFlags flags = ((this->selectedString == name) ? ImGuiTreeNodeFlags_Selected : 0);
-      flags |= ImGuiTreeNodeFlags_NoTreePushOnOpen | ImGuiTreeNodeFlags_OpenOnArrow
-            | ImGuiTreeNodeFlags_Bullet;
-
-      bool opened = ImGui::TreeNodeEx((void*) (sizeof(char) * name.size()), flags, name.c_str());
-
-      if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(0))
-      {
-        if (this->selectedEntity.hasComponent<RenderableComponent>())
-          this->selectedEntity.removeComponent<RenderableComponent>();
-
-        auto& renderable = this->selectedEntity.addComponent<RenderableComponent>(name);
-
-        isOpen = false;
-        this->selectedString = "";
-      }
-    }
-    ImGui::End();
-
-    if (!isOpen)
-      this->selectedString = "";
   }
 }

@@ -1,8 +1,8 @@
 #pragma once
 
-#include "SciRenderPCH.h"
+#include "StrontiumPCH.h"
 
-namespace SciRenderer
+namespace Strontium
 {
   //----------------------------------------------------------------------------
   // The compute shader class.

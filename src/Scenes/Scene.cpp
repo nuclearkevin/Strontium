@@ -5,7 +5,7 @@
 #include "Scenes/Components.h"
 #include "Scenes/Entity.h"
 
-namespace SciRenderer
+namespace Strontium
 {
   Scene::Scene(const std::string &filepath)
     : saveFilepath(filepath)

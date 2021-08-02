@@ -1,6 +1,6 @@
 #include "Graphics/GeometryBuffer.h"
 
-namespace SciRenderer
+namespace Strontium
 {
   GeometryBuffer::GeometryBuffer()
     : type(RuntimeType::Editor)

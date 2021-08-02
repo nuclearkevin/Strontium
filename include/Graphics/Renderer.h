@@ -4,7 +4,7 @@
 #pragma once
 
 // Macro include file.
-#include "SciRenderPCH.h"
+#include "StrontiumPCH.h"
 
 // Project includes.
 #include "Core/ApplicationBase.h"
@@ -24,7 +24,7 @@
 // STL includes.
 #include <tuple>
 
-namespace SciRenderer
+namespace Strontium
 {
   typedef int Renderer3DFlags;
   enum Renderer3DFlags_

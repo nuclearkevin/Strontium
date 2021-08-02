@@ -1,14 +1,14 @@
 #pragma once
 
 // Macro include file.
-#include "SciRenderPCH.h"
+#include "StrontiumPCH.h"
 
 // Project includes.
 #include "Core/ApplicationBase.h"
 #include "Graphics/VertexArray.h"
 #include "Graphics/Shaders.h"
 
-namespace SciRenderer
+namespace Strontium
 {
   class Model;
 
@@ -40,6 +40,8 @@ namespace SciRenderer
     // Mesh class. Must be loaded in as a part of a parent model.
     Mesh(const std::string &name, const std::vector<Vertex> &vertices,
          const std::vector<GLuint> &indices, Model* parent);
+
+    Mesh(Mesh&&) = default;
 
     ~Mesh();
 

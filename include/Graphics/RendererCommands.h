@@ -1,9 +1,9 @@
 #pragma once
 
 // Macro include file.
-#include "SciRenderPCH.h"
+#include "StrontiumPCH.h"
 
-namespace SciRenderer
+namespace Strontium
 {
   // Depth functions. Addition to this as they are required.
   enum class DepthFunctions

@@ -1,7 +1,7 @@
 #pragma once
 
 // Macro include file.
-#include "SciRenderPCH.h"
+#include "StrontiumPCH.h"
 
 // Project includes.
 #include "Core/ApplicationBase.h"
@@ -13,7 +13,7 @@
 // ImGui text editor for editoring the shader source and recompiling.
 #include "imguitexteditor/TextEditor.h"
 
-namespace SciRenderer
+namespace Strontium
 {
   class ShaderWindow : public GuiWindow
   {

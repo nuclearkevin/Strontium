@@ -5,9 +5,9 @@
 #pragma once
 
 // Macro include file.
-#include "SciRenderPCH.h"
+#include "StrontiumPCH.h"
 
-namespace SciRenderer
+namespace Strontium
 {
   enum class AttribType { Vec4 = 4, Vec3 = 3, Vec2 = 2};
   enum class UniformType

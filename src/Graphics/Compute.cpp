@@ -1,6 +1,6 @@
 #include "Graphics/Compute.h"
 
-namespace SciRenderer
+namespace Strontium
 {
   ComputeShader::ComputeShader(const std::string &filepath)
   {

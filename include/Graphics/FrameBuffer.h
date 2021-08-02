@@ -1,14 +1,14 @@
 #pragma once
 
 // Macro include file.
-#include "SciRenderPCH.h"
+#include "StrontiumPCH.h"
 
 // Project includes.
 #include "Core/ApplicationBase.h"
 #include "Graphics/Textures.h"
 #include "Graphics/Buffers.h"
 
-namespace SciRenderer
+namespace Strontium
 {
   // Framebuffer parameters.
   enum class FBOTargetParam

@@ -1,7 +1,7 @@
 #pragma once
 
 // Macro include file.
-#include "SciRenderPCH.h"
+#include "StrontiumPCH.h"
 
 // Project includes.
 #include "Core/ApplicationBase.h"
@@ -10,7 +10,7 @@
 #include "Scenes/Entity.h"
 #include "Scenes/Components.h"
 
-namespace SciRenderer
+namespace Strontium
 {
   class MaterialWindow : public GuiWindow
   {

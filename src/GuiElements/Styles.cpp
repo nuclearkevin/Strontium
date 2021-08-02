@@ -2,7 +2,7 @@
 
 #include <sstream>
 
-namespace SciRenderer
+namespace Strontium
 {
   namespace Styles
   {

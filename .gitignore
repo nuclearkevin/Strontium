@@ -1,4 +1,5 @@
 # Assets and others.
+*.cap
 *.pyc
 *.csv
 *.txt

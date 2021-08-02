@@ -1,7 +1,7 @@
 #pragma once
 
 // Macro include file.
-#include "SciRenderPCH.h"
+#include "StrontiumPCH.h"
 
 // Project includes.
 #include "Core/ApplicationBase.h"
@@ -11,7 +11,7 @@
 #include "Graphics/Meshes.h"
 #include "Utils/Utilities.h"
 
-namespace SciRenderer
+namespace Strontium
 {
   // Type of the material.
   enum class MaterialType
@@ -32,18 +32,18 @@ namespace SciRenderer
 
     // Sampler configuration.
     bool hasSampler1D(const std::string &samplerName);
-    void attachSampler1D(const std::string &samplerName, const SciRenderer::AssetHandle &handle);
+    void attachSampler1D(const std::string &samplerName, const Strontium::AssetHandle &handle);
     bool hasSampler2D(const std::string &samplerName);
-    void attachSampler2D(const std::string &samplerName, const SciRenderer::AssetHandle &handle);
+    void attachSampler2D(const std::string &samplerName, const Strontium::AssetHandle &handle);
     bool hasSampler3D(const std::string &samplerName);
-    void attachSampler3D(const std::string &samplerName, const SciRenderer::AssetHandle &handle);
+    void attachSampler3D(const std::string &samplerName, const Strontium::AssetHandle &handle);
     bool hasSamplerCubemap(const std::string &samplerName);
-    void attachSamplerCubemap(const std::string &samplerName, const SciRenderer::AssetHandle &handle);
+    void attachSamplerCubemap(const std::string &samplerName, const Strontium::AssetHandle &handle);
 
     // TODO: Implement 1D and 3D texture fetching.
     //Texture1D* getSampler1D(const std::string &samplerName);
     Texture2D* getSampler2D(const std::string &samplerName);
-    SciRenderer::AssetHandle& getSampler2DHandle(const std::string &samplerName);
+    Strontium::AssetHandle& getSampler2DHandle(const std::string &samplerName);
     //Texture3D* getSampler1D(const std::string &samplerName);
     //CubeMap* getSamplerCubemap(const std::string &samplerName);
 
@@ -99,10 +99,10 @@ namespace SciRenderer
     std::vector<std::pair<std::string, glm::vec4>>& getVec4s() { return this->vec4s; }
     std::vector<std::pair<std::string, glm::mat3>>& getMat3s() { return this->mat3s; }
     std::vector<std::pair<std::string, glm::mat4>>& getMat4s() { return this->mat4s; }
-    std::vector<std::pair<std::string, SciRenderer::AssetHandle>>& getSampler1Ds() { return this->sampler1Ds; }
-    std::vector<std::pair<std::string, SciRenderer::AssetHandle>>& getSampler2Ds() { return this->sampler2Ds; }
-    std::vector<std::pair<std::string, SciRenderer::AssetHandle>>& getSampler3Ds() { return this->sampler3Ds; }
-    std::vector<std::pair<std::string, SciRenderer::AssetHandle>>& getSamplerCubemaps() { return this->samplerCubes; }
+    std::vector<std::pair<std::string, Strontium::AssetHandle>>& getSampler1Ds() { return this->sampler1Ds; }
+    std::vector<std::pair<std::string, Strontium::AssetHandle>>& getSampler2Ds() { return this->sampler2Ds; }
+    std::vector<std::pair<std::string, Strontium::AssetHandle>>& getSampler3Ds() { return this->sampler3Ds; }
+    std::vector<std::pair<std::string, Strontium::AssetHandle>>& getSamplerCubemaps() { return this->samplerCubes; }
   private:
     // Reflect the attached shader.
     void reflect();
@@ -123,10 +123,10 @@ namespace SciRenderer
     std::vector<std::pair<std::string, glm::mat3>> mat3s;
     std::vector<std::pair<std::string, glm::mat4>> mat4s;
 
-    std::vector<std::pair<std::string, SciRenderer::AssetHandle>> sampler1Ds;
-    std::vector<std::pair<std::string, SciRenderer::AssetHandle>> sampler2Ds;
-    std::vector<std::pair<std::string, SciRenderer::AssetHandle>> sampler3Ds;
-    std::vector<std::pair<std::string, SciRenderer::AssetHandle>> samplerCubes;
+    std::vector<std::pair<std::string, Strontium::AssetHandle>> sampler1Ds;
+    std::vector<std::pair<std::string, Strontium::AssetHandle>> sampler2Ds;
+    std::vector<std::pair<std::string, Strontium::AssetHandle>> sampler3Ds;
+    std::vector<std::pair<std::string, Strontium::AssetHandle>> samplerCubes;
   };
 
   // Macro material which holds all the individual material objects for each

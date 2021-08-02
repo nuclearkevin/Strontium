@@ -4,7 +4,7 @@
 #include "Core/Events.h"
 #include "Core/Logs.h"
 
-namespace SciRenderer
+namespace Strontium
 {
   Application* Application::appInstance = nullptr;
 
@@ -25,7 +25,7 @@ namespace SciRenderer
     Application::appInstance = this;
 
     // Initialize the application logs.
-    SciRenderer::Logger* logs = SciRenderer::Logger::getInstance();
+    Logger* logs = Logger::getInstance();
     logs->init();
 
     // Initialize the application main window.

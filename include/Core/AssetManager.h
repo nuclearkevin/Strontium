@@ -1,7 +1,7 @@
 #pragma once
 
 // Macro include file.
-#include "SciRenderPCH.h"
+#include "StrontiumPCH.h"
 
 // Project includes.
 #include "Core/ApplicationBase.h"
@@ -11,7 +11,7 @@
 #include <mutex>
 #include <functional>
 
-namespace SciRenderer
+namespace Strontium
 {
   // Define an asset handle to distinguish when an internal handle is used or not.
   typedef std::string AssetHandle;

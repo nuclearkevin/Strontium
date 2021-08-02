@@ -3,7 +3,7 @@
 // Project includes.
 #include "Core/Application.h"
 
-namespace SciRenderer
+namespace Strontium
 {
   //----------------------------------------------------------------------------
   // Singleton thread pool.

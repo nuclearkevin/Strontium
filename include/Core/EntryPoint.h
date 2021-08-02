@@ -4,12 +4,12 @@
 #include "Core/Application.h"
 #include "Core/Logs.h"
 
-extern SciRenderer::Application* SciRenderer::makeApplication();
+extern Strontium::Application* Strontium::makeApplication();
 
 int main(int argc, char** argv)
 {
   // Start the application.
-  SciRenderer::Application* app = SciRenderer::makeApplication();
+  Strontium::Application* app = Strontium::makeApplication();
 
   // Run the application.
   app->run();

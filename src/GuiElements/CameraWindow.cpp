@@ -9,7 +9,7 @@
 #include "imgui/imgui.h"
 #include "imgui/imgui_internal.h"
 
-namespace SciRenderer
+namespace Strontium
 {
   CameraWindow::CameraWindow(EditorLayer* parentLayer, Shared<Camera> camera)
     : GuiWindow(parentLayer)

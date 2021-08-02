@@ -1,7 +1,7 @@
 #pragma once
 
 // Macro include file.
-#include "SciRenderPCH.h"
+#include "StrontiumPCH.h"
 
 // Project includes.
 #include "Layers/Layers.h"
@@ -13,7 +13,7 @@
 #include "imgui/imgui_impl_glfw.h"
 #include "imgui/imgui_impl_opengl3.h"
 
-namespace SciRenderer
+namespace Strontium
 {
   class ImGuiLayer : public Layer
   {
@@ -27,5 +27,8 @@ namespace SciRenderer
 
     void beginImGui();
     void endImGui();
+  private:
+    ImFont* boldFont;
+    ImFont* awesomeFont;
   };
 }

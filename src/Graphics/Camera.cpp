@@ -5,7 +5,7 @@
 #include "Core/Application.h"
 #include "Core/Window.h"
 
-namespace SciRenderer
+namespace Strontium
 {
   Camera::Camera(GLfloat xCenter, GLfloat yCenter, EditorCameraType type)
     : position(glm::vec3 { 0.0f, 0.0f, 0.0f })
@@ -133,19 +133,6 @@ namespace SciRenderer
 
         if (appWindow->isKeyPressed(GLFW_KEY_LEFT_CONTROL))
           this->position -= this->camTop * cameraSpeed;
-
-        if (appWindow->isKeyPressed(GLFW_KEY_Q))
-        {
-          glm::mat4 rot = glm::rotate(glm::mat4(1.0f), glm::radians(-cameraSpeed * 10),
-                                      this->camFront);
-          this->camTop = glm::vec3(glm::normalize(rot * glm::vec4(this->camTop, 0.0f)));
-        }
-        if (appWindow->isKeyPressed(GLFW_KEY_E))
-        {
-          glm::mat4 rot = glm::rotate(glm::mat4(1.0f), glm::radians(cameraSpeed * 10),
-                                      this->camFront);
-          this->camTop = glm::vec3(glm::normalize(rot * glm::vec4(this->camTop, 0.0f)));
-        }
         break;
       }
     }

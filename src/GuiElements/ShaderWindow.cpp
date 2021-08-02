@@ -10,7 +10,7 @@
 #include "imgui/imgui.h"
 #include "imgui/imgui_internal.h"
 
-namespace SciRenderer
+namespace Strontium
 {
   ShaderWindow::ShaderWindow(EditorLayer* parentLayer)
     : GuiWindow(parentLayer)

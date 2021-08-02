@@ -1,7 +1,7 @@
 #pragma once
 
 // Macro include file.
-#include "SciRenderPCH.h"
+#include "StrontiumPCH.h"
 
 // Project includes.
 #include "Core/ApplicationBase.h"
@@ -17,7 +17,7 @@
 #include "imgui/imgui.h"
 #include "imgui/imgui_internal.h"
 
-namespace SciRenderer
+namespace Strontium
 {
   class EditorLayer : public Layer
   {

@@ -7,7 +7,7 @@
 #include "Core/Events.h"
 #include "Graphics/Material.h"
 
-namespace SciRenderer
+namespace Strontium
 {
   std::queue<std::pair<Model*, ModelMaterial*>> Model::asyncModelQueue;
   std::mutex Model::asyncModelMutex;
@@ -29,8 +29,8 @@ namespace SciRenderer
 
       if (submaterials.size() == 0)
       {
-        for (auto& pair : submeshes)
-          materials->attachMesh(pair.first, MaterialType::PBR);
+        for (auto& submesh : submeshes)
+          materials->attachMesh(submesh.getName(), MaterialType::PBR);
       }
 
       asyncModelQueue.pop();
@@ -41,6 +41,17 @@ namespace SciRenderer
   Model::asyncLoadModel(const std::string &filepath, const std::string &name,
                         ModelMaterial* materialContainer)
   {
+    // Fetch the logs.
+    Logger* logs = Logger::getInstance();
+
+    // Check if the file is valid or not.
+    std::ifstream test(filepath);
+    if (!test)
+    {
+      logs->logMessage(LogMessage("Error, file " + filepath + " cannot be opened.", true, true));
+      return;
+    }
+
     // Fetch the thread pool.
     auto workerGroup = ThreadPool::getInstance(2);
 
@@ -131,15 +142,15 @@ namespace SciRenderer
   Model::processMesh(aiMesh* mesh, const aiScene* scene)
   {
     std::string meshName = std::string(mesh->mName.C_Str());
-    this->subMeshes.emplace_back(meshName, createShared<Mesh>(meshName, this));
-    auto& meshVertices = this->subMeshes.back().second->getData();
-    auto& meshIndicies = this->subMeshes.back().second->getIndices();
+    this->subMeshes.emplace_back(meshName, this);
+    auto& meshVertices = this->subMeshes.back().getData();
+    auto& meshIndicies = this->subMeshes.back().getIndices();
 
-    auto& meshMin = this->subMeshes.back().second->getMinPos();
-    auto& meshMax = this->subMeshes.back().second->getMaxPos();
+    auto& meshMin = this->subMeshes.back().getMinPos();
+    auto& meshMax = this->subMeshes.back().getMaxPos();
     meshMin = glm::vec3(std::numeric_limits<float>::max());
     meshMax = glm::vec3(std::numeric_limits<float>::min());
-    
+
     // Get the positions.
     if (mesh->HasPositions())
     {
@@ -226,6 +237,6 @@ namespace SciRenderer
         meshIndicies.push_back(face.mIndices[j]);
     }
 
-    this->subMeshes.back().second->setLoaded(true);
+    this->subMeshes.back().setLoaded(true);
   }
 }

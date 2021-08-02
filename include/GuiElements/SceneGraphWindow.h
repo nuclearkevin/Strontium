@@ -1,7 +1,7 @@
 #pragma once
 
 // Macro include file.
-#include "SciRenderPCH.h"
+#include "StrontiumPCH.h"
 
 // Project includes.
 #include "Core/ApplicationBase.h"
@@ -9,7 +9,7 @@
 #include "Scenes/Scene.h"
 #include "Scenes/Entity.h"
 
-namespace SciRenderer
+namespace Strontium
 {
   // A scene graph window for viewing a graph.
   class SceneGraphWindow : public GuiWindow
@@ -32,9 +32,6 @@ namespace SciRenderer
     void drawPropsWindow(bool &isOpen, Shared<Scene> activeScene);
 
     void drawDirectionalWidget();
-
-    // TODO: Consider moving this to a separate window.
-    void drawMeshWindow(bool &isOpen);
 
     // Load an asset from a drag and drop action.
     void loadDNDAsset(const std::string &filepath);

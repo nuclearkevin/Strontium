@@ -1,6 +1,6 @@
 #include "Graphics/GraphicsContext.h"
 
-namespace SciRenderer
+namespace Strontium
 {
   // Generic constructor / destructor pair.
   GraphicsContext::GraphicsContext(GLFWwindow* genWindow)

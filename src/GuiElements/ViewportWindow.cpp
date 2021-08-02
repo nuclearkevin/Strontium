@@ -5,6 +5,7 @@
 #include "Layers/EditorLayer.h"
 #include "Serialization/YamlSerialization.h"
 #include "Scenes/Components.h"
+#include "GuiElements/Styles.h"
 
 // Some math for decomposing matrix transformations.
 #include "glm/gtx/matrix_decompose.hpp"
@@ -12,7 +13,7 @@
 // ImGizmo goodies.
 #include "imguizmo/ImGuizmo.h"
 
-namespace SciRenderer
+namespace Strontium
 {
   ViewportWindow::ViewportWindow(EditorLayer* parentLayer)
     : GuiWindow(parentLayer)
@@ -27,7 +28,7 @@ namespace SciRenderer
     ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
-    ImGui::Begin("Editor Viewport", nullptr, ImGuiWindowFlags_NoCollapse);
+    ImGui::Begin(ICON_FA_GAMEPAD"  Editor Viewport", nullptr, ImGuiWindowFlags_NoCollapse);
     {
       auto windowPos = ImGui::GetWindowPos();
       auto windowMin = ImGui::GetWindowContentRegionMin();
@@ -181,6 +182,10 @@ namespace SciRenderer
     auto& camProjection = this->parentLayer->getEditorCamera()->getProjMatrix();
     auto& camView = this->parentLayer->getEditorCamera()->getViewMatrix();
 
+    // Quit early if the entity is invalid.
+    if (!entity)
+      return;
+
     // ImGuizmo boilerplate. Prepare the drawing context and set the window to
     // draw the gizmos to.
     ImGuizmo::SetOrthographic(false);
@@ -196,10 +201,6 @@ namespace SciRenderer
 
     ImGuizmo::SetRect(bounds[0].x, bounds[0].y, bounds[1].x - bounds[0].x,
                       bounds[1].y - bounds[0].y);
-
-    // Quit early if the entity is invalid.
-    if (!entity)
-      return;
 
     // Only draw the gizmo if the entity has a transform component and if a gizmo is selected.
     if (entity.hasComponent<TransformComponent>() && this->gizmoType != -1)
@@ -237,41 +238,41 @@ namespace SciRenderer
       if (selectedGizmo == -1)
       {
         ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
-        ImGui::Button("None");
+        ImGui::Button(ICON_FA_SQUARE);
         ImGui::PopStyleVar();
       }
       else
-        ImGui::Button("None");
+        ImGui::Button(ICON_FA_SQUARE);
 
       ImGui::SameLine();
       if (selectedGizmo == ImGuizmo::TRANSLATE)
       {
         ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
-        ImGui::Button("Translate");
+        ImGui::Button(ICON_FA_ARROWS);
         ImGui::PopStyleVar();
       }
       else
-        ImGui::Button("Translate");
+        ImGui::Button(ICON_FA_ARROWS);
 
       ImGui::SameLine();
       if (selectedGizmo == ImGuizmo::ROTATE)
       {
         ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
-        ImGui::Button("Rotate");
+        ImGui::Button(ICON_FA_UNDO);
         ImGui::PopStyleVar();
       }
       else
-        ImGui::Button("Rotate");
+        ImGui::Button(ICON_FA_UNDO);
 
       ImGui::SameLine();
       if (selectedGizmo == ImGuizmo::SCALE)
       {
         ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
-        ImGui::Button("Scale");
+        ImGui::Button(ICON_FA_EXPAND);
         ImGui::PopStyleVar();
       }
       else
-        ImGui::Button("Scale");
+        ImGui::Button(ICON_FA_EXPAND);
       ImGui::PopStyleVar();
 
       int temp = 0;
@@ -312,12 +313,12 @@ namespace SciRenderer
     {
       ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
       ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
-      ImGui::Button("None");
+      ImGui::Button(ICON_FA_SQUARE);
       ImGui::PopItemFlag();
       ImGui::PopStyleVar();
     }
     else
-      if (ImGui::Button("None"))
+      if (ImGui::Button(ICON_FA_SQUARE))
         this->gizmoType = -1;
     gizmoSelectDNDPayload(this->gizmoType);
 
@@ -326,12 +327,12 @@ namespace SciRenderer
     {
       ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
       ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
-      ImGui::Button("Translate");
+      ImGui::Button(ICON_FA_ARROWS);
       ImGui::PopItemFlag();
       ImGui::PopStyleVar();
     }
     else
-      if (ImGui::Button("Translate"))
+      if (ImGui::Button(ICON_FA_ARROWS))
         this->gizmoType = ImGuizmo::TRANSLATE;
     gizmoSelectDNDPayload(this->gizmoType);
 
@@ -340,12 +341,12 @@ namespace SciRenderer
     {
       ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
       ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
-      ImGui::Button("Rotate");
+      ImGui::Button(ICON_FA_UNDO);
       ImGui::PopItemFlag();
       ImGui::PopStyleVar();
     }
     else
-      if (ImGui::Button("Rotate"))
+      if (ImGui::Button(ICON_FA_UNDO))
         this->gizmoType = ImGuizmo::ROTATE;
     gizmoSelectDNDPayload(this->gizmoType);
 
@@ -354,12 +355,12 @@ namespace SciRenderer
     {
       ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
       ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
-      ImGui::Button("Scale");
+      ImGui::Button(ICON_FA_EXPAND);
       ImGui::PopItemFlag();
       ImGui::PopStyleVar();
     }
     else
-      if (ImGui::Button("Scale"))
+      if (ImGui::Button(ICON_FA_EXPAND))
         this->gizmoType = ImGuizmo::SCALE;
     gizmoSelectDNDPayload(this->gizmoType);
     ImGui::PopStyleVar();
@@ -395,7 +396,7 @@ namespace SciRenderer
     std::string filetype = filename.substr(filename.find_last_of('.'));
 
     // If its a supported model file, load it as a new entity in the scene.
-    if (filetype == ".obj" || filetype == ".FBX" || filetype == ".fbx")
+    if (filetype == ".obj" || filetype == ".FBX" || filetype == ".fbx" || filetype == ".blend")
     {
       auto modelAssets = AssetManager<Model>::getManager();
 

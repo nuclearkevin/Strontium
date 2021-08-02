@@ -14,7 +14,7 @@
 // ImGizmo goodies.
 #include "imguizmo/ImGuizmo.h"
 
-namespace SciRenderer
+namespace Strontium
 {
   EditorLayer::EditorLayer()
     : Layer("Editor Layer")
@@ -263,21 +263,21 @@ namespace SciRenderer
   	{
     	if (ImGui::BeginMenu("File"))
     	{
-       	if (ImGui::MenuItem("New", "Ctrl+N"))
+       	if (ImGui::MenuItem(ICON_FA_FILE_O" New", "Ctrl+N"))
        	{
           auto storage = Renderer3D::getStorage();
           storage->currentEnvironment->unloadEnvironment();
 
           this->currentScene = createShared<Scene>();
        	}
-        if (ImGui::MenuItem("Open...", "Ctrl+O"))
+        if (ImGui::MenuItem(ICON_FA_FOLDER_OPEN_O" pen...", "Ctrl+O"))
        	{
           EventDispatcher* dispatcher = EventDispatcher::getInstance();
           dispatcher->queueEvent(new OpenDialogueEvent(DialogueEventType::FileOpen,
                                                        ".srn"));
           this->loadTarget = FileLoadTargets::TargetScene;
        	}
-        if (ImGui::MenuItem("Save", "Ctrl+S"))
+        if (ImGui::MenuItem(ICON_FA_FLOPPY_O" Save", "Ctrl+S"))
         {
           if (this->currentScene->getSaveFilepath() != "")
           {
@@ -294,14 +294,14 @@ namespace SciRenderer
             this->saveTarget = FileSaveTargets::TargetScene;
           }
         }
-        if (ImGui::MenuItem("Save As", "Ctrl+Shift+S"))
+        if (ImGui::MenuItem(ICON_FA_FLOPPY_O" Save As", "Ctrl+Shift+S"))
        	{
           EventDispatcher* dispatcher = EventDispatcher::getInstance();
           dispatcher->queueEvent(new OpenDialogueEvent(DialogueEventType::FileSave,
                                                        ".srn"));
           this->saveTarget = FileSaveTargets::TargetScene;
        	}
-        if (ImGui::MenuItem("Exit"))
+        if (ImGui::MenuItem(ICON_FA_POWER_OFF" Exit"))
         {
           EventDispatcher* appEvents = EventDispatcher::getInstance();
           appEvents->queueEvent(new WindowCloseEvent());

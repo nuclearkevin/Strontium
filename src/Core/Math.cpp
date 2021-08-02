@@ -1,6 +1,6 @@
 #include "Core/Math.h"
 
-namespace SciRenderer
+namespace Strontium
 {
   BoundingBox
   buildBoundingBox(const glm::vec3 &min, const glm::vec3 &max)

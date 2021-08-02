@@ -2,9 +2,9 @@
 #pragma once
 
 // Macro include file.
-#include "SciRenderPCH.h"
+#include "StrontiumPCH.h"
 
-namespace SciRenderer
+namespace Strontium
 {
   // Draw types.
   enum class BufferType { Static = GL_STATIC_DRAW, Dynamic = GL_DYNAMIC_DRAW };

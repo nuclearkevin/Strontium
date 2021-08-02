@@ -1,14 +1,14 @@
 #pragma once
 
 // Macro include file.
-#include "SciRenderPCH.h"
+#include "StrontiumPCH.h"
 
 // Project includes.
 #include "Core/ApplicationBase.h"
 #include "Core/AssetManager.h"
 #include "Scenes/Scene.h"
 
-namespace SciRenderer
+namespace Strontium
 {
   namespace YAMLSerialization
   {

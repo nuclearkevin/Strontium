@@ -3,7 +3,9 @@
 // Project includes.
 #include "Core/Application.h"
 
-namespace SciRenderer
+#include "GuiElements/IconsFontAwesome4.h"
+
+namespace Strontium
 {
   ImGuiLayer::ImGuiLayer()
     : Layer("ImGui Layer")
@@ -21,8 +23,14 @@ namespace SciRenderer
     io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
     io.ConfigDragClickToInputText = true;
 
+    this->boldFont = io.Fonts->AddFontFromFileTTF("./assets/.fonts/Roboto/Roboto-Bold.ttf", 14.0f);
     io.FontDefault = io.Fonts->AddFontFromFileTTF("./assets/.fonts/Roboto/Roboto-Black.ttf", 14.0f);
-    io.Fonts->AddFontFromFileTTF("./assets/.fonts/Roboto/Roboto-Bold.ttf", 14.0f);
+
+    ImFontConfig config;
+    config.MergeMode = true;
+    config.GlyphMinAdvanceX = 14.0f;
+    static const ImWchar icon_ranges[] = { ICON_MIN_FA, ICON_MAX_FA, 0 };
+    this->awesomeFont = io.Fonts->AddFontFromFileTTF("./assets/.fonts/fontawesome-webfont.ttf", 14.0f, &config, icon_ranges);
 
     // Set ImGui to dark mode, because why would we not?
     ImGui::StyleColorsDark();

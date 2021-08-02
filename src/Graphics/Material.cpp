@@ -3,7 +3,7 @@
 // Project includes.
 #include "Core/AssetManager.h"
 
-namespace SciRenderer
+namespace Strontium
 {
   Material::Material(MaterialType type, const std::string &filepath)
     : filepath(filepath)
@@ -200,7 +200,7 @@ namespace SciRenderer
     return Utilities::pairSearch<std::string, std::string>(this->sampler1Ds, samplerName);
   }
   void
-  Material::attachSampler1D(const std::string &samplerName, const SciRenderer::AssetHandle &handle)
+  Material::attachSampler1D(const std::string &samplerName, const Strontium::AssetHandle &handle)
   {
     if (!this->hasSampler1D(samplerName))
       this->sampler1Ds.push_back(std::pair(samplerName, handle));
@@ -219,7 +219,7 @@ namespace SciRenderer
     return Utilities::pairSearch<std::string, std::string>(this->sampler2Ds, samplerName);
   }
   void
-  Material::attachSampler2D(const std::string &samplerName, const SciRenderer::AssetHandle &handle)
+  Material::attachSampler2D(const std::string &samplerName, const Strontium::AssetHandle &handle)
   {
     if (!this->hasSampler2D(samplerName))
       this->sampler2Ds.push_back(std::pair(samplerName, handle));
@@ -238,7 +238,7 @@ namespace SciRenderer
     return Utilities::pairSearch<std::string, std::string>(this->sampler3Ds, samplerName);
   }
   void
-  Material::attachSampler3D(const std::string &samplerName, const SciRenderer::AssetHandle &handle)
+  Material::attachSampler3D(const std::string &samplerName, const Strontium::AssetHandle &handle)
   {
     if (!this->hasSampler3D(samplerName))
       this->sampler3Ds.push_back(std::pair(samplerName, handle));
@@ -257,7 +257,7 @@ namespace SciRenderer
     return Utilities::pairSearch<std::string, std::string>(this->samplerCubes, samplerName);
   }
   void
-  Material::attachSamplerCubemap(const std::string &samplerName, const SciRenderer::AssetHandle &handle)
+  Material::attachSamplerCubemap(const std::string &samplerName, const Strontium::AssetHandle &handle)
   {
     if (!this->hasSamplerCubemap(samplerName))
       this->samplerCubes.push_back(std::pair(samplerName, handle));
@@ -279,7 +279,7 @@ namespace SciRenderer
 
     return textureCache->getAsset(loc->second);
   }
-  SciRenderer::AssetHandle&
+  Strontium::AssetHandle&
   Material::getSampler2DHandle(const std::string &samplerName)
   {
     auto loc = Utilities::pairGet<std::string, std::string>(this->sampler2Ds, samplerName);

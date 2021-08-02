@@ -1,7 +1,7 @@
 // Project includes.
 #include "Graphics/VertexArray.h"
 
-namespace SciRenderer
+namespace Strontium
 {
   // Constructors and destructors.
   VertexArray::VertexArray(Shared<VertexBuffer> buffer)

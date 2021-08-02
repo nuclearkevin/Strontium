@@ -1,12 +1,12 @@
 #pragma once
 
 // Macro include file.
-#include "SciRenderPCH.h"
+#include "StrontiumPCH.h"
 
 // Project includes.
 #include "Graphics/FrameBuffer.h"
 
-namespace SciRenderer
+namespace Strontium
 {
   // A switch for differentiating between editor and runtime graphics modes.
   enum class RuntimeType

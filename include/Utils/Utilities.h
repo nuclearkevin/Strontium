@@ -2,7 +2,7 @@
 
 #include <vector>
 
-namespace SciRenderer
+namespace Strontium
 {
   namespace Utilities
   {

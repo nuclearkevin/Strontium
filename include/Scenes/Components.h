@@ -1,7 +1,7 @@
 #pragma once
 
 // Macro include file.
-#include "SciRenderPCH.h"
+#include "StrontiumPCH.h"
 
 // Project includes.
 #include "Core/AssetManager.h"
@@ -11,7 +11,7 @@
 #include "Graphics/Renderer.h"
 #include "Scenes/Entity.h"
 
-namespace SciRenderer
+namespace Strontium
 {
   // Entity nametag component.
   struct NameComponent

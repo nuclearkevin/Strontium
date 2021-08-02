@@ -1,12 +1,12 @@
 #pragma once
 
 // Macro include file.
-#include "SciRenderPCH.h"
+#include "StrontiumPCH.h"
 
 // Memory management library.
 #include <memory>
 
-namespace SciRenderer
+namespace Strontium
 {
   // Rewrapping smart pointers to make using them easier.
   template <typename T>

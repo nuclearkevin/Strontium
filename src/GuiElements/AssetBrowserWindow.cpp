@@ -4,11 +4,12 @@
 #include "Core/AssetManager.h"
 #include "GuiElements/Styles.h"
 #include "Scenes/Entity.h"
+#include "GuiElements/Styles.h"
 
 // STL includes.
 #include <filesystem>
 
-namespace SciRenderer
+namespace Strontium
 {
   AssetBrowserWindow::AssetBrowserWindow(EditorLayer* parentLayer)
     : GuiWindow(parentLayer)
@@ -16,13 +17,12 @@ namespace SciRenderer
     , drawCursor(0.0f, 0.0f)
     , loadingAsset(false)
     , loadingAssetText("")
+    , searched("")
   {
     // Load in the icons.
     Texture2D* tex;
     tex = Texture2D::loadTexture2D("./assets/.icons/folder.png", Texture2DParams(), false);
     this->icons.insert({ "folder", tex });
-    tex = Texture2D::loadTexture2D("./assets/.icons/backfolder.png", Texture2DParams(), false);
-    this->icons.insert({ "backfolder", tex });
     tex = Texture2D::loadTexture2D("./assets/.icons/file.png", Texture2DParams(), false);
     this->icons.insert({ "file", tex });
     tex = Texture2D::loadTexture2D("./assets/.icons/srfile.png", Texture2DParams(), false);
@@ -73,10 +73,7 @@ namespace SciRenderer
       std::string prevFolderName = this->currentDir.substr(0, this->currentDir.find_last_of('/'));
       prevFolderName = prevFolderName.substr(prevFolderName.find_last_of('/') + 1);
 
-      ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
-      ImGui::ImageButton((ImTextureID) (unsigned long) this->icons["backfolder"]->getID(),
-                         ImVec2(64.0f, 64.0f), ImVec2(0, 1), ImVec2(1, 0));
-      ImGui::PopStyleColor();
+      ImGui::Button(ICON_FA_ARROW_LEFT);
 
       if (ImGui::IsMouseDoubleClicked(0) && ImGui::IsItemHovered())
         this->currentDir = this->currentDir.substr(0, this->currentDir.find_last_of('/'));
@@ -85,13 +82,34 @@ namespace SciRenderer
     {
       ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
       ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
-      ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
-      ImGui::ImageButton((ImTextureID) (unsigned long) this->icons["backfolder"]->getID(),
-                         ImVec2(64.0f, 64.0f), ImVec2(0, 1), ImVec2(1, 0));
-      ImGui::PopStyleColor();
+      ImGui::Button(ICON_FA_ARROW_LEFT);
       ImGui::PopItemFlag();
       ImGui::PopStyleVar();
     }
+
+    ImGui::SameLine();
+    if (ImGui::Button(ICON_FA_ARROW_RIGHT))
+    {
+
+    }
+
+    ImGui::SameLine();
+    if (ImGui::Button(ICON_FA_REFRESH))
+    {
+
+    }
+
+    char searchBuffer[256];
+    memset(searchBuffer, 0, sizeof(searchBuffer));
+    std::strncpy(searchBuffer, searched.c_str(), sizeof(searchBuffer));
+
+    ImGui::SameLine();
+    if (ImGui::InputText("##search", searchBuffer, sizeof(searchBuffer)))
+      searched = std::string(searchBuffer);
+
+    ImGui::SameLine();
+    if (ImGui::Button(ICON_FA_SEARCH))
+      searched = std::string(searchBuffer);
 
     ImGui::Columns(numColumns, 0, false);
     this->drawFolders(activeScene);
@@ -99,19 +117,22 @@ namespace SciRenderer
 
     if (ImGui::BeginPopupContextWindow(0, ImGuiPopupFlags_MouseButtonRight, false))
     {
-      if (ImGui::MenuItem("New Folder"))
+      if (ImGui::BeginMenu("New"))
       {
+        if (ImGui::MenuItem("Folder"))
+        {
 
+        }
+        if (ImGui::MenuItem("Material"))
+        {
+
+        }
+        if (ImGui::MenuItem("Prefab"))
+        {
+
+        }
+        ImGui::EndMenu();
       }
-      if (ImGui::MenuItem("New Material"))
-      {
-
-      }
-      if (ImGui::MenuItem("New Prefab"))
-      {
-
-      }
-
       ImGui::EndPopup();
     }
 
@@ -234,7 +255,6 @@ namespace SciRenderer
           // The items to be dragged along with the cursor.
           ImGui::Text(name.c_str());
 
-          // The things I'll do to get a proper payload...
           std::string filepath = entry.path().string();
           char pathBuffer[256];
           memset(pathBuffer, 0, sizeof(pathBuffer));

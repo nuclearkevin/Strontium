@@ -1,6 +1,6 @@
 #include "Layers/Layers.h"
 
-namespace SciRenderer
+namespace Strontium
 {
   //----------------------------------------------------------------------------
   // Layer begins here.

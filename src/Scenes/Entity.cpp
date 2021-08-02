@@ -1,6 +1,6 @@
 #include "Scenes/Entity.h"
 
-namespace SciRenderer
+namespace Strontium
 {
   Entity::Entity()
     : entityID(entt::null)

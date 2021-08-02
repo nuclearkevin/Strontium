@@ -1,7 +1,7 @@
 #pragma once
 
 // Macro include file.
-#include "SciRenderPCH.h"
+#include "StrontiumPCH.h"
 
 // Project includes.
 #include "Core/ApplicationBase.h"
@@ -14,7 +14,7 @@
 #include <future>
 #include <atomic>
 
-namespace SciRenderer
+namespace Strontium
 {
   // A thread pool to support safe concurrency in SciRender. Its a singleton to
   // force all modes of execution to go through one pipeline, preventing unnecessary spawns.

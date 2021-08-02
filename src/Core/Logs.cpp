@@ -3,7 +3,7 @@
 // STL includes.
 #include <ctime>
 
-namespace SciRenderer
+namespace Strontium
 {
   Logger* Logger::appLogs = nullptr;
   std::mutex Logger::logMutex;

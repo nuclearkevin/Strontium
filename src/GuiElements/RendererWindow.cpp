@@ -8,7 +8,7 @@
 #include "imgui/imgui_internal.h"
 #include "GuiElements/Styles.h"
 
-namespace SciRenderer
+namespace Strontium
 {
   RendererWindow::RendererWindow(EditorLayer* parentLayer)
     : GuiWindow(parentLayer)

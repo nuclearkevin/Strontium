@@ -1,9 +1,9 @@
 #pragma once
 
 // Macro include file.
-#include "SciRenderPCH.h"
+#include "StrontiumPCH.h"
 
-namespace SciRenderer
+namespace Strontium
 {
   // A wrapper class for the OpenGL (loaded through GLAD) graphics contexts.
   class GraphicsContext

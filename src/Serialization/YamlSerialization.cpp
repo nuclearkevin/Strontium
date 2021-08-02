@@ -95,7 +95,7 @@ namespace YAML
 	};
 }
 
-namespace SciRenderer
+namespace Strontium
 {
   namespace YAMLSerialization
   {
@@ -559,6 +559,9 @@ namespace SciRenderer
     Entity
     deserializeEntity(YAML::Node &entity, Shared<Scene> scene, Entity parent = Entity())
     {
+      // Fetch the logs.
+      Logger* logs = Logger::getInstance();
+
       GLuint entityID = entity["EntityID"].as<GLuint>();
 
       Entity newEntity = scene->createEntity(entityID);
@@ -612,24 +615,31 @@ namespace SciRenderer
       if (renderableComponent)
       {
         std::string modelPath = renderableComponent["ModelPath"].as<std::string>();
-        std::string modelName = renderableComponent["ModelName"].as<std::string>();
-        auto& rComponent = newEntity.addComponent<RenderableComponent>(modelName);
 
-        // If the path is "None" its an internal model asset.
-        // TODO: Handle internals separately.
-        if (modelPath != "None")
+        std::ifstream test(modelPath);
+        if (test)
         {
-          auto materials = renderableComponent["Material"];
-          if (materials)
+          std::string modelName = renderableComponent["ModelName"].as<std::string>();
+          auto& rComponent = newEntity.addComponent<RenderableComponent>(modelName);
+
+          // If the path is "None" its an internal model asset.
+          // TODO: Handle internals separately.
+          if (modelPath != "None")
           {
-            for (auto mat : materials)
+            auto materials = renderableComponent["Material"];
+            if (materials)
             {
-              rComponent.materials.attachMesh(mat["SubmeshName"].as<std::string>(),
-                                              mat["MaterialHandle"].as<std::string>());
+              for (auto mat : materials)
+              {
+                rComponent.materials.attachMesh(mat["SubmeshName"].as<std::string>(),
+                                                mat["MaterialHandle"].as<std::string>());
+              }
             }
+            Model::asyncLoadModel(modelPath, modelName, &rComponent.materials);
           }
-          Model::asyncLoadModel(modelPath, modelName, &rComponent.materials);
         }
+        else
+          logs->logMessage(LogMessage("Error, file " + modelPath + " cannot be opened.", true, true));
       }
 
       auto directionalComponent = entity["DirectionalLightComponent"];

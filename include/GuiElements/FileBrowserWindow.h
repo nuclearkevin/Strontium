@@ -1,7 +1,7 @@
 #pragma once
 
 // Macro include file.
-#include "SciRenderPCH.h"
+#include "StrontiumPCH.h"
 
 // Project includes.
 #include "GuiElements/GuiWindow.h"
@@ -9,7 +9,7 @@
 // ImGui includes.
 #include "imguibrowser/FileBrowser/ImGuiFileBrowser.h"
 
-namespace SciRenderer
+namespace Strontium
 {
   class FileBrowserWindow : public GuiWindow
   {

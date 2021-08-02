@@ -3,7 +3,7 @@
 // Project includes.
 #include "Core/AssetManager.h"
 
-namespace SciRenderer
+namespace Strontium
 {
   //----------------------------------------------------------------------------
   // 3D renderer starts here.
@@ -194,8 +194,8 @@ namespace SciRenderer
       RendererCommands::depthFunction(DepthFunctions::LEq);
       storage->currentEnvironment->configure(storage->sceneCam);
 
-      for (auto& pair : storage->currentEnvironment->getCubeMesh()->getSubmeshes())
-        Renderer3D::draw(pair.second->getVAO(), storage->currentEnvironment->getCubeProg());
+      for (auto& submesh : storage->currentEnvironment->getCubeMesh()->getSubmeshes())
+        Renderer3D::draw(submesh.getVAO(), storage->currentEnvironment->getCubeProg());
 
       RendererCommands::depthFunction(DepthFunctions::Less);
     }
@@ -259,21 +259,21 @@ namespace SciRenderer
       for (auto& drawable : storage->renderQueue)
       {
         auto& [data, materials, transform, id, drawSelectionMask] = drawable;
-        for (auto& pair : data->getSubmeshes())
+        for (auto& submesh : data->getSubmeshes())
         {
           // Cull the submesh if it isn't in the frustum.
-          glm::vec3 min = glm::vec3(transform * glm::vec4(pair.second->getMinPos(), 1.0f));
-          glm::vec3 max = glm::vec3(transform * glm::vec4(pair.second->getMaxPos(), 1.0f));
+          glm::vec3 min = glm::vec3(transform * glm::vec4(submesh.getMinPos(), 1.0f));
+          glm::vec3 max = glm::vec3(transform * glm::vec4(submesh.getMaxPos(), 1.0f));
 
           if (!boundingBoxInFrustum(storage->camFrustum, min, max) && state->frustumCull)
             continue;
 
-          Material* material = materials->getMaterial(pair.first);
+          Material* material = materials->getMaterial(submesh.getName());
           if (!material)
           {
             // Generate a material for the submesh if it doesn't have one.
-            materials->attachMesh(pair.first);
-            material = materials->getMaterial(pair.first);
+            materials->attachMesh(submesh.getName());
+            material = materials->getMaterial(submesh.getName());
           }
 
           Shader* program = storage->geometryShader;
@@ -294,18 +294,18 @@ namespace SciRenderer
 
           material->configure(program);
 
-          if (pair.second->hasVAO())
-            Renderer3D::draw(pair.second->getVAO(), program);
+          if (submesh.hasVAO())
+            Renderer3D::draw(submesh.getVAO(), program);
           else
           {
-            pair.second->generateVAO();
-            if (pair.second->hasVAO())
-              Renderer3D::draw(pair.second->getVAO(), program);
+            submesh.generateVAO();
+            if (submesh.hasVAO())
+              Renderer3D::draw(submesh.getVAO(), program);
           }
 
           stats->drawCalls++;
-          stats->numVertices += pair.second->getData().size();
-          stats->numTriangles += pair.second->getIndices().size() / 3;
+          stats->numVertices += submesh.getData().size();
+          stats->numTriangles += submesh.getIndices().size() / 3;
         }
       }
 
@@ -490,13 +490,13 @@ namespace SciRenderer
 
             for (auto& submesh : pair.first->getSubmeshes())
             {
-              if (submesh.second->hasVAO())
-                Renderer3D::draw(submesh.second->getVAO(), storage->shadowShader);
+              if (submesh.hasVAO())
+                Renderer3D::draw(submesh.getVAO(), storage->shadowShader);
               else
               {
-                submesh.second->generateVAO();
-                if (submesh.second->hasVAO())
-                  Renderer3D::draw(submesh.second->getVAO(), storage->shadowShader);
+                submesh.generateVAO();
+                if (submesh.hasVAO())
+                  Renderer3D::draw(submesh.getVAO(), storage->shadowShader);
               }
             }
           }

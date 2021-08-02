@@ -6,7 +6,7 @@
 #define PI 3.141592654
 #define THRESHHOLD 0.00005
 
-uniform vec3 camPos = vec3(0.0, 4.0, 0.0);
+uniform vec3 camPos = vec3(2.0);
 
 // Directional light uniforms.
 uniform vec3 lDirection = vec3(0.0, -1.0, 0.0);
@@ -42,8 +42,8 @@ void main()
   vec3 position = fragIn.fPosition;
   vec3 normal = fragIn.fNormal;
   vec3 albedo = vec3(1.0);
-  float metallic = 0.5;
-  float roughness = 0.5;
+  float metallic = 0.0;
+  float roughness = 1.0;
 
   vec3 F0 = mix(vec3(0.04), albedo, metallic);
 
@@ -61,7 +61,9 @@ void main()
   float den = 4.0 * max(dot(normal, view), THRESHHOLD) * max(dot(normal, light), THRESHHOLD);
   vec3 spec = num / max(den, THRESHHOLD);
 
-  fragColour = vec4((kD * albedo / PI + spec) * lColour * lIntensity * max(dot(normal, light), THRESHHOLD), 1.0);
+  vec3 ambient = 0.5 * vec3(1.0);
+
+  fragColour = vec4((kD * albedo / PI + spec) * lColour * lIntensity * max(dot(normal, light) + ambient, THRESHHOLD), 1.0);
 }
 
 // Trowbridge-Reitz distribution function.

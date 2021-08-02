@@ -1,7 +1,7 @@
 #pragma once
 
 // Macro include file.
-#include "SciRenderPCH.h"
+#include "StrontiumPCH.h"
 
 // Project includes.
 #include "Core/ApplicationBase.h"
@@ -9,7 +9,7 @@
 #include "GuiElements/GuiWindow.h"
 #include "Scenes/Scene.h"
 
-namespace SciRenderer
+namespace Strontium
 {
   // A window for displaying and modifying renderer settings.
   class RendererWindow : public GuiWindow

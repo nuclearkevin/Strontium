@@ -3,7 +3,7 @@
 // Project includes.
 #include "Core/Logs.h"
 
-namespace SciRenderer
+namespace Strontium
 {
   Mesh::Mesh(const std::string &name, Model* parent)
     : loaded(false)
