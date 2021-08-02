@@ -1,4 +1,8 @@
-# <h1 align="center">Strontium</h1>
+<h1 align="center"><img align="center" src="https://github.com/ksawatzky777/Strontium/blob/main/media/strontium.png" width="128px"/>
+  
+Strontium
+  
+</h1>
 <p align="center"> Yet another open-source C++17 game engine using OpenGL. </p>
 This project started while I was taking a class on intermediate computer graphics, but has spiraled out of control to become something far more than just a practice repo.
 
