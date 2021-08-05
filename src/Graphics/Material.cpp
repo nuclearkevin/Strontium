@@ -2,6 +2,7 @@
 
 // Project includes.
 #include "Core/AssetManager.h"
+#include "Graphics/Buffers.h"
 
 namespace Strontium
 {
@@ -9,14 +10,14 @@ namespace Strontium
     : filepath(filepath)
     , type(type)
     , pipeline(false)
+    , materialData(sizeof(glm::mat4) + 2 * sizeof(glm::vec4), BufferType::Dynamic)
   {
     auto shaderCache = AssetManager<Shader>::getManager();
     switch (type)
     {
       case MaterialType::PBR:
       {
-        this->program = shaderCache->getAsset("pbr_shader");
-        this->reflect();
+        this->program = shaderCache->getAsset("geometry_pass_shader");
 
         std::string texHandle;
         Texture2D::createMonoColour(glm::vec4(1.0f), texHandle);
@@ -29,23 +30,35 @@ namespace Strontium
         this->attachSampler2D("aOcclusionMap", texHandle);
         this->attachSampler2D("specF0Map", texHandle);
 
-        this->getVec3("uAlbedo") = glm::vec3(1.0f);
-        this->getFloat("uMetallic") = 0.0f;
-        this->getFloat("uRoughness") = 0.5f;
-        this->getFloat("uAO") = 1.0f;
-        this->getFloat("uEmiss") = 0.0f;
-        this->getFloat("uF0") = 0.04f;
-        break;
-      }
-      case MaterialType::Specular:
-      {
-        this->program = shaderCache->getAsset("specular_shader");
-        break;
-      }
-      case MaterialType::GeometryPass:
-      {
-        this->program = shaderCache->getAsset("geometry_pass_shader");
-        this->reflect();
+        this->mat4s.emplace_back("uModel", glm::mat4(1.0f));
+        this->vec3s.emplace_back("uAlbedo", glm::vec3(1.0f));
+        this->floats.emplace_back("uMetallic", 0.0f);
+        this->floats.emplace_back("uRoughness", 0.5f);
+        this->floats.emplace_back("uAO", 1.0f);
+        this->floats.emplace_back("uEmiss", 0.0f);
+        this->floats.emplace_back("uF0", 0.04f);
+
+        this->materialData.bindToPoint(1);
+
+        // Set the initial model matrix.
+        this->materialData.setData(0, sizeof(glm::mat4), glm::value_ptr(this->getMat4("uModel")));
+
+        // Set the initial metallic, roughness, AO and emission parameters.
+        auto mrae = glm::vec4(0.0f);
+        mrae.x = this->getFloat("uMetallic");
+        mrae.y = this->getFloat("uRoughness");
+        mrae.z = this->getFloat("uAO");
+        mrae.w = this->getFloat("uEmiss");
+        this->materialData.setData(sizeof(glm::mat4), sizeof(glm::vec4), &mrae.x);
+
+        // Set the initial albedo and F0 parameters.
+        auto albedo = this->getVec3("uAlbedo");
+        auto albedoF0 = glm::vec4(0.0f);
+        albedoF0.x = albedo.x;
+        albedoF0.y = albedo.y;
+        albedoF0.z = albedo.z;
+        albedoF0.w = this->getFloat("uF0");
+        this->materialData.setData(sizeof(glm::mat4) + sizeof(glm::vec4), sizeof(glm::vec4), &albedoF0.x);
         break;
       }
       default:
@@ -87,28 +100,8 @@ namespace Strontium
     auto textureCache = AssetManager<Texture2D>::getManager();
     unsigned int samplerCount = 0;
 
-    switch (this->type)
-    {
-      case MaterialType::PBR:
-      {
-        // Bind the PBR maps first.
-        this->program->addUniformSampler("irradianceMap", 0);
-      	this->program->addUniformSampler("reflectanceMap", 1);
-      	this->program->addUniformSampler("brdfLookUp", 2);
-
-        // Increase the sampler count to compensate.
-        samplerCount += 3;
-        break;
-      }
-      case MaterialType::Specular:
-      {
-        break;
-      }
-      case MaterialType::Unknown:
-        break;
-    }
-
     // Loop over 2D textures and assign them.
+    // TODO: Other sampler types.
     for (auto& pair : this->sampler2Ds)
     {
       Texture2D* sampler = textureCache->getAsset(pair.second);
@@ -120,77 +113,29 @@ namespace Strontium
       samplerCount++;
     }
 
-    // TODO: Do other sampler types (1D textures, 3D textures, cubemaps).
-    for (auto& pair : this->floats)
-      this->program->addUniformFloat(pair.first.c_str(), pair.second);
-    for (auto& pair : this->vec2s)
-      this->program->addUniformVector(pair.first.c_str(), pair.second);
-    for (auto& pair : this->vec3s)
-      this->program->addUniformVector(pair.first.c_str(), pair.second);
-    for (auto& pair : this->vec4s)
-      this->program->addUniformVector(pair.first.c_str(), pair.second);
-    for (auto& pair : this->mat3s)
-      this->program->addUniformMatrix(pair.first.c_str(), pair.second, GL_FALSE);
-    for (auto& pair : this->mat4s)
-      this->program->addUniformMatrix(pair.first.c_str(), pair.second, GL_FALSE);
+    // Set the model matrix.
+    this->materialData.setData(0, sizeof(glm::mat4), glm::value_ptr(this->getMat4("uModel")));
+
+    // Set the metallic, roughness, AO and emission parameters.
+    auto mrae = glm::vec4(0.0f);
+    mrae.x = this->getFloat("uMetallic");
+    mrae.y = this->getFloat("uRoughness");
+    mrae.z = this->getFloat("uAO");
+    mrae.w = this->getFloat("uEmiss");
+    this->materialData.setData(sizeof(glm::mat4), sizeof(glm::vec4), &mrae.x);
+
+    // Set the albedo and F0 parameters.
+    auto albedo = this->getVec3("uAlbedo");
+    auto albedoF0 = glm::vec4(0.0f);
+    albedoF0.x = albedo.x;
+    albedoF0.y = albedo.y;
+    albedoF0.z = albedo.z;
+    albedoF0.w = this->getFloat("uF0");
+    this->materialData.setData(sizeof(glm::mat4) + sizeof(glm::vec4), sizeof(glm::vec4), &albedoF0.x);
+
+    this->materialData.bindToPoint(1);
 
     this->program->bind();
-  }
-
-  void
-  Material::configure(Shader* overrideProgram)
-  {
-    auto textureCache = AssetManager<Texture2D>::getManager();
-    unsigned int samplerCount = 0;
-
-    switch (this->type)
-    {
-      case MaterialType::PBR:
-      {
-        // Bind the PBR maps first.
-        overrideProgram->addUniformSampler("irradianceMap", 0);
-      	overrideProgram->addUniformSampler("reflectanceMap", 1);
-      	overrideProgram->addUniformSampler("brdfLookUp", 2);
-
-        // Increase the sampler count to compensate.
-        samplerCount += 3;
-        break;
-      }
-      case MaterialType::Specular:
-      {
-        break;
-      }
-      case MaterialType::Unknown:
-        break;
-    }
-
-    // Loop over 2D textures and assign them.
-    for (auto& pair : this->sampler2Ds)
-    {
-      Texture2D* sampler = textureCache->getAsset(pair.second);
-
-      overrideProgram->addUniformSampler(pair.first.c_str(), samplerCount);
-      if (sampler != nullptr)
-        sampler->bind(samplerCount);
-
-      samplerCount++;
-    }
-
-    // TODO: Do other sampler types (1D textures, 3D textures, cubemaps).
-    for (auto& pair : this->floats)
-      overrideProgram->addUniformFloat(pair.first.c_str(), pair.second);
-    for (auto& pair : this->vec2s)
-      overrideProgram->addUniformVector(pair.first.c_str(), pair.second);
-    for (auto& pair : this->vec3s)
-      overrideProgram->addUniformVector(pair.first.c_str(), pair.second);
-    for (auto& pair : this->vec4s)
-      overrideProgram->addUniformVector(pair.first.c_str(), pair.second);
-    for (auto& pair : this->mat3s)
-      overrideProgram->addUniformMatrix(pair.first.c_str(), pair.second, GL_FALSE);
-    for (auto& pair : this->mat4s)
-      overrideProgram->addUniformMatrix(pair.first.c_str(), pair.second, GL_FALSE);
-
-    overrideProgram->bind();
   }
 
   // Search for and attach textures to a sampler.

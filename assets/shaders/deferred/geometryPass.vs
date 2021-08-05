@@ -10,9 +10,21 @@ layout (location = 3) in vec2 vTexCoord;
 layout (location = 4) in vec3 vTangent;
 layout (location = 5) in vec3 vBitangent;
 
-uniform mat4 mVP;
-uniform mat3 normalMat;
-uniform mat4 model;
+// Camera specific uniforms.
+layout(std140, binding = 0) uniform CameraBlock
+{
+  mat4 u_viewMatrix;
+  mat4 u_projMatrix;
+  vec3 u_camPosition;
+};
+
+// The material properties.
+layout(std140, binding = 1) uniform MaterialBlock
+{
+  mat4 u_modelMatrix;
+  vec4 u_MRAE; // Metallic (r), roughness (g), AO (b) and emission (a);
+	vec4 u_albedoF0; // Albedo (r, g, b) and F0 (a);
+};
 
 // Vertex properties for shading.
 out VERT_OUT
@@ -27,13 +39,13 @@ out VERT_OUT
 void main()
 {
   // Tangent to world matrix calculation.
- 	vec3 T = normalize(vec3(model * vec4(vTangent, 0.0)));
- 	vec3 N = normalize(vec3(model * vec4(vNormal, 0.0)));
+ 	vec3 T = normalize(vec3(u_modelMatrix * vec4(vTangent, 0.0)));
+ 	vec3 N = normalize(vec3(u_modelMatrix * vec4(vNormal, 0.0)));
  	T = normalize(T - dot(T, N) * N);
  	vec3 B = cross(N, T);
 
- 	gl_Position = mVP * vPosition;
-  vertOut.fPosition = (model * vPosition).xyz;
+ 	gl_Position = u_projMatrix * u_viewMatrix * u_modelMatrix * vPosition;
+  vertOut.fPosition = (u_modelMatrix * vPosition).xyz;
  	vertOut.fNormal = N;
  	vertOut.fColour = vColour;
  	vertOut.fTexCoords = vTexCoord;

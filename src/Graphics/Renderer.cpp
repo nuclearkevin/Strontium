@@ -3,6 +3,9 @@
 // Project includes.
 #include "Core/AssetManager.h"
 
+// STL includes.
+#include <chrono>
+
 namespace Strontium
 {
   //----------------------------------------------------------------------------
@@ -50,6 +53,9 @@ namespace Strontium
         0, 1, 2, 2, 3, 0
       };
 
+      storage->width = width;
+      storage->height = height;
+
       storage->fsq = VertexArray(fsqVertices, 8 * sizeof(GLfloat), BufferType::Dynamic);
       storage->fsq.addIndexBuffer(fsqIndices, 6, BufferType::Dynamic);
       storage->fsq.addAttribute(0, AttribType::Vec2, GL_FALSE, 2 * sizeof(GLfloat), 0);
@@ -72,9 +78,6 @@ namespace Strontium
       storage->shadowEffectsBuffer.setClearColour(glm::vec4(1.0f));
       storage->hasCascades = false;
 
-      storage->width = width;
-      storage->height = height;
-
       storage->gBuffer.resize(width, height);
 
       // The lighting pass framebuffer.
@@ -82,6 +85,10 @@ namespace Strontium
       auto cSpec = FBOCommands::getFloatColourSpec(FBOTargetParam::Colour0);
       storage->lightingPass.attachTexture2D(cSpec);
       storage->lightingPass.attachRenderBuffer();
+
+      // Prepare the various uniform buffers.
+      storage->camBuffer.bindToPoint(0);
+      storage->editorBuffer.bindToPoint(2);
 
       // Shaders for the various passes.
       storage->shadowShader = shaderCache->getAsset("shadow_shader");
@@ -136,6 +143,10 @@ namespace Strontium
       stats->numDirLights = 0;
       stats->numPointLights = 0;
       stats->numSpotLights = 0;
+      stats->geoFrametime = 0.0f;
+      stats->shadowFrametime = 0.0f;
+      stats->lightFrametime = 0.0f;
+      stats->postFramtime = 0.0f;
 
       if (isForward)
       {
@@ -254,7 +265,20 @@ namespace Strontium
     //--------------------------------------------------------------------------
     void geometryPass()
     {
+      auto start = std::chrono::steady_clock::now();
+
+      // Upload camera uniforms to the camera uniform buffer.
+      auto camProj = storage->sceneCam->getProjMatrix();
+      auto camView = storage->sceneCam->getViewMatrix();
+      auto camPos = storage->sceneCam->getCamPos();
+
+      storage->camBuffer.setData(0, sizeof(glm::mat4), glm::value_ptr(camView));
+      storage->camBuffer.setData(sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(camProj));
+      storage->camBuffer.setData(2 * sizeof(glm::mat4), sizeof(glm::vec3), &camPos.x);
+
       storage->gBuffer.beginGeoPass();
+
+      Shader* program = storage->geometryShader;
 
       for (auto& drawable : storage->renderQueue)
       {
@@ -270,37 +294,32 @@ namespace Strontium
 
           Material* material = materials->getMaterial(submesh.getName());
           if (!material)
-          {
-            // Generate a material for the submesh if it doesn't have one.
-            materials->attachMesh(submesh.getName());
-            material = materials->getMaterial(submesh.getName());
-          }
+            continue;
 
-          Shader* program = storage->geometryShader;
+          material->getMat4("uModel") = transform;
 
-          material->getVec3("camera.position") = storage->sceneCam->getCamPos();
-          material->getMat3("normalMat") = glm::transpose(glm::inverse(glm::mat3(transform)));
-          material->getMat4("model") = transform;
-          material->getMat4("mVP") = storage->sceneCam->getProjMatrix() * storage->sceneCam->getViewMatrix() * transform;
-          material->getFloat("uID") = id + 1.0f;
+          glm::vec4 maskColourID;
           if (drawSelectionMask)
           {
             // Enable edge detection for selected mesh outlines.
             storage->drawEdge = true;
-            material->getVec3("uMaskColour") = glm::vec3(1.0f);
+            maskColourID = glm::vec4(1.0f);
           }
           else
-            material->getVec3("uMaskColour") = glm::vec3(0.0f);
+            maskColourID = glm::vec4(0.0f);
 
-          material->configure(program);
+          maskColourID.w = id + 1.0f;
+          storage->editorBuffer.setData(0, sizeof(glm::vec4), &maskColourID.x);
+
+          // This is incredibly slow, ~0.02 ms per submesh.
+          material->configure();
 
           if (submesh.hasVAO())
             Renderer3D::draw(submesh.getVAO(), program);
           else
           {
             submesh.generateVAO();
-            if (submesh.hasVAO())
-              Renderer3D::draw(submesh.getVAO(), program);
+            Renderer3D::draw(submesh.getVAO(), program);
           }
 
           stats->drawCalls++;
@@ -310,6 +329,10 @@ namespace Strontium
       }
 
       storage->gBuffer.endGeoPass();
+
+      auto end = std::chrono::steady_clock::now();
+      std::chrono::duration<double> elapsed = end - start;
+      stats->geoFrametime = elapsed.count() * 1000.0f;
     }
 
     //--------------------------------------------------------------------------
@@ -318,6 +341,7 @@ namespace Strontium
     void
     shadowPass()
     {
+      auto start = std::chrono::steady_clock::now();
       //------------------------------------------------------------------------
       // Directional light shadow cascade calculations:
       //------------------------------------------------------------------------
@@ -530,6 +554,10 @@ namespace Strontium
         RendererCommands::enableDepthMask();
       }
       storage->shadowQueue.clear();
+
+      auto end = std::chrono::steady_clock::now();
+      std::chrono::duration<double> elapsed = end - start;
+      stats->shadowFrametime = elapsed.count() * 1000.0f;
     }
 
     //--------------------------------------------------------------------------
@@ -538,6 +566,8 @@ namespace Strontium
     void
     lightingPass()
     {
+      auto start = std::chrono::steady_clock::now();
+
       RendererCommands::disable(RendererFunction::DepthTest);
       storage->lightingPass.clear();
       storage->lightingPass.bind();
@@ -641,6 +671,10 @@ namespace Strontium
       drawEnvironment();
 
       storage->lightingPass.unbind();
+
+      auto end = std::chrono::steady_clock::now();
+      std::chrono::duration<double> elapsed = end - start;
+      stats->lightFrametime = elapsed.count() * 1000.0f;
     }
 
     //--------------------------------------------------------------------------
@@ -650,6 +684,8 @@ namespace Strontium
     void
     postProcessPass(Shared<FrameBuffer> frontBuffer)
     {
+      auto start = std::chrono::steady_clock::now();
+
       frontBuffer->clear();
       frontBuffer->bind();
       frontBuffer->setViewport();
@@ -695,6 +731,10 @@ namespace Strontium
       RendererCommands::disable(RendererFunction::Blending);
 
       frontBuffer->unbind();
+
+      auto end = std::chrono::steady_clock::now();
+      std::chrono::duration<double> elapsed = end - start;
+      stats->postFramtime = elapsed.count() * 1000.0f;
     }
   }
 }

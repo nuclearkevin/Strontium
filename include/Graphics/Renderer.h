@@ -115,6 +115,10 @@ namespace Strontium
       FrameBuffer shadowEffectsBuffer;
       FrameBuffer lightingPass;
 
+      // Uniform buffers.
+      UniformBuffer camBuffer;
+      UniformBuffer editorBuffer;
+
       // Items for the geometry pass.
       std::vector<std::tuple<Model*, ModelMaterial*, glm::mat4, GLuint, bool>> renderQueue;
 
@@ -146,6 +150,8 @@ namespace Strontium
       std::vector<SpotLight> spotQueue;
 
       RendererStorage()
+        : camBuffer(2 * sizeof(glm::mat4) + sizeof(glm::vec3), BufferType::Dynamic)
+        , editorBuffer(sizeof(glm::vec4), BufferType::Dynamic)
       {
         currentEnvironment = createUnique<EnvironmentMap>();
       }
@@ -194,6 +200,10 @@ namespace Strontium
       GLuint numDirLights;
       GLuint numPointLights;
       GLuint numSpotLights;
+      float geoFrametime;
+      float shadowFrametime;
+      float lightFrametime;
+      float postFramtime;
 
       RendererStats()
         : drawCalls(0)
@@ -202,6 +212,10 @@ namespace Strontium
         , numDirLights(0)
         , numPointLights(0)
         , numSpotLights(0)
+        , geoFrametime(0.0f)
+        , shadowFrametime(0.0f)
+        , lightFrametime(0.0f)
+        , postFramtime(0.0f)
       { }
     };
 

@@ -6,15 +6,11 @@
 #include "Scenes/Entity.h"
 #include "GuiElements/Styles.h"
 
-// STL includes.
-#include <filesystem>
-
 namespace Strontium
 {
   AssetBrowserWindow::AssetBrowserWindow(EditorLayer* parentLayer)
     : GuiWindow(parentLayer)
     , currentDir("./assets")
-    , drawCursor(0.0f, 0.0f)
     , loadingAsset(false)
     , loadingAssetText("")
     , searched("")
@@ -76,7 +72,9 @@ namespace Strontium
       ImGui::Button(ICON_FA_ARROW_LEFT);
 
       if (ImGui::IsMouseDoubleClicked(0) && ImGui::IsItemHovered())
+      {
         this->currentDir = this->currentDir.substr(0, this->currentDir.find_last_of('/'));
+      }
     }
     else
     {
@@ -268,6 +266,7 @@ namespace Strontium
     }
   }
 
+  // This segfaults?
   void
   AssetBrowserWindow::drawFolders(Shared<Scene> activeScene)
   {
@@ -286,13 +285,18 @@ namespace Strontium
         if (folderName[0] == '.')
           continue;
 
+        if (this->searched != "" && folderName.find(this->searched) == std::string::npos)
+          continue;
+
         ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
         ImGui::ImageButton((ImTextureID) (unsigned long) this->icons["folder"]->getID(),
                      ImVec2(64.0f, 64.0f), ImVec2(0, 1), ImVec2(1, 0));
         ImGui::PopStyleColor();
 
         if (ImGui::IsMouseDoubleClicked(0) && ImGui::IsItemHovered())
+        {
           this->currentDir = this->currentDir + "/" + folderName;
+        }
 
         ImGui::TextWrapped(folderName.c_str());
 
@@ -312,15 +316,18 @@ namespace Strontium
       if (entry.is_regular_file())
       {
         // Extract the file name.
-        std::string filename = entry.path().filename().string();
+        std::string fileName = entry.path().filename().string();
         std::string fileExt = entry.path().extension().string();
 
         // Ignore hidden files.
-        if (filename[0] == '.')
+        if (fileName[0] == '.')
+          continue;
+
+        if (this->searched != "" && fileName.find(this->searched) == std::string::npos)
           continue;
 
         auto cursorPos = ImGui::GetCursorPos();
-        ImGui::Selectable(std::string("##" + filename).c_str(), false,
+        ImGui::Selectable(std::string("##" + fileName).c_str(), false,
                           ImGuiSelectableFlags_AllowItemOverlap,
                           ImVec2(64.0f, 64.0f));
 
@@ -343,7 +350,7 @@ namespace Strontium
             ImGui::Image((ImTextureID) (unsigned long) this->icons["file"]->getID(),
                          ImVec2(64.0f, 64.0f), ImVec2(0, 1), ImVec2(1, 0));
           }
-          ImGui::Text(filename.c_str());
+          ImGui::Text(fileName.c_str());
 
           std::string filepath = entry.path().string();
           char pathBuffer[256];
@@ -372,7 +379,7 @@ namespace Strontium
           ImGui::Image((ImTextureID) (unsigned long) this->icons["file"]->getID(),
                        ImVec2(64.0f, 64.0f), ImVec2(0, 1), ImVec2(1, 0));
         }
-        ImGui::TextWrapped(filename.c_str());
+        ImGui::TextWrapped(fileName.c_str());
 
         ImGui::NextColumn();
       }

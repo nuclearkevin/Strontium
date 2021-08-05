@@ -16,7 +16,7 @@ namespace Strontium
   // Type of the material.
   enum class MaterialType
   {
-    PBR, Specular, GeometryPass, Unknown
+    PBR, Unknown
   };
 
   // Individual material class to hold shaders and shader data.
@@ -28,7 +28,6 @@ namespace Strontium
 
     // Prepare for drawing.
     void configure();
-    void configure(Shader* overrideProgram);
 
     // Sampler configuration.
     bool hasSampler1D(const std::string &samplerName);
@@ -127,6 +126,9 @@ namespace Strontium
     std::vector<std::pair<std::string, Strontium::AssetHandle>> sampler2Ds;
     std::vector<std::pair<std::string, Strontium::AssetHandle>> sampler3Ds;
     std::vector<std::pair<std::string, Strontium::AssetHandle>> samplerCubes;
+
+    // The uniform buffer to store shader data in.
+    UniformBuffer materialData;
   };
 
   // Macro material which holds all the individual material objects for each
@@ -143,6 +145,7 @@ namespace Strontium
 
     Material* getMaterial(const std::string &meshName);
     AssetHandle getMaterialHandle(const std::string &meshName);
+    GLuint getNumStored() { return this->materials.size(); }
 
     // Get the storage.
     std::vector<std::pair<std::string, AssetHandle>>& getStorage() { return this->materials; };

@@ -21,16 +21,11 @@ namespace Strontium
         std::unique_lock<std::mutex> taskLock(parentPool->taskMutex);
         parentPool->signal.wait(taskLock, [parentPool]()
         {
-          return !parentPool->tasks.empty();
+          return !parentPool->tasks.empty() || !parentPool->isActive.load(std::memory_order_relaxed);
         });
 
         if (!parentPool->isActive.load(std::memory_order_relaxed))
           break;
-
-        // This fixes a weird bug where occasionally the thread will just
-        // advance past the barrier?
-        if (parentPool->tasks.size() < 1)
-          continue;
 
         (*parentPool->tasks.front()).execute();
         parentPool->tasks.pop();
@@ -50,8 +45,7 @@ namespace Strontium
   {
     this->isActive.store(false, std::memory_order_relaxed);
 
-    for (unsigned int i = 0; i < this->workers.size(); i++)
-      this->push([](){ return; });
+    this->signal.notify_all();
 
     for (auto& worker : this->workers)
     {

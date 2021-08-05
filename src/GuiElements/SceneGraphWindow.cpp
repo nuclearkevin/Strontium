@@ -277,7 +277,7 @@ namespace Strontium
               this->selectedEntity.removeComponent<RenderableComponent>();
 
             auto& renderable = this->selectedEntity.addComponent<RenderableComponent>(name);
-            Model::asyncLoadModel(path, name, &renderable.materials);
+            Model::asyncLoadModel(path, name, this->selectedEntity, this->selectedEntity);
 
             this->fileTargets = FileLoadTargets::TargetNone;
             break;
@@ -842,7 +842,7 @@ namespace Strontium
         this->selectedEntity.removeComponent<RenderableComponent>();
 
       auto& renderable = this->selectedEntity.addComponent<RenderableComponent>(filename);
-      Model::asyncLoadModel(filepath, filename, &renderable.materials);
+      Model::asyncLoadModel(filepath, filename, this->selectedEntity, this->selectedEntity);
     }
   }
 }

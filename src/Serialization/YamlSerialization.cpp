@@ -142,8 +142,6 @@ namespace Strontium
       // Save the material type.
       if (material->getType() == MaterialType::PBR)
         out << YAML::Key << "MaterialType" << YAML::Value << "pbr_shader";
-      else if (material->getType() == MaterialType::Specular)
-        out << YAML::Key << "MaterialType" << YAML::Value << "specular_shader";
       else
         out << YAML::Key << "MaterialType" << YAML::Value << "unknown_shader";
 
@@ -481,8 +479,6 @@ namespace Strontium
         materialName = parsedMaterialName.as<std::string>();
         if (shaderName == "pbr_shader")
           outMat = new Material(MaterialType::PBR);
-        else if (shaderName == "specular_shader")
-          outMat = new Material(MaterialType::Specular);
         else
           outMat = new Material(MaterialType::Unknown);
 
@@ -635,7 +631,7 @@ namespace Strontium
                                                 mat["MaterialHandle"].as<std::string>());
               }
             }
-            Model::asyncLoadModel(modelPath, modelName, &rComponent.materials);
+            Model::asyncLoadModel(modelPath, modelName, newEntity, scene.get());
           }
         }
         else

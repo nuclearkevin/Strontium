@@ -16,9 +16,12 @@
 
 // STL includes.
 #include <mutex>
+#include <tuple>
 
 namespace Strontium
 {
+  class Scene;
+
   // Model class
   class Model
   {
@@ -26,12 +29,13 @@ namespace Strontium
     Model();
     ~Model();
 
-    static std::queue<std::pair<Model*, ModelMaterial*>> asyncModelQueue;
+    static std::queue<std::tuple<Model*, Scene*, GLuint>> asyncModelQueue;
     static std::mutex asyncModelMutex;
 
     // Async load a model (using a separate thread).
     static void bulkGenerateMaterials();
-    static void asyncLoadModel(const std::string &filepath, const std::string &name, ModelMaterial* materialContainer);
+    static void asyncLoadModel(const std::string &filepath, const std::string &name,
+                               GLuint entityID, Scene* activeScene);
 
     // Load a model.
     void loadModel(const std::string &filepath);

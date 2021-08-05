@@ -30,6 +30,12 @@ namespace Strontium
 
     ImGui::Begin("Renderer Settings", &isOpen);
 
+    ImGui::Text("Geometry pass frametime: %f ms", stats->geoFrametime);
+    ImGui::Text("Shadow pass frametime: %f ms", stats->shadowFrametime);
+    ImGui::Text("Lighting pass frametime: %f ms", stats->lightFrametime);
+    ImGui::Text("Post-processing pass frametime: %f ms", stats->postFramtime);
+    ImGui::Text("");
+
     ImGui::Text("Drawcalls: %u", stats->drawCalls);
     ImGui::Text("Total vertices: %u", stats->numVertices);
     ImGui::Text("Total triangles: %u", stats->numTriangles);

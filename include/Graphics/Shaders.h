@@ -65,7 +65,8 @@ namespace Strontium
     void addUniformUInt(const char* uniformName, GLuint value);
 
     void addUniformSampler(const char* uniformName, GLuint texID);
-
+    GLint getSamplerLocation(const char* uniformName);
+    
     // Setters for vertex attributes.
     void addAtribute(const char* attribName, AttribType type,
                      GLboolean normalized, unsigned size, unsigned stride);

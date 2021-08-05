@@ -6,40 +6,48 @@
 #include "Core/Logs.h"
 #include "Core/Events.h"
 #include "Graphics/Material.h"
+#include "Scenes/Entity.h"
+#include "Scenes/Components.h"
 
 namespace Strontium
 {
-  std::queue<std::pair<Model*, ModelMaterial*>> Model::asyncModelQueue;
+  std::queue<std::tuple<Model*, Scene*, GLuint>> Model::asyncModelQueue;
   std::mutex Model::asyncModelMutex;
 
   void
   Model::bulkGenerateMaterials()
   {
     // This occasionally segfaults... TODO: Figure out a better solution.
-    std::lock_guard<std::mutex> imageGuard(asyncModelMutex);
+    std::lock_guard<std::mutex> modelGuard(asyncModelMutex);
 
     Logger* logs = Logger::getInstance();
 
     while (!asyncModelQueue.empty())
     {
-      auto& model = asyncModelQueue.front().first;
-      auto& materials = asyncModelQueue.front().second;
-      auto& submeshes = model->getSubmeshes();
-      auto& submaterials = materials->getStorage();
+      auto [model, activeScene, entityID] = asyncModelQueue.front();
+      Entity entity((entt::entity) entityID, activeScene);
 
-      if (submaterials.size() == 0)
+      if (entity)
       {
-        for (auto& submesh : submeshes)
-          materials->attachMesh(submesh.getName(), MaterialType::PBR);
-      }
+        if (entity.hasComponent<RenderableComponent>())
+        {
+          auto& materials = entity.getComponent<RenderableComponent>().materials;
+          auto& submeshes = model->getSubmeshes();
 
+          if (materials.getNumStored() == 0)
+          {
+            for (auto& submesh : submeshes)
+              materials.attachMesh(submesh.getName(), MaterialType::PBR);
+          }
+        }
+      }
       asyncModelQueue.pop();
     }
   }
 
   void
   Model::asyncLoadModel(const std::string &filepath, const std::string &name,
-                        ModelMaterial* materialContainer)
+                        GLuint entityID, Scene* activeScene)
   {
     // Fetch the logs.
     Logger* logs = Logger::getInstance();
@@ -56,7 +64,7 @@ namespace Strontium
     auto workerGroup = ThreadPool::getInstance(2);
 
     auto loaderImpl = [](const std::string &filepath, const std::string &name,
-                         ModelMaterial* materialContainer)
+                         GLuint entityID, Scene* activeScene)
     {
       auto modelAssets = AssetManager<Model>::getManager();
 
@@ -68,11 +76,11 @@ namespace Strontium
         modelAssets->attachAsset(name, loadable);
 
         std::lock_guard<std::mutex> imageGuard(asyncModelMutex);
-        asyncModelQueue.push({ loadable, materialContainer });
+        asyncModelQueue.push({ loadable, activeScene, entityID });
       }
     };
 
-    workerGroup->push(loaderImpl, filepath, name, materialContainer);
+    workerGroup->push(loaderImpl, filepath, name, entityID, activeScene);
   }
 
   Model::Model()

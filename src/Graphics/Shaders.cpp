@@ -472,6 +472,12 @@ namespace Strontium
 		glUniform1i(uniLoc, texID);
 	}
 
+	GLint
+	Shader::getSamplerLocation(const char* uniformName)
+	{
+		return glGetUniformLocation(this->progID, uniformName);
+	}
+
 	// Vertex attribute setters.
 	void
 	Shader::addAtribute(const char* attribName, AttribType type,

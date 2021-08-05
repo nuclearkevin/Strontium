@@ -11,9 +11,9 @@
 
 struct Camera
 {
- vec3 position;
- vec3 viewDir;
- mat4 cameraView;
+  vec3 position;
+  vec3 viewDir;
+  mat4 cameraView;
 };
 
 // Camera uniform.

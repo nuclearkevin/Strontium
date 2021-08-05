@@ -403,7 +403,7 @@ namespace Strontium
       auto model = activeScene->createEntity(filename.substr(0, filename.find_last_of('.')));
       model.addComponent<TransformComponent>();
       auto& rComponent = model.addComponent<RenderableComponent>(filename);
-      Model::asyncLoadModel(filepath, filename, &rComponent.materials);
+      Model::asyncLoadModel(filepath, filename, model, activeScene.get());
     }
 
     // If its a supported image, load and cache it.

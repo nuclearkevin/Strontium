@@ -13,6 +13,9 @@
 #include "imgui/imgui.h"
 #include "imgui/imgui_internal.h"
 
+// STL includes.
+#include <filesystem>
+
 namespace Strontium
 {
   class AssetBrowserWindow : public GuiWindow
@@ -37,14 +40,11 @@ namespace Strontium
     // Handle creation of assets.
     void createMaterial();
 
+    std::unordered_map<std::string, Texture2D*> icons;
     std::string searched;
-
     std::string currentDir;
-    ImVec2 drawCursor;
 
     bool loadingAsset;
     std::string loadingAssetText;
-
-    std::unordered_map<std::string, Texture2D*> icons;
   };
 }

@@ -18,14 +18,19 @@ in VERT_OUT
 	mat3 fTBN;
 } fragIn;
 
-uniform vec3 uAlbedo = vec3(1.0);
-uniform float uMetallic = 1.0;
-uniform float uRoughness = 1.0;
-uniform float uAO = 1.0;
-uniform float uEmiss = 0.0;
-uniform float uF0 = 0.04;
-uniform float uID = 0.0;
-uniform vec3 uMaskColour = vec3(0.0);
+// The material properties.
+layout(std140, binding = 1) uniform MaterialBlock
+{
+  mat4 u_modelMatrix;
+  vec4 u_MRAE; // Metallic (r), roughness (g), AO (b) and emission (a);
+	vec4 u_albedoF0; // Albedo (r, g, b) and F0 (a);
+};
+
+// Editor block.
+layout(std140, binding = 2) uniform EditorBlock
+{
+	vec4 maskColourID; // Mask colour (r, g, b) and the entity ID (a).
+};
 
 uniform sampler2D albedoMap;
 uniform sampler2D normalMap;
@@ -38,13 +43,13 @@ void main()
 {
   gPosition = vec4(fragIn.fPosition, 1.0);
   gNormal = vec4(fragIn.fTBN * (texture(normalMap, fragIn.fTexCoords).xyz * 2.0 - 1.0), 1.0);
-  gAlbedo = vec4(pow(texture(albedoMap, fragIn.fTexCoords).rgb * uAlbedo, vec3(2.2)), 1.0);
-	gAlbedo.a = texture(specF0Map, fragIn.fTexCoords).r * uF0;
+  gAlbedo = vec4(pow(texture(albedoMap, fragIn.fTexCoords).rgb * u_albedoF0.rgb, vec3(2.2)), 1.0);
+	gAlbedo.a = texture(specF0Map, fragIn.fTexCoords).r * u_albedoF0.a;
 
-  gMatProp.r = texture(metallicMap, fragIn.fTexCoords).r * uMetallic;
-  gMatProp.g = texture(roughnessMap, fragIn.fTexCoords).r * uRoughness;
-  gMatProp.b = texture(aOcclusionMap, fragIn.fTexCoords).r * uAO;
-  gMatProp.a = uEmiss;
+  gMatProp.r = texture(metallicMap, fragIn.fTexCoords).r * u_MRAE.r;
+  gMatProp.g = texture(roughnessMap, fragIn.fTexCoords).r * u_MRAE.g;
+  gMatProp.b = texture(aOcclusionMap, fragIn.fTexCoords).r * u_MRAE.b;
+  gMatProp.a = u_MRAE.a;
 
-	gIDMaskColour = vec4(uMaskColour, uID);
+	gIDMaskColour = maskColourID;
 }
