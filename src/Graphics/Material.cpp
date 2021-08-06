@@ -10,7 +10,7 @@ namespace Strontium
     : filepath(filepath)
     , type(type)
     , pipeline(false)
-    , materialData(sizeof(glm::mat4) + 2 * sizeof(glm::vec4), BufferType::Dynamic)
+    , materialData(2 * sizeof(glm::vec4), BufferType::Dynamic)
   {
     auto shaderCache = AssetManager<Shader>::getManager();
     switch (type)
@@ -30,7 +30,6 @@ namespace Strontium
         this->attachSampler2D("aOcclusionMap", texHandle);
         this->attachSampler2D("specF0Map", texHandle);
 
-        this->mat4s.emplace_back("uModel", glm::mat4(1.0f));
         this->vec3s.emplace_back("uAlbedo", glm::vec3(1.0f));
         this->floats.emplace_back("uMetallic", 0.0f);
         this->floats.emplace_back("uRoughness", 0.5f);
@@ -40,16 +39,13 @@ namespace Strontium
 
         this->materialData.bindToPoint(1);
 
-        // Set the initial model matrix.
-        this->materialData.setData(0, sizeof(glm::mat4), glm::value_ptr(this->getMat4("uModel")));
-
         // Set the initial metallic, roughness, AO and emission parameters.
         auto mrae = glm::vec4(0.0f);
         mrae.x = this->getFloat("uMetallic");
         mrae.y = this->getFloat("uRoughness");
         mrae.z = this->getFloat("uAO");
         mrae.w = this->getFloat("uEmiss");
-        this->materialData.setData(sizeof(glm::mat4), sizeof(glm::vec4), &mrae.x);
+        this->materialData.setData(0, sizeof(glm::vec4), &mrae.x);
 
         // Set the initial albedo and F0 parameters.
         auto albedo = this->getVec3("uAlbedo");
@@ -58,7 +54,7 @@ namespace Strontium
         albedoF0.y = albedo.y;
         albedoF0.z = albedo.z;
         albedoF0.w = this->getFloat("uF0");
-        this->materialData.setData(sizeof(glm::mat4) + sizeof(glm::vec4), sizeof(glm::vec4), &albedoF0.x);
+        this->materialData.setData(sizeof(glm::vec4), sizeof(glm::vec4), &albedoF0.x);
         break;
       }
       default:
@@ -113,16 +109,13 @@ namespace Strontium
       samplerCount++;
     }
 
-    // Set the model matrix.
-    this->materialData.setData(0, sizeof(glm::mat4), glm::value_ptr(this->getMat4("uModel")));
-
     // Set the metallic, roughness, AO and emission parameters.
     auto mrae = glm::vec4(0.0f);
     mrae.x = this->getFloat("uMetallic");
     mrae.y = this->getFloat("uRoughness");
     mrae.z = this->getFloat("uAO");
     mrae.w = this->getFloat("uEmiss");
-    this->materialData.setData(sizeof(glm::mat4), sizeof(glm::vec4), &mrae.x);
+    this->materialData.setData(0, sizeof(glm::vec4), &mrae.x);
 
     // Set the albedo and F0 parameters.
     auto albedo = this->getVec3("uAlbedo");
@@ -131,11 +124,9 @@ namespace Strontium
     albedoF0.y = albedo.y;
     albedoF0.z = albedo.z;
     albedoF0.w = this->getFloat("uF0");
-    this->materialData.setData(sizeof(glm::mat4) + sizeof(glm::vec4), sizeof(glm::vec4), &albedoF0.x);
+    this->materialData.setData(sizeof(glm::vec4), sizeof(glm::vec4), &albedoF0.x);
 
     this->materialData.bindToPoint(1);
-
-    this->program->bind();
   }
 
   // Search for and attach textures to a sampler.

@@ -117,7 +117,12 @@ namespace Strontium
 
       // Uniform buffers.
       UniformBuffer camBuffer;
+      UniformBuffer transformBuffer;
       UniformBuffer editorBuffer;
+      UniformBuffer ambientPassBuffer;
+      UniformBuffer directionalPassBuffer;
+      UniformBuffer cascadeShadowBuffer;
+      UniformBuffer cascadeShadowPassBuffer;
 
       // Items for the geometry pass.
       std::vector<std::tuple<Model*, ModelMaterial*, glm::mat4, GLuint, bool>> renderQueue;
@@ -151,7 +156,14 @@ namespace Strontium
 
       RendererStorage()
         : camBuffer(2 * sizeof(glm::mat4) + sizeof(glm::vec3), BufferType::Dynamic)
+        , transformBuffer(sizeof(glm::mat4), BufferType::Dynamic)
         , editorBuffer(sizeof(glm::vec4), BufferType::Dynamic)
+        , ambientPassBuffer(sizeof(glm::vec4), BufferType::Dynamic)
+        , directionalPassBuffer(2 * sizeof(glm::vec4) + sizeof(glm::vec2), BufferType::Dynamic)
+        , cascadeShadowPassBuffer(sizeof(glm::mat4), BufferType::Dynamic)
+        , cascadeShadowBuffer(NUM_CASCADES * sizeof(glm::mat4)
+                               + NUM_CASCADES * sizeof(glm::vec4) * sizeof(GLfloat),
+                               BufferType::Dynamic)
       {
         currentEnvironment = createUnique<EnvironmentMap>();
       }

@@ -9,39 +9,41 @@
 #define NUM_CASCADES 4
 #define WARP 44.0
 
-struct Camera
+// Camera specific uniforms.
+layout(std140, binding = 0) uniform CameraBlock
 {
- vec3 position;
- vec3 viewDir;
- mat4 cameraView;
+  mat4 u_viewMatrix;
+  mat4 u_projMatrix;
+  vec3 u_camPosition;
 };
 
-// Camera uniform.
-uniform Camera camera;
-
 // Directional light uniforms.
-uniform vec3 lDirection;
-uniform vec3 lColour;
-uniform float lIntensity;
+layout(std140, binding = 5) uniform DirectionalBlock
+{
+  vec4 u_lColourIntensity;
+  vec4 u_lDirection;
+  vec2 u_screenSize;
+};
 
-// Shadow map uniforms.
-uniform mat4 lightVP[NUM_CASCADES];
-uniform float cascadeSplits[NUM_CASCADES];
-uniform float lightBleedReduction = 0.1;
-layout(binding = 7) uniform sampler2D cascadeMaps[NUM_CASCADES];
+layout(std140, binding = 7) uniform CascadedShadowBlock
+{
+  mat4 u_lightVP[NUM_CASCADES];
+  float u_cascadeSplits[NUM_CASCADES];
+  float u_lightBleedReduction;
+};
 
 // Uniforms for the geometry buffer.
-uniform vec2 screenSize;
 layout(binding = 3) uniform sampler2D gPosition;
 layout(binding = 4) uniform sampler2D gNormal;
 layout(binding = 5) uniform sampler2D gAlbedo;
 layout(binding = 6) uniform sampler2D gMatProp;
+layout(binding = 7) uniform sampler2D cascadeMaps[NUM_CASCADES]; // TODO: Texture arrays.
 
 // Output colour variable.
 layout(location = 0) out vec4 fragColour;
 
 //------------------------------------------------------------------------------
-// Janky LearnOpenGL PBR.
+// PBR helper functions.
 //------------------------------------------------------------------------------
 // Trowbridge-Reitz distribution function.
 float TRDistribution(vec3 N, vec3 H, float alpha);
@@ -61,7 +63,7 @@ vec2 warpDepth(float depth);
 
 void main()
 {
-  vec2 fTexCoords = gl_FragCoord.xy / screenSize;
+  vec2 fTexCoords = gl_FragCoord.xy / u_screenSize;
 
   vec3 position = texture(gPosition, fTexCoords).xyz;
   vec3 normal = normalize(texture(gNormal, fTexCoords).xyz);
@@ -72,8 +74,8 @@ void main()
 
   vec3 F0 = mix(vec3(0.04), albedo, metallic);
 
-  vec3 view = normalize(camera.position - position);
-  vec3 light = normalize(lDirection);
+  vec3 view = normalize(u_camPosition - position);
+  vec3 light = normalize(u_lDirection.xyz);
   vec3 halfWay = normalize(view + light);
 
   float NDF = TRDistribution(normal, halfWay, roughness);
@@ -86,19 +88,20 @@ void main()
   float den = 4.0 * max(dot(normal, view), THRESHHOLD) * max(dot(normal, light), THRESHHOLD);
   vec3 spec = num / max(den, THRESHHOLD);
 
-  vec4 clipSpacePos = camera.cameraView * vec4(position, 1.0);
+  vec4 clipSpacePos = u_viewMatrix * vec4(position, 1.0);
   float shadowFactor = 1.0;
 
   for (uint i = 0; i < NUM_CASCADES; i++)
   {
-    if (clipSpacePos.z > -(cascadeSplits[i]))
+    if (clipSpacePos.z > -(u_cascadeSplits[i]))
     {
       shadowFactor = calcShadow(i, position, normal, light);
       break;
     }
   }
 
-  fragColour = vec4(shadowFactor * (kD * albedo / PI + spec) * lColour * lIntensity * max(dot(normal, light), THRESHHOLD), 1.0);
+  fragColour = vec4(shadowFactor * (kD * albedo / PI + spec) * u_lColourIntensity.rgb
+                    * u_lColourIntensity.a * max(dot(normal, light), THRESHHOLD), 1.0);
 }
 
 // Trowbridge-Reitz distribution function.
@@ -162,7 +165,7 @@ float computeChebyshevBound(float moment1, float moment2, float depth)
   float variance2 = moment2 - moment1 * moment1;
   float diff = depth - moment1;
   float diff2 = diff * diff;
-  float pMax = clamp((variance2 / (variance2 + diff2) - lightBleedReduction) / (1.0 - lightBleedReduction), 0.0, 1.0);
+  float pMax = clamp((variance2 / (variance2 + diff2) - u_lightBleedReduction) / (1.0 - u_lightBleedReduction), 0.0, 1.0);
 
   return moment1 < depth ? pMax : 1.0;
 }
@@ -170,7 +173,7 @@ float computeChebyshevBound(float moment1, float moment2, float depth)
 // Calculate if the fragment is in shadow or not, than shadow mapping.
 float calcShadow(uint cascadeIndex, vec3 position, vec3 normal, vec3 lightDir)
 {
-  vec4 lightClipPos = lightVP[cascadeIndex] * vec4(position, 1.0);
+  vec4 lightClipPos = u_lightVP[cascadeIndex] * vec4(position, 1.0);
   vec3 projCoords = lightClipPos.xyz / lightClipPos.w;
   projCoords = 0.5 * projCoords + 0.5;
 

@@ -21,13 +21,12 @@ in VERT_OUT
 // The material properties.
 layout(std140, binding = 1) uniform MaterialBlock
 {
-  mat4 u_modelMatrix;
   vec4 u_MRAE; // Metallic (r), roughness (g), AO (b) and emission (a);
 	vec4 u_albedoF0; // Albedo (r, g, b) and F0 (a);
 };
 
 // Editor block.
-layout(std140, binding = 2) uniform EditorBlock
+layout(std140, binding = 3) uniform EditorBlock
 {
 	vec4 maskColourID; // Mask colour (r, g, b) and the entity ID (a).
 };

@@ -9,23 +9,23 @@
 #define NUM_CASCADES 4
 #define WARP 44.0
 
-struct Camera
+// Camera specific uniforms.
+layout(std140, binding = 0) uniform CameraBlock
 {
-  vec3 position;
-  vec3 viewDir;
-  mat4 cameraView;
+  mat4 u_viewMatrix;
+  mat4 u_projMatrix;
+  vec3 u_camPosition;
 };
 
-// Camera uniform.
-uniform Camera camera;
-
 // Directional light uniforms.
-uniform vec3 lDirection;
-uniform vec3 lColour;
-uniform float lIntensity;
+layout(std140, binding = 5) uniform DirectionalBlock
+{
+  vec4 u_lColourIntensity;
+  vec4 u_lDirection;
+  vec2 u_screenSize;
+};
 
 // Uniforms for the geometry buffer.
-uniform vec2 screenSize;
 layout(binding = 3) uniform sampler2D gPosition;
 layout(binding = 4) uniform sampler2D gNormal;
 layout(binding = 5) uniform sampler2D gAlbedo;
@@ -35,7 +35,7 @@ layout(binding = 6) uniform sampler2D gMatProp;
 layout(location = 0) out vec4 fragColour;
 
 //------------------------------------------------------------------------------
-// Janky LearnOpenGL PBR.
+// PBR helper functions.
 //------------------------------------------------------------------------------
 // Trowbridge-Reitz distribution function.
 float TRDistribution(vec3 N, vec3 H, float alpha);
@@ -48,7 +48,7 @@ vec3 SFresnelR(float cosTheta, vec3 F0, float roughness);
 
 void main()
 {
-  vec2 fTexCoords = gl_FragCoord.xy / screenSize;
+  vec2 fTexCoords = gl_FragCoord.xy / u_screenSize;
 
   vec3 position = texture(gPosition, fTexCoords).xyz;
   vec3 normal = normalize(texture(gNormal, fTexCoords).xyz);
@@ -59,8 +59,8 @@ void main()
 
   vec3 F0 = mix(vec3(texture(gAlbedo, fTexCoords).a), albedo, metallic);
 
-  vec3 view = normalize(position - camera.position);
-  vec3 light = normalize(lDirection);
+  vec3 view = normalize(u_camPosition - position);
+  vec3 light = normalize(u_lDirection.xyz);
   vec3 halfWay = normalize(view + light);
 
   float NDF = TRDistribution(normal, halfWay, roughness);
@@ -73,7 +73,8 @@ void main()
   float den = 4.0 * max(dot(normal, view), THRESHHOLD) * max(dot(normal, light), THRESHHOLD);
   vec3 spec = num / max(den, THRESHHOLD);
 
-  fragColour = vec4((kD * albedo / PI + spec) * lColour * lIntensity * max(dot(normal, light), THRESHHOLD), 1.0);
+  fragColour = vec4((kD * albedo / PI + spec) * u_lColourIntensity.rgb
+                    * u_lColourIntensity.a * max(dot(normal, light), THRESHHOLD), 1.0);
 }
 
 // Trowbridge-Reitz distribution function.

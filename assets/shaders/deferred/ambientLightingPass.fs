@@ -1,34 +1,33 @@
 #version 440
-/*
- * Lighting fragment shader for a deferred PBR pipeline. Computes the ambient
- * component.
- */
+
+// Lighting fragment shader for a deferred PBR pipeline. Computes the ambient
+// component.
 
 #define PI 3.141592654
 #define MAX_MIP 4.0
 
-struct Camera
+// Camera specific uniforms.
+layout(std140, binding = 0) uniform CameraBlock
 {
-  vec3 position;
-  vec3 viewDir;
+  mat4 u_viewMatrix;
+  mat4 u_projMatrix;
+  vec3 u_camPosition;
 };
 
-// Camera uniform.
-uniform Camera camera;
+// Ambient lighting specific uniforms.
+layout(std140, binding = 4) uniform AmbientBlock
+{
+  vec3 u_screenSizeIntensity; // Screen size (x, y) and intensity (z).
+};
 
-// Uniforms for ambient lighting.
+// Samplers from the gbuffer and required lookup textures for IBL.
 layout(binding = 0) uniform samplerCube irradianceMap;
 layout(binding = 1) uniform samplerCube reflectanceMap;
 layout(binding = 2) uniform sampler2D brdfLookUp;
-
-// Uniforms for the geometry buffer.
-uniform vec2 screenSize;
 layout(binding = 3) uniform sampler2D gPosition;
 layout(binding = 4) uniform sampler2D gNormal;
 layout(binding = 5) uniform sampler2D gAlbedo;
 layout(binding = 6) uniform sampler2D gMatProp;
-
-uniform float intensity = 1.0;
 
 // Output colour variable.
 layout(location = 0) out vec4 fragColour;
@@ -44,7 +43,7 @@ vec3 SFresnelR(float cosTheta, vec3 F0, float roughness);
 
 void main()
 {
-  vec2 fTexCoords = gl_FragCoord.xy / screenSize;
+  vec2 fTexCoords = gl_FragCoord.xy / u_screenSizeIntensity.xy;
 
   vec3 position = texture(gPosition, fTexCoords).xyz;
   vec3 normal = normalize(texture(gNormal, fTexCoords).xyz);
@@ -56,7 +55,7 @@ void main()
 
   vec3 F0 = mix(vec3(0.04), albedo, metallic);
 
-  vec3 view = normalize(position - camera.position);
+  vec3 view = normalize(position - u_camPosition);
   vec3 reflection = reflect(view, normal);
 
   float nDotV = abs(dot(normal, -view));
@@ -69,7 +68,8 @@ void main()
   vec2 brdfInt = texture(brdfLookUp, vec2(nDotV, roughness)).rg;
   ambientSpec = ambientSpec * (brdfInt.r * ks + brdfInt.g);
 
-	vec3 colour = intensity * ((ambientDiff + ambientSpec) * ao) + albedo * emiss;
+	vec3 colour = u_screenSizeIntensity.z * ((ambientDiff + ambientSpec) * ao)
+                + albedo * emiss;
 
   fragColour = vec4(colour, 1.0);
 }

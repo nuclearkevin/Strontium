@@ -68,13 +68,20 @@ namespace Strontium
     {
       auto modelAssets = AssetManager<Model>::getManager();
 
+      Model* loadable;
       if (!modelAssets->hasAsset(name))
       {
-        Model* loadable = new Model();
+        loadable = new Model();
         loadable->loadModel(filepath);
 
         modelAssets->attachAsset(name, loadable);
 
+        std::lock_guard<std::mutex> imageGuard(asyncModelMutex);
+        asyncModelQueue.push({ loadable, activeScene, entityID });
+      }
+      else
+      {
+        loadable = modelAssets->getAsset(name);
         std::lock_guard<std::mutex> imageGuard(asyncModelMutex);
         asyncModelQueue.push({ loadable, activeScene, entityID });
       }

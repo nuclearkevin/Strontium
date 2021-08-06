@@ -88,7 +88,12 @@ namespace Strontium
 
       // Prepare the various uniform buffers.
       storage->camBuffer.bindToPoint(0);
-      storage->editorBuffer.bindToPoint(2);
+      storage->transformBuffer.bindToPoint(2);
+      storage->editorBuffer.bindToPoint(3);
+      storage->ambientPassBuffer.bindToPoint(4);
+      storage->directionalPassBuffer.bindToPoint(5);
+      storage->cascadeShadowPassBuffer.bindToPoint(6);
+      storage->cascadeShadowBuffer.bindToPoint(7);
 
       // Shaders for the various passes.
       storage->shadowShader = shaderCache->getAsset("shadow_shader");
@@ -294,9 +299,11 @@ namespace Strontium
 
           Material* material = materials->getMaterial(submesh.getName());
           if (!material)
+          {
             continue;
+          }
 
-          material->getMat4("uModel") = transform;
+          storage->transformBuffer.setData(0, sizeof(glm::mat4), glm::value_ptr(transform));
 
           glm::vec4 maskColourID;
           if (drawSelectionMask)
@@ -311,7 +318,6 @@ namespace Strontium
           maskColourID.w = id + 1.0f;
           storage->editorBuffer.setData(0, sizeof(glm::vec4), &maskColourID.x);
 
-          // This is incredibly slow, ~0.02 ms per submesh.
           material->configure();
 
           if (submesh.hasVAO())
@@ -507,10 +513,11 @@ namespace Strontium
 
         if (storage->hasCascades)
         {
+          storage->cascadeShadowPassBuffer.setData(0, sizeof(glm::mat4), glm::value_ptr(storage->cascades[i]));
+          
           for (auto& pair : storage->shadowQueue)
           {
-            storage->shadowShader->addUniformMatrix("lightVP", storage->cascades[i], GL_FALSE);
-            storage->shadowShader->addUniformMatrix("model", pair.second, GL_FALSE);
+            storage->transformBuffer.setData(0, sizeof(glm::mat4), glm::value_ptr(pair.second));
 
             for (auto& submesh : pair.first->getSubmeshes())
             {
@@ -585,11 +592,13 @@ namespace Strontium
       storage->gBuffer.bindAttachment(FBOTargetParam::Colour1, 4);
       storage->gBuffer.bindAttachment(FBOTargetParam::Colour2, 5);
       storage->gBuffer.bindAttachment(FBOTargetParam::Colour3, 6);
-      // Screen size.
-      storage->ambientShader->addUniformVector("screenSize", storage->lightingPass.getSize());
-      storage->ambientShader->addUniformFloat("intensity", storage->currentEnvironment->getIntensity());
-      // Camera position.
-      storage->ambientShader->addUniformVector("camera.position", storage->sceneCam->getCamPos());
+
+      auto sizeIntensity = glm::vec3(0.0f);
+      auto screenSize = storage->lightingPass.getSize();
+      sizeIntensity.x = screenSize.x;
+      sizeIntensity.y = screenSize.y;
+      sizeIntensity.z = storage->currentEnvironment->getIntensity();
+      storage->ambientPassBuffer.setData(0, sizeof(glm::vec3), &sizeIntensity.x);
 
       draw(&storage->fsq, storage->ambientShader);
 
@@ -600,54 +609,47 @@ namespace Strontium
       RendererCommands::blendEquation(BlendEquation::Additive);
       RendererCommands::blendFunction(BlendFunction::One, BlendFunction::One);
 
-      // Screen size.
-      storage->directionalShaderShadowed->addUniformVector("screenSize", storage->lightingPass.getSize());
-      // Camera properties.
-      storage->directionalShaderShadowed->addUniformVector("camera.position", storage->sceneCam->getCamPos());
-      storage->directionalShaderShadowed->addUniformMatrix("camera.cameraView", storage->sceneCam->getViewMatrix(), GL_FALSE);
-
-      // Screen size.
-      storage->directionalShader->addUniformVector("screenSize", storage->lightingPass.getSize());
-      // Camera properties.
-      storage->directionalShader->addUniformVector("camera.position", storage->sceneCam->getCamPos());
-      storage->directionalShader->addUniformMatrix("camera.cameraView", storage->sceneCam->getViewMatrix(), GL_FALSE);
+      storage->directionalPassBuffer.setData(2 * sizeof(glm::vec4), sizeof(glm::vec2), &screenSize.x);
 
       // Set the shadow map uniforms.
       if (storage->hasCascades)
       {
         for (unsigned int i = 0; i < NUM_CASCADES; i++)
         {
-          storage->directionalShaderShadowed->addUniformMatrix(
-            (std::string("lightVP[") + std::to_string(i) + std::string("]")).c_str(),
-            storage->cascades[i], GL_FALSE);
-          storage->directionalShaderShadowed->addUniformFloat(
-            (std::string("cascadeSplits[") + std::to_string(i) + std::string("]")).c_str(),
-            storage->cascadeSplits[i]);
-          storage->directionalShaderShadowed->addUniformFloat("lightBleedReduction", state->bleedReduction);
+          storage->cascadeShadowBuffer.setData(i * sizeof(glm::mat4), sizeof(glm::mat4),
+                                                glm::value_ptr(storage->cascades[i]));
+          storage->cascadeShadowBuffer.setData(NUM_CASCADES * sizeof(glm::mat4)
+                                                + i * sizeof(glm::vec4), sizeof(GLfloat),
+                                                &storage->cascadeSplits[i]);
+
+
           storage->shadowBuffer[i].bindTextureID(FBOTargetParam::Colour0, i + 7);
         }
+        storage->cascadeShadowBuffer.setData(NUM_CASCADES * sizeof(glm::mat4)
+                                              + NUM_CASCADES * sizeof(glm::vec4),
+                                              sizeof(GLfloat),
+                                              &state->bleedReduction);
       }
 
       for (auto& light : storage->directionalQueue)
       {
+        auto dirColourIntensity = glm::vec4(0.0f);
+        dirColourIntensity.x = light.colour.x;
+        dirColourIntensity.y = light.colour.y;
+        dirColourIntensity.z = light.colour.z;
+        dirColourIntensity.w = light.intensity;
+        storage->directionalPassBuffer.setData(0, sizeof(glm::vec4), &dirColourIntensity.x);
+
+        auto dirDirection = glm::vec4(0.0f);
+        dirDirection.x = light.direction.x;
+        dirDirection.y = light.direction.y;
+        dirDirection.z = light.direction.z;
+        storage->directionalPassBuffer.setData(sizeof(glm::vec4), sizeof(glm::vec4), &dirDirection.x);
+
         if (light.castShadows && light.primaryLight)
-        {
-          // Light properties.
-          storage->directionalShaderShadowed->addUniformVector("lDirection", light.direction);
-          storage->directionalShaderShadowed->addUniformVector("lColour", light.colour);
-          storage->directionalShaderShadowed->addUniformFloat("lIntensity", light.intensity);
-
           draw(&storage->fsq, storage->directionalShaderShadowed);
-        }
         else
-        {
-          // Light properties.
-          storage->directionalShader->addUniformVector("lDirection", light.direction);
-          storage->directionalShader->addUniformVector("lColour", light.colour);
-          storage->directionalShader->addUniformFloat("lIntensity", light.intensity);
-
           draw(&storage->fsq, storage->directionalShader);
-        }
       }
 
       storage->directionalQueue.clear();
