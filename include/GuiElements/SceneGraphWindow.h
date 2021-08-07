@@ -5,6 +5,10 @@
 
 // Project includes.
 #include "Core/ApplicationBase.h"
+#include "Graphics/FrameBuffer.h"
+#include "Graphics/Camera.h"
+#include "Graphics/Model.h"
+#include "Graphics/Textures.h"
 #include "GuiElements/GuiWindow.h"
 #include "Scenes/Scene.h"
 #include "Scenes/Entity.h"

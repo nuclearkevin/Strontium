@@ -32,6 +32,26 @@ namespace Strontium
     { }
   };
 
+  // Material info from assimp.
+  struct UnloadedMaterialInfo
+  {
+    std::string albedoTexturePath;
+    std::string roughnessTexturePath;
+    std::string metallicTexturePath;
+    std::string aoTexturePath;
+    std::string specularTexturePath;
+    std::string normalTexturePath;
+
+    UnloadedMaterialInfo()
+      : albedoTexturePath("")
+      , roughnessTexturePath("")
+      , metallicTexturePath("")
+      , aoTexturePath("")
+      , specularTexturePath("")
+      , normalTexturePath("")
+    { }
+  };
+
   class Mesh
   {
   public:
@@ -63,6 +83,7 @@ namespace Strontium
     VertexArray*  getVAO() { return this->vArray.get(); }
     std::string& getFilepath() { return this->filepath; }
     std::string& getName() { return this->name; }
+    UnloadedMaterialInfo& getMaterialInfo() { return this->materialInfo; }
 
     // Check for states.
     bool hasVAO() { return this->vArray != nullptr; }
@@ -78,6 +99,8 @@ namespace Strontium
 
     std::string filepath;
     std::string name;
+
+    UnloadedMaterialInfo materialInfo;
 
     Model* parent;
 

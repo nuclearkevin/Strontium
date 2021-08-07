@@ -5,10 +5,11 @@
 
 // Project includes.
 #include "Core/AssetManager.h"
+#include "Graphics/Renderer.h"
 #include "Graphics/Meshes.h"
 #include "Graphics/Material.h"
 #include "Graphics/EnvironmentMap.h"
-#include "Graphics/Renderer.h"
+#include "Graphics/ShadingPrimatives.h"
 #include "Scenes/Entity.h"
 
 namespace Strontium
@@ -189,7 +190,7 @@ namespace Strontium
   // Various light components for rendering the scene.
   struct DirectionalLightComponent
   {
-    Renderer3D::DirectionalLight light;
+    DirectionalLight light;
 
     DirectionalLightComponent(const DirectionalLightComponent&) = default;
 
@@ -197,7 +198,7 @@ namespace Strontium
       : light()
     { }
 
-    operator Renderer3D::DirectionalLight()
+    operator DirectionalLight()
     {
       return light;
     }
@@ -205,7 +206,7 @@ namespace Strontium
 
   struct PointLightComponent
   {
-    Renderer3D::PointLight light;
+    PointLight light;
 
     PointLightComponent(const PointLightComponent&) = default;
 
@@ -213,7 +214,7 @@ namespace Strontium
       : light()
     { }
 
-    operator Renderer3D::PointLight()
+    operator PointLight()
     {
       return light;
     }
@@ -221,7 +222,7 @@ namespace Strontium
 
   struct SpotLightComponent
   {
-    Renderer3D::SpotLight light;
+    SpotLight light;
 
     SpotLightComponent(const SpotLightComponent&) = default;
 
@@ -229,7 +230,7 @@ namespace Strontium
       : light()
     { }
 
-    operator Renderer3D::SpotLight()
+    operator SpotLight()
     {
       return light;
     }

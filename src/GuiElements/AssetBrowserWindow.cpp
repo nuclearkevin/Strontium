@@ -102,8 +102,10 @@ namespace Strontium
     std::strncpy(searchBuffer, searched.c_str(), sizeof(searchBuffer));
 
     ImGui::SameLine();
+    ImGui::PushItemWidth(300.0f);
     if (ImGui::InputText("##search", searchBuffer, sizeof(searchBuffer)))
       searched = std::string(searchBuffer);
+    ImGui::PopItemWidth();
 
     ImGui::SameLine();
     if (ImGui::Button(ICON_FA_SEARCH))

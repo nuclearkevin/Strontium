@@ -75,7 +75,7 @@ namespace Strontium
   }
 
   void
-  Scene::render(Shared<Camera> sceneCamera, Entity selectedEntity)
+  Scene::render(Entity selectedEntity)
   {
     // Group together the lights and submit them to the renderer.
     auto dirLight = this->sceneECS.group<DirectionalLightComponent>(entt::get<TransformComponent>);

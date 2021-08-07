@@ -3,6 +3,7 @@
 // Project includes.
 #include "Core/Events.h"
 #include "Core/Logs.h"
+#include "Utils/AsyncAssetLoading.h"
 
 namespace Strontium
 {
@@ -177,8 +178,8 @@ namespace Strontium
 
       // Must be called at the end of every frame to create textures with loaded
       // images.
-      Texture2D::bulkGenerateTextures();
-      Model::bulkGenerateMaterials();
+      AsyncLoading::bulkGenerateTextures();
+      AsyncLoading::bulkGenerateMaterials();
     }
   }
 

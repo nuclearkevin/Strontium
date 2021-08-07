@@ -9,6 +9,7 @@
 #include "GuiElements/Styles.h"
 #include "Scenes/Components.h"
 #include "Serialization/YamlSerialization.h"
+#include "Utils/AsyncAssetLoading.h"
 
 // ImGui includes.
 #include "imgui/imgui.h"
@@ -277,7 +278,7 @@ namespace Strontium
               this->selectedEntity.removeComponent<RenderableComponent>();
 
             auto& renderable = this->selectedEntity.addComponent<RenderableComponent>(name);
-            Model::asyncLoadModel(path, name, this->selectedEntity, this->selectedEntity);
+            AsyncLoading::asyncLoadModel(path, name, this->selectedEntity, this->selectedEntity);
 
             this->fileTargets = FileLoadTargets::TargetNone;
             break;
@@ -834,7 +835,8 @@ namespace Strontium
     std::string filetype = filename.substr(filename.find_last_of('.'));
 
     // Attach a mesh component.
-    if (filetype == ".obj" || filetype == ".FBX" || filetype == ".fbx")
+    if (filetype == ".obj" || filetype == ".FBX" || filetype == ".fbx"
+        || filetype == ".blend" || filetype == ".gltf" || filetype == ".glb")
     {
       // If it already has a mesh component, remove it and add a new one.
       // Otherwise just add a component.
@@ -842,7 +844,7 @@ namespace Strontium
         this->selectedEntity.removeComponent<RenderableComponent>();
 
       auto& renderable = this->selectedEntity.addComponent<RenderableComponent>(filename);
-      Model::asyncLoadModel(filepath, filename, this->selectedEntity, this->selectedEntity);
+      AsyncLoading::asyncLoadModel(filepath, filename, this->selectedEntity, this->selectedEntity);
     }
   }
 }

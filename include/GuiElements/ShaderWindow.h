@@ -6,6 +6,7 @@
 // Project includes.
 #include "Core/ApplicationBase.h"
 #include "Core/Events.h"
+#include "Graphics/Shaders.h"
 #include "GuiElements/GuiWindow.h"
 #include "Scenes/Scene.h"
 #include "GuiElements/Styles.h"

@@ -6,8 +6,6 @@
 // Project includes.
 #include "Core/ApplicationBase.h"
 #include "Graphics/Meshes.h"
-#include "Graphics/Textures.h"
-#include "Graphics/Material.h"
 
 // Assimp so more than just obj files can be loaded.
 #include <assimp/Importer.hpp>
@@ -20,22 +18,12 @@
 
 namespace Strontium
 {
-  class Scene;
-
   // Model class
   class Model
   {
   public:
     Model();
     ~Model();
-
-    static std::queue<std::tuple<Model*, Scene*, GLuint>> asyncModelQueue;
-    static std::mutex asyncModelMutex;
-
-    // Async load a model (using a separate thread).
-    static void bulkGenerateMaterials();
-    static void asyncLoadModel(const std::string &filepath, const std::string &name,
-                               GLuint entityID, Scene* activeScene);
 
     // Load a model.
     void loadModel(const std::string &filepath);
@@ -49,8 +37,8 @@ namespace Strontium
     std::vector<Mesh>& getSubmeshes() { return this->subMeshes; }
     std::string& getFilepath() { return this->filepath; }
   private:
-    void processNode(aiNode* node, const aiScene* scene);
-    void processMesh(aiMesh* mesh, const aiScene* scene);
+    void processNode(aiNode* node, const aiScene* scene, const std::string &directory);
+    void processMesh(aiMesh* mesh, const aiScene* scene, const std::string &directory);
 
     std::vector<Mesh> subMeshes;
     bool loaded;

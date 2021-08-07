@@ -1,165 +1,21 @@
 #include "Graphics/Textures.h"
 
-// Image loading include.
-#include "stb/stb_image.h"
-#include "stb/stb_image_write.h"
 
 // Project includes.
 #include "Core/Logs.h"
 #include "Core/Events.h"
 #include "Core/AssetManager.h"
-#include "Core/ThreadPool.h"
 #include "GuiElements/Styles.h"
+
+// Image loading include.
+#include "stb/stb_image.h"
+#include "stb/stb_image_write.h"
 
 namespace Strontium
 {
   //----------------------------------------------------------------------------
   // 2D textures.
   //----------------------------------------------------------------------------
-  std::queue<ImageData2D> Texture2D::asyncTexQueue;
-  std::mutex Texture2D::asyncTexMutex;
-
-  void
-  Texture2D::bulkGenerateTextures()
-  {
-    std::lock_guard<std::mutex> imageGuard(asyncTexMutex);
-
-    Logger* logs = Logger::getInstance();
-    auto textureCache = AssetManager<Texture2D>::getManager();
-
-    while (!asyncTexQueue.empty())
-    {
-      ImageData2D& image = asyncTexQueue.front();
-
-      Texture2D* outTex = new Texture2D(image.width, image.height, image.n, image.params);
-      outTex->bind();
-      outTex->getFilepath() = image.filepath;
-
-      // Generate a 2D texture. Currently supports both bytes and floating point
-      // HDR images!
-      if (outTex->n == 1)
-      {
-        if (image.isHDR)
-          glTexImage2D(GL_TEXTURE_2D, 0, GL_R16F, image.width, image.height, 0,
-                       GL_RED, GL_FLOAT, image.data);
-        else
-          glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, image.width, image.height, 0,
-                       GL_RED, GL_UNSIGNED_BYTE, image.data);
-        glGenerateMipmap(GL_TEXTURE_2D);
-      }
-      else if (outTex->n == 2)
-      {
-        if (image.isHDR)
-          glTexImage2D(GL_TEXTURE_2D, 0, GL_RG16F, image.width, image.height, 0,
-                       GL_RG, GL_FLOAT, image.data);
-        else
-          glTexImage2D(GL_TEXTURE_2D, 0, GL_RG, image.width, image.height, 0,
-                       GL_RG, GL_UNSIGNED_BYTE, image.data);
-        glGenerateMipmap(GL_TEXTURE_2D);
-      }
-      else if (outTex->n == 3)
-      {
-        // If its HDR, needs to be GL_RGBA16F instead of GL_RGB16F. Thanks OpenGL....
-        if (image.isHDR)
-        {
-          float* dataFNew;
-          dataFNew = new float[image.width * image.height * 4];
-          GLuint offset = 0;
-
-          for (GLuint i = 0; i < (image.width * image.height * 4); i+=4)
-          {
-            // Copy over the data from the image loading.
-            dataFNew[i] = ((float*) image.data)[i - offset];
-            dataFNew[i + 1] = ((float*) image.data)[i + 1 - offset];
-            dataFNew[i + 2] = ((float*) image.data)[i + 2 - offset];
-            // Make the 4th component (alpha) equal to 1.0f. Could make this a param :thinking:.
-            dataFNew[i + 3] = 1.0f;
-            // Increment the offset to we don't segfault. :D
-            offset ++;
-          }
-          glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, image.width, image.height, 0,
-                       GL_RGBA, GL_FLOAT, dataFNew);
-          stbi_image_free(dataFNew);
-        }
-        else
-          glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, image.width, image.height, 0,
-                       GL_RGB, GL_UNSIGNED_BYTE, image.data);
-        glGenerateMipmap(GL_TEXTURE_2D);
-      }
-      else if (outTex->n == 4)
-      {
-        if (image.isHDR)
-          glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, image.width, image.height, 0,
-                       GL_RGBA, GL_FLOAT, image.data);
-        else
-          glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image.width, image.height, 0,
-                       GL_RGBA, GL_UNSIGNED_BYTE, image.data);
-        glGenerateMipmap(GL_TEXTURE_2D);
-      }
-
-      textureCache->attachAsset(image.name, outTex);
-
-      logs->logMessage(LogMessage("Loaded texture: " + image.name + " " +
-                                  "(W: " + std::to_string(image.width) + ", H: " +
-                                  std::to_string(image.height) + ", N: "
-                                  + std::to_string(image.n) + ").", true, true));
-
-      stbi_image_free(image.data);
-      asyncTexQueue.pop();
-    }
-  }
-
-  void
-  Texture2D::loadImageAsync(const std::string &filepath, const Texture2DParams &params)
-  {
-    // Fetch the logs.
-    Logger* logs = Logger::getInstance();
-
-    // Check if the file is valid or not.
-    std::ifstream test(filepath);
-    if (!test)
-    {
-      logs->logMessage(LogMessage("Error, file " + filepath + " cannot be opened.", true, true));
-      return;
-    }
-
-    // Fetch the thread pool and event dispatcher.
-    auto workerGroup = ThreadPool::getInstance(2);
-
-    auto loaderImpl = [](const std::string &filepath, const std::string &name, const Texture2DParams &params)
-    {
-      auto eventDispatcher = EventDispatcher::getInstance();
-      eventDispatcher->queueEvent(new GuiEvent(GuiEventType::StartSpinnerEvent, filepath));
-
-      ImageData2D outImage;
-      outImage.isHDR = (filepath.substr(filepath.find_last_of("."), 4) == ".hdr");
-      outImage.params = params;
-      outImage.name = name;
-      outImage.filepath = filepath;
-
-      // Load the image.
-      stbi_set_flip_vertically_on_load(true);
-      if (outImage.isHDR)
-        outImage.data = stbi_loadf(filepath.c_str(), &outImage.width, &outImage.height, &outImage.n, 0);
-      else
-        outImage.data = stbi_load(filepath.c_str(), &outImage.width, &outImage.height, &outImage.n, 0);
-
-      if (!outImage.data)
-      {
-        stbi_image_free(outImage.data);
-        return;
-      }
-
-      std::lock_guard<std::mutex> imageGuard(asyncTexMutex);
-      asyncTexQueue.push(outImage);
-
-      eventDispatcher->queueEvent(new GuiEvent(GuiEventType::EndSpinnerEvent, ""));
-    };
-    std::string name = filepath.substr(filepath.find_last_of('/') + 1);
-
-    workerGroup->push(loaderImpl, filepath, name, params);
-  }
-
   Texture2D*
   Texture2D::createMonoColour(const glm::vec4 &colour, std::string &outName,
                               const Texture2DParams &params, bool cache)

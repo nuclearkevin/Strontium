@@ -9,17 +9,19 @@
 // Project includes.
 #include "Core/ApplicationBase.h"
 #include "Core/Math.h"
+#include "Graphics/RendererCommands.h"
 #include "Graphics/VertexArray.h"
 #include "Graphics/Shaders.h"
 #include "Graphics/Compute.h"
+#include "Graphics/FrameBuffer.h"
+#include "Graphics/GeometryBuffer.h"
+
+#include "Graphics/EnvironmentMap.h"
 #include "Graphics/Meshes.h"
 #include "Graphics/Model.h"
 #include "Graphics/Material.h"
 #include "Graphics/Camera.h"
-#include "Graphics/FrameBuffer.h"
-#include "Graphics/GeometryBuffer.h"
-#include "Graphics/EnvironmentMap.h"
-#include "Graphics/RendererCommands.h"
+#include "Graphics/ShadingPrimatives.h"
 
 // STL includes.
 #include <tuple>
@@ -38,63 +40,6 @@ namespace Strontium
   // The 3D renderer!
   namespace Renderer3D
   {
-    struct DirectionalLight
-    {
-      glm::vec3 direction;
-      glm::vec3 colour;
-      GLfloat intensity;
-      bool castShadows;
-      bool primaryLight;
-
-      DirectionalLight()
-        : direction(glm::vec3(0.0f, 1.0f, 0.0f))
-        , colour(glm::vec3(1.0f))
-        , intensity(0.0f)
-        , castShadows(false)
-        , primaryLight(false)
-      { }
-    };
-
-    struct PointLight
-    {
-      glm::vec3 position;
-      glm::vec3 colour;
-      GLfloat intensity;
-      GLfloat radius;
-      bool castShadows;
-
-      PointLight()
-        : position(glm::vec3(0.0f))
-        , colour(glm::vec3(1.0f))
-        , intensity(0.0f)
-        , radius(0.0f)
-        , castShadows(false)
-      { }
-    };
-
-    struct SpotLight
-    {
-      glm::vec3 position;
-      glm::vec3 direction;
-      glm::vec3 colour;
-      GLfloat intensity;
-      GLfloat innerCutoff;
-      GLfloat outerCutoff;
-      GLfloat radius;
-      bool castShadows;
-
-      SpotLight()
-        : position(glm::vec3(0.0f))
-        , direction(glm::vec3(0.0f, 1.0f, 0.0f))
-        , colour(glm::vec3(1.0f))
-        , intensity(0.0f)
-        , innerCutoff(std::cos(glm::radians(45.0f)))
-        , outerCutoff(std::cos(glm::radians(90.0f)))
-        , radius(0.0f)
-        , castShadows(false)
-      { }
-    };
-
     // The renderer storage.
     struct RendererStorage
     {
@@ -162,8 +107,8 @@ namespace Strontium
         , directionalPassBuffer(2 * sizeof(glm::vec4) + sizeof(glm::vec2), BufferType::Dynamic)
         , cascadeShadowPassBuffer(sizeof(glm::mat4), BufferType::Dynamic)
         , cascadeShadowBuffer(NUM_CASCADES * sizeof(glm::mat4)
-                               + NUM_CASCADES * sizeof(glm::vec4) * sizeof(GLfloat),
-                               BufferType::Dynamic)
+                              + NUM_CASCADES * sizeof(glm::vec4) * sizeof(GLfloat),
+                              BufferType::Dynamic)
       {
         currentEnvironment = createUnique<EnvironmentMap>();
       }

@@ -2,94 +2,11 @@
 
 // Project includes.
 #include "Core/AssetManager.h"
-#include "Core/ThreadPool.h"
 #include "Core/Logs.h"
 #include "Core/Events.h"
-#include "Graphics/Material.h"
-#include "Scenes/Entity.h"
-#include "Scenes/Components.h"
 
 namespace Strontium
 {
-  std::queue<std::tuple<Model*, Scene*, GLuint>> Model::asyncModelQueue;
-  std::mutex Model::asyncModelMutex;
-
-  void
-  Model::bulkGenerateMaterials()
-  {
-    // This occasionally segfaults... TODO: Figure out a better solution.
-    std::lock_guard<std::mutex> modelGuard(asyncModelMutex);
-
-    Logger* logs = Logger::getInstance();
-
-    while (!asyncModelQueue.empty())
-    {
-      auto [model, activeScene, entityID] = asyncModelQueue.front();
-      Entity entity((entt::entity) entityID, activeScene);
-
-      if (entity)
-      {
-        if (entity.hasComponent<RenderableComponent>())
-        {
-          auto& materials = entity.getComponent<RenderableComponent>().materials;
-          auto& submeshes = model->getSubmeshes();
-
-          if (materials.getNumStored() == 0)
-          {
-            for (auto& submesh : submeshes)
-              materials.attachMesh(submesh.getName(), MaterialType::PBR);
-          }
-        }
-      }
-      asyncModelQueue.pop();
-    }
-  }
-
-  void
-  Model::asyncLoadModel(const std::string &filepath, const std::string &name,
-                        GLuint entityID, Scene* activeScene)
-  {
-    // Fetch the logs.
-    Logger* logs = Logger::getInstance();
-
-    // Check if the file is valid or not.
-    std::ifstream test(filepath);
-    if (!test)
-    {
-      logs->logMessage(LogMessage("Error, file " + filepath + " cannot be opened.", true, true));
-      return;
-    }
-
-    // Fetch the thread pool.
-    auto workerGroup = ThreadPool::getInstance(2);
-
-    auto loaderImpl = [](const std::string &filepath, const std::string &name,
-                         GLuint entityID, Scene* activeScene)
-    {
-      auto modelAssets = AssetManager<Model>::getManager();
-
-      Model* loadable;
-      if (!modelAssets->hasAsset(name))
-      {
-        loadable = new Model();
-        loadable->loadModel(filepath);
-
-        modelAssets->attachAsset(name, loadable);
-
-        std::lock_guard<std::mutex> imageGuard(asyncModelMutex);
-        asyncModelQueue.push({ loadable, activeScene, entityID });
-      }
-      else
-      {
-        loadable = modelAssets->getAsset(name);
-        std::lock_guard<std::mutex> imageGuard(asyncModelMutex);
-        asyncModelQueue.push({ loadable, activeScene, entityID });
-      }
-    };
-
-    workerGroup->push(loaderImpl, filepath, name, entityID, activeScene);
-  }
-
   Model::Model()
     : loaded(false)
     , minPos(std::numeric_limits<float>::max())
@@ -132,7 +49,10 @@ namespace Strontium
 
     this->filepath = filepath;
 
-    this->processNode(scene->mRootNode, scene);
+    std::string directory = filepath.substr(0, filepath.find_last_of('/'));
+    std::cout << directory << std::endl;
+
+    this->processNode(scene->mRootNode, scene, directory);
     this->loaded = true;
     eventDispatcher->queueEvent(new GuiEvent(GuiEventType::EndSpinnerEvent, ""));
     logs->logMessage(LogMessage("Model loaded at path " + filepath));
@@ -140,21 +60,21 @@ namespace Strontium
 
   // Recursively process all the nodes in the mesh.
   void
-  Model::processNode(aiNode* node, const aiScene* scene)
+  Model::processNode(aiNode* node, const aiScene* scene, const std::string &directory)
   {
     for (GLuint i = 0; i < node->mNumMeshes; i++)
     {
       aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
-      this->processMesh(mesh, scene);
+      this->processMesh(mesh, scene, directory);
     }
 
     for (GLuint i = 0; i < node->mNumChildren; i++)
-      this->processNode(node->mChildren[i], scene);
+      this->processNode(node->mChildren[i], scene, directory);
   }
 
   // Process each individual mesh.
   void
-  Model::processMesh(aiMesh* mesh, const aiScene* scene)
+  Model::processMesh(aiMesh* mesh, const aiScene* scene, const std::string &directory)
   {
     std::string meshName = std::string(mesh->mName.C_Str());
     this->subMeshes.emplace_back(meshName, this);
@@ -165,6 +85,8 @@ namespace Strontium
     auto& meshMax = this->subMeshes.back().getMaxPos();
     meshMin = glm::vec3(std::numeric_limits<float>::max());
     meshMax = glm::vec3(std::numeric_limits<float>::min());
+
+    auto& materialInfo = this->subMeshes.back().getMaterialInfo();
 
     // Get the positions.
     if (mesh->HasPositions())
@@ -250,6 +172,89 @@ namespace Strontium
 
       for (GLuint j = 0; j < face.mNumIndices; j++)
         meshIndicies.push_back(face.mIndices[j]);
+    }
+
+    if (mesh->mMaterialIndex >= 0)
+    {
+      aiMaterial* mat = scene->mMaterials[mesh->mMaterialIndex];
+
+      aiTextureType type = aiTextureType_DIFFUSE;
+      aiString str;
+      for (unsigned int i = 0; i < mat->GetTextureCount(type); i++)
+      {
+        mat->GetTexture(type, i, &str);
+        materialInfo.albedoTexturePath = directory + "/" + str.C_Str();
+
+        for (unsigned int i = 0; i < materialInfo.albedoTexturePath.size(); i++)
+          if (materialInfo.albedoTexturePath[i] == '\\')
+            materialInfo.albedoTexturePath[i] = '/';
+      }
+
+      type = aiTextureType_SPECULAR;
+      for (unsigned int i = 0; i < mat->GetTextureCount(type); i++)
+      {
+        mat->GetTexture(type, i, &str);
+        materialInfo.specularTexturePath = directory + "/" + str.C_Str();
+
+        for (unsigned int i = 0; i < materialInfo.specularTexturePath.size(); i++)
+          if (materialInfo.specularTexturePath[i] == '\\')
+            materialInfo.specularTexturePath[i] = '/';
+      }
+
+      type = aiTextureType_NORMALS;
+      for (unsigned int i = 0; i < mat->GetTextureCount(type); i++)
+      {
+        mat->GetTexture(type, i, &str);
+        materialInfo.normalTexturePath = directory + "/" + str.C_Str();
+
+        for (unsigned int i = 0; i < materialInfo.normalTexturePath.size(); i++)
+          if (materialInfo.normalTexturePath[i] == '\\')
+            materialInfo.normalTexturePath[i] = '/';
+      }
+
+      type = aiTextureType_BASE_COLOR;
+      for (unsigned int i = 0; i < mat->GetTextureCount(type); i++)
+      {
+        mat->GetTexture(type, i, &str);
+        materialInfo.albedoTexturePath = directory + "/" + str.C_Str();
+
+        for (unsigned int i = 0; i < materialInfo.albedoTexturePath.size(); i++)
+          if (materialInfo.albedoTexturePath[i] == '\\')
+            materialInfo.albedoTexturePath[i] = '/';
+      }
+
+      type = aiTextureType_METALNESS;
+      for (unsigned int i = 0; i < mat->GetTextureCount(type); i++)
+      {
+        mat->GetTexture(type, i, &str);
+        materialInfo.metallicTexturePath = directory + "/" + str.C_Str();
+
+        for (unsigned int i = 0; i < materialInfo.metallicTexturePath.size(); i++)
+          if (materialInfo.metallicTexturePath[i] == '\\')
+            materialInfo.metallicTexturePath[i] = '/';
+      }
+
+      type = aiTextureType_DIFFUSE_ROUGHNESS;
+      for (unsigned int i = 0; i < mat->GetTextureCount(type); i++)
+      {
+        mat->GetTexture(type, i, &str);
+        materialInfo.roughnessTexturePath = directory + "/" + str.C_Str();
+
+        for (unsigned int i = 0; i < materialInfo.roughnessTexturePath.size(); i++)
+          if (materialInfo.roughnessTexturePath[i] == '\\')
+            materialInfo.roughnessTexturePath[i] = '/';
+      }
+
+      type = aiTextureType_AMBIENT_OCCLUSION;
+      for (unsigned int i = 0; i < mat->GetTextureCount(type); i++)
+      {
+        mat->GetTexture(type, i, &str);
+        materialInfo.aoTexturePath = directory + "/" + str.C_Str();
+
+        for (unsigned int i = 0; i < materialInfo.aoTexturePath.size(); i++)
+          if (materialInfo.aoTexturePath[i] == '\\')
+            materialInfo.aoTexturePath[i] = '/';
+      }
     }
 
     this->subMeshes.back().setLoaded(true);

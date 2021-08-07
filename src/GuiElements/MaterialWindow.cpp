@@ -4,6 +4,7 @@
 #include "Core/AssetManager.h"
 #include "GuiElements/Styles.h"
 #include "Serialization/YamlSerialization.h"
+#include "Utils/AsyncAssetLoading.h"
 
 // ImGui includes.
 #include "imgui/imgui.h"
@@ -264,7 +265,7 @@ namespace Strontium
         {
           case FileLoadTargets::TargetTexture:
           {
-            Texture2D::loadImageAsync(path);
+            AsyncLoading::loadImageAsync(path);
             this->selectedMatTex.first->attachSampler2D(this->selectedMatTex.second, name);
 
             this->selectedMatTex = std::make_pair(nullptr, "");
@@ -424,7 +425,7 @@ namespace Strontium
 
     if (filetype == ".jpg" || filetype == ".tga" || filetype == ".png")
     {
-      Texture2D::loadImageAsync(filepath);
+      AsyncLoading::loadImageAsync(filepath);
       this->selectedMatTex.first->attachSampler2D(this->selectedMatTex.second, filename);
     }
 

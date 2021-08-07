@@ -4,6 +4,7 @@
 #include "Scenes/Components.h"
 #include "Scenes/Entity.h"
 #include "Graphics/Renderer.h"
+#include "Utils/AsyncAssetLoading.h"
 
 // YAML includes.
 #include "yaml-cpp/yaml.h"
@@ -530,7 +531,7 @@ namespace Strontium
               if (uSampler2D["ImagePath"].as<std::string>() == "")
                 continue;
 
-              Texture2D::loadImageAsync(uSampler2D["ImagePath"].as<std::string>());
+              AsyncLoading::loadImageAsync(uSampler2D["ImagePath"].as<std::string>());
               outMat->attachSampler2D(uSampler2D["SamplerName"].as<std::string>(),
                                       uSampler2D["SamplerHandle"].as<std::string>());
             }
@@ -631,7 +632,7 @@ namespace Strontium
                                                 mat["MaterialHandle"].as<std::string>());
               }
             }
-            Model::asyncLoadModel(modelPath, modelName, newEntity, scene.get());
+            AsyncLoading::asyncLoadModel(modelPath, modelName, newEntity, scene.get());
           }
         }
         else

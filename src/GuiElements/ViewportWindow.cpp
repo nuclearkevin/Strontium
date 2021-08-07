@@ -3,9 +3,10 @@
 // Project includes.
 #include "Core/Application.h"
 #include "Layers/EditorLayer.h"
-#include "Serialization/YamlSerialization.h"
 #include "Scenes/Components.h"
 #include "GuiElements/Styles.h"
+#include "Serialization/YamlSerialization.h"
+#include "Utils/AsyncAssetLoading.h"
 
 // Some math for decomposing matrix transformations.
 #include "glm/gtx/matrix_decompose.hpp"
@@ -396,21 +397,20 @@ namespace Strontium
     std::string filetype = filename.substr(filename.find_last_of('.'));
 
     // If its a supported model file, load it as a new entity in the scene.
-    if (filetype == ".obj" || filetype == ".FBX" || filetype == ".fbx" || filetype == ".blend")
+    if (filetype == ".obj" || filetype == ".FBX" || filetype == ".fbx"
+        || filetype == ".blend" || filetype == ".gltf" || filetype == ".glb")
     {
       auto modelAssets = AssetManager<Model>::getManager();
 
       auto model = activeScene->createEntity(filename.substr(0, filename.find_last_of('.')));
       model.addComponent<TransformComponent>();
       auto& rComponent = model.addComponent<RenderableComponent>(filename);
-      Model::asyncLoadModel(filepath, filename, model, activeScene.get());
+      AsyncLoading::asyncLoadModel(filepath, filename, model, activeScene.get());
     }
 
     // If its a supported image, load and cache it.
     if (filetype == ".jpg" || filetype == ".tga" || filetype == ".png")
-    {
-      Texture2D::loadImageAsync(filepath);
-    }
+      AsyncLoading::loadImageAsync(filepath);
 
     if (filetype == ".hdr")
     {

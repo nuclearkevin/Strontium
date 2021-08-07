@@ -7,11 +7,14 @@
 *.png
 *.mtl
 *.jpg
+*.jpeg
 *.tga
 *.hdr
 *.fbx
 *.FBX
 *.tbscene
+*.glb
+*.gltf
 *.psd
 *.psk
 *.dae
@@ -35,6 +38,7 @@
 *.exe
 *.out
 *.app
+*.bin
 Application
 
 # Remove annoying IDE directories

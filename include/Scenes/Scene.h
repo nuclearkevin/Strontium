@@ -3,9 +3,6 @@
 // Macro include file.
 #include "StrontiumPCH.h"
 
-// Project includes.
-#include "Graphics/GraphicsSystem.h"
-
 // Entity component system include.
 #include "entt.hpp"
 
@@ -25,7 +22,7 @@ namespace Strontium
     void deleteEntity(Entity entity);
 
     void onUpdate(float dt);
-    void render(Shared<Camera> sceneCamera, Entity selectedEntity);
+    void render(Entity selectedEntity);
 
     entt::registry& getRegistry() { return this->sceneECS; }
     std::string& getSaveFilepath() { return this->saveFilepath; }

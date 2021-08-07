@@ -514,7 +514,7 @@ namespace Strontium
         if (storage->hasCascades)
         {
           storage->cascadeShadowPassBuffer.setData(0, sizeof(glm::mat4), glm::value_ptr(storage->cascades[i]));
-          
+
           for (auto& pair : storage->shadowQueue)
           {
             storage->transformBuffer.setData(0, sizeof(glm::mat4), glm::value_ptr(pair.second));
@@ -526,8 +526,7 @@ namespace Strontium
               else
               {
                 submesh.generateVAO();
-                if (submesh.hasVAO())
-                  Renderer3D::draw(submesh.getVAO(), storage->shadowShader);
+                Renderer3D::draw(submesh.getVAO(), storage->shadowShader);
               }
             }
           }

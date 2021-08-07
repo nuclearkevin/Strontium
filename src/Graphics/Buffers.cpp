@@ -141,13 +141,8 @@ namespace Strontium
   void
   UniformBuffer::setData(GLuint start, GLuint newDataSize, const void* newData)
   {
-    if (start + newDataSize > this->dataSize)
-    {
-      std::cout << "New data (" << newDataSize << ") at position " << start
-                << " exceeds the maximum buffer size of " << this->dataSize << "."
-                << std::endl;
-      return;
-    }
+    assert(("New data exceeds buffer size.", !(start + newDataSize > this->dataSize)));
+
     this->bind();
     glBufferSubData(GL_UNIFORM_BUFFER, start, newDataSize, newData);
     this->unbind();
@@ -256,13 +251,8 @@ namespace Strontium
   ShaderStorageBuffer::setData(GLuint start, GLuint newDataSize,
                                const void* newData)
   {
-    if (start + newDataSize > this->dataSize)
-    {
-      std::cout << "New data (" << newDataSize << ") at position " << start
-                << " exceeds the maximum buffer size of " << this->dataSize << "."
-                << std::endl;
-      return;
-    }
+    assert(("New data exceeds buffer size.", !(start + newDataSize > this->dataSize)));
+
     this->bind();
     glBufferSubData(GL_SHADER_STORAGE_BUFFER, start, newDataSize, newData);
     this->unbind();

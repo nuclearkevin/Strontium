@@ -6,9 +6,6 @@
 // Project includes.
 #include "Core/ApplicationBase.h"
 
-// STL includes.
-#include <mutex>
-
 namespace Strontium
 {
   // Parameters for textures.
@@ -108,14 +105,6 @@ namespace Strontium
   class Texture2D
   {
   public:
-    // Members to facilitate asynchronous image loading.
-    static std::queue<ImageData2D> asyncTexQueue;
-    static std::mutex asyncTexMutex;
-
-    static void bulkGenerateTextures();
-    static void loadImageAsync(const std::string &filepath,
-                               const Texture2DParams &params = Texture2DParams());
-
     // Other members to load and generate textures.
     static Texture2D* createMonoColour(const glm::vec4 &colour, std::string &outName,
                                        const Texture2DParams &params = Texture2DParams(),

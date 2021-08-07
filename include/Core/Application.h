@@ -11,7 +11,6 @@
 #include "Layers/Layers.h"
 #include "Layers/ImGuiLayer.h"
 #include "Graphics/Renderer.h"
-#include "Graphics/GraphicsSystem.h"
 
 int main(int argc, char** argv);
 
