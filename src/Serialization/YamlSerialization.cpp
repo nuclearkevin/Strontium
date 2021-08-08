@@ -451,7 +451,8 @@ namespace Strontium
     }
 
     void
-    deserializeMaterial(YAML::Node &mat, bool override = false, const std::string &filepath = "")
+    deserializeMaterial(YAML::Node &mat, std::vector<std::string> &texturePaths,
+                        bool override = false, const std::string &filepath = "")
     {
       auto materialAssets = AssetManager<Material>::getManager();
 
@@ -523,6 +524,8 @@ namespace Strontium
         auto sampler2Ds = mat["Sampler2Ds"];
         if (sampler2Ds)
         {
+          auto textureCache = AssetManager<Texture2D>::getManager();
+
           for (auto uSampler2D : sampler2Ds)
           {
             auto uName = uSampler2D["SamplerName"];
@@ -531,7 +534,14 @@ namespace Strontium
               if (uSampler2D["ImagePath"].as<std::string>() == "")
                 continue;
 
-              AsyncLoading::loadImageAsync(uSampler2D["ImagePath"].as<std::string>());
+              bool shouldLoad = std::find(texturePaths.begin(),
+                                          texturePaths.end(),
+                                          uSampler2D["ImagePath"].as<std::string>()
+                                          ) == texturePaths.end();
+
+              if (!textureCache->hasAsset(uSampler2D["SamplerHandle"].as<std::string>()) && shouldLoad)
+                texturePaths.emplace_back(uSampler2D["ImagePath"].as<std::string>());
+
               outMat->attachSampler2D(uSampler2D["SamplerName"].as<std::string>(),
                                       uSampler2D["SamplerHandle"].as<std::string>());
             }
@@ -549,7 +559,12 @@ namespace Strontium
 
       handle = data["MaterialName"].as<std::string>();
 
-      deserializeMaterial(data, false, filepath);
+      std::vector<std::string> texturePaths;
+      deserializeMaterial(data, texturePaths, false, filepath);
+
+      for (auto& texturePath : texturePaths)
+        AsyncLoading::loadImageAsync(texturePath);
+
       return true;
     }
 
@@ -734,8 +749,12 @@ namespace Strontium
       auto materials = data["Materials"];
       if (materials)
       {
+        std::vector<std::string> texturePaths;
         for (auto mat : materials)
-          deserializeMaterial(mat, true);
+          deserializeMaterial(mat, texturePaths, true);
+
+        for (auto& texturePath : texturePaths)
+          AsyncLoading::loadImageAsync(texturePath);
       }
 
       return true;

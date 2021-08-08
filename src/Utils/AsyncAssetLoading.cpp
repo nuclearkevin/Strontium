@@ -32,6 +32,11 @@ namespace Strontium
       Logger* logs = Logger::getInstance();
       auto textureCache = AssetManager<Texture2D>::getManager();
 
+      // Filepaths of the textures that need to be loaded.
+      std::vector<std::string> texturesToLoad;
+      // Reserve for the worst case scenario.
+      texturesToLoad.reserve(asyncModelQueue.size() * 6);
+
       while (!asyncModelQueue.empty())
       {
         auto [model, activeScene, entityID] = asyncModelQueue.front();
@@ -60,8 +65,14 @@ namespace Strontium
                   submeshMaterial->getVec3("uAlbedo") = glm::vec3(1.0f);
                   texName = submeshTexturePaths.albedoTexturePath.substr(submeshTexturePaths.albedoTexturePath.find_last_of('/') + 1);
                   submeshMaterial->attachSampler2D("albedoMap", texName);
-                  if (!textureCache->hasAsset(texName))
-                    loadImageAsync(submeshTexturePaths.albedoTexturePath);
+
+                  bool shouldLoad = std::find(texturesToLoad.begin(),
+                                              texturesToLoad.end(),
+                                              submeshTexturePaths.albedoTexturePath
+                                              ) == texturesToLoad.end();
+
+                  if (!textureCache->hasAsset(texName) && shouldLoad)
+                    texturesToLoad.emplace_back(submeshTexturePaths.albedoTexturePath);
                 }
 
                 if (submeshTexturePaths.roughnessTexturePath != "")
@@ -69,8 +80,14 @@ namespace Strontium
                   submeshMaterial->getFloat("uRoughness") = 1.0f;
                   texName = submeshTexturePaths.roughnessTexturePath.substr(submeshTexturePaths.roughnessTexturePath.find_last_of('/') + 1);
                   submeshMaterial->attachSampler2D("roughnessMap", texName);
-                  if (!textureCache->hasAsset(texName))
-                    loadImageAsync(submeshTexturePaths.roughnessTexturePath);
+
+                  bool shouldLoad = std::find(texturesToLoad.begin(),
+                                              texturesToLoad.end(),
+                                              submeshTexturePaths.roughnessTexturePath
+                                              ) == texturesToLoad.end();
+
+                  if (!textureCache->hasAsset(texName) && shouldLoad)
+                    texturesToLoad.emplace_back(submeshTexturePaths.roughnessTexturePath);
                 }
 
                 if (submeshTexturePaths.metallicTexturePath != "")
@@ -78,8 +95,14 @@ namespace Strontium
                   submeshMaterial->getFloat("uMetallic") = 1.0f;
                   texName = submeshTexturePaths.metallicTexturePath.substr(submeshTexturePaths.metallicTexturePath.find_last_of('/') + 1);
                   submeshMaterial->attachSampler2D("metallicMap", texName);
-                  if (!textureCache->hasAsset(texName))
-                    loadImageAsync(submeshTexturePaths.metallicTexturePath);
+
+                  bool shouldLoad = std::find(texturesToLoad.begin(),
+                                              texturesToLoad.end(),
+                                              submeshTexturePaths.metallicTexturePath
+                                              ) == texturesToLoad.end();
+
+                  if (!textureCache->hasAsset(texName) && shouldLoad)
+                    texturesToLoad.emplace_back(submeshTexturePaths.metallicTexturePath);
                 }
 
                 if (submeshTexturePaths.aoTexturePath != "")
@@ -87,8 +110,14 @@ namespace Strontium
                   submeshMaterial->getFloat("uAO") = 1.0f;
                   texName = submeshTexturePaths.aoTexturePath.substr(submeshTexturePaths.aoTexturePath.find_last_of('/') + 1);
                   submeshMaterial->attachSampler2D("aOcclusionMap", texName);
-                  if (!textureCache->hasAsset(texName))
-                    loadImageAsync(submeshTexturePaths.aoTexturePath);
+
+                  bool shouldLoad = std::find(texturesToLoad.begin(),
+                                              texturesToLoad.end(),
+                                              submeshTexturePaths.aoTexturePath
+                                              ) == texturesToLoad.end();
+
+                  if (!textureCache->hasAsset(texName) && shouldLoad)
+                    texturesToLoad.emplace_back(submeshTexturePaths.aoTexturePath);
                 }
 
                 if (submeshTexturePaths.specularTexturePath != "")
@@ -96,16 +125,28 @@ namespace Strontium
                   submeshMaterial->getFloat("uF0") = 1.0f;
                   texName = submeshTexturePaths.specularTexturePath.substr(submeshTexturePaths.specularTexturePath.find_last_of('/') + 1);
                   submeshMaterial->attachSampler2D("specF0Map", texName);
-                  if (!textureCache->hasAsset(texName))
-                    loadImageAsync(submeshTexturePaths.specularTexturePath);
+
+                  bool shouldLoad = std::find(texturesToLoad.begin(),
+                                              texturesToLoad.end(),
+                                              submeshTexturePaths.specularTexturePath
+                                              ) == texturesToLoad.end();
+
+                  if (!textureCache->hasAsset(texName) && shouldLoad)
+                    texturesToLoad.emplace_back(submeshTexturePaths.specularTexturePath);
                 }
 
                 if (submeshTexturePaths.normalTexturePath != "")
                 {
                   texName = submeshTexturePaths.normalTexturePath.substr(submeshTexturePaths.normalTexturePath.find_last_of('/') + 1);
                   submeshMaterial->attachSampler2D("normalMap", texName);
-                  if (!textureCache->hasAsset(texName))
-                    loadImageAsync(submeshTexturePaths.normalTexturePath);
+
+                  bool shouldLoad = std::find(texturesToLoad.begin(),
+                                              texturesToLoad.end(),
+                                              submeshTexturePaths.normalTexturePath
+                                              ) == texturesToLoad.end();
+
+                  if (!textureCache->hasAsset(texName) && shouldLoad)
+                    texturesToLoad.emplace_back(submeshTexturePaths.normalTexturePath);
                 }
               }
             }
@@ -113,6 +154,9 @@ namespace Strontium
         }
         asyncModelQueue.pop();
       }
+
+      for (auto& texturePath : texturesToLoad)
+        loadImageAsync(texturePath);
     }
 
     void
@@ -274,8 +318,6 @@ namespace Strontium
       }
 
       std::string name = filepath.substr(filepath.find_last_of('/') + 1);
-      if (textureCache->hasAsset(name))
-        return;
 
       // Fetch the thread pool and event dispatcher.
       auto workerGroup = ThreadPool::getInstance(2);
