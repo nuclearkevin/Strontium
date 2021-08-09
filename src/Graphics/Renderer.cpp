@@ -91,7 +91,6 @@ namespace Strontium
       storage->transformBuffer.bindToPoint(2);
       storage->editorBuffer.bindToPoint(3);
       storage->ambientPassBuffer.bindToPoint(4);
-      storage->directionalPassBuffer.bindToPoint(5);
       storage->cascadeShadowPassBuffer.bindToPoint(6);
       storage->cascadeShadowBuffer.bindToPoint(7);
 
@@ -101,6 +100,7 @@ namespace Strontium
       storage->ambientShader = shaderCache->getAsset("deferred_ambient");
       storage->directionalShaderShadowed = shaderCache->getAsset("deferred_directional_shadowed");
       storage->directionalShader = shaderCache->getAsset("deferred_directional");
+      storage->pointShader = shaderCache->getAsset("deferred_point");
       storage->horBlur = shaderCache->getAsset("post_hor_gaussian_blur");
       storage->verBlur = shaderCache->getAsset("post_ver_gaussian_blur");
       storage->hdrPostShader = shaderCache->getAsset("post_hdr");
@@ -608,6 +608,7 @@ namespace Strontium
       RendererCommands::blendEquation(BlendEquation::Additive);
       RendererCommands::blendFunction(BlendFunction::One, BlendFunction::One);
 
+      storage->directionalPassBuffer.bindToPoint(5);
       storage->directionalPassBuffer.setData(2 * sizeof(glm::vec4), sizeof(glm::vec2), &screenSize.x);
 
       // Set the shadow map uniforms.
@@ -656,6 +657,31 @@ namespace Strontium
       //------------------------------------------------------------------------
       // Point lighting subpass.
       //------------------------------------------------------------------------
+      storage->pointPassBuffer.bindToPoint(5);
+      for (auto& light : storage->pointQueue)
+      {
+        auto pointColourIntensity = glm::vec4(0.0f);
+        pointColourIntensity.x = light.colour.x;
+        pointColourIntensity.y = light.colour.y;
+        pointColourIntensity.z = light.colour.z;
+        pointColourIntensity.w = light.intensity;
+        storage->pointPassBuffer.setData(0, sizeof(glm::vec4), &pointColourIntensity.x);
+
+        auto pointPos = glm::vec4(0.0f);
+        pointPos.x = light.position.x;
+        pointPos.y = light.position.y;
+        pointPos.z = light.position.z;
+        storage->pointPassBuffer.setData(sizeof(glm::vec4), sizeof(glm::vec4), &pointPos.x);
+
+        auto screenSizeRadiusFalloff = glm::vec4(0.0f);
+        screenSizeRadiusFalloff.x = screenSize.x;
+        screenSizeRadiusFalloff.y = screenSize.y;
+        screenSizeRadiusFalloff.z = light.radius;
+        screenSizeRadiusFalloff.w = light.falloff;
+        storage->pointPassBuffer.setData(2 * sizeof(glm::vec4), sizeof(glm::vec4), &screenSizeRadiusFalloff.x);
+
+        draw(&storage->fsq, storage->pointShader);
+      }
       storage->pointQueue.clear();
 
       //------------------------------------------------------------------------

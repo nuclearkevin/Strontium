@@ -89,7 +89,15 @@ namespace Strontium
     for (auto entity : pointLight)
     {
       auto [point, transform] = pointLight.get<PointLightComponent, TransformComponent>(entity);
-      Renderer3D::submit(point, transform);
+      glm::mat4 transformMatrix = (glm::mat4) transform;
+
+      // If a drawable item has a transform hierarchy, compute the global
+      // transforms from local transforms.
+      auto currentEntity = Entity(entity, this);
+      if (currentEntity.hasComponent<ParentEntityComponent>())
+        transformMatrix = computeGlobalTransform(currentEntity);
+
+      Renderer3D::submit(point, transformMatrix);
     }
     auto spotLight = this->sceneECS.group<SpotLightComponent>(entt::get<TransformComponent>);
     for (auto entity : spotLight)

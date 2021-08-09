@@ -1,13 +1,13 @@
 #version 440
 /*
-* Lighting fragment shader for a deferred PBR pipeline. Computes the directional
+* Lighting fragment shader for a deferred PBR pipeline. Computes the point light
 * component.
 */
 
 #define PI 3.141592654
 #define THRESHHOLD 0.00005
-#define NUM_CASCADES 4
-#define WARP 44.0
+#define MIN_RADIANCE 0.00390625
+#define INVERSE_MIN_RADIANCE 256.0
 
 // Camera specific uniforms.
 layout(std140, binding = 0) uniform CameraBlock
@@ -18,11 +18,11 @@ layout(std140, binding = 0) uniform CameraBlock
 };
 
 // Directional light uniforms.
-layout(std140, binding = 5) uniform DirectionalBlock
+layout(std140, binding = 5) uniform PointBlock
 {
   vec4 u_lColourIntensity;
-  vec4 u_lDirection;
-  vec2 u_screenSize;
+  vec4 u_lPosition;
+  vec4 u_screenSizeRadiusFalloff;
 };
 
 // Uniforms for the geometry buffer.
@@ -48,7 +48,7 @@ vec3 SFresnelR(float cosTheta, vec3 F0, float roughness);
 
 void main()
 {
-  vec2 fTexCoords = gl_FragCoord.xy / u_screenSize;
+  vec2 fTexCoords = gl_FragCoord.xy / u_screenSizeRadiusFalloff.xy;
 
   vec3 position = texture(gPosition, fTexCoords).xyz;
   vec3 normal = normalize(texture(gNormal, fTexCoords).xyz);
@@ -59,8 +59,15 @@ void main()
   vec3 F0 = mix(vec3(texture(gAlbedo, fTexCoords).a), albedo, metallic);
 
   vec3 view = normalize(u_camPosition - position);
-  vec3 light = normalize(u_lDirection.xyz);
+  vec3 light = normalize(u_lPosition.xyz - position);
+  float dist = length(u_lPosition.xyz - position);
   vec3 halfWay = normalize(view + light);
+
+  float maxRadiance = u_lColourIntensity.a * max(u_lColourIntensity.r, max(u_lColourIntensity.b, u_lColourIntensity.g));
+  float radius = u_screenSizeRadiusFalloff.z;
+  float linearFalloff = u_screenSizeRadiusFalloff.w;
+  float quadFalloff = (256.0 * maxRadiance - linearFalloff * radius - 1.0) / (radius * radius);
+  float attenuation = 1.0 / (1.0 + linearFalloff * dist + quadFalloff * dist * dist);
 
   float NDF = TRDistribution(normal, halfWay, roughness);
   float G = SSBGeometry(normal, view, light, roughness);
@@ -72,7 +79,7 @@ void main()
   float den = 4.0 * max(dot(normal, view), THRESHHOLD) * max(dot(normal, light), THRESHHOLD);
   vec3 spec = num / max(den, THRESHHOLD);
 
-  fragColour = vec4((kD * albedo / PI + spec) * u_lColourIntensity.rgb
+  fragColour = vec4((kD * albedo / PI + spec) * u_lColourIntensity.rgb * attenuation
                     * u_lColourIntensity.a * max(dot(normal, light), THRESHHOLD), 1.0);
 }
 

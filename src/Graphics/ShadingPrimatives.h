@@ -25,6 +25,7 @@ namespace Strontium
     glm::vec3 colour;
     GLfloat intensity;
     GLfloat radius;
+    GLfloat falloff;
     bool castShadows;
 
     PointLight()
@@ -32,6 +33,7 @@ namespace Strontium
       , colour(glm::vec3(1.0f))
       , intensity(0.0f)
       , radius(0.0f)
+      , falloff(0.0f)
       , castShadows(false)
     { }
   };

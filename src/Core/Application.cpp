@@ -66,6 +66,10 @@ namespace Strontium
       new Shader("./assets/shaders/deferred/lightingPass.vs",
                  "./assets/shaders/deferred/directionalLightPass.fs"));
 
+    this->shaderCache->attachAsset("deferred_point",
+      new Shader("./assets/shaders/deferred/lightingPass.vs",
+                 "./assets/shaders/deferred/pointLightPass.fs"));
+
     this->shaderCache->attachAsset("post_hdr",
       new Shader("./assets/shaders/post/postProcessingPass.vs",
                  "./assets/shaders/post/hdrPostPass.fs"));

@@ -66,6 +66,7 @@ namespace Strontium
       UniformBuffer editorBuffer;
       UniformBuffer ambientPassBuffer;
       UniformBuffer directionalPassBuffer;
+      UniformBuffer pointPassBuffer; // TEMP until tiled deferred is implemented.
       UniformBuffer cascadeShadowBuffer;
       UniformBuffer cascadeShadowPassBuffer;
 
@@ -84,6 +85,7 @@ namespace Strontium
       Shader* ambientShader;
       Shader* directionalShaderShadowed;
       Shader* directionalShader;
+      Shader* pointShader;
       Shader* horBlur;
       Shader* verBlur;
       Shader* hdrPostShader;
@@ -105,6 +107,7 @@ namespace Strontium
         , editorBuffer(sizeof(glm::vec4), BufferType::Dynamic)
         , ambientPassBuffer(sizeof(glm::vec4), BufferType::Dynamic)
         , directionalPassBuffer(2 * sizeof(glm::vec4) + sizeof(glm::vec2), BufferType::Dynamic)
+        , pointPassBuffer(3 * sizeof(glm::vec4), BufferType::Dynamic)
         , cascadeShadowPassBuffer(sizeof(glm::mat4), BufferType::Dynamic)
         , cascadeShadowBuffer(NUM_CASCADES * sizeof(glm::mat4)
                               + NUM_CASCADES * sizeof(glm::vec4) * sizeof(GLfloat),

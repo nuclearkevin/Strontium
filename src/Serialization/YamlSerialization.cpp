@@ -333,6 +333,7 @@ namespace Strontium
         out << YAML::Key << "Colour" << YAML::Value << component.light.colour;
         out << YAML::Key << "Intensity" << YAML::Value << component.light.intensity;
         out << YAML::Key << "Radius" << YAML::Value << component.light.radius;
+        out << YAML::Key << "Falloff" << YAML::Value << component.light.falloff;
         out << YAML::Key << "CastShadows" << YAML::Value << component.light.castShadows;
 
         out << YAML::EndMap;
@@ -673,6 +674,7 @@ namespace Strontium
         pComponent.light.colour = pointComponent["Colour"].as<glm::vec3>();
         pComponent.light.intensity = pointComponent["Intensity"].as<GLfloat>();
         pComponent.light.radius = pointComponent["Radius"].as<GLfloat>();
+        pComponent.light.falloff = pointComponent["Falloff"].as<GLfloat>();
         pComponent.light.castShadows = pointComponent["CastShadows"].as<bool>();
       }
 

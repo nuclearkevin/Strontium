@@ -643,8 +643,6 @@ namespace Strontium
       {
         ImGui::PushID("DirectionalLight");
 
-        auto& lightDir = component.light.direction;
-        ImGui::Text("Light direction: (%f, %f, %f)", lightDir.x, lightDir.y, lightDir.z);
         bool isPrimaryLight = component.light.primaryLight;
         ImGui::Checkbox("Primary Light", &component.light.primaryLight);
         if (component.light.primaryLight && !isPrimaryLight)
@@ -662,7 +660,7 @@ namespace Strontium
         ImGui::Checkbox("Cast Shadows", &component.light.castShadows);
         ImGui::ColorEdit3("Colour", &component.light.colour.r);
         Styles::drawFloatControl("Intensity", 0.0f, component.light.intensity,
-                                 0.0f, 0.1f, 0.0f, 100.0f);
+                                 0.0f, 0.01f, 0.0f, 100.0f);
         ImGui::PopID();
 
         this->drawDirectionalWidget();
@@ -675,8 +673,9 @@ namespace Strontium
         ImGui::Checkbox("Cast Shadows", &component.light.castShadows);
         ImGui::ColorEdit3("Colour", &component.light.colour.r);
         Styles::drawFloatControl("Radius", 0.0f, component.light.radius, 0.0f, 0.1f, 0.0f, 100.0f);
+        Styles::drawFloatControl("Falloff", 0.0f, component.light.falloff, 0.0f, 0.01f, 0.0f, 1.0f);
         Styles::drawFloatControl("Intensity", 0.0f, component.light.intensity,
-                                 0.0f, 0.1f, 0.0f, 10.0f);
+                                 0.0f, 0.01f, 0.0f, 100.0f);
         ImGui::PopID();
       });
 

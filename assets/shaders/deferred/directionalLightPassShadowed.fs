@@ -70,7 +70,6 @@ void main()
   vec3 albedo = texture(gAlbedo, fTexCoords).rgb;
   float metallic = texture(gMatProp, fTexCoords).r;
   float roughness = texture(gMatProp, fTexCoords).g;
-  float ao = texture(gMatProp, fTexCoords).b;
 
   vec3 F0 = mix(vec3(0.04), albedo, metallic);
 
