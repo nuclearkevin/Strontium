@@ -67,7 +67,7 @@ namespace Strontium
     this->windows.push_back(new CameraWindow(this, this->editorCam));
     this->windows.push_back(new ShaderWindow(this));
     this->windows.push_back(new FileBrowserWindow(this));
-    this->windows.push_back(new MaterialWindow(this));
+    this->windows.push_back(new ModelWindow(this));
     this->windows.push_back(new AssetBrowserWindow(this));
     this->windows.push_back(new RendererWindow(this)); // 6
     this->windows.push_back(new ViewportWindow(this));
@@ -132,7 +132,7 @@ namespace Strontium
             this->currentScene = tempScene;
             this->currentScene->getSaveFilepath() = loadEvent.getAbsPath();
             static_cast<SceneGraphWindow*>(this->windows[0])->setSelectedEntity(Entity());
-            static_cast<MaterialWindow*>(this->windows[4])->setSelectedEntity(Entity());
+            static_cast<ModelWindow*>(this->windows[4])->setSelectedEntity(Entity());
           }
         }
 
@@ -153,7 +153,7 @@ namespace Strontium
           if (this->dndScenePath != "")
           {
             static_cast<SceneGraphWindow*>(this->windows[0])->setSelectedEntity(Entity());
-            static_cast<MaterialWindow*>(this->windows[4])->setSelectedEntity(Entity());
+            static_cast<ModelWindow*>(this->windows[4])->setSelectedEntity(Entity());
 
             Shared<Scene> tempScene = createShared<Scene>();
             if (YAMLSerialization::deserializeScene(tempScene, this->dndScenePath))
@@ -438,7 +438,7 @@ namespace Strontium
           YAMLSerialization::serializeScene(this->currentScene, path, name);
 
           static_cast<SceneGraphWindow*>(this->windows[0])->setSelectedEntity(Entity());
-          static_cast<MaterialWindow*>(this->windows[4])->setSelectedEntity(Entity());
+          static_cast<ModelWindow*>(this->windows[4])->setSelectedEntity(Entity());
 
           Shared<Scene> tempScene = createShared<Scene>();
           if (YAMLSerialization::deserializeScene(tempScene, this->dndScenePath))
@@ -461,7 +461,7 @@ namespace Strontium
       if (ImGui::Button("Continue"))
       {
         static_cast<SceneGraphWindow*>(this->windows[0])->setSelectedEntity(Entity());
-        static_cast<MaterialWindow*>(this->windows[4])->setSelectedEntity(Entity());
+        static_cast<ModelWindow*>(this->windows[4])->setSelectedEntity(Entity());
 
         Shared<Scene> tempScene = createShared<Scene>();
         if (YAMLSerialization::deserializeScene(tempScene, this->dndScenePath))
@@ -481,7 +481,7 @@ namespace Strontium
     else if (this->dndScenePath != "")
     {
       static_cast<SceneGraphWindow*>(this->windows[0])->setSelectedEntity(Entity());
-      static_cast<MaterialWindow*>(this->windows[4])->setSelectedEntity(Entity());
+      static_cast<ModelWindow*>(this->windows[4])->setSelectedEntity(Entity());
 
       Shared<Scene> tempScene = createShared<Scene>();
       if (YAMLSerialization::deserializeScene(tempScene, this->dndScenePath))
@@ -519,7 +519,7 @@ namespace Strontium
 
           this->currentScene = createShared<Scene>();
           static_cast<SceneGraphWindow*>(this->windows[0])->setSelectedEntity(Entity());
-          static_cast<MaterialWindow*>(this->windows[4])->setSelectedEntity(Entity());
+          static_cast<ModelWindow*>(this->windows[4])->setSelectedEntity(Entity());
         }
         break;
       }

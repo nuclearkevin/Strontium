@@ -64,6 +64,7 @@ namespace Strontium
 
     // Draws the go back icon to return to the parent directory of the current
     // directory. Stops at 'assets'.
+    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 4.0f));
     if (this->currentDir != "./assets")
     {
       std::string prevFolderName = this->currentDir.substr(0, this->currentDir.find_last_of('/'));
@@ -96,20 +97,23 @@ namespace Strontium
     {
 
     }
+    ImGui::PopStyleVar();
 
     char searchBuffer[256];
     memset(searchBuffer, 0, sizeof(searchBuffer));
-    std::strncpy(searchBuffer, searched.c_str(), sizeof(searchBuffer));
+    std::strncpy(searchBuffer, this->searched.c_str(), sizeof(searchBuffer));
 
     ImGui::SameLine();
     ImGui::PushItemWidth(300.0f);
     if (ImGui::InputText("##search", searchBuffer, sizeof(searchBuffer)))
-      searched = std::string(searchBuffer);
+      this->searched = std::string(searchBuffer);
     ImGui::PopItemWidth();
 
+    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 4.0f));
     ImGui::SameLine();
     if (ImGui::Button(ICON_FA_SEARCH))
-      searched = std::string(searchBuffer);
+      this->searched = std::string(searchBuffer);
+    ImGui::PopStyleVar();
 
     ImGui::Columns(numColumns, 0, false);
     this->drawFolders(activeScene);

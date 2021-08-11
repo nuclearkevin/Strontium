@@ -1,12 +1,10 @@
 #pragma once
 
-// Macro include file.
-#include "StrontiumPCH.h"
-
 // Project includes.
 #include "Core/ApplicationBase.h"
 #include "Graphics/VertexArray.h"
 #include "Graphics/Shaders.h"
+#include "Graphics/Animations.h"
 
 namespace Strontium
 {
@@ -21,6 +19,8 @@ namespace Strontium
     glm::vec2 uv;
     glm::vec3 tangent;
     glm::vec3 bitangent;
+    glm::ivec4 boneIDs;
+    glm::vec4 boneWeights;
 
     Vertex()
       : position(0.0f, 0.0f, 0.0f, 1.0f)
@@ -29,6 +29,8 @@ namespace Strontium
       , uv(0.0f)
       , tangent(0.0f)
       , bitangent(0.0f)
+      , boneIDs(-1)
+      , boneWeights(0.0f)
     { }
   };
 
@@ -60,10 +62,8 @@ namespace Strontium
     // Mesh class. Must be loaded in as a part of a parent model.
     Mesh(const std::string &name, const std::vector<Vertex> &vertices,
          const std::vector<GLuint> &indices, Model* parent);
-
-    Mesh(Mesh&&) = default;
-
     ~Mesh();
+    Mesh(Mesh&&) = default;
 
     // Generate/delete the vertex array object.
     void generateVAO();
@@ -78,6 +78,7 @@ namespace Strontium
     // Getters.
     std::vector<Vertex>& getData() { return this->data; }
     std::vector<GLuint>& getIndices() { return this->indices; }
+    std::vector<BoneData>& getBones() { return this->bones; }
     glm::vec3& getMinPos() { return this->minPos; }
     glm::vec3& getMaxPos() { return this->maxPos; }
     VertexArray*  getVAO() { return this->vArray.get(); }
@@ -93,6 +94,7 @@ namespace Strontium
     bool loaded;
     std::vector<Vertex> data;
     std::vector<GLuint> indices;
+    std::vector<BoneData> bones;
 
     glm::vec3 minPos;
     glm::vec3 maxPos;

@@ -12,11 +12,11 @@
 
 namespace Strontium
 {
-  class MaterialWindow : public GuiWindow
+  class ModelWindow : public GuiWindow
   {
   public:
-    MaterialWindow(EditorLayer* parentLayer);
-    ~MaterialWindow();
+    ModelWindow(EditorLayer* parentLayer);
+    ~ModelWindow();
 
     void onImGuiRender(bool &isOpen, Shared<Scene> activeScene);
     void onUpdate(float dt, Shared<Scene> activeScene);
@@ -39,7 +39,8 @@ namespace Strontium
     Entity selectedEntity;
     AssetHandle selectedHandle;
     std::string newMaterialName;
-    FileLoadTargets fileTargets;
+    std::string searched;
+    FileLoadTargets fileLoadTargets;
     FileSaveTargets fileSaveTarget;
     std::pair<Material*, std::string> selectedMatTex;
   };

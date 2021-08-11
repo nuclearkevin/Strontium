@@ -4,6 +4,7 @@
 #include "Core/AssetManager.h"
 #include "Core/Logs.h"
 #include "Core/Events.h"
+#include "Utils/AssimpUtilities.h"
 
 namespace Strontium
 {
@@ -52,8 +53,22 @@ namespace Strontium
     std::string directory = filepath.substr(0, filepath.find_last_of('/'));
     std::cout << directory << std::endl;
 
+    // Load the model data.
     this->processNode(scene->mRootNode, scene, directory);
     this->loaded = true;
+
+    // Load the model animations.
+    if (scene->HasAnimations())
+    {
+      std::cout << "Animations!" << std::endl;
+      this->animations.reserve(scene->mNumAnimations);
+      for (unsigned int i = 0; i < scene->mNumAnimations; i++)
+      {
+        std::cout << scene->mAnimations[i]->mName.C_Str() << std::endl;
+        this->animations.emplace_back(scene, i, this);
+      }
+    }
+
     eventDispatcher->queueEvent(new GuiEvent(GuiEventType::EndSpinnerEvent, ""));
     logs->logMessage(LogMessage("Model loaded at path " + filepath));
   }
@@ -255,6 +270,111 @@ namespace Strontium
           if (materialInfo.aoTexturePath[i] == '\\')
             materialInfo.aoTexturePath[i] = '/';
       }
+    }
+
+    auto& meshBones = this->subMeshes.back().getBones();
+    // A storage container for the bones actually used by the mesh.
+    std::vector<aiBone*> utilizedBones;
+    if (mesh->HasBones())
+    {
+      std::cout << meshName << std::endl;
+      std::cout << "Number of bones pre-cull: " << mesh->mNumBones << std::endl;
+
+      // Assign vertex weights and temporary bone IDs.
+      for (unsigned int i = 0; i < mesh->mNumBones; i++)
+      {
+        auto bone = mesh->mBones[i];
+        for (unsigned int j = 0; j < bone->mNumWeights; j++)
+        {
+          auto weight = bone->mWeights[j].mWeight;
+          GLuint vertexIndex = bone->mWeights[j].mVertexId;
+
+          if (vertexIndex < meshVertices.size())
+          {
+            if (meshVertices[vertexIndex].boneIDs.x < 0)
+            {
+              meshVertices[vertexIndex].boneIDs.x = i;
+              meshVertices[vertexIndex].boneWeights.x = weight;
+            }
+            else if (meshVertices[vertexIndex].boneIDs.y < 0)
+            {
+              meshVertices[vertexIndex].boneIDs.y = i;
+              meshVertices[vertexIndex].boneWeights.y = weight;
+            }
+            else if (meshVertices[vertexIndex].boneIDs.z < 0)
+            {
+              meshVertices[vertexIndex].boneIDs.z = i;
+              meshVertices[vertexIndex].boneWeights.z = weight;
+            }
+            else if (meshVertices[vertexIndex].boneIDs.w < 0)
+            {
+              meshVertices[vertexIndex].boneIDs.w = i;
+              meshVertices[vertexIndex].boneWeights.w = weight;
+            }
+          }
+        }
+      }
+
+      // Cull the bones to the mesh.
+      for (auto& vertex : meshVertices)
+      {
+        if (vertex.boneIDs.x >= 0)
+        {
+            if (std::find(utilizedBones.begin(), utilizedBones.end(), mesh->mBones[vertex.boneIDs.x]) == utilizedBones.end())
+              utilizedBones.push_back(mesh->mBones[vertex.boneIDs.x]);
+        }
+        else if (vertex.boneIDs.y >= 0)
+        {
+          if (std::find(utilizedBones.begin(), utilizedBones.end(), mesh->mBones[vertex.boneIDs.y]) == utilizedBones.end())
+            utilizedBones.push_back(mesh->mBones[vertex.boneIDs.y]);
+        }
+        else if (vertex.boneIDs.z >= 0)
+        {
+          if (std::find(utilizedBones.begin(), utilizedBones.end(), mesh->mBones[vertex.boneIDs.z]) == utilizedBones.end())
+            utilizedBones.push_back(mesh->mBones[vertex.boneIDs.z]);
+        }
+        else if (vertex.boneIDs.w >= 0)
+        {
+          if (std::find(utilizedBones.begin(), utilizedBones.end(), mesh->mBones[vertex.boneIDs.w]) == utilizedBones.end())
+            utilizedBones.push_back(mesh->mBones[vertex.boneIDs.w]);
+        }
+
+        // Reset the bone IDs as they're no longer valid.
+        vertex.boneIDs = glm::ivec4(-1);
+      }
+
+      // Loop over the bones and reassign bone IDs based off the culled list of bones.
+      for (unsigned int i = 0; i < utilizedBones.size(); i++)
+      {
+        for (unsigned int j = 0; j < utilizedBones[i]->mNumWeights; j++)
+        {
+          auto weight = utilizedBones[i]->mWeights[j].mWeight;
+          GLuint vertexIndex = utilizedBones[i]->mWeights[j].mVertexId;
+
+          if (vertexIndex < meshVertices.size())
+          {
+            if (meshVertices[vertexIndex].boneIDs.x < 0)
+              meshVertices[vertexIndex].boneIDs.x = i;
+            else if (meshVertices[vertexIndex].boneIDs.y < 0)
+              meshVertices[vertexIndex].boneIDs.y = i;
+            else if (meshVertices[vertexIndex].boneIDs.z < 0)
+              meshVertices[vertexIndex].boneIDs.z = i;
+            else if (meshVertices[vertexIndex].boneIDs.w < 0)
+              meshVertices[vertexIndex].boneIDs.w = i;
+          }
+        }
+      }
+
+      // Finally push the bones into their final container.
+      meshBones.reserve(utilizedBones.size());
+      for (auto& boneData : utilizedBones)
+      {
+        meshBones.emplace_back();
+        meshBones.back().name = boneData->mName.C_Str();
+        meshBones.back().boneOffsetMatrix = Utilities::mat4Cast(boneData->mOffsetMatrix);
+      }
+
+      std::cout << "Number of bones post-cull: " << meshBones.size() << std::endl;
     }
 
     this->subMeshes.back().setLoaded(true);

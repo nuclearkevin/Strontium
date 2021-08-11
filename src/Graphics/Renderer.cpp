@@ -133,6 +133,11 @@ namespace Strontium
       storage->isForward = isForward;
       storage->drawEdge = false;
 
+      // Update the frame.
+      state->currentFrame++;
+      if (state->currentFrame == 6)
+        state->currentFrame = 0;
+
       if (storage->width != width || storage->height != height)
       {
         storage->gBuffer.resize(width, height);
@@ -148,6 +153,7 @@ namespace Strontium
       stats->numDirLights = 0;
       stats->numPointLights = 0;
       stats->numSpotLights = 0;
+
       stats->geoFrametime = 0.0f;
       stats->shadowFrametime = 0.0f;
       stats->lightFrametime = 0.0f;
@@ -235,10 +241,11 @@ namespace Strontium
     }
 
     void
-    submit(DirectionalLight light)
+    submit(DirectionalLight light, const glm::mat4 &model)
     {
+      auto invTrans = glm::transpose(glm::inverse(model));
       DirectionalLight temp = light;
-      temp.direction = -1.0f * light.direction;
+      temp.direction = -1.0f * glm::vec3(invTrans * glm::vec4(0.0f, -1.0f, 0.0f, 0.0f));
 
       storage->directionalQueue.push_back(temp);
       stats->numDirLights++;
@@ -257,8 +264,9 @@ namespace Strontium
     void
     submit(SpotLight light, const glm::mat4 &model)
     {
+      auto invTrans = glm::transpose(glm::inverse(model));
       SpotLight temp = light;
-      temp.direction = -1.0f * light.direction;
+      temp.direction = -1.0f * glm::vec3(invTrans * glm::vec4(0.0f, -1.0f, 0.0f, 0.0f));
       temp.position = glm::vec3(model * glm::vec4(light.position, 1.0f));
 
       storage->spotQueue.push_back(temp);
@@ -338,7 +346,7 @@ namespace Strontium
 
       auto end = std::chrono::steady_clock::now();
       std::chrono::duration<double> elapsed = end - start;
-      stats->geoFrametime = elapsed.count() * 1000.0f;
+      stats->geoFrametime += elapsed.count() * 1000.0f;
     }
 
     //--------------------------------------------------------------------------
@@ -563,7 +571,7 @@ namespace Strontium
 
       auto end = std::chrono::steady_clock::now();
       std::chrono::duration<double> elapsed = end - start;
-      stats->shadowFrametime = elapsed.count() * 1000.0f;
+      stats->shadowFrametime += elapsed.count() * 1000.0f;
     }
 
     //--------------------------------------------------------------------------
@@ -701,7 +709,7 @@ namespace Strontium
 
       auto end = std::chrono::steady_clock::now();
       std::chrono::duration<double> elapsed = end - start;
-      stats->lightFrametime = elapsed.count() * 1000.0f;
+      stats->lightFrametime += elapsed.count() * 1000.0f;
     }
 
     //--------------------------------------------------------------------------
@@ -761,7 +769,7 @@ namespace Strontium
 
       auto end = std::chrono::steady_clock::now();
       std::chrono::duration<double> elapsed = end - start;
-      stats->postFramtime = elapsed.count() * 1000.0f;
+      stats->postFramtime += elapsed.count() * 1000.0f;
     }
   }
 }

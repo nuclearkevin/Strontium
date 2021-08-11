@@ -6,8 +6,9 @@
 // Project includes.
 #include "Core/ApplicationBase.h"
 #include "Graphics/Meshes.h"
+#include "Graphics/Animations.h"
 
-// Assimp so more than just obj files can be loaded.
+// Assimp includes.
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
@@ -41,6 +42,7 @@ namespace Strontium
     void processMesh(aiMesh* mesh, const aiScene* scene, const std::string &directory);
 
     std::vector<Mesh> subMeshes;
+    std::vector<Animation> animations;
     bool loaded;
 
     glm::vec3 minPos;

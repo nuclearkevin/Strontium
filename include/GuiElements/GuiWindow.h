@@ -12,7 +12,7 @@ namespace Strontium
 {
   enum class FileLoadTargets
   {
-    TargetScene, TargetTexture, TargetModel, TargetEnvironment, TargetNone
+    TargetScene, TargetTexture, TargetModel, TargetEnvironment, TargetMaterial, TargetNone
   };
 
   enum class FileSaveTargets

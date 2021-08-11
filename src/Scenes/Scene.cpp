@@ -82,8 +82,7 @@ namespace Strontium
     for (auto entity : dirLight)
     {
       auto [directional, transform] = dirLight.get<DirectionalLightComponent, TransformComponent>(entity);
-      directional.light.direction = glm::vec3(glm::toMat4(glm::quat(transform.rotation)) * glm::vec4(0.0f, -1.0f, 0.0f, 0.0f));
-      Renderer3D::submit(directional.light);
+      Renderer3D::submit(directional.light, transform);
     }
     auto pointLight = this->sceneECS.group<PointLightComponent>(entt::get<TransformComponent>);
     for (auto entity : pointLight)
@@ -103,7 +102,15 @@ namespace Strontium
     for (auto entity : spotLight)
     {
       auto [spot, transform] = spotLight.get<SpotLightComponent, TransformComponent>(entity);
-      Renderer3D::submit(spot, transform);
+      glm::mat4 transformMatrix = (glm::mat4) transform;
+
+      // If a drawable item has a transform hierarchy, compute the global
+      // transforms from local transforms.
+      auto currentEntity = Entity(entity, this);
+      if (currentEntity.hasComponent<ParentEntityComponent>())
+        transformMatrix = computeGlobalTransform(currentEntity);
+        
+      Renderer3D::submit(spot, transformMatrix);
     }
 
     // Group together the transform and renderable components.

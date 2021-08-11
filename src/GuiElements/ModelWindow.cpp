@@ -1,4 +1,4 @@
-#include "GuiElements/MaterialWindow.h"
+#include "GuiElements/ModelWindow.h"
 
 // Project includes.
 #include "Core/AssetManager.h"
@@ -12,18 +12,19 @@
 
 namespace Strontium
 {
-  MaterialWindow::MaterialWindow(EditorLayer* parentLayer)
+  ModelWindow::ModelWindow(EditorLayer* parentLayer)
     : GuiWindow(parentLayer)
     , newMaterialName("")
+    , searched("")
   { }
 
-  MaterialWindow::~MaterialWindow()
+  ModelWindow::~ModelWindow()
   { }
 
   // This is uglier than me, and more complicated than it needs to be.
   // TODO: Refactor and make it cleaner.
   void
-  MaterialWindow::onImGuiRender(bool &isOpen, Shared<Scene> activeScene)
+  ModelWindow::onImGuiRender(bool &isOpen, Shared<Scene> activeScene)
   {
     auto modelAssets = AssetManager<Model>::getManager();
     auto materialAssets = AssetManager<Material>::getManager();
@@ -31,7 +32,6 @@ namespace Strontium
     float fontSize = ImGui::GetFontSize();
     static bool showTexWindow = false;
     static bool showMaterialWindow = false;
-    static bool showNewMaterialWindow = false;
     static std::string selectedType, submeshHandle;
 
     if (!this->selectedEntity)
@@ -40,7 +40,7 @@ namespace Strontium
     if (!this->selectedEntity.hasComponent<RenderableComponent>())
       return;
 
-    ImGui::Begin("Materials", &isOpen);
+    ImGui::Begin("Submeshes", &isOpen);
 
     auto& rComponent = this->selectedEntity.getComponent<RenderableComponent>();
     if (rComponent)
@@ -52,32 +52,28 @@ namespace Strontium
                                  | ImGuiTreeNodeFlags_OpenOnArrow
                                  | ImGuiTreeNodeFlags_OpenOnDoubleClick;
 
-        bool opened = ImGui::TreeNodeEx((submesh.getName() + "##" + std::to_string((unsigned long) &submesh)).c_str(), flags);
-        if (!opened)
+        if (!ImGui::CollapsingHeader(submesh.getName().c_str()))
           continue;
+        else
+          ImGui::Indent();
 
         this->DNDMaterialTarget(submesh.getName());
 
         auto material = rComponent.materials.getMaterial(submesh.getName());
 
-        ImGui::Text("Material Name: %s", rComponent.materials.getMaterialHandle(submesh.getName()).c_str());
+        ImGui::Text("Submesh name: %s", submesh.getName().c_str());
+        ImGui::Text("Material name: %s", rComponent.materials.getMaterialHandle(submesh.getName()).c_str());
         if (material->getFilepath() != "")
           ImGui::Text("Material Path: %s", material->getFilepath().c_str());
 
-        // Material settings for the submesh.
-        if (ImGui::Button(("Change Material##" + std::to_string((unsigned long) &submesh)).c_str()))
+        if (ImGui::Button(("Open Material Selector##" + std::to_string((unsigned long) &submesh)).c_str()))
         {
           showMaterialWindow = true;
           submeshHandle = submesh.getName();
         }
 
-        ImGui::SameLine();
-        if (ImGui::Button(("New Material##" + std::to_string((unsigned long) &submesh)).c_str()))
-        {
-          showNewMaterialWindow = true;
-          submeshHandle = submesh.getName();
-        }
-
+        /*
+        // TODO: Material browser window.
         ImGui::SameLine();
         if (ImGui::Button(("Save Material##" + std::to_string((unsigned long) &submesh)).c_str()))
         {
@@ -87,6 +83,7 @@ namespace Strontium
           this->selectedHandle = rComponent.materials.getMaterialHandle(submesh.getName());
           this->fileSaveTarget = FileSaveTargets::TargetMaterial;
         }
+        */
 
         // Actual material properties.
         if (ImGui::CollapsingHeader(("Material Properties##" + std::to_string((unsigned long) &submesh)).c_str(), ImGuiTreeNodeFlags_DefaultOpen))
@@ -190,7 +187,7 @@ namespace Strontium
           this->DNDTextureTarget(material, "normalMap");
           ImGui::PopID();
         }
-        ImGui::TreePop();
+        ImGui::Unindent();
       }
     }
     ImGui::End();
@@ -199,16 +196,14 @@ namespace Strontium
       this->drawTextureWindow(selectedType, submeshHandle, showTexWindow);
     if (showMaterialWindow)
       this->drawMaterialWindow(submeshHandle, showMaterialWindow);
-    if (showNewMaterialWindow)
-      this->drawNewMaterialWindow(submeshHandle, showNewMaterialWindow);
   }
 
   void
-  MaterialWindow::onUpdate(float dt, Shared<Scene> activeScene)
+  ModelWindow::onUpdate(float dt, Shared<Scene> activeScene)
   { }
 
   void
-  MaterialWindow::onEvent(Event &event)
+  ModelWindow::onEvent(Event &event)
   {
     switch(event.getType())
     {
@@ -261,7 +256,7 @@ namespace Strontium
         auto& path = loadEvent.getAbsPath();
         auto& name = loadEvent.getFileName();
 
-        switch (this->fileTargets)
+        switch (this->fileLoadTargets)
         {
           case FileLoadTargets::TargetTexture:
           {
@@ -269,7 +264,18 @@ namespace Strontium
             this->selectedMatTex.first->attachSampler2D(this->selectedMatTex.second, name);
 
             this->selectedMatTex = std::make_pair(nullptr, "");
-            this->fileTargets = FileLoadTargets::TargetNone;
+            this->fileLoadTargets = FileLoadTargets::TargetNone;
+            break;
+          }
+          case FileLoadTargets::TargetMaterial:
+          {
+            auto materialAssets = AssetManager<Material>::getManager();
+
+            AssetHandle handle;
+            if (YAMLSerialization::deserializeMaterial(path, handle))
+              materialAssets->getAsset(handle)->getFilepath() = path;
+
+            this->fileLoadTargets = FileLoadTargets::TargetNone;
             break;
           }
           default: break;
@@ -281,7 +287,7 @@ namespace Strontium
   }
 
   void
-  MaterialWindow::drawTextureWindow(const std::string &type, const std::string &submesh,
+  ModelWindow::drawTextureWindow(const std::string &type, const std::string &submesh,
                                     bool &isOpen)
   {
     if (!this->selectedEntity)
@@ -292,28 +298,49 @@ namespace Strontium
     Material* material = this->selectedEntity.getComponent<RenderableComponent>()
                                              .materials.getMaterial(submesh);
 
+    char searchBuffer[256];
+    memset(searchBuffer, 0, sizeof(searchBuffer));
+    std::strncpy(searchBuffer, this->searched.c_str(), sizeof(searchBuffer));
+
     ImGui::Begin("Select Texture", &isOpen);
-    if (ImGui::Button("Load New Texture"))
+
+    float cellSize = 64.0f + 16.0f;
+    float panelWidth = ImGui::GetContentRegionAvail().x;
+    int numColumns = (int) (panelWidth / cellSize);
+    numColumns = numColumns < 1 ? 1 : numColumns;
+
+    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 4.0f));
+    if (ImGui::Button(ICON_FA_FOLDER_OPEN))
     {
       EventDispatcher* dispatcher = EventDispatcher::getInstance();
       dispatcher->queueEvent(new OpenDialogueEvent(DialogueEventType::FileOpen,
                                                    ".jpg,.tga,.png"));
 
       this->selectedMatTex = std::make_pair(material, type);
-      this->fileTargets = FileLoadTargets::TargetTexture;
+      this->fileLoadTargets = FileLoadTargets::TargetTexture;
 
       isOpen = false;
     }
 
+    ImGui::SameLine();
+    ImGui::Button(ICON_FA_SEARCH);
+
+    ImGui::SameLine();
+    if (ImGui::InputText("##search", searchBuffer, sizeof(searchBuffer)))
+      this->searched = std::string(searchBuffer);
+    ImGui::PopStyleVar();
+
+    ImGui::Columns(numColumns, 0, false);
     for (auto& handle : textureCache->getStorage())
     {
-      ImGuiTreeNodeFlags flags = ((this->selectedHandle == handle) ? ImGuiTreeNodeFlags_Selected : 0);
-      flags |= ImGuiTreeNodeFlags_NoTreePushOnOpen | ImGuiTreeNodeFlags_OpenOnArrow
-            | ImGuiTreeNodeFlags_Bullet | ImGuiTreeNodeFlags_OpenOnDoubleClick;
+      if (this->searched != "" && handle.find(this->searched) == std::string::npos)
+        continue;
 
       auto texture = textureCache->getAsset(handle);
-      ImGui::Image((ImTextureID) (unsigned long) texture->getID(),
-                   ImVec2(64, 64), ImVec2(0, 1), ImVec2(1, 0));
+      ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
+      ImGui::ImageButton((ImTextureID) (unsigned long) texture->getID(),
+                   ImVec2(64.0f, 64.0f), ImVec2(0, 1), ImVec2(1, 0));
+      ImGui::PopStyleColor();
 
       if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(0))
       {
@@ -321,16 +348,9 @@ namespace Strontium
         isOpen = false;
         this->selectedHandle = "";
       }
+      ImGui::TextWrapped(handle.c_str());
 
-      ImGui::SameLine();
-      bool opened = ImGui::TreeNodeEx((void*) (sizeof(char) * handle.size()), flags, handle.c_str());
-
-      if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(0))
-      {
-        material->attachSampler2D(type, handle);
-        isOpen = false;
-        this->selectedHandle = "";
-      }
+      ImGui::NextColumn();
     }
     ImGui::End();
 
@@ -339,33 +359,76 @@ namespace Strontium
   }
 
   void
-  MaterialWindow::drawMaterialWindow(const std::string &submesh, bool &isOpen)
+  ModelWindow::drawMaterialWindow(const std::string &submesh, bool &isOpen)
   {
+    static bool showNewMaterialWindow = false;
+
     auto materialAssets = AssetManager<Material>::getManager();
 
     auto& rComponent = this->selectedEntity.getComponent<RenderableComponent>();
 
+    char searchBuffer[256];
+    memset(searchBuffer, 0, sizeof(searchBuffer));
+    std::strncpy(searchBuffer, this->searched.c_str(), sizeof(searchBuffer));
+
     ImGui::Begin("Select Material", &isOpen);
+
+    float cellSize = 64.0f + 16.0f;
+    float panelWidth = ImGui::GetContentRegionAvail().x;
+    int numColumns = (int) (panelWidth / cellSize);
+    numColumns = numColumns < 1 ? 1 : numColumns;
+
+    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 4.0f));
+    if (ImGui::Button(ICON_FA_FILE))
+      showNewMaterialWindow = true;
+
+    ImGui::SameLine();
+    if (ImGui::Button(ICON_FA_FOLDER_OPEN))
+    {
+      EventDispatcher* dispatcher = EventDispatcher::getInstance();
+      dispatcher->queueEvent(new OpenDialogueEvent(DialogueEventType::FileOpen,
+                                                   ".smtl"));
+      this->fileLoadTargets = FileLoadTargets::TargetMaterial;
+    }
+
+    ImGui::SameLine();
+    ImGui::Button(ICON_FA_SEARCH);
+
+    ImGui::SameLine();
+    if (ImGui::InputText("##search", searchBuffer, sizeof(searchBuffer)))
+      this->searched = std::string(searchBuffer);
+    ImGui::PopStyleVar();
+
+    ImGui::Columns(numColumns, 0, false);
     for (auto& handle : materialAssets->getStorage())
     {
-      ImGuiTreeNodeFlags flags = ((this->selectedHandle == handle) ? ImGuiTreeNodeFlags_Selected : 0);
-      flags |= ImGuiTreeNodeFlags_NoTreePushOnOpen | ImGuiTreeNodeFlags_OpenOnArrow
-            | ImGuiTreeNodeFlags_Bullet | ImGuiTreeNodeFlags_OpenOnDoubleClick;
+      if (this->searched != "" && handle.find(this->searched) == std::string::npos)
+        continue;
 
-      bool opened = ImGui::TreeNodeEx((void*) (sizeof(char) * handle.size()), flags, handle.c_str());
+      ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
+      ImGui::ImageButton((ImTextureID) (unsigned long)
+                         materialAssets->getAsset(handle)->getSampler2D("albedoMap")->getID(),
+                         ImVec2(64.0f, 64.0f), ImVec2(0, 1), ImVec2(1, 0));
+      ImGui::PopStyleColor();
 
       if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(0))
       {
         rComponent.materials.swapMaterial(submesh, handle);
         isOpen = false;
       }
+      ImGui::TextWrapped(handle.c_str());
+
+      ImGui::NextColumn();
     }
 
     ImGui::End();
+
+    if (showNewMaterialWindow)
+      this->drawNewMaterialWindow(submesh, showNewMaterialWindow);
   }
 
   void
-  MaterialWindow::drawNewMaterialWindow(const std::string &submesh, bool &isOpen)
+  ModelWindow::drawNewMaterialWindow(const std::string &submesh, bool &isOpen)
   {
     char nameBuffer[256];
     memset(nameBuffer, 0, sizeof(nameBuffer));
@@ -379,10 +442,8 @@ namespace Strontium
     if (ImGui::Button("Create"))
     {
       auto materialAssets = AssetManager<Material>::getManager();
-      auto& rComponent = this->selectedEntity.getComponent<RenderableComponent>();
 
       materialAssets->attachAsset(this->newMaterialName, new Material());
-      rComponent.materials.swapMaterial(submesh, this->newMaterialName);
 
       this->newMaterialName = "";
       isOpen = false;
@@ -391,7 +452,7 @@ namespace Strontium
   }
 
   void
-  MaterialWindow::DNDTextureTarget(Material* material, const std::string &selectedType)
+  ModelWindow::DNDTextureTarget(Material* material, const std::string &selectedType)
   {
     if (ImGui::BeginDragDropTarget())
     {
@@ -406,7 +467,7 @@ namespace Strontium
   }
 
   void
-  MaterialWindow::DNDMaterialTarget(const std::string &subMesh)
+  ModelWindow::DNDMaterialTarget(const std::string &subMesh)
   {
     if (ImGui::BeginDragDropTarget())
     {
@@ -418,7 +479,7 @@ namespace Strontium
   }
 
   void
-  MaterialWindow::loadDNDTextureAsset(const std::string &filepath)
+  ModelWindow::loadDNDTextureAsset(const std::string &filepath)
   {
     std::string filename = filepath.substr(filepath.find_last_of('/') + 1);
     std::string filetype = filename.substr(filename.find_last_of('.'));
@@ -433,7 +494,7 @@ namespace Strontium
   }
 
   void
-  MaterialWindow::loadDNDMaterial(const std::string &filepath, const std::string &subMesh)
+  ModelWindow::loadDNDMaterial(const std::string &filepath, const std::string &subMesh)
   {
     auto materialAssets = AssetManager<Material>::getManager();
 

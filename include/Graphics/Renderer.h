@@ -120,6 +120,9 @@ namespace Strontium
     // The renderer states (for serialization and other things of that nature).
     struct RendererState
     {
+      // Current frame counter. Counts frames in 5 frame intervals.
+      GLuint currentFrame;
+
       // Settings for rendering.
       bool isForward;
       bool frustumCull;
@@ -139,7 +142,8 @@ namespace Strontium
       bool drawGrid;
 
       RendererState()
-        : isForward(false)
+        : currentFrame(0)
+        , isForward(false)
         , frustumCull(false)
         , skyboxWidth(512)
         , irradianceWidth(128)
@@ -160,6 +164,7 @@ namespace Strontium
       GLuint numDirLights;
       GLuint numPointLights;
       GLuint numSpotLights;
+
       float geoFrametime;
       float shadowFrametime;
       float lightFrametime;
@@ -198,7 +203,7 @@ namespace Strontium
     // Deferred rendering setup.
     void submit(Model* data, ModelMaterial &materials, const glm::mat4 &model,
                 GLfloat id = 0.0f, bool drawSelectionMask = false);
-    void submit(DirectionalLight light);
+    void submit(DirectionalLight light, const glm::mat4 &model);
     void submit(PointLight light, const glm::mat4 &model);
     void submit(SpotLight light, const glm::mat4 &model);
   }
