@@ -1,10 +1,12 @@
 #pragma once
 
+// Macro include file.
+#include "StrontiumPCH.h"
+
 // Project includes.
 #include "Core/ApplicationBase.h"
 #include "Graphics/VertexArray.h"
 #include "Graphics/Shaders.h"
-#include "Graphics/Animations.h"
 
 namespace Strontium
 {
@@ -15,7 +17,6 @@ namespace Strontium
   {
     glm::vec4 position;
     glm::vec3 normal;
-    glm::vec3 colour; // TODO: Consider moving colours out of the vertex struct. Large change required though.
     glm::vec2 uv;
     glm::vec3 tangent;
     glm::vec3 bitangent;
@@ -25,11 +26,10 @@ namespace Strontium
     Vertex()
       : position(0.0f, 0.0f, 0.0f, 1.0f)
       , normal(0.0f)
-      , colour(1.0f)
       , uv(0.0f)
       , tangent(0.0f)
       , bitangent(0.0f)
-      , boneIDs(-1)
+      , boneIDs(0)
       , boneWeights(0.0f)
     { }
   };
@@ -78,7 +78,6 @@ namespace Strontium
     // Getters.
     std::vector<Vertex>& getData() { return this->data; }
     std::vector<GLuint>& getIndices() { return this->indices; }
-    std::vector<BoneData>& getBones() { return this->bones; }
     glm::vec3& getMinPos() { return this->minPos; }
     glm::vec3& getMaxPos() { return this->maxPos; }
     VertexArray*  getVAO() { return this->vArray.get(); }
@@ -94,7 +93,6 @@ namespace Strontium
     bool loaded;
     std::vector<Vertex> data;
     std::vector<GLuint> indices;
-    std::vector<BoneData> bones;
 
     glm::vec3 minPos;
     glm::vec3 maxPos;

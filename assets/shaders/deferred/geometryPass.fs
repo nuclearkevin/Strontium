@@ -13,7 +13,6 @@ in VERT_OUT
 {
 	vec3 fNormal;
 	vec3 fPosition;
-	vec3 fColour;
   vec2 fTexCoords;
 	mat3 fTBN;
 } fragIn;

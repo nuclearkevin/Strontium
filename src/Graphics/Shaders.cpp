@@ -485,9 +485,40 @@ namespace Strontium
 	{
 		this->bind();
 		GLuint attribPos = glGetAttribLocation(this->progID, attribName);
-		// Cast to long first to avoid a compiler warning on 64 bit systems.
-		glVertexAttribPointer(attribPos, static_cast<GLint>(type), GL_FLOAT,
-													normalized, size, (void*) (unsigned long) stride);
+		switch (type)
+    {
+      case AttribType::Vec4:
+      {
+        glVertexAttribPointer(attribPos, 4, GL_FLOAT, normalized, size, (void*) (unsigned long) stride);
+        break;
+      }
+      case AttribType::Vec3:
+      {
+        glVertexAttribPointer(attribPos, 3, GL_FLOAT, normalized, size, (void*) (unsigned long) stride);
+        break;
+      }
+      case AttribType::Vec2:
+      {
+        glVertexAttribPointer(attribPos, 2, GL_FLOAT, normalized, size, (void*) (unsigned long) stride);
+        break;
+      }
+      case AttribType::IVec4:
+      {
+        glVertexAttribIPointer(attribPos, 4, GL_INT, size, (void*) (unsigned long) stride);
+        break;
+      }
+      case AttribType::IVec3:
+      {
+        glVertexAttribIPointer(attribPos, 3, GL_INT, size, (void*) (unsigned long) stride);
+        break;
+      }
+      case AttribType::IVec2:
+      {
+        glVertexAttribIPointer(attribPos, 2, GL_INT, size, (void*) (unsigned long) stride);
+        break;
+      }
+    }
+
 		glEnableVertexAttribArray(attribPos);
 	}
 

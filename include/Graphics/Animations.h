@@ -1,7 +1,9 @@
-#pragma once
+// Maximum bones which can influence a vertex.
+#define MAX_BONES_PER_VERTEX 4
+// Maximum bones in a single model file. Using SSBOs to pass them to the skinning shaders.
+#define MAX_BONES_PER_MODEL 512
 
-#define NUM_BONES_PER_VEREX 4
-#define MAX_BONES 256
+#pragma once
 
 // Macro include file.
 #include "StrontiumPCH.h"
@@ -15,125 +17,71 @@ namespace Strontium
 {
   class Model;
 
-  struct BoneData
+  struct VertexBone
   {
     std::string name;
-    glm::mat4 boneOffsetMatrix;
+    std::string parentMesh;
 
-    BoneData(const glm::mat4 &boneOffsetMatrix, const std::string &name)
+    glm::mat4 offsetMatrix;
+
+    VertexBone(const std::string &name, const std::string &parentMesh,
+               const glm::mat4 &offsetMatrix)
       : name(name)
-      , boneOffsetMatrix(boneOffsetMatrix)
-    { }
-
-    BoneData()
-      : name("")
-      , boneOffsetMatrix(1.0f)
-    { }
-
-    BoneData(BoneData&&) = default;
-  };
-
-  template<typename T>
-  struct KeyframeData
-  {
-    T data;
-    GLfloat timestamp;
-    KeyframeData(const T &data, GLfloat timestamp)
-      : data(data)
-      , timestamp(timestamp)
+      , parentMesh(parentMesh)
+      , offsetMatrix(offsetMatrix)
     { }
   };
 
-  // TODO: Store parent? Probably not needed since you only need to traverse
-  // down the animation tree.
   struct AnimationNode
   {
-    glm::mat4 transformation;
     std::string name;
-    std::vector<AnimationNode> children;
 
-    AnimationNode(const glm::mat4 &transformation, const std::string &name)
-      : transformation(transformation)
-      , name(name)
+    std::vector<std::pair<GLfloat, glm::vec3>> keyTranslations;
+    std::vector<std::pair<GLfloat, glm::quat>> keyRotations;
+    std::vector<std::pair<GLfloat, glm::vec3>> keyScales;
+
+    AnimationNode(const std::string &name)
+      : name(name)
     { }
 
-    AnimationNode()
-      : transformation(1.0f)
-      , name("")
-    { }
+    AnimationNode() = default;
   };
 
-  class Bone
+  struct SceneNode
   {
-  public:
-    Bone(const std::string &name, const glm::mat4 &boneOffsetMatrix, const GLint id,
-         const std::string &parentMesh);
-    ~Bone() = default;
-    Bone(Bone&&) = default;
-
-    void updateTransform(GLfloat currentTime);
-
-    std::string getName() const { return this->name; }
-    GLint getID() const { return this->id; }
-    std::string getParentMeshName() const { return this->parentMesh; }
-    glm::mat4 getLocalTransform() { return this->localTransform; }
-    glm::mat4 getOffsetMatrix() { return this->boneOffsetMatrix; }
-
-    GLuint getNumKeyTranslations() { return this->keyTranslations.size(); }
-    GLuint getNumKeyRotations() { return this->keyRotations.size(); }
-    GLuint getNumKeyScales() { return this->keyScales.size(); }
-
-    std::vector<KeyframeData<glm::vec3>>& getKeyTranslations() { return this->keyTranslations; }
-    std::vector<KeyframeData<glm::quat>>& getKeyRotations() { return this->keyRotations; }
-    std::vector<KeyframeData<glm::vec3>>& getKeyScales() { return this->keyScales; }
-  private:
-    glm::mat4 interpolateTranslation(GLfloat currentTime);
-    glm::mat4 interpolateRotation(GLfloat currentTime);
-    glm::mat4 interpolateScale(GLfloat currentTime);
-
-    GLfloat computeInterpFactor(GLfloat previousTimestamp, GLfloat nextTimestamp,
-                                GLfloat currentTime);
+    std::string name;
+    std::vector<std::string> childNames;;
 
     glm::mat4 localTransform;
-    glm::mat4 boneOffsetMatrix;
-    GLint id;
-    std::string parentMesh;
-    std::string name;
-    std::vector<KeyframeData<glm::vec3>> keyTranslations;
-    std::vector<KeyframeData<glm::quat>> keyRotations;
-    std::vector<KeyframeData<glm::vec3>> keyScales;
+
+    SceneNode(const std::string &name, const glm::mat4 &localTransform)
+      : name(name)
+      , localTransform(localTransform)
+    { }
+
+    SceneNode() = default;
   };
 
   class Animation
   {
   public:
-    Animation(const aiScene* scene, GLuint animationIndex, Model* parentModel);
-    ~Animation() = default;
-    Animation(Animation&&) = default;
+    Animation(const aiAnimation* animation, Model* parentModel);
+    Animation(Model* parentModel);
+    ~Animation();
 
-    void onUpdate(float dt);
+    void loadAnimation(const aiAnimation* animation);
 
+    GLfloat getDuration() const { return this->duration; }
+    GLfloat getTPS() const { return this->ticksPerSecond; }
     std::string getName() const { return this->name; }
-    std::vector<glm::mat4>& getFinalBoneMatrices(const std::string &submeshName)
-      { return this->finalBoneMatrices.at(submeshName); }
+    std::unordered_map<std::string, AnimationNode>& getAniNodes() { return this->animationNodes; }
   private:
-    void loadKeyframeBones(const aiAnimation* animation);
-    void readTransformHierarchy(AnimationNode &destNode, const aiNode* srcNode);
-
-    void computeBoneTransforms(const AnimationNode &node, const glm::mat4 &parentTransform);
-
-    // Animation specific data.
     Model* parentModel;
-    AnimationNode rootNode;
-    std::vector<Bone> animationBones;
-    GLfloat duration;
-    GLfloat tps;
+
+    std::unordered_map<std::string, AnimationNode> animationNodes;
+
     std::string name;
-
-    // Animation playing data.
-    GLfloat currentTime;
-
-    // Mesh specific data.
-    std::unordered_map<std::string, std::vector<glm::mat4>> finalBoneMatrices;
+    GLfloat duration;
+    GLfloat ticksPerSecond;
   };
 }

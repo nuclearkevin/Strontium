@@ -63,8 +63,40 @@ namespace Strontium
                             unsigned size, unsigned stride)
   {
     this->bind();
-    glVertexAttribPointer(location, static_cast<GLint>(type), GL_FLOAT,
-													normalized, size, (void*) (unsigned long) stride);
+    switch (type)
+    {
+      case AttribType::Vec4:
+      {
+        glVertexAttribPointer(location, 4, GL_FLOAT, normalized, size, (void*) (unsigned long) stride);
+        break;
+      }
+      case AttribType::Vec3:
+      {
+        glVertexAttribPointer(location, 3, GL_FLOAT, normalized, size, (void*) (unsigned long) stride);
+        break;
+      }
+      case AttribType::Vec2:
+      {
+        glVertexAttribPointer(location, 2, GL_FLOAT, normalized, size, (void*) (unsigned long) stride);
+        break;
+      }
+      case AttribType::IVec4:
+      {
+        glVertexAttribIPointer(location, 4, GL_INT, size, (void*) (unsigned long) stride);
+        break;
+      }
+      case AttribType::IVec3:
+      {
+        glVertexAttribIPointer(location, 3, GL_INT, size, (void*) (unsigned long) stride);
+        break;
+      }
+      case AttribType::IVec2:
+      {
+        glVertexAttribIPointer(location, 2, GL_INT, size, (void*) (unsigned long) stride);
+        break;
+      }
+    }
+
 		glEnableVertexAttribArray(location);
   }
 

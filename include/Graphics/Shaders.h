@@ -9,7 +9,7 @@
 
 namespace Strontium
 {
-  enum class AttribType { Vec4 = 4, Vec3 = 3, Vec2 = 2};
+  enum class AttribType { Vec4, Vec3, Vec2, IVec4, IVec3, IVec2 };
   enum class UniformType
   {
     Float = GL_FLOAT, Vec2 = GL_FLOAT_VEC2, Vec3 = GL_FLOAT_VEC3,
@@ -66,7 +66,7 @@ namespace Strontium
 
     void addUniformSampler(const char* uniformName, GLuint texID);
     GLint getSamplerLocation(const char* uniformName);
-    
+
     // Setters for vertex attributes.
     void addAtribute(const char* attribName, AttribType type,
                      GLboolean normalized, unsigned size, unsigned stride);

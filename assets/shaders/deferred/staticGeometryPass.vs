@@ -5,10 +5,9 @@
 
 layout (location = 0) in vec4 vPosition;
 layout (location = 1) in vec3 vNormal;
-layout (location = 2) in vec3 vColour;
-layout (location = 3) in vec2 vTexCoord;
-layout (location = 4) in vec3 vTangent;
-layout (location = 5) in vec3 vBitangent;
+layout (location = 2) in vec2 vTexCoord;
+layout (location = 3) in vec3 vTangent;
+layout (location = 4) in vec3 vBitangent;
 
 // Camera specific uniforms.
 layout(std140, binding = 0) uniform CameraBlock
@@ -28,7 +27,6 @@ out VERT_OUT
 {
   vec3 fNormal;
  	vec3 fPosition;
- 	vec3 fColour;
   vec2 fTexCoords;
  	mat3 fTBN;
 } vertOut;
@@ -44,7 +42,6 @@ void main()
  	gl_Position = u_projMatrix * u_viewMatrix * u_modelMatrix * vPosition;
   vertOut.fPosition = (u_modelMatrix * vPosition).xyz;
  	vertOut.fNormal = N;
- 	vertOut.fColour = vColour;
  	vertOut.fTexCoords = vTexCoord;
  	vertOut.fTBN = mat3(T, B, N);
 }

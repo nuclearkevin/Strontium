@@ -35,10 +35,9 @@ namespace Strontium
 
     this->vArray->addAttribute(0, AttribType::Vec4, GL_FALSE, sizeof(Vertex), 0);
   	this->vArray->addAttribute(1, AttribType::Vec3, GL_FALSE, sizeof(Vertex), offsetof(Vertex, normal));
-  	this->vArray->addAttribute(2, AttribType::Vec3, GL_FALSE, sizeof(Vertex), offsetof(Vertex, colour));
-    this->vArray->addAttribute(3, AttribType::Vec3, GL_FALSE, sizeof(Vertex), offsetof(Vertex, uv));
-    this->vArray->addAttribute(4, AttribType::Vec3, GL_FALSE, sizeof(Vertex), offsetof(Vertex, tangent));
-    this->vArray->addAttribute(5, AttribType::Vec3, GL_FALSE, sizeof(Vertex), offsetof(Vertex, bitangent));
+    this->vArray->addAttribute(2, AttribType::Vec3, GL_FALSE, sizeof(Vertex), offsetof(Vertex, uv));
+    this->vArray->addAttribute(3, AttribType::Vec3, GL_FALSE, sizeof(Vertex), offsetof(Vertex, tangent));
+    this->vArray->addAttribute(4, AttribType::Vec3, GL_FALSE, sizeof(Vertex), offsetof(Vertex, bitangent));
   }
 
   // Debugging helper function to dump mesh data to the console.
