@@ -214,12 +214,11 @@ namespace Strontium
                                            BufferType bufferType)
     : filled(false)
     , type(bufferType)
-    , dataSize(dataSize)
+    , dataSize(bufferSize)
   {
     glGenBuffers(1, &this->bufferID);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->bufferID);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, dataSize, nullptr,
-                 static_cast<GLenum>(bufferType));
+    glBufferData(GL_SHADER_STORAGE_BUFFER, bufferSize, nullptr, static_cast<GLenum>(bufferType));
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
   }
 

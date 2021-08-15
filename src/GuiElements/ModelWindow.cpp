@@ -19,6 +19,9 @@ namespace Strontium
     : GuiWindow(parentLayer)
     , newMaterialName("")
     , searched("")
+    , selectedNode(nullptr)
+    , selectedAniNode(nullptr)
+    , selectedSubMesh(nullptr)
   { }
 
   ModelWindow::~ModelWindow()
@@ -62,18 +65,16 @@ namespace Strontium
         ImGui::Text("Scene Nodes");
         ImGui::Separator();
 
-        static SceneNode* selectedNode = nullptr;
-
-        if (selectedNode)
+        if (this->selectedNode)
         {
-          if (ImGui::BeginCombo("##combo", selectedNode->name.c_str()))
+          if (ImGui::BeginCombo("##combo", this->selectedNode->name.c_str()))
           {
             for (auto& sceneNode : model->getSceneNodes())
             {
-              bool isSelected = (&sceneNode.second == selectedNode);
+              bool isSelected = (&sceneNode.second == this->selectedNode);
 
               if (ImGui::Selectable(sceneNode.first.c_str(), isSelected))
-                selectedNode = (&sceneNode.second);
+                this->selectedNode = (&sceneNode.second);
 
               if (isSelected)
                 ImGui::SetItemDefaultFocus();
@@ -83,7 +84,7 @@ namespace Strontium
 
           if (ImGui::CollapsingHeader("Child Nodes"))
           {
-            for (auto& sceneNodeChild : selectedNode->childNames)
+            for (auto& sceneNodeChild : this->selectedNode->childNames)
               ImGui::Text("%s", sceneNodeChild.c_str());
           }
         }
@@ -93,10 +94,10 @@ namespace Strontium
           {
             for (auto& sceneNode : model->getSceneNodes())
             {
-              bool isSelected = (&sceneNode.second == selectedNode);
+              bool isSelected = (&sceneNode.second == this->selectedNode);
 
               if (ImGui::Selectable(sceneNode.first.c_str(), isSelected))
-                selectedNode = (&sceneNode.second);
+                this->selectedNode = (&sceneNode.second);
 
               if (isSelected)
                 ImGui::SetItemDefaultFocus();
@@ -122,18 +123,16 @@ namespace Strontium
             ImGui::Text("Animation Nodes");
             ImGui::Separator();
 
-            static AnimationNode* selectedNode = nullptr;
-
-            if (selectedNode)
+            if (this->selectedAniNode)
             {
-              if (ImGui::BeginCombo("##combo", selectedNode->name.c_str()))
+              if (ImGui::BeginCombo("##combo", this->selectedAniNode->name.c_str()))
               {
                 for (auto& aniNode : animation.getAniNodes())
                 {
-                  bool isSelected = (&aniNode.second == selectedNode);
+                  bool isSelected = (&aniNode.second == this->selectedAniNode);
 
                   if (ImGui::Selectable(aniNode.first.c_str(), isSelected))
-                    selectedNode = (&aniNode.second);
+                    this->selectedAniNode = (&aniNode.second);
 
                   if (isSelected)
                     ImGui::SetItemDefaultFocus();
@@ -141,10 +140,10 @@ namespace Strontium
                 ImGui::EndCombo();
               }
 
-              if (ImGui::TreeNode(("Translations##" + selectedNode->name).c_str()))
+              if (ImGui::TreeNode(("Translations##" + this->selectedAniNode->name).c_str()))
               {
                 ImGui::Indent();
-                for (auto& keyTranslations : selectedNode->keyTranslations)
+                for (auto& keyTranslations : this->selectedAniNode->keyTranslations)
                 {
                   ImGui::Text("Timestamp: %f, Value: (%f, %f, %f)", keyTranslations.first,
                               keyTranslations.second.x, keyTranslations.second.y,
@@ -153,10 +152,10 @@ namespace Strontium
                 ImGui::Unindent();
                 ImGui::TreePop();
               }
-              if (ImGui::TreeNode(("Rotations##" + selectedNode->name).c_str()))
+              if (ImGui::TreeNode(("Rotations##" + this->selectedAniNode->name).c_str()))
               {
                 ImGui::Indent();
-                for (auto& keyRotations : selectedNode->keyRotations)
+                for (auto& keyRotations : this->selectedAniNode->keyRotations)
                 {
                   ImGui::Text("Timestamp: %f, Value: (%f, %f, %f, %f)", keyRotations.first,
                               keyRotations.second.x, keyRotations.second.y,
@@ -165,10 +164,10 @@ namespace Strontium
                 ImGui::Unindent();
                 ImGui::TreePop();
               }
-              if (ImGui::TreeNode(("Scales##" + selectedNode->name).c_str()))
+              if (ImGui::TreeNode(("Scales##" + this->selectedAniNode->name).c_str()))
               {
                 ImGui::Indent();
-                for (auto& keyScales : selectedNode->keyScales)
+                for (auto& keyScales : this->selectedAniNode->keyScales)
                 {
                   ImGui::Text("Timestamp: %f, Value: (%f, %f, %f)", keyScales.first,
                               keyScales.second.x, keyScales.second.y,
@@ -180,14 +179,14 @@ namespace Strontium
             }
             else
             {
-              if (ImGui::BeginCombo("##combo", "Empty"))
+              if (ImGui::BeginCombo("##combo", ""))
               {
                 for (auto& aniNode : animation.getAniNodes())
                 {
-                  bool isSelected = (&aniNode.second == selectedNode);
+                  bool isSelected = (&aniNode.second == this->selectedAniNode);
 
                   if (ImGui::Selectable(aniNode.first.c_str(), isSelected))
-                    selectedNode = (&aniNode.second);
+                    this->selectedAniNode = (&aniNode.second);
 
                   if (isSelected)
                     ImGui::SetItemDefaultFocus();
@@ -200,47 +199,48 @@ namespace Strontium
         }
         ImGui::Unindent();
       }
-      if (ImGui::CollapsingHeader("Submeshes"))
+      if (ImGui::CollapsingHeader("Submeshes Properties"))
       {
         auto& submeshes = model->getSubmeshes();
+
         ImGui::Indent();
-        for (auto& submesh : submeshes)
+        ImGui::Text("Submeshes");
+        ImGui::Separator();
+        if (this->selectedSubMesh)
         {
-          if (!ImGui::CollapsingHeader(submesh.getName().c_str()))
-            continue;
-          else
-            ImGui::Indent();
+          if (ImGui::BeginCombo("##combo", this->selectedSubMesh->getName().c_str()))
+          {
+            for (auto& submesh : submeshes)
+            {
+              bool isSelected = (&submesh == this->selectedSubMesh);
 
-          this->DNDMaterialTarget(submesh.getName());
+              if (ImGui::Selectable(submesh.getName().c_str(), isSelected))
+                this->selectedSubMesh = (&submesh);
 
-          auto material = rComponent.materials.getMaterial(submesh.getName());
+              if (isSelected)
+                ImGui::SetItemDefaultFocus();
+            }
+            ImGui::EndCombo();
+          }
 
-          ImGui::Text("Submesh name: %s", submesh.getName().c_str());
-          ImGui::Text("Material name: %s", rComponent.materials.getMaterialHandle(submesh.getName()).c_str());
+          auto material = rComponent.materials.getMaterial(this->selectedSubMesh->getName());
+
+          ImGui::Text("");
+          ImGui::Text("Submesh Properties");
+          ImGui::Separator();
+          ImGui::Text("Submesh name: %s", this->selectedSubMesh->getName().c_str());
+          ImGui::Text("Material name: %s", rComponent.materials.getMaterialHandle(this->selectedSubMesh->getName()).c_str());
           if (material->getFilepath() != "")
             ImGui::Text("Material Path: %s", material->getFilepath().c_str());
 
-          if (ImGui::Button(("Open Material Selector##" + std::to_string((unsigned long) &submesh)).c_str()))
+          if (ImGui::Button(("Open Material Selector##" + std::to_string((unsigned long) this->selectedSubMesh)).c_str()))
           {
             showMaterialWindow = true;
-            submeshHandle = submesh.getName();
+            submeshHandle = this->selectedSubMesh->getName();
           }
-
-          /*
-          // TODO: Material browser window.
-          ImGui::SameLine();
-          if (ImGui::Button(("Save Material##" + std::to_string((unsigned long) &submesh)).c_str()))
-          {
-            EventDispatcher* dispatcher = EventDispatcher::getInstance();
-            dispatcher->queueEvent(new OpenDialogueEvent(DialogueEventType::FileSave,
-                                                         ".smtl"));
-            this->selectedHandle = rComponent.materials.getMaterialHandle(submesh.getName());
-            this->fileSaveTarget = FileSaveTargets::TargetMaterial;
-          }
-          */
 
           // Actual material properties.
-          if (ImGui::CollapsingHeader(("Material Properties##" + std::to_string((unsigned long) &submesh)).c_str(), ImGuiTreeNodeFlags_DefaultOpen))
+          if (ImGui::CollapsingHeader(("Material Properties##" + std::to_string((unsigned long) this->selectedSubMesh)).c_str(), ImGuiTreeNodeFlags_DefaultOpen))
           {
             auto& materialPipeline = material->getPipeline();
 
@@ -259,7 +259,7 @@ namespace Strontium
             {
               showTexWindow = true;
               selectedType = "albedoMap";
-              submeshHandle = submesh.getName();
+              submeshHandle = this->selectedSubMesh->getName();
             }
             this->DNDTextureTarget(material, "albedoMap");
             auto endCursorPos = ImGui::GetCursorPos();
@@ -280,7 +280,7 @@ namespace Strontium
             {
               showTexWindow = true;
               selectedType = "metallicMap";
-              submeshHandle = submesh.getName();
+              submeshHandle = this->selectedSubMesh->getName();
             }
             this->DNDTextureTarget(material, "metallicMap");
             ImGui::PopID();
@@ -294,7 +294,7 @@ namespace Strontium
             {
               showTexWindow = true;
               selectedType = "roughnessMap";
-              submeshHandle = submesh.getName();
+              submeshHandle = this->selectedSubMesh->getName();
             }
             this->DNDTextureTarget(material, "roughnessMap");
             ImGui::PopID();
@@ -308,7 +308,7 @@ namespace Strontium
             {
               showTexWindow = true;
               selectedType = "aOcclusionMap";
-              submeshHandle = submesh.getName();
+              submeshHandle = this->selectedSubMesh->getName();
             }
             this->DNDTextureTarget(material, "aOcclusionMap");
             ImGui::PopID();
@@ -322,7 +322,7 @@ namespace Strontium
             {
               showTexWindow = true;
               selectedType = "specF0Map";
-              submeshHandle = submesh.getName();
+              submeshHandle = this->selectedSubMesh->getName();
             }
             this->DNDTextureTarget(material, "specF0Map");
             ImGui::PopID();
@@ -336,14 +336,34 @@ namespace Strontium
             {
               showTexWindow = true;
               selectedType = "normalMap";
-              submeshHandle = submesh.getName();
+              submeshHandle = this->selectedSubMesh->getName();
             }
             this->DNDTextureTarget(material, "normalMap");
             ImGui::PopID();
           }
+
           ImGui::Unindent();
         }
-        ImGui::Unindent();
+        else
+        {
+          if (ImGui::BeginCombo("##combo", ""))
+          {
+            for (auto& submesh : submeshes)
+            {
+              bool isSelected = (&submesh == this->selectedSubMesh);
+
+              if (ImGui::Selectable(submesh.getName().c_str(), isSelected))
+                this->selectedSubMesh = (&submesh);
+
+              if (isSelected)
+                ImGui::SetItemDefaultFocus();
+            }
+            ImGui::EndCombo();
+          }
+        }
+        //this->DNDMaterialTarget(submesh.getName());
+
+
       }
     }
     ImGui::End();
@@ -366,6 +386,10 @@ namespace Strontium
       case EventType::EntitySwapEvent:
       {
         auto entSwapEvent = *(static_cast<EntitySwapEvent*>(&event));
+
+        this->selectedNode = nullptr;
+        this->selectedAniNode = nullptr;
+        this->selectedSubMesh = nullptr;
 
         auto entityID = entSwapEvent.getStoredEntity();
         auto entityParentScene = entSwapEvent.getStoredScene();

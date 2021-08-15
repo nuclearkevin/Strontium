@@ -616,6 +616,8 @@ namespace Strontium
         if (componentModel)
           std::strncpy(nameBuffer, componentModel->getFilepath().c_str(), sizeof(nameBuffer));
 
+        ImGui::Text("Mesh Information");
+        ImGui::Separator();
         if (ImGui::Button(ICON_FA_FOLDER_OPEN))
         {
           EventDispatcher* dispatcher = EventDispatcher::getInstance();
@@ -635,6 +637,60 @@ namespace Strontium
             this->loadDNDAsset((char*) payload->Data);
 
           ImGui::EndDragDropTarget();
+        }
+
+        ImGui::Separator();
+        ImGui::Text("Animations");
+        auto storedAnimation = component.animator.getStoredAnimation();
+        if (storedAnimation)
+        {
+          if (ImGui::BeginCombo("##combo", storedAnimation->getName().c_str()))
+          {
+            for (auto& animation : componentModel->getAnimations())
+            {
+              bool isSelected = (&animation == storedAnimation);
+
+              if (ImGui::Selectable(animation.getName().c_str(), isSelected))
+              {
+                component.animator.setAnimation(&animation, component.meshName);
+              }
+
+              if (isSelected)
+                ImGui::SetItemDefaultFocus();
+            }
+            ImGui::EndCombo();
+          }
+
+          if (component.animator.isAnimating())
+          {
+            if (ImGui::Button(ICON_FA_PAUSE))
+              component.animator.stopAnimation();
+          }
+          else
+          {
+            if (ImGui::Button(ICON_FA_PLAY))
+              component.animator.startAnimation();
+          }
+
+          ImGui::SameLine();
+          ImGui::SliderFloat("##AnimationTime", &component.animator.getAnimationTime(), 0.0f, storedAnimation->getDuration());
+        }
+        else
+        {
+          if (ImGui::BeginCombo("##combo", ""))
+          {
+            for (auto& animation : componentModel->getAnimations())
+            {
+              bool isSelected = (&animation == storedAnimation);
+
+              if (ImGui::Selectable(animation.getName().c_str(), isSelected))
+                component.animator.setAnimation(&animation, component.meshName);
+
+              if (isSelected)
+                ImGui::SetItemDefaultFocus();
+            }
+            ImGui::EndCombo();
+          }
         }
       });
 

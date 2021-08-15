@@ -19,6 +19,7 @@
 #include "Graphics/EnvironmentMap.h"
 #include "Graphics/Meshes.h"
 #include "Graphics/Model.h"
+#include "Graphics/Animations.h"
 #include "Graphics/Material.h"
 #include "Graphics/Camera.h"
 #include "Graphics/ShadingPrimatives.h"
@@ -70,17 +71,23 @@ namespace Strontium
       UniformBuffer cascadeShadowBuffer;
       UniformBuffer cascadeShadowPassBuffer;
 
+      // SSBO for bones.
+      ShaderStorageBuffer boneBuffer;
+
       // Items for the geometry pass.
-      std::vector<std::tuple<Model*, ModelMaterial*, glm::mat4, GLuint, bool>> renderQueue;
+      std::vector<std::tuple<Model*, ModelMaterial*, glm::mat4, GLuint, bool>> staticRenderQueue;
+      std::vector<std::tuple<Model*, Animator*, ModelMaterial*, glm::mat4, GLuint, bool>> dynamicRenderQueue;
 
       // Items for the shadow pass.
-      std::vector<std::pair<Model*, glm::mat4>> shadowQueue;
+      std::vector<std::pair<Model*, glm::mat4>> staticShadowQueue;
+      std::vector<std::tuple<Model*, Animator*, glm::mat4>> dynamicShadowQueue;
       glm::mat4 cascades[NUM_CASCADES];
       GLfloat cascadeSplits[NUM_CASCADES];
       bool hasCascades;
 
       // The required shaders for processing.
-      Shader* geometryShader;
+      Shader* staticGeometryShader;
+      Shader* dynamicGeometryShader;
       Shader* shadowShader;
       Shader* ambientShader;
       Shader* directionalShaderShadowed;
@@ -97,6 +104,7 @@ namespace Strontium
       Shared<Camera> sceneCam;
       Frustum camFrustum;
 
+      // Light queues.
       std::vector<DirectionalLight> directionalQueue;
       std::vector<PointLight> pointQueue;
       std::vector<SpotLight> spotQueue;
@@ -112,6 +120,7 @@ namespace Strontium
         , cascadeShadowBuffer(NUM_CASCADES * sizeof(glm::mat4)
                               + NUM_CASCADES * sizeof(glm::vec4) * sizeof(GLfloat),
                               BufferType::Dynamic)
+        , boneBuffer(MAX_BONES_PER_MODEL * sizeof(glm::mat4), BufferType::Dynamic)
       {
         currentEnvironment = createUnique<EnvironmentMap>();
       }
@@ -203,6 +212,9 @@ namespace Strontium
     // Deferred rendering setup.
     void submit(Model* data, ModelMaterial &materials, const glm::mat4 &model,
                 GLfloat id = 0.0f, bool drawSelectionMask = false);
+    void submit(Model* data, Animator* animation, ModelMaterial &materials,
+                const glm::mat4 &model, GLfloat id = 0.0f,
+                bool drawSelectionMask = false);
     void submit(DirectionalLight light, const glm::mat4 &model);
     void submit(PointLight light, const glm::mat4 &model);
     void submit(SpotLight light, const glm::mat4 &model);

@@ -165,6 +165,7 @@ namespace Strontium
 
     GLuint getID() { return this->bufferID; }
     bool hasData() { return this->filled; }
+    GLuint size() const { return this->dataSize; }
   protected:
     // OpenGL buffer ID.
     GLuint bufferID;

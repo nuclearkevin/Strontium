@@ -6,12 +6,13 @@
 #include "Core/Events.h"
 #include "Utils/AssimpUtilities.h"
 
+#include "glm/gtx/string_cast.hpp"
+
 namespace Strontium
 {
   Model::Model()
     : loaded(false)
     , globalInverseTransform(1.0f)
-    , numBones(0)
     , minPos(std::numeric_limits<float>::max())
     , maxPos(std::numeric_limits<float>::min())
   { }
@@ -57,15 +58,16 @@ namespace Strontium
     // Load the model data.
     this->globalInverseTransform = glm::inverse(Utilities::mat4ToGLM(scene->mRootNode->mTransformation));
     this->rootNode = SceneNode(scene->mRootNode->mName.C_Str(), Utilities::mat4ToGLM(scene->mRootNode->mTransformation));
+    for (GLuint i = 0; i < scene->mRootNode->mNumChildren; i++)
+      this->rootNode.childNames.emplace_back(scene->mRootNode->mChildren[i]->mName.C_Str());
+
     this->processNode(scene->mRootNode, scene, directory);
 
     // Load in animations.
     if (scene->HasAnimations())
     {
       for (unsigned int i = 0; i < scene->mNumAnimations; i++)
-      {
         this->storedAnimations.emplace_back(scene->mAnimations[i], this);
-      }
     }
 
     this->loaded = true;
@@ -80,7 +82,7 @@ namespace Strontium
   {
     if (this->sceneNodes.find(node->mName.C_Str()) == this->sceneNodes.end())
     {
-      this->sceneNodes[node->mName.C_Str()] = SceneNode(node->mName.C_Str(), Utilities::mat4ToGLM(node->mTransformation));
+      this->sceneNodes.insert(std::make_pair<std::string, SceneNode>(node->mName.C_Str(), SceneNode(node->mName.C_Str(), Utilities::mat4ToGLM(node->mTransformation))));
       for (GLuint i = 0; i < node->mNumChildren; i++)
         this->sceneNodes[node->mName.C_Str()].childNames.emplace_back(node->mChildren[i]->mName.C_Str());
     }
@@ -191,6 +193,7 @@ namespace Strontium
         meshIndicies.push_back(face.mIndices[j]);
     }
 
+    // Load in the data required to async load material properties.
     if (mesh->mMaterialIndex >= 0)
     {
       aiMaterial* mat = scene->mMaterials[mesh->mMaterialIndex];
@@ -274,6 +277,7 @@ namespace Strontium
       }
     }
 
+    // Load in vertex bones.
     if (mesh->HasBones())
     {
       for (unsigned int i = 0; i < mesh->mNumBones; i++)
@@ -281,18 +285,17 @@ namespace Strontium
         std::string boneName = mesh->mBones[i]->mName.C_Str();
         glm::mat4 offsetMatrix = Utilities::mat4ToGLM(mesh->mBones[i]->mOffsetMatrix);
 
-        unsigned int boneIndex = 0;
+        unsigned int boneIndex;
         if (this->boneMap.find(boneName) == this->boneMap.end())
         {
-          boneIndex = this->numBones;
-          this->numBones++;
           this->storedBones.emplace_back(boneName, meshName, offsetMatrix);
+          this->boneMap[boneName] = this->storedBones.size() - 1;
+          boneIndex = this->storedBones.size() - 1;
         }
         else
+        {
           boneIndex = this->boneMap.at(boneName);
-
-        this->boneMap[boneName] = boneIndex;
-        this->storedBones[boneIndex].offsetMatrix = offsetMatrix;
+        }
 
         for (unsigned int j = 0; j < mesh->mBones[i]->mNumWeights; j++)
         {
@@ -312,14 +315,12 @@ namespace Strontium
   {
     for (unsigned int i = 0; i < MAX_BONES_PER_VERTEX; i++)
     {
-      if (toMod.boneWeights[i] == 0.0)
+      if (toMod.boneIDs[i] < 0)
       {
-        toMod.boneWeights[i] == boneWeight;
+        toMod.boneWeights[i] = boneWeight;
         toMod.boneIDs[i] = boneIndex;
         return;
       }
     }
-
-    assert(("More bones than a single vertex can store", 0));
   }
 }

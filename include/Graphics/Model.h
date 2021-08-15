@@ -38,6 +38,9 @@ namespace Strontium
     std::vector<Mesh>& getSubmeshes() { return this->subMeshes; }
     std::vector<Animation>& getAnimations() { return this->storedAnimations; }
     std::unordered_map<std::string, SceneNode>& getSceneNodes() { return this->sceneNodes; }
+    std::unordered_map<std::string, GLuint>& getBoneMap() { return this->boneMap; }
+    std::vector<VertexBone>& getBones() { return this->storedBones; }
+    glm::mat4& getGlobalInverseTransform() { return this->globalInverseTransform; }
     SceneNode& getRootNode() { return this->rootNode; }
     std::string& getFilepath() { return this->filepath; }
   private:
@@ -58,7 +61,6 @@ namespace Strontium
     std::vector<Animation> storedAnimations;
     std::vector<VertexBone> storedBones;
     std::unordered_map<std::string, GLuint> boneMap;
-    GLuint numBones;
 
     // Is the model loaded or not?
     bool loaded;

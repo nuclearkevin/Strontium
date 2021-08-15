@@ -90,13 +90,13 @@ namespace Strontium
       storage->camBuffer.bindToPoint(0);
       storage->transformBuffer.bindToPoint(2);
       storage->editorBuffer.bindToPoint(3);
-      storage->ambientPassBuffer.bindToPoint(4);
       storage->cascadeShadowPassBuffer.bindToPoint(6);
       storage->cascadeShadowBuffer.bindToPoint(7);
 
       // Shaders for the various passes.
-      storage->shadowShader = shaderCache->getAsset("shadow_shader");
-      storage->geometryShader = shaderCache->getAsset("geometry_pass_shader");
+      storage->shadowShader = shaderCache->getAsset("static_shadow_shader");
+      storage->staticGeometryShader = shaderCache->getAsset("geometry_pass_shader");
+      storage->dynamicGeometryShader = shaderCache->getAsset("dynamic_geometry_pass");
       storage->ambientShader = shaderCache->getAsset("deferred_ambient");
       storage->directionalShaderShadowed = shaderCache->getAsset("deferred_directional_shadowed");
       storage->directionalShader = shaderCache->getAsset("deferred_directional");
@@ -171,7 +171,8 @@ namespace Strontium
       }
       else
       {
-        storage->renderQueue.clear();
+        storage->staticRenderQueue.clear();
+        storage->dynamicRenderQueue.clear();
       }
     }
 
@@ -224,7 +225,7 @@ namespace Strontium
 
     void
     submit(Model* data, ModelMaterial &materials, const glm::mat4 &model,
-                GLfloat id, bool drawSelectionMask)
+           GLfloat id, bool drawSelectionMask)
     {
       // Cull the model early.
       glm::vec3 min = glm::vec3(model * glm::vec4(data->getMinPos(), 1.0f));
@@ -233,11 +234,32 @@ namespace Strontium
       GLfloat radius = glm::length(min + center);
 
       if (boundingBoxInFrustum(storage->camFrustum, min, max) && state->frustumCull)
-        storage->renderQueue.emplace_back(data, &materials, model, id, drawSelectionMask);
+        storage->staticRenderQueue.emplace_back(data, &materials, model, id,
+                                                drawSelectionMask);
       else if (!state->frustumCull)
-        storage->renderQueue.emplace_back(data, &materials, model, id, drawSelectionMask);
+        storage->staticRenderQueue.emplace_back(data, &materials, model, id,
+                                                drawSelectionMask);
 
-      storage->shadowQueue.emplace_back(data, model);
+      storage->staticShadowQueue.emplace_back(data, model);
+    }
+
+    void submit(Model* data, Animator* animation, ModelMaterial &materials,
+                const glm::mat4 &model, GLfloat id, bool drawSelectionMask)
+    {
+      // Cull the model early.
+      glm::vec3 min = glm::vec3(model * glm::vec4(data->getMinPos(), 1.0f));
+      glm::vec3 max = glm::vec3(model * glm::vec4(data->getMaxPos(), 1.0f));
+      glm::vec3 center = (min + max) / 2.0f;
+      GLfloat radius = glm::length(min + center);
+
+      if (boundingBoxInFrustum(storage->camFrustum, min, max) && state->frustumCull)
+        storage->dynamicRenderQueue.emplace_back(data, animation, &materials,
+                                                 model, id, drawSelectionMask);
+      else if (!state->frustumCull)
+        storage->dynamicRenderQueue.emplace_back(data, animation, &materials,
+                                                 model, id, drawSelectionMask);
+
+      storage->dynamicShadowQueue.emplace_back(data, animation, model);
     }
 
     void
@@ -284,16 +306,15 @@ namespace Strontium
       auto camProj = storage->sceneCam->getProjMatrix();
       auto camView = storage->sceneCam->getViewMatrix();
       auto camPos = storage->sceneCam->getCamPos();
-
       storage->camBuffer.setData(0, sizeof(glm::mat4), glm::value_ptr(camView));
       storage->camBuffer.setData(sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(camProj));
       storage->camBuffer.setData(2 * sizeof(glm::mat4), sizeof(glm::vec3), &camPos.x);
 
+      // Start the geometry pass.
       storage->gBuffer.beginGeoPass();
 
-      Shader* program = storage->geometryShader;
-
-      for (auto& drawable : storage->renderQueue)
+      // Static geometry pass.
+      for (auto& drawable : storage->staticRenderQueue)
       {
         auto& [data, materials, transform, id, drawSelectionMask] = drawable;
         for (auto& submesh : data->getSubmeshes())
@@ -329,11 +350,69 @@ namespace Strontium
           material->configure();
 
           if (submesh.hasVAO())
-            Renderer3D::draw(submesh.getVAO(), program);
+            Renderer3D::draw(submesh.getVAO(), storage->staticGeometryShader);
           else
           {
             submesh.generateVAO();
-            Renderer3D::draw(submesh.getVAO(), program);
+            Renderer3D::draw(submesh.getVAO(), storage->staticGeometryShader);
+          }
+
+          stats->drawCalls++;
+          stats->numVertices += submesh.getData().size();
+          stats->numTriangles += submesh.getIndices().size() / 3;
+        }
+      }
+
+      // Dynamic geometry pass.
+      storage->boneBuffer.bindToPoint(4);
+      for (auto& drawable : storage->dynamicRenderQueue)
+      {
+        auto& [data, animation, materials, transform, id, drawSelectionMask] = drawable;
+        for (auto& submesh : data->getSubmeshes())
+        {
+          // Cull the submesh if it isn't in the frustum.
+          glm::vec3 min = glm::vec3(transform * glm::vec4(submesh.getMinPos(), 1.0f));
+          glm::vec3 max = glm::vec3(transform * glm::vec4(submesh.getMaxPos(), 1.0f));
+
+          if (!boundingBoxInFrustum(storage->camFrustum, min, max) && state->frustumCull)
+            continue;
+
+          Material* material = materials->getMaterial(submesh.getName());
+          if (!material)
+          {
+            continue;
+          }
+
+          storage->transformBuffer.setData(0, sizeof(glm::mat4), glm::value_ptr(transform));
+
+          auto& bones = animation->getFinalBoneTransforms();
+          for (unsigned int i = 0; i < bones.size(); i++)
+          {
+            storage->boneBuffer.setData(i * sizeof(glm::mat4), sizeof(glm::mat4),
+                                        glm::value_ptr(bones[i]));
+          }
+
+          glm::vec4 maskColourID;
+          if (drawSelectionMask)
+          {
+            // Enable edge detection for selected mesh outlines.
+            storage->drawEdge = true;
+            maskColourID = glm::vec4(1.0f);
+          }
+          else
+            maskColourID = glm::vec4(0.0f);
+
+          maskColourID.w = id + 1.0f;
+          storage->editorBuffer.setData(0, sizeof(glm::vec4), &maskColourID.x);
+
+          material->configureDynamic(storage->dynamicGeometryShader);
+
+          if (submesh.hasVAO())
+            Renderer3D::draw(submesh.getVAO(), storage->dynamicGeometryShader);
+          else
+          {
+            submesh.generateVAO();
+            Renderer3D::draw(submesh.getVAO(), storage->dynamicGeometryShader);
           }
 
           stats->drawCalls++;
@@ -387,7 +466,7 @@ namespace Strontium
       // still need to cast shadows).
       glm::vec3 minPos = glm::vec3(std::numeric_limits<float>::max());
       glm::vec3 maxPos = glm::vec3(std::numeric_limits<float>::min());
-      for (auto& pair : storage->shadowQueue)
+      for (auto& pair : storage->staticShadowQueue)
       {
         glm::mat4 mMatrix = pair.second;
         minPos = glm::min(minPos, glm::vec3(mMatrix * glm::vec4(pair.first->getMinPos(), 1.0f)));
@@ -523,7 +602,7 @@ namespace Strontium
         {
           storage->cascadeShadowPassBuffer.setData(0, sizeof(glm::mat4), glm::value_ptr(storage->cascades[i]));
 
-          for (auto& pair : storage->shadowQueue)
+          for (auto& pair : storage->staticShadowQueue)
           {
             storage->transformBuffer.setData(0, sizeof(glm::mat4), glm::value_ptr(pair.second));
 
@@ -567,7 +646,8 @@ namespace Strontium
         RendererCommands::enable(RendererFunction::DepthTest);
         RendererCommands::enableDepthMask();
       }
-      storage->shadowQueue.clear();
+      storage->staticShadowQueue.clear();
+      storage->dynamicShadowQueue.clear();
 
       auto end = std::chrono::steady_clock::now();
       std::chrono::duration<double> elapsed = end - start;
@@ -605,6 +685,7 @@ namespace Strontium
       sizeIntensity.x = screenSize.x;
       sizeIntensity.y = screenSize.y;
       sizeIntensity.z = storage->currentEnvironment->getIntensity();
+      storage->ambientPassBuffer.bindToPoint(4);
       storage->ambientPassBuffer.setData(0, sizeof(glm::vec3), &sizeIntensity.x);
 
       draw(&storage->fsq, storage->ambientShader);

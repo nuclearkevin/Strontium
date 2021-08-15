@@ -29,7 +29,7 @@ namespace Strontium
       , uv(0.0f)
       , tangent(0.0f)
       , bitangent(0.0f)
-      , boneIDs(0)
+      , boneIDs(-1)
       , boneWeights(0.0f)
     { }
   };
@@ -68,9 +68,6 @@ namespace Strontium
     // Generate/delete the vertex array object.
     void generateVAO();
     void deleteVAO();
-
-    // Debug function to dump to the console.
-    void dumpMeshData();
 
     // Set the loaded state.
     void setLoaded(bool isLoaded) { this->loaded = isLoaded; }

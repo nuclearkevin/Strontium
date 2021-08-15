@@ -43,5 +43,9 @@ namespace Strontium
     FileLoadTargets fileLoadTargets;
     FileSaveTargets fileSaveTarget;
     std::pair<Material*, std::string> selectedMatTex;
+
+    SceneNode* selectedNode;
+    AnimationNode* selectedAniNode;
+    Mesh* selectedSubMesh;
   };
 }

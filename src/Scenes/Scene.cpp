@@ -71,7 +71,13 @@ namespace Strontium
   void
   Scene::onUpdate(float dt)
   {
-
+    // Get all the renderable components to update animations.
+    auto renderables = this->sceneECS.view<RenderableComponent>();
+    for (auto entity : renderables)
+    {
+      auto& renderable = renderables.get<RenderableComponent>(entity);
+      renderable.animator.onUpdate(dt);
+    }
   }
 
   void
@@ -109,7 +115,7 @@ namespace Strontium
       auto currentEntity = Entity(entity, this);
       if (currentEntity.hasComponent<ParentEntityComponent>())
         transformMatrix = computeGlobalTransform(currentEntity);
-        
+
       Renderer3D::submit(spot, transformMatrix);
     }
 
@@ -129,9 +135,14 @@ namespace Strontium
 
       bool selected = entity == selectedEntity;
 
-      // Submit the mesh + material + transform to the deferred renderer queue.
-      if (renderable)
-        Renderer3D::submit(renderable, renderable, transformMatrix, static_cast<float>(entity), selected);
+      // Submit the mesh + material + transform to the static deferred renderer queue.
+      if (renderable && !renderable.animator.animationRenderable())
+        Renderer3D::submit(renderable, renderable, transformMatrix,
+                           static_cast<float>(entity), selected);
+      // If it has a valid animation, instead submit it to the dynamic deferred renderer queue.
+      else if (renderable && renderable.animator.animationRenderable())
+        Renderer3D::submit(renderable, &renderable.animator, renderable,
+                           transformMatrix, static_cast<float>(entity), selected);
     }
   }
 

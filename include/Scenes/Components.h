@@ -6,8 +6,9 @@
 // Project includes.
 #include "Core/AssetManager.h"
 #include "Graphics/Renderer.h"
-#include "Graphics/Meshes.h"
+#include "Graphics/Model.h"
 #include "Graphics/Material.h"
+#include "Graphics/Animations.h"
 #include "Graphics/EnvironmentMap.h"
 #include "Graphics/ShadingPrimatives.h"
 #include "Scenes/Entity.h"
@@ -132,8 +133,11 @@ namespace Strontium
     // A model and a collection of materials for the model's submeshes.
     ModelMaterial materials;
 
+    // An animator so the loaded animations can be played.
+    Animator animator;
+
     // Name so we can fetch the associated model.
-    std::string meshName;
+    AssetHandle meshName;
 
     RenderableComponent(const RenderableComponent&) = default;
 

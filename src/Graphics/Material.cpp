@@ -129,6 +129,45 @@ namespace Strontium
     this->materialData.bindToPoint(1);
   }
 
+  void
+  Material::configureDynamic(Shader* override)
+  {
+    auto textureCache = AssetManager<Texture2D>::getManager();
+    unsigned int samplerCount = 0;
+
+    // Loop over 2D textures and assign them.
+    // TODO: Other sampler types.
+    for (auto& pair : this->sampler2Ds)
+    {
+      Texture2D* sampler = textureCache->getAsset(pair.second);
+
+      override->addUniformSampler(pair.first.c_str(), samplerCount);
+      if (sampler != nullptr)
+        sampler->bind(samplerCount);
+
+      samplerCount++;
+    }
+
+    // Set the metallic, roughness, AO and emission parameters.
+    auto mrae = glm::vec4(0.0f);
+    mrae.x = this->getFloat("uMetallic");
+    mrae.y = this->getFloat("uRoughness");
+    mrae.z = this->getFloat("uAO");
+    mrae.w = this->getFloat("uEmiss");
+    this->materialData.setData(0, sizeof(glm::vec4), &mrae.x);
+
+    // Set the albedo and F0 parameters.
+    auto albedo = this->getVec3("uAlbedo");
+    auto albedoF0 = glm::vec4(0.0f);
+    albedoF0.x = albedo.x;
+    albedoF0.y = albedo.y;
+    albedoF0.z = albedo.z;
+    albedoF0.w = this->getFloat("uF0");
+    this->materialData.setData(sizeof(glm::vec4), sizeof(glm::vec4), &albedoF0.x);
+
+    this->materialData.bindToPoint(1);
+  }
+
   // Search for and attach textures to a sampler.
   bool
   Material::hasSampler1D(const std::string &samplerName)

@@ -28,6 +28,7 @@ namespace Strontium
 
     // Prepare for drawing.
     void configure();
+    void configureDynamic(Shader* override);
 
     // Sampler configuration.
     bool hasSampler1D(const std::string &samplerName);
