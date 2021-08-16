@@ -644,7 +644,7 @@ namespace Strontium
         auto storedAnimation = component.animator.getStoredAnimation();
         if (storedAnimation)
         {
-          if (ImGui::BeginCombo("##combo", storedAnimation->getName().c_str()))
+          if (ImGui::BeginCombo("##animator", storedAnimation->getName().c_str()))
           {
             for (auto& animation : componentModel->getAnimations())
             {
@@ -661,23 +661,23 @@ namespace Strontium
             ImGui::EndCombo();
           }
 
-          if (component.animator.isAnimating())
-          {
-            if (ImGui::Button(ICON_FA_PAUSE))
-              component.animator.stopAnimation();
-          }
-          else
-          {
-            if (ImGui::Button(ICON_FA_PLAY))
-              component.animator.startAnimation();
-          }
+          ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 4.0f));
+          if (ImGui::Button(ICON_FA_PLAY))
+            component.animator.startAnimation();
+          ImGui::SameLine();
+          if (ImGui::Button(ICON_FA_PAUSE))
+            component.animator.pauseAnimation();
+          ImGui::SameLine();
+          if (ImGui::Button(ICON_FA_STOP))
+            component.animator.stopAnimation();
 
           ImGui::SameLine();
           ImGui::SliderFloat("##AnimationTime", &component.animator.getAnimationTime(), 0.0f, storedAnimation->getDuration());
+          ImGui::PopStyleVar();
         }
         else
         {
-          if (ImGui::BeginCombo("##combo", ""))
+          if (ImGui::BeginCombo("##animator", ""))
           {
             for (auto& animation : componentModel->getAnimations())
             {

@@ -50,6 +50,10 @@ namespace Strontium
       new Shader("./assets/shaders/shadows/staticDirectionalShadow.vs",
                  "./assets/shaders/shadows/directionalShadow.fs"));
 
+    this->shaderCache->attachAsset("dynamic_shadow_shader",
+      new Shader("./assets/shaders/shadows/dynamicDirectionalShadow.vs",
+                 "./assets/shaders/shadows/directionalShadow.fs"));
+
     this->shaderCache->attachAsset("geometry_pass_shader",
       new Shader("./assets/shaders/deferred/staticGeometryPass.vs",
                  "./assets/shaders/deferred/geometryPass.fs"));

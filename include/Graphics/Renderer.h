@@ -85,20 +85,6 @@ namespace Strontium
       GLfloat cascadeSplits[NUM_CASCADES];
       bool hasCascades;
 
-      // The required shaders for processing.
-      Shader* staticGeometryShader;
-      Shader* dynamicGeometryShader;
-      Shader* shadowShader;
-      Shader* ambientShader;
-      Shader* directionalShaderShadowed;
-      Shader* directionalShader;
-      Shader* pointShader;
-      Shader* horBlur;
-      Shader* verBlur;
-      Shader* hdrPostShader;
-      Shader* outlineShader;
-      Shader* gridShader;
-
       Unique<EnvironmentMap> currentEnvironment;
 
       Shared<Camera> sceneCam;

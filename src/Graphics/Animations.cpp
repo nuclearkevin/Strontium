@@ -191,6 +191,7 @@ namespace Strontium
     , storedAnimation(nullptr)
     , currentAniTime(0.0f)
     , animating(false)
+    , paused(false)
   { }
 
   void
@@ -209,12 +210,14 @@ namespace Strontium
   void
   Animator::onUpdate(GLfloat dt)
   {
-    if (this->storedAnimation && this->animating)
+    if (this->storedAnimation && this->animating && !this->paused)
     {
       this->currentAniTime += dt * this->storedAnimation->getTPS();
       this->currentAniTime = fmod(this->currentAniTime, this->storedAnimation->getDuration());
 
       this->storedAnimation->computeBoneTransforms(this->currentAniTime, this->finalBoneTransforms);
     }
+    else if (this->storedAnimation && this->animating && this->paused)
+      this->storedAnimation->computeBoneTransforms(this->currentAniTime, this->finalBoneTransforms);
   }
 }

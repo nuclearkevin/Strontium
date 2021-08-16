@@ -48,8 +48,6 @@ void main()
   skinMatrix += u_boneMatrices[vBoneID.z] * vBoneWeight.z;
   skinMatrix += u_boneMatrices[vBoneID.w] * vBoneWeight.w;
 
-  skinMatrix = vBoneWeight.x > 0.0 ? skinMatrix : mat4(1.0);
-
   mat4 worldSpaceMatrix = u_modelMatrix * skinMatrix;
 
   // Tangent to world matrix calculation.

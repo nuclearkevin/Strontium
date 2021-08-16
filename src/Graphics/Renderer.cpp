@@ -27,7 +27,6 @@ namespace Strontium
     void
     init(const GLuint width, const GLuint height)
     {
-      // Initialize the vewport shader passthrough.
       auto shaderCache = AssetManager<Shader>::getManager();
 
       // Initialize OpenGL parameters.
@@ -92,20 +91,6 @@ namespace Strontium
       storage->editorBuffer.bindToPoint(3);
       storage->cascadeShadowPassBuffer.bindToPoint(6);
       storage->cascadeShadowBuffer.bindToPoint(7);
-
-      // Shaders for the various passes.
-      storage->shadowShader = shaderCache->getAsset("static_shadow_shader");
-      storage->staticGeometryShader = shaderCache->getAsset("geometry_pass_shader");
-      storage->dynamicGeometryShader = shaderCache->getAsset("dynamic_geometry_pass");
-      storage->ambientShader = shaderCache->getAsset("deferred_ambient");
-      storage->directionalShaderShadowed = shaderCache->getAsset("deferred_directional_shadowed");
-      storage->directionalShader = shaderCache->getAsset("deferred_directional");
-      storage->pointShader = shaderCache->getAsset("deferred_point");
-      storage->horBlur = shaderCache->getAsset("post_hor_gaussian_blur");
-      storage->verBlur = shaderCache->getAsset("post_ver_gaussian_blur");
-      storage->hdrPostShader = shaderCache->getAsset("post_hdr");
-      storage->outlineShader = shaderCache->getAsset("post_entity_outline");
-      storage->gridShader = shaderCache->getAsset("post_grid");
     }
 
     // Shutdown the renderer.
@@ -302,6 +287,9 @@ namespace Strontium
     {
       auto start = std::chrono::steady_clock::now();
 
+      // Get the shader cache.
+      auto shaderCache = AssetManager<Shader>::getManager();
+
       // Upload camera uniforms to the camera uniform buffer.
       auto camProj = storage->sceneCam->getProjMatrix();
       auto camView = storage->sceneCam->getViewMatrix();
@@ -314,6 +302,7 @@ namespace Strontium
       storage->gBuffer.beginGeoPass();
 
       // Static geometry pass.
+      Shader* program = shaderCache->getAsset("geometry_pass_shader");
       for (auto& drawable : storage->staticRenderQueue)
       {
         auto& [data, materials, transform, id, drawSelectionMask] = drawable;
@@ -350,11 +339,11 @@ namespace Strontium
           material->configure();
 
           if (submesh.hasVAO())
-            Renderer3D::draw(submesh.getVAO(), storage->staticGeometryShader);
+            Renderer3D::draw(submesh.getVAO(), program);
           else
           {
             submesh.generateVAO();
-            Renderer3D::draw(submesh.getVAO(), storage->staticGeometryShader);
+            Renderer3D::draw(submesh.getVAO(), program);
           }
 
           stats->drawCalls++;
@@ -364,10 +353,16 @@ namespace Strontium
       }
 
       // Dynamic geometry pass.
+      program = shaderCache->getAsset("dynamic_geometry_pass");
       storage->boneBuffer.bindToPoint(4);
       for (auto& drawable : storage->dynamicRenderQueue)
       {
         auto& [data, animation, materials, transform, id, drawSelectionMask] = drawable;
+
+        auto& bones = animation->getFinalBoneTransforms();
+        storage->boneBuffer.setData(0, bones.size() * sizeof(glm::mat4),
+                                    bones.data());
+
         for (auto& submesh : data->getSubmeshes())
         {
           // Cull the submesh if it isn't in the frustum.
@@ -385,13 +380,6 @@ namespace Strontium
 
           storage->transformBuffer.setData(0, sizeof(glm::mat4), glm::value_ptr(transform));
 
-          auto& bones = animation->getFinalBoneTransforms();
-          for (unsigned int i = 0; i < bones.size(); i++)
-          {
-            storage->boneBuffer.setData(i * sizeof(glm::mat4), sizeof(glm::mat4),
-                                        glm::value_ptr(bones[i]));
-          }
-
           glm::vec4 maskColourID;
           if (drawSelectionMask)
           {
@@ -405,14 +393,14 @@ namespace Strontium
           maskColourID.w = id + 1.0f;
           storage->editorBuffer.setData(0, sizeof(glm::vec4), &maskColourID.x);
 
-          material->configureDynamic(storage->dynamicGeometryShader);
+          material->configureDynamic(program);
 
           if (submesh.hasVAO())
-            Renderer3D::draw(submesh.getVAO(), storage->dynamicGeometryShader);
+            Renderer3D::draw(submesh.getVAO(), program);
           else
           {
             submesh.generateVAO();
-            Renderer3D::draw(submesh.getVAO(), storage->dynamicGeometryShader);
+            Renderer3D::draw(submesh.getVAO(), program);
           }
 
           stats->drawCalls++;
@@ -435,6 +423,10 @@ namespace Strontium
     shadowPass()
     {
       auto start = std::chrono::steady_clock::now();
+
+      // Get the shader cache.
+      auto shaderCache = AssetManager<Shader>::getManager();
+
       //------------------------------------------------------------------------
       // Directional light shadow cascade calculations:
       //------------------------------------------------------------------------
@@ -592,6 +584,8 @@ namespace Strontium
       }
 
       // Actual shadow pass.
+      Shader* horizontalShadowBlur = shaderCache->getAsset("post_hor_gaussian_blur");
+      Shader* verticalShadowBlur = shaderCache->getAsset("post_ver_gaussian_blur");
       for (unsigned int i = 0; i < NUM_CASCADES; i++)
       {
         storage->shadowBuffer[i].clear();
@@ -602,6 +596,8 @@ namespace Strontium
         {
           storage->cascadeShadowPassBuffer.setData(0, sizeof(glm::mat4), glm::value_ptr(storage->cascades[i]));
 
+          // Static shadow pass.
+          Shader* program = shaderCache->getAsset("static_shadow_shader");
           for (auto& pair : storage->staticShadowQueue)
           {
             storage->transformBuffer.setData(0, sizeof(glm::mat4), glm::value_ptr(pair.second));
@@ -609,11 +605,34 @@ namespace Strontium
             for (auto& submesh : pair.first->getSubmeshes())
             {
               if (submesh.hasVAO())
-                Renderer3D::draw(submesh.getVAO(), storage->shadowShader);
+                Renderer3D::draw(submesh.getVAO(), program);
               else
               {
                 submesh.generateVAO();
-                Renderer3D::draw(submesh.getVAO(), storage->shadowShader);
+                Renderer3D::draw(submesh.getVAO(), program);
+              }
+            }
+          }
+
+          // Dynamic shadow pass.
+          program = shaderCache->getAsset("dynamic_shadow_shader");
+          for (auto& drawable : storage->dynamicShadowQueue)
+          {
+            auto& [data, animation, transform] = drawable;
+            storage->transformBuffer.setData(0, sizeof(glm::mat4), glm::value_ptr(transform));
+
+            auto& bones = animation->getFinalBoneTransforms();
+            storage->boneBuffer.setData(0, bones.size() * sizeof(glm::mat4),
+                                        bones.data());
+
+            for (auto& submesh : data->getSubmeshes())
+            {
+              if (submesh.hasVAO())
+                Renderer3D::draw(submesh.getVAO(), program);
+              else
+              {
+                submesh.generateVAO();
+                Renderer3D::draw(submesh.getVAO(), program);
               }
             }
           }
@@ -629,7 +648,7 @@ namespace Strontium
         storage->shadowEffectsBuffer.setViewport();
 
         storage->shadowBuffer[i].bindTextureID(FBOTargetParam::Colour0, 0);
-        draw(&storage->fsq, storage->horBlur);
+        draw(&storage->fsq, horizontalShadowBlur);
 
         storage->shadowEffectsBuffer.unbind();
 
@@ -639,7 +658,7 @@ namespace Strontium
         storage->shadowBuffer[i].setViewport();
 
         storage->shadowEffectsBuffer.bindTextureID(FBOTargetParam::Colour0, 0);
-        draw(&storage->fsq, storage->verBlur);
+        draw(&storage->fsq, verticalShadowBlur);
 
         storage->shadowBuffer[i].unbind();
 
@@ -662,6 +681,9 @@ namespace Strontium
     {
       auto start = std::chrono::steady_clock::now();
 
+      // Get the shader cache.
+      auto shaderCache = AssetManager<Shader>::getManager();
+
       RendererCommands::disable(RendererFunction::DepthTest);
       storage->lightingPass.clear();
       storage->lightingPass.bind();
@@ -670,6 +692,7 @@ namespace Strontium
       //------------------------------------------------------------------------
       // Ambient lighting subpass.
       //------------------------------------------------------------------------
+      Shader* ambientShader = shaderCache->getAsset("deferred_ambient");
       // Environment maps.
       storage->currentEnvironment->bind(MapType::Irradiance, 0);
       storage->currentEnvironment->bind(MapType::Prefilter, 1);
@@ -688,11 +711,13 @@ namespace Strontium
       storage->ambientPassBuffer.bindToPoint(4);
       storage->ambientPassBuffer.setData(0, sizeof(glm::vec3), &sizeIntensity.x);
 
-      draw(&storage->fsq, storage->ambientShader);
+      draw(&storage->fsq, ambientShader);
 
       //------------------------------------------------------------------------
       // Directional lighting subpass.
       //------------------------------------------------------------------------
+      Shader* directionalLightShadowed = shaderCache->getAsset("deferred_directional_shadowed");
+      Shader* directionalLight = shaderCache->getAsset("deferred_directional");
       RendererCommands::enable(RendererFunction::Blending);
       RendererCommands::blendEquation(BlendEquation::Additive);
       RendererCommands::blendFunction(BlendFunction::One, BlendFunction::One);
@@ -736,9 +761,9 @@ namespace Strontium
         storage->directionalPassBuffer.setData(sizeof(glm::vec4), sizeof(glm::vec4), &dirDirection.x);
 
         if (light.castShadows && light.primaryLight)
-          draw(&storage->fsq, storage->directionalShaderShadowed);
+          draw(&storage->fsq, directionalLightShadowed);
         else
-          draw(&storage->fsq, storage->directionalShader);
+          draw(&storage->fsq, directionalLight);
       }
 
       storage->directionalQueue.clear();
@@ -746,6 +771,7 @@ namespace Strontium
       //------------------------------------------------------------------------
       // Point lighting subpass.
       //------------------------------------------------------------------------
+      Shader* pointLight = shaderCache->getAsset("deferred_point");
       storage->pointPassBuffer.bindToPoint(5);
       for (auto& light : storage->pointQueue)
       {
@@ -769,7 +795,7 @@ namespace Strontium
         screenSizeRadiusFalloff.w = light.falloff;
         storage->pointPassBuffer.setData(2 * sizeof(glm::vec4), sizeof(glm::vec4), &screenSizeRadiusFalloff.x);
 
-        draw(&storage->fsq, storage->pointShader);
+        draw(&storage->fsq, pointLight);
       }
       storage->pointQueue.clear();
 
@@ -802,6 +828,9 @@ namespace Strontium
     {
       auto start = std::chrono::steady_clock::now();
 
+      // Get the shader cache.
+      auto shaderCache = AssetManager<Shader>::getManager();
+
       frontBuffer->clear();
       frontBuffer->bind();
       frontBuffer->setViewport();
@@ -810,11 +839,12 @@ namespace Strontium
       // HDR post processing pass. Also streams the entity IDs to the editor
       // buffer.
       //------------------------------------------------------------------------
-      storage->hdrPostShader->addUniformVector("screenSize", frontBuffer->getSize());
+      Shader* hdrPost = shaderCache->getAsset("post_hdr");
+      hdrPost->addUniformVector("screenSize", frontBuffer->getSize());
       storage->lightingPass.bindTextureID(FBOTargetParam::Colour0, 0);
       storage->gBuffer.bindAttachment(FBOTargetParam::Colour4, 1);
 
-      draw(&storage->fsq, storage->hdrPostShader);
+      draw(&storage->fsq, hdrPost);
 
       RendererCommands::enable(RendererFunction::Blending);
       RendererCommands::blendEquation(BlendEquation::Additive);
@@ -826,10 +856,11 @@ namespace Strontium
       //------------------------------------------------------------------------
       if (state->drawGrid)
       {
-        storage->gridShader->addUniformMatrix("invViewProj", glm::inverse(storage->sceneCam->getProjMatrix() * storage->sceneCam->getViewMatrix()), GL_FALSE);
-        storage->gridShader->addUniformMatrix("viewProj", storage->sceneCam->getProjMatrix() * storage->sceneCam->getViewMatrix(), GL_FALSE);
+        Shader* grid = shaderCache->getAsset("post_grid");
+        grid->addUniformMatrix("invViewProj", glm::inverse(storage->sceneCam->getProjMatrix() * storage->sceneCam->getViewMatrix()), GL_FALSE);
+        grid->addUniformMatrix("viewProj", storage->sceneCam->getProjMatrix() * storage->sceneCam->getViewMatrix(), GL_FALSE);
         storage->gBuffer.bindAttachment(FBOTargetParam::Depth, 0);
-        draw(&storage->fsq, storage->gridShader);
+        draw(&storage->fsq, grid);
       }
 
       //------------------------------------------------------------------------
@@ -838,10 +869,11 @@ namespace Strontium
       //------------------------------------------------------------------------
       if (storage->drawEdge)
       {
-        storage->outlineShader->addUniformVector("screenSize", frontBuffer->getSize());
+        Shader* outline = shaderCache->getAsset("post_entity_outline");
+        outline->addUniformVector("screenSize", frontBuffer->getSize());
         storage->gBuffer.bindAttachment(FBOTargetParam::Colour4, 0);
 
-        draw(&storage->fsq, storage->outlineShader);
+        draw(&storage->fsq, outline);
       }
       RendererCommands::enable(RendererFunction::DepthTest);
       RendererCommands::disable(RendererFunction::Blending);

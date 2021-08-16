@@ -107,14 +107,16 @@ namespace Strontium
 
     void onUpdate(GLfloat dt);
 
-    void startAnimation() { this->animating = true; }
-    void stopAnimation() { this->animating = false; }
-    void resetAnimation() { this->currentAniTime = 0.0f; }
+    void startAnimation() { this->animating = true; this->paused = false; }
+    void pauseAnimation() { this->paused = true; }
+    void resumeAnimation() { this->paused = false; }
+    void stopAnimation() { this->animating = false; this->currentAniTime = 0.0f; }
 
     std::vector<glm::mat4>& getFinalBoneTransforms() { return this->finalBoneTransforms; }
     Animation* getStoredAnimation() { return this->storedAnimation; }
     GLfloat& getAnimationTime() { return this->currentAniTime; }
     bool isAnimating() { return this->animating; }
+    bool isPaused() { return this->paused; }
     bool animationRenderable() { return this->storedAnimation != nullptr && this->animating; }
   private:
     GLfloat currentAniTime;
@@ -123,5 +125,6 @@ namespace Strontium
     std::vector<glm::mat4> finalBoneTransforms;
 
     bool animating;
+    bool paused;
   };
 }

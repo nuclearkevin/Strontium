@@ -67,7 +67,7 @@ namespace Strontium
 
         if (this->selectedNode)
         {
-          if (ImGui::BeginCombo("##combo", this->selectedNode->name.c_str()))
+          if (ImGui::BeginCombo("##sceneNodes", this->selectedNode->name.c_str()))
           {
             for (auto& sceneNode : model->getSceneNodes())
             {
@@ -90,7 +90,7 @@ namespace Strontium
         }
         else
         {
-          if (ImGui::BeginCombo("##combo", ""))
+          if (ImGui::BeginCombo("##sceneNodes", ""))
           {
             for (auto& sceneNode : model->getSceneNodes())
             {
@@ -125,7 +125,7 @@ namespace Strontium
 
             if (this->selectedAniNode)
             {
-              if (ImGui::BeginCombo("##combo", this->selectedAniNode->name.c_str()))
+              if (ImGui::BeginCombo("##aniNodes", this->selectedAniNode->name.c_str()))
               {
                 for (auto& aniNode : animation.getAniNodes())
                 {
@@ -179,7 +179,7 @@ namespace Strontium
             }
             else
             {
-              if (ImGui::BeginCombo("##combo", ""))
+              if (ImGui::BeginCombo("##aniNodes", ""))
               {
                 for (auto& aniNode : animation.getAniNodes())
                 {
@@ -208,7 +208,7 @@ namespace Strontium
         ImGui::Separator();
         if (this->selectedSubMesh)
         {
-          if (ImGui::BeginCombo("##combo", this->selectedSubMesh->getName().c_str()))
+          if (ImGui::BeginCombo("##submeshes", this->selectedSubMesh->getName().c_str()))
           {
             for (auto& submesh : submeshes)
             {
@@ -346,7 +346,7 @@ namespace Strontium
         }
         else
         {
-          if (ImGui::BeginCombo("##combo", ""))
+          if (ImGui::BeginCombo("##submeshes", ""))
           {
             for (auto& submesh : submeshes)
             {
@@ -362,8 +362,6 @@ namespace Strontium
           }
         }
         //this->DNDMaterialTarget(submesh.getName());
-
-
       }
     }
     ImGui::End();
