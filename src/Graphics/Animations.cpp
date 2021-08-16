@@ -191,7 +191,7 @@ namespace Strontium
     , storedAnimation(nullptr)
     , currentAniTime(0.0f)
     , animating(false)
-    , paused(false)
+    , paused(true)
   { }
 
   void

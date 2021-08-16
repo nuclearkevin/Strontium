@@ -46,8 +46,23 @@ namespace Strontium
         {
           if (entity.hasComponent<RenderableComponent>())
           {
-            auto& materials = entity.getComponent<RenderableComponent>().materials;
+            auto& rComponent = entity.getComponent<RenderableComponent>();
+            auto& materials = rComponent.materials;
             auto& submeshes = model->getSubmeshes();
+
+            if (rComponent.animationHandle != "")
+            {
+              for (auto& animation : model->getAnimations())
+              {
+                if (animation.getName() == rComponent.animationHandle)
+                {
+                  rComponent.animator.setAnimation(&animation, rComponent.meshName);
+                  rComponent.animationHandle = "";
+                  rComponent.animator.startAnimation();
+                  break;
+                }
+              }
+            }
 
             if (materials.getNumStored() == 0)
             {

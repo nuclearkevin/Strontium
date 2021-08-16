@@ -130,23 +130,24 @@ namespace Strontium
   // alongside the transform component.
   struct RenderableComponent
   {
-    // A model and a collection of materials for the model's submeshes.
+    // Model handle and a collection of materials for the model's submeshes.
     ModelMaterial materials;
-
-    // An animator so the loaded animations can be played.
-    Animator animator;
-
-    // Name so we can fetch the associated model.
     AssetHandle meshName;
+
+    // An animator and the handle of the current animation.
+    Animator animator;
+    std::string animationHandle;
 
     RenderableComponent(const RenderableComponent&) = default;
 
     RenderableComponent()
       : meshName("")
+      , animationHandle("")
     { }
 
     RenderableComponent(const std::string &meshName)
       : meshName(meshName)
+      , animationHandle("")
     { }
 
     operator Model*()

@@ -398,7 +398,8 @@ namespace Strontium
 
     // If its a supported model file, load it as a new entity in the scene.
     if (filetype == ".obj" || filetype == ".FBX" || filetype == ".fbx"
-        || filetype == ".blend" || filetype == ".gltf" || filetype == ".glb")
+        || filetype == ".blend" || filetype == ".gltf" || filetype == ".glb"
+        || filetype == ".dae")
     {
       auto modelAssets = AssetManager<Model>::getManager();
 

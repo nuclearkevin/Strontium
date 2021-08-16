@@ -662,18 +662,52 @@ namespace Strontium
           }
 
           ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 4.0f));
-          if (ImGui::Button(ICON_FA_PLAY))
-            component.animator.startAnimation();
-          ImGui::SameLine();
-          if (ImGui::Button(ICON_FA_PAUSE))
-            component.animator.pauseAnimation();
-          ImGui::SameLine();
-          if (ImGui::Button(ICON_FA_STOP))
-            component.animator.stopAnimation();
+          if (component.animator.isPaused())
+          {
+            if (ImGui::Button(ICON_FA_PLAY))
+              component.animator.startAnimation();
+          }
+          else
+          {
+            ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+            ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
+            ImGui::Button(ICON_FA_PLAY);
+            ImGui::PopItemFlag();
+            ImGui::PopStyleVar();
+          }
 
           ImGui::SameLine();
-          ImGui::SliderFloat("##AnimationTime", &component.animator.getAnimationTime(), 0.0f, storedAnimation->getDuration());
+          if (!component.animator.isPaused())
+          {
+            if (ImGui::Button(ICON_FA_PAUSE))
+              component.animator.pauseAnimation();
+          }
+          else
+          {
+            ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+            ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
+            ImGui::Button(ICON_FA_PAUSE);
+            ImGui::PopItemFlag();
+            ImGui::PopStyleVar();
+          }
+
+          ImGui::SameLine();
+          if (component.animator.isAnimating())
+          {
+            if (ImGui::Button(ICON_FA_STOP))
+              component.animator.stopAnimation();
+          }
+          else
+          {
+            ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+            ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
+            ImGui::Button(ICON_FA_STOP);
+            ImGui::PopItemFlag();
+            ImGui::PopStyleVar();
+          }
           ImGui::PopStyleVar();
+
+          ImGui::SliderFloat("##AnimationTime", &component.animator.getAnimationTime(), 0.0f, storedAnimation->getDuration());
         }
         else
         {
@@ -891,7 +925,8 @@ namespace Strontium
 
     // Attach a mesh component.
     if (filetype == ".obj" || filetype == ".FBX" || filetype == ".fbx"
-        || filetype == ".blend" || filetype == ".gltf" || filetype == ".glb")
+        || filetype == ".blend" || filetype == ".gltf" || filetype == ".glb"
+        || filetype == ".dae")
     {
       // If it already has a mesh component, remove it and add a new one.
       // Otherwise just add a component.

@@ -283,6 +283,12 @@ namespace Strontium
           out << YAML::Key << "ModelPath" << YAML::Value << model->getFilepath();
           out << YAML::Key << "ModelName" << YAML::Value << component.meshName;
 
+          auto currentAnimation = component.animator.getStoredAnimation();
+          if (currentAnimation)
+            out << YAML::Key << "CurrentAnimation" << YAML::Value << currentAnimation->getName();
+          else
+            out << YAML::Key << "CurrentAnimation" << YAML::Value << "None";
+
           out << YAML::Key << "Material";
           out << YAML::BeginSeq;
           for (auto& pair : material.getStorage())
@@ -639,6 +645,10 @@ namespace Strontium
           // TODO: Handle internals separately.
           if (modelPath != "None")
           {
+            auto animationName = renderableComponent["CurrentAnimation"];
+            if (animationName)
+              rComponent.animationHandle = animationName.as<std::string>();
+
             auto materials = renderableComponent["Material"];
             if (materials)
             {

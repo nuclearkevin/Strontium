@@ -110,7 +110,7 @@ namespace Strontium
     void startAnimation() { this->animating = true; this->paused = false; }
     void pauseAnimation() { this->paused = true; }
     void resumeAnimation() { this->paused = false; }
-    void stopAnimation() { this->animating = false; this->currentAniTime = 0.0f; }
+    void stopAnimation() { this->animating = false; this->currentAniTime = 0.0f; this->paused = true; }
 
     std::vector<glm::mat4>& getFinalBoneTransforms() { return this->finalBoneTransforms; }
     Animation* getStoredAnimation() { return this->storedAnimation; }
