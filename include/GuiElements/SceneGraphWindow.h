@@ -8,8 +8,10 @@
 #include "Graphics/FrameBuffer.h"
 #include "Graphics/Camera.h"
 #include "Graphics/Model.h"
+#include "Graphics/Material.h"
 #include "Graphics/Textures.h"
 #include "GuiElements/GuiWindow.h"
+#include "GuiElements/MaterialSubWindow.h"
 #include "Scenes/Scene.h"
 #include "Scenes/Entity.h"
 
@@ -34,11 +36,14 @@ namespace Strontium
     void drawEntityNode(Entity entity, Shared<Scene> activeScene);
     void drawComponentNodes(Entity entity, Shared<Scene> activeScene);
     void drawPropsWindow(bool &isOpen, Shared<Scene> activeScene);
-
     void drawDirectionalWidget();
 
     // Load an asset from a drag and drop action.
-    void loadDNDAsset(const std::string &filepath);
+    void loadDNDAsset();
+    void loadDNDAsset(const std::string &submeshName);
+
+    // Other subwindows.
+    MaterialSubWindow materialEditor;
 
     // Items for a widget which makes modifying a directional light easier.
     Shared<FrameBuffer> dirBuffer;
@@ -48,6 +53,7 @@ namespace Strontium
 
     // Various buffers and selections.
     Entity selectedEntity;
+    Mesh* selectedSubmesh;
     std::string selectedString;
     FileLoadTargets fileTargets;
     FileSaveTargets saveTargets;

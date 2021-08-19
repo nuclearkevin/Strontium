@@ -67,7 +67,7 @@ namespace Strontium
     this->windows.push_back(new CameraWindow(this, this->editorCam));
     this->windows.push_back(new ShaderWindow(this));
     this->windows.push_back(new FileBrowserWindow(this));
-    this->windows.push_back(new ModelWindow(this));
+    this->windows.push_back(new ModelWindow(this, false));
     this->windows.push_back(new AssetBrowserWindow(this));
     this->windows.push_back(new RendererWindow(this)); // 6
     this->windows.push_back(new ViewportWindow(this));
@@ -335,7 +335,7 @@ namespace Strontium
               this->windows[0]->isOpen = true;
             }
 
-            if (ImGui::MenuItem("Material Settings"))
+            if (ImGui::MenuItem("Show Model Information"))
             {
               this->windows[4]->isOpen = true;
             }

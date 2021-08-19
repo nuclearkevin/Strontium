@@ -112,7 +112,8 @@ namespace Strontium
   }
   //----------------------------------------------------------------------------
 
-  // Helper function to create a child entity.
+  // Other helper functions.
+  //----------------------------------------------------------------------------
   Entity
   createChildEntity(Entity entity, Shared<Scene> activeScene, const std::string &name = "New Entity")
   {
@@ -137,16 +138,19 @@ namespace Strontium
       return child;
     }
   }
+  //----------------------------------------------------------------------------
 
   // Fixed selection bug for now -> removed the ability to deselect entities.
   // TODO: Re-add the ability to deselect entities.
   SceneGraphWindow::SceneGraphWindow(EditorLayer* parentLayer)
     : GuiWindow(parentLayer)
+    , materialEditor(parentLayer)
     , selectedString("")
     , fileTargets(FileLoadTargets::TargetNone)
     , saveTargets(FileSaveTargets::TargetNone)
     , dirWidgetShader("./assets/shaders/mesh.vs", "./assets/shaders/widgets/dirWidget.fs")
     , widgetWidth(0.0f)
+    , selectedSubmesh(nullptr)
   {
     auto cSpec = FBOCommands::getFloatColourSpec(FBOTargetParam::Colour0);
     this->dirBuffer = createShared<FrameBuffer>(512, 512);
@@ -229,6 +233,9 @@ namespace Strontium
 
     if (openPropWindow)
       this->drawPropsWindow(openPropWindow, activeScene);
+
+    if (this->materialEditor.isOpen)
+      this->materialEditor.onImGuiRender(this->materialEditor.isOpen, activeScene);
   }
 
   void
@@ -251,6 +258,10 @@ namespace Strontium
           this->selectedEntity = Entity();
         else
           this->selectedEntity = Entity((entt::entity) entityID, entityParentScene);
+
+        this->selectedSubmesh = nullptr;
+        this->materialEditor.isOpen = false;
+        this->materialEditor.setSelectedMaterial("");
 
         break;
       }
@@ -339,6 +350,8 @@ namespace Strontium
       }
       default: break;
     }
+
+    this->materialEditor.onEvent(event);
   }
 
   void
@@ -629,101 +642,158 @@ namespace Strontium
 
         ImGui::SameLine();
         ImGui::InputText("##modelPath", nameBuffer, sizeof(nameBuffer), ImGuiInputTextFlags_ReadOnly);
+        this->loadDNDAsset();
+        ImGui::Button("Open Model Viewer");
 
-        // Drag and drop targets!
-        if (ImGui::BeginDragDropTarget())
-        {
-          if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH"))
-            this->loadDNDAsset((char*) payload->Data);
-
-          ImGui::EndDragDropTarget();
-        }
-
+        ImGui::Text("");
         ImGui::Separator();
-        ImGui::Text("Animations");
-        auto storedAnimation = component.animator.getStoredAnimation();
-        if (storedAnimation)
+        ImGui::Text("Materials");
+        if (this->selectedSubmesh)
         {
-          if (ImGui::BeginCombo("##animator", storedAnimation->getName().c_str()))
+          if (ImGui::BeginCombo("##sceneGraphSelectedSubmesh", this->selectedSubmesh->getName().c_str()))
           {
-            for (auto& animation : componentModel->getAnimations())
+            for (auto& submesh : componentModel->getSubmeshes())
             {
-              bool isSelected = (&animation == storedAnimation);
+              bool isSelected = (&submesh == this->selectedSubmesh);
 
-              if (ImGui::Selectable(animation.getName().c_str(), isSelected))
-              {
-                component.animator.setAnimation(&animation, component.meshName);
-              }
+              if (ImGui::Selectable(submesh.getName().c_str(), isSelected))
+                this->selectedSubmesh = (&submesh);
 
               if (isSelected)
                 ImGui::SetItemDefaultFocus();
             }
+
             ImGui::EndCombo();
           }
 
-          ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 4.0f));
-          if (component.animator.isPaused())
-          {
-            if (ImGui::Button(ICON_FA_PLAY))
-              component.animator.startAnimation();
-          }
-          else
-          {
-            ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
-            ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
-            ImGui::Button(ICON_FA_PLAY);
-            ImGui::PopItemFlag();
-            ImGui::PopStyleVar();
-          }
+          std::string submeshName = this->selectedSubmesh->getName();
+          auto materialHandle = component.materials.getMaterialHandle(submeshName);
+          auto material = component.materials.getMaterial(this->selectedSubmesh->getName());
 
-          ImGui::SameLine();
-          if (!component.animator.isPaused())
+          if (material)
           {
-            if (ImGui::Button(ICON_FA_PAUSE))
-              component.animator.pauseAnimation();
-          }
-          else
-          {
-            ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
-            ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
-            ImGui::Button(ICON_FA_PAUSE);
-            ImGui::PopItemFlag();
-            ImGui::PopStyleVar();
-          }
+            ImGui::PushID("MaterialPreview");
+            if (ImGui::ImageButton((ImTextureID) (unsigned long) material->getSampler2D("albedoMap")->getID(),
+                                   ImVec2(64, 64), ImVec2(0, 1), ImVec2(1, 0)))
+            {
 
-          ImGui::SameLine();
-          if (component.animator.isAnimating())
-          {
-            if (ImGui::Button(ICON_FA_STOP))
-              component.animator.stopAnimation();
-          }
-          else
-          {
-            ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
-            ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
-            ImGui::Button(ICON_FA_STOP);
-            ImGui::PopItemFlag();
-            ImGui::PopStyleVar();
-          }
-          ImGui::PopStyleVar();
+            }
+            this->loadDNDAsset(this->selectedSubmesh->getName());
+            ImGui::PopID();
 
-          ImGui::SliderFloat("##AnimationTime", &component.animator.getAnimationTime(), 0.0f, storedAnimation->getDuration());
+            if (ImGui::Button("Edit Material"))
+            {
+              this->materialEditor.isOpen = true;
+              this->materialEditor.setSelectedMaterial(materialHandle);
+            }
+          }
         }
         else
         {
-          if (ImGui::BeginCombo("##animator", ""))
+          if (ImGui::BeginCombo("##sceneGraphSelectedSubmesh", ""))
           {
-            for (auto& animation : componentModel->getAnimations())
+            for (auto& submesh : componentModel->getSubmeshes())
             {
-              bool isSelected = (&animation == storedAnimation);
+              bool isSelected = (&submesh == this->selectedSubmesh);
 
-              if (ImGui::Selectable(animation.getName().c_str(), isSelected))
-                component.animator.setAnimation(&animation, component.meshName);
+              if (ImGui::Selectable(submesh.getName().c_str(), isSelected))
+                this->selectedSubmesh = (&submesh);
 
               if (isSelected)
                 ImGui::SetItemDefaultFocus();
             }
+
             ImGui::EndCombo();
+          }
+        }
+
+        if (componentModel->getAnimations().size() > 0)
+        {
+          ImGui::Text("");
+          ImGui::Separator();
+          ImGui::Text("Animations");
+          auto storedAnimation = component.animator.getStoredAnimation();
+          if (storedAnimation)
+          {
+            if (ImGui::BeginCombo("##animator", storedAnimation->getName().c_str()))
+            {
+              for (auto& animation : componentModel->getAnimations())
+              {
+                bool isSelected = (&animation == storedAnimation);
+
+                if (ImGui::Selectable(animation.getName().c_str(), isSelected))
+                  component.animator.setAnimation(&animation, component.meshName);
+
+                if (isSelected)
+                  ImGui::SetItemDefaultFocus();
+              }
+              ImGui::EndCombo();
+            }
+
+            ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 4.0f));
+            if (component.animator.isPaused())
+            {
+              if (ImGui::Button(ICON_FA_PLAY))
+                component.animator.startAnimation();
+            }
+            else
+            {
+              ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+              ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
+              ImGui::Button(ICON_FA_PLAY);
+              ImGui::PopItemFlag();
+              ImGui::PopStyleVar();
+            }
+
+            ImGui::SameLine();
+            if (!component.animator.isPaused())
+            {
+              if (ImGui::Button(ICON_FA_PAUSE))
+                component.animator.pauseAnimation();
+            }
+            else
+            {
+              ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+              ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
+              ImGui::Button(ICON_FA_PAUSE);
+              ImGui::PopItemFlag();
+              ImGui::PopStyleVar();
+            }
+
+            ImGui::SameLine();
+            if (component.animator.isAnimating())
+            {
+              if (ImGui::Button(ICON_FA_STOP))
+                component.animator.stopAnimation();
+            }
+            else
+            {
+              ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+              ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
+              ImGui::Button(ICON_FA_STOP);
+              ImGui::PopItemFlag();
+              ImGui::PopStyleVar();
+            }
+            ImGui::PopStyleVar();
+
+            ImGui::SliderFloat("##AnimationTime", &component.animator.getAnimationTime(), 0.0f, storedAnimation->getDuration());
+          }
+          else
+          {
+            if (ImGui::BeginCombo("##animator", ""))
+            {
+              for (auto& animation : componentModel->getAnimations())
+              {
+                bool isSelected = (&animation == storedAnimation);
+
+                if (ImGui::Selectable(animation.getName().c_str(), isSelected))
+                  component.animator.setAnimation(&animation, component.meshName);
+
+                if (isSelected)
+                  ImGui::SetItemDefaultFocus();
+              }
+              ImGui::EndCombo();
+            }
           }
         }
       });
@@ -794,7 +864,7 @@ namespace Strontium
       {
         auto storage = Renderer3D::getStorage();
 
-        static bool drawingMips = false;
+        bool drawingMips = component.ambient->drawingFilter();
 
         if (ImGui::Button("Load New Environment"))
         {
@@ -823,7 +893,7 @@ namespace Strontium
     ImGui::End();
   }
 
-  // Draw an
+  // Draw a widget to make controlling directional lights more intuitive.
   void
   SceneGraphWindow::drawDirectionalWidget()
   {
@@ -913,28 +983,70 @@ namespace Strontium
   }
 
   void
-  SceneGraphWindow::loadDNDAsset(const std::string &filepath)
+  SceneGraphWindow::loadDNDAsset()
   {
     if (!this->selectedEntity)
       return;
 
-    auto modelAssets = AssetManager<Model>::getManager();
-
-    std::string filename = filepath.substr(filepath.find_last_of('/') + 1);
-    std::string filetype = filename.substr(filename.find_last_of('.'));
-
-    // Attach a mesh component.
-    if (filetype == ".obj" || filetype == ".FBX" || filetype == ".fbx"
-        || filetype == ".blend" || filetype == ".gltf" || filetype == ".glb"
-        || filetype == ".dae")
+    if (ImGui::BeginDragDropTarget())
     {
-      // If it already has a mesh component, remove it and add a new one.
-      // Otherwise just add a component.
-      if (this->selectedEntity.hasComponent<RenderableComponent>())
-        this->selectedEntity.removeComponent<RenderableComponent>();
+      if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH"))
+      {
+        auto modelAssets = AssetManager<Model>::getManager();
 
-      auto& renderable = this->selectedEntity.addComponent<RenderableComponent>(filename);
-      AsyncLoading::asyncLoadModel(filepath, filename, this->selectedEntity, this->selectedEntity);
+        std::string filepath = (char*) payload->Data;
+        std::string filename = filepath.substr(filepath.find_last_of('/') + 1);
+        std::string filetype = filename.substr(filename.find_last_of('.'));
+
+        // Attach a mesh component.
+        if (filetype == ".obj" || filetype == ".FBX" || filetype == ".fbx"
+            || filetype == ".blend" || filetype == ".gltf" || filetype == ".glb"
+            || filetype == ".dae")
+        {
+          // If it already has a mesh component, remove it and add a new one.
+          // Otherwise just add a component.
+          if (this->selectedEntity.hasComponent<RenderableComponent>())
+            this->selectedEntity.removeComponent<RenderableComponent>();
+
+          auto& renderable = this->selectedEntity.addComponent<RenderableComponent>(filename);
+          AsyncLoading::asyncLoadModel(filepath, filename, this->selectedEntity, this->selectedEntity);
+        }
+      }
+
+      ImGui::EndDragDropTarget();
+    }
+  }
+
+  void
+  SceneGraphWindow::loadDNDAsset(const std::string &submeshName)
+  {
+    if (!this->selectedEntity)
+      return;
+
+    if (ImGui::BeginDragDropTarget())
+    {
+      if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH"))
+      {
+        auto materialAssets = AssetManager<Material>::getManager();
+
+        std::string filepath = (char*) payload->Data;
+        std::string filename = filepath.substr(filepath.find_last_of('/') + 1);
+        std::string filetype = filename.substr(filename.find_last_of('.'));
+
+        if (filetype == ".smtl")
+        {
+          AssetHandle handle;
+          if (YAMLSerialization::deserializeMaterial(filepath, handle))
+          {
+            materialAssets->getAsset(handle)->getFilepath() = filepath;
+
+            auto& rComponent = this->selectedEntity.getComponent<RenderableComponent>();
+            rComponent.materials.swapMaterial(submeshName, handle);
+          }
+        }
+      }
+
+      ImGui::EndDragDropTarget();
     }
   }
 }

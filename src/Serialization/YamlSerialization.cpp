@@ -377,6 +377,7 @@ namespace Strontium
         out << YAML::Key << "FiltSam" << YAML::Value << state->prefilterSamples;
         out << YAML::Key << "IBLRough" << YAML::Value << component.ambient->getRoughness();
         out << YAML::Key << "Intensity" << YAML::Value << component.ambient->getIntensity();
+        out << YAML::Key << "DrawBlurred" << YAML::Value << component.ambient->drawingFilter();
 
         out << YAML::EndMap;
       }
@@ -718,6 +719,10 @@ namespace Strontium
         auto& aComponent = newEntity.addComponent<AmbientComponent>(iblImagePath);
         aComponent.ambient->getRoughness() = ambientComponent["IBLRough"].as<GLfloat>();
         aComponent.ambient->getIntensity() = ambientComponent["Intensity"].as<GLfloat>();
+        if (ambientComponent["DrawBlurred"].as<bool>())
+          aComponent.ambient->setDrawingType(MapType::Prefilter);
+        else
+          aComponent.ambient->setDrawingType(MapType::Skybox);
       }
 
       return newEntity;

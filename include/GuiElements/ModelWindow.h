@@ -15,7 +15,7 @@ namespace Strontium
   class ModelWindow : public GuiWindow
   {
   public:
-    ModelWindow(EditorLayer* parentLayer);
+    ModelWindow(EditorLayer* parentLayer, bool isOpen = true);
     ~ModelWindow();
 
     void onImGuiRender(bool &isOpen, Shared<Scene> activeScene);
@@ -25,24 +25,12 @@ namespace Strontium
     Entity getSelectedEntity() { return this->selectedEntity; }
     void setSelectedEntity(Entity newEnt) { this->selectedEntity = newEnt; }
   private:
-    void drawTextureWindow(const std::string &type, const std::string &submesh,
-                           bool &isOpen);
-    void drawMaterialWindow(const std::string &submesh, bool &isOpen);
-    void drawNewMaterialWindow(const std::string &submesh, bool &isOpen);
-
-    // Load an asset from a drag and drop action.
-    void DNDTextureTarget(Material* material, const std::string &selectedType);
-    void DNDMaterialTarget(const std::string &subMesh);
-    void loadDNDTextureAsset(const std::string &filepath);
-    void loadDNDMaterial(const std::string &filepath, const std::string &subMesh);
-
     Entity selectedEntity;
     AssetHandle selectedHandle;
     std::string newMaterialName;
     std::string searched;
     FileLoadTargets fileLoadTargets;
     FileSaveTargets fileSaveTarget;
-    std::pair<Material*, std::string> selectedMatTex;
 
     SceneNode* selectedNode;
     AnimationNode* selectedAniNode;
