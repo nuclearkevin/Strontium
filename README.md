@@ -1,21 +1,25 @@
 <h1 align="center"><img align="center" src="https://github.com/ksawatzky777/Strontium/blob/main/media/strontium.png" width="128px"/>
-  
+
 Strontium
-  
+
 </h1>
 <p align="center"> Yet another open-source C++17 game engine using OpenGL. </p>
 This project started while I was taking a class on intermediate computer graphics, but has spiraled out of control to become something far more than just a practice repo.
 
-![cerberus](https://github.com/ksawatzky777/SciRender/blob/main/media/cerberus.png)
+![sponza](https://github.com/ksawatzky777/SciRender/blob/main/media/sponza.png)
+
+![dancing](https://github.com/ksawatzky777/SciRender/blob/main/media/dancing.gif)
 
 ### <h1 align="center">Current Features</h1>
 - Graphics:
   - A deferred 3D physically based rendering using the Cook-Torrance BRDF.
   - Image-based ambient lighting using HDR environment maps.
   - Directional sky lighting.
+  - Point lights.
   - Cascaded exponentially warped shadow maps utilizing parallel splits.
   - Physically-based materials using a metallic workflow.
   - HDR rendering.
+  - Skeletal animation.
 - Other:
   - Custom scene serialization and loading.
   - Custom material serialization and loading.
@@ -28,14 +32,13 @@ This project started while I was taking a class on intermediate computer graphic
 ### <h1 align="center">Planned Features</h1>
 - Graphics:
   - 2D rendering for particles, sprites and billboards.
-  - Point and spot lights.
+  - Spot lights.
   - Transparent support.
   - Volumetric directional lighting.
   - Screen space ambient occlusion.
   - Screen space reflections.
   - Screen space voxel global illumination.
   - Additional shadow mapping options for user defined light sources.
-  - Skeletal animation.
 - Physics using NVIDIA PhysX.
 - C# Scripting using Mono:
   - Large portions of the internal engine exposed to user scripting.
