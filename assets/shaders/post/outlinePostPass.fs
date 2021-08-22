@@ -1,12 +1,21 @@
 #version 440
 
-uniform vec2 screenSize;
 layout(binding = 0) uniform sampler2D entity;
+
+// The post processing properties.
+layout(std140, binding = 0) uniform PostProcessBlock
+{
+  mat4 u_invViewProj;
+  mat4 u_viewProj;
+  vec4 u_camPosScreenSize; // Camera position (x, y, z) and the screen width (w).
+  vec3 u_screenSizeGammaBloom;  // Screen height (x), gamma (y) and bloom intensity (z).
+};
 
 layout(location = 1) out vec4 fragColour;
 
 void main()
 {
+  vec2 screenSize = vec2(u_camPosScreenSize.w, u_screenSizeGammaBloom.x);
   vec2 fTexCoords = gl_FragCoord.xy / screenSize;
 
   float kernel[9];

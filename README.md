@@ -12,7 +12,7 @@ This project started while I was taking a class on intermediate computer graphic
 
 ### <h1 align="center">Current Features</h1>
 - Graphics:
-  - A deferred 3D physically based rendering using the Cook-Torrance BRDF.
+  - A deferred 3D physically based renderer using the Cook-Torrance BRDF.
   - Image-based ambient lighting using HDR environment maps.
   - Directional sky lighting.
   - Point lights.

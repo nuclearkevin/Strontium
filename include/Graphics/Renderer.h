@@ -1,4 +1,5 @@
 #define NUM_CASCADES 4
+#define MAX_NUM_BLOOM_MIPS 7
 
 // Include guard.
 #pragma once
@@ -70,9 +71,20 @@ namespace Strontium
       UniformBuffer pointPassBuffer; // TEMP until tiled deferred is implemented.
       UniformBuffer cascadeShadowBuffer;
       UniformBuffer cascadeShadowPassBuffer;
+      UniformBuffer postProcessSettings;
 
       // SSBO for bones.
       ShaderStorageBuffer boneBuffer;
+
+      // Required objects for bloom.
+      Texture2D downscaleBloomTex[MAX_NUM_BLOOM_MIPS];
+      Texture2D bufferBloomTex[MAX_NUM_BLOOM_MIPS - 1];
+      Texture2D upscaleBloomTex[MAX_NUM_BLOOM_MIPS];
+      ComputeShader bloomPrefilter;
+      ComputeShader bloomDownsample;
+      ComputeShader bloomUpsample;
+      ComputeShader bloomUpsampleBlend;
+      ShaderStorageBuffer bloomSettingsBuffer;
 
       // Items for the geometry pass.
       std::vector<std::tuple<Model*, ModelMaterial*, glm::mat4, GLuint, bool>> staticRenderQueue;
@@ -106,7 +118,14 @@ namespace Strontium
         , cascadeShadowBuffer(NUM_CASCADES * sizeof(glm::mat4)
                               + NUM_CASCADES * sizeof(glm::vec4) * sizeof(GLfloat),
                               BufferType::Dynamic)
+        , postProcessSettings(2 * sizeof(glm::mat4) + sizeof(glm::vec4)
+                              + sizeof(glm::vec3), BufferType::Dynamic)
         , boneBuffer(MAX_BONES_PER_MODEL * sizeof(glm::mat4), BufferType::Dynamic)
+        , bloomPrefilter("./assets/shaders/compute/bloomPrefilter.cs")
+        , bloomDownsample("./assets/shaders/compute/bloomDownsample.cs")
+        , bloomUpsample("./assets/shaders/compute/bloomUpsample.cs")
+        , bloomUpsampleBlend("./assets/shaders/compute/bloomUpsampleBlend.cs")
+        , bloomSettingsBuffer(sizeof(glm::vec2), BufferType::Dynamic)
       {
         currentEnvironment = createUnique<EnvironmentMap>();
       }
@@ -133,6 +152,15 @@ namespace Strontium
       GLuint cascadeSize;
       GLfloat bleedReduction;
 
+      // HDR settings.
+      GLfloat gamma;
+
+      // Bloom settings.
+      GLfloat bloomThreshold;
+      GLfloat bloomKnee;
+      GLfloat bloomIntensity;
+      GLfloat bloomRadius;
+
       // Some editor settings.
       bool drawGrid;
 
@@ -147,6 +175,11 @@ namespace Strontium
         , cascadeLambda(0.5f)
         , cascadeSize(2048)
         , bleedReduction(0.2f)
+        , gamma(2.2f)
+        , bloomThreshold(1.0f)
+        , bloomKnee(1.0f)
+        , bloomIntensity(1.0f)
+        , bloomRadius(1.0f)
         , drawGrid(true)
       { }
     };

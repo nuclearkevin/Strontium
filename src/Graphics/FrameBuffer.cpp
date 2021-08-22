@@ -57,26 +57,22 @@ namespace Strontium
   {
     Logger* logs = Logger::getInstance();
 
-    Shared<Texture2D> newTex = createShared<Texture2D>();
+    Texture2DParams newTexParam = spec;
 
-    newTex->width = this->width;
-    newTex->height = this->height;
-
+    GLuint n;
     if (spec.format == TextureFormats::Red || spec.format == TextureFormats::Depth)
-      newTex->n = 1;
+      n = 1;
     else if (spec.format == TextureFormats::RG || spec.format == TextureFormats::DepthStencil)
-      newTex->n = 2;
+      n = 2;
     else if (spec.format == TextureFormats::RGB)
-      newTex->n = 3;
+      n = 3;
     else if (spec.format == TextureFormats::RGBA)
-      newTex->n = 4;
+      n = 4;
     else
-    {
-      std::cout << "Unknown format, failed to attach." << std::endl;
-      return;
-    }
+      assert("Unknown format, failed to attach.");
 
-    this->bind();
+    Shared<Texture2D> newTex = createShared<Texture2D>(this->width, this->height, n, newTexParam);
+    newTex->initNullTexture();
 
     // If an attachment target already exists, remove it from the map and add
     // the new target.
@@ -84,20 +80,7 @@ namespace Strontium
     if (targetLoc != this->textureAttachments.end())
       this->textureAttachments.erase(targetLoc);
 
-    glTexImage2D(static_cast<GLuint>(spec.type), 0,
-                 static_cast<GLuint>(spec.internal), this->width, this->height, 0,
-                 static_cast<GLuint>(spec.format),
-                 static_cast<GLuint>(spec.dataType), nullptr);
-
-    glTexParameteri(static_cast<GLuint>(spec.type), GL_TEXTURE_WRAP_S,
-                    static_cast<GLuint>(spec.sWrap));
-    glTexParameteri(static_cast<GLuint>(spec.type), GL_TEXTURE_WRAP_T,
-                    static_cast<GLuint>(spec.tWrap));
-    glTexParameteri(static_cast<GLuint>(spec.type), GL_TEXTURE_MIN_FILTER,
-                    static_cast<GLuint>(spec.minFilter));
-    glTexParameteri(static_cast<GLuint>(spec.type), GL_TEXTURE_MAG_FILTER,
-                    static_cast<GLuint>(spec.maxFilter));
-
+    this->bind();
     glFramebufferTexture2D(GL_FRAMEBUFFER, static_cast<GLuint>(spec.target),
                            static_cast<GLuint>(spec.type),
                            newTex->getID(), 0);
@@ -376,7 +359,7 @@ namespace Strontium
     FBOSpecification floatColour = FBOSpecification();
     floatColour.target = attach;
     floatColour.type = FBOTex2DParam::Texture2D;
-    floatColour.internal = TextureInternalFormats::RGBA32f;
+    floatColour.internal = TextureInternalFormats::RGBA16f;
     floatColour.format = TextureFormats::RGBA;
     floatColour.dataType = TextureDataType::Floats;
     floatColour.sWrap = TextureWrapParams::Repeat;

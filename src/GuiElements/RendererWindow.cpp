@@ -12,14 +12,10 @@ namespace Strontium
 {
   RendererWindow::RendererWindow(EditorLayer* parentLayer)
     : GuiWindow(parentLayer)
-  {
-
-  }
+  { }
 
   RendererWindow::~RendererWindow()
-  {
-
-  }
+  { }
 
   void
   RendererWindow::onImGuiRender(bool &isOpen, Shared<Scene> activeScene)
@@ -82,13 +78,52 @@ namespace Strontium
 
       if (showMaps)
       {
-        ImGui::Text("Depth:");
+        ImGui::Text("Depth");
         ImGui::Image((ImTextureID) (unsigned long) storage->shadowBuffer[(unsigned int) cascadeIndex].getAttachID(FBOTargetParam::Depth),
                      ImVec2(128.0f, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
-        ImGui::Text("Moments:");
+        ImGui::Text("Moments");
         ImGui::Image((ImTextureID) (unsigned long) storage->shadowBuffer[(unsigned int) cascadeIndex].getAttachID(FBOTargetParam::Colour0),
                      ImVec2(128.0f, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
       }
+    }
+
+    if (ImGui::CollapsingHeader("Bloom"))
+    {
+      auto bufferSize = storage->gBuffer.getSize();
+      GLfloat ratio = bufferSize.x / bufferSize.y;
+      static int downMipView = 0;
+      static int upMipView = 0;
+      static int bufferMipView = 0;
+
+      ImGui::SliderFloat("Threshold", &state->bloomThreshold, 0.0f, 10.0f);
+      ImGui::SliderFloat("Knee", &state->bloomKnee, 0.0f, 10.0f);
+      ImGui::SliderFloat("Radius", &state->bloomRadius, 1.0f, 10.0f);
+      ImGui::SliderFloat("Intensity", &state->bloomIntensity, 0.0f, 10.0f);
+      ImGui::Indent();
+      if (ImGui::CollapsingHeader("Debug View##bloom"))
+      {
+        ImGui::Text("Downsample Image Pyramid (%d, %d)",
+                    storage->downscaleBloomTex[downMipView].width,
+                    storage->downscaleBloomTex[downMipView].height);
+        ImGui::SliderInt("Mip##downSample", &downMipView, 0, MAX_NUM_BLOOM_MIPS - 1);
+        ImGui::Image((ImTextureID) (unsigned long) storage->downscaleBloomTex[downMipView].getID(),
+                     ImVec2(128.0f * ratio, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
+
+        ImGui::Text("Upsample Image Pyramid (%d, %d)",
+                    storage->upscaleBloomTex[upMipView].width,
+                    storage->upscaleBloomTex[upMipView].height);
+        ImGui::SliderInt("Mip##upSample", &upMipView, 0, MAX_NUM_BLOOM_MIPS - 1);
+        ImGui::Image((ImTextureID) (unsigned long) storage->upscaleBloomTex[upMipView].getID(),
+                     ImVec2(128.0f * ratio, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
+
+        ImGui::Text("Buffer Image Pyramid (%d, %d)",
+                    storage->bufferBloomTex[bufferMipView].width,
+                    storage->bufferBloomTex[bufferMipView].height);
+        ImGui::SliderInt("Mip##buffer", &bufferMipView, 0, MAX_NUM_BLOOM_MIPS - 2);
+        ImGui::Image((ImTextureID) (unsigned long) storage->bufferBloomTex[bufferMipView].getID(),
+                     ImVec2(128.0f * ratio, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
+      }
+      ImGui::Unindent();
     }
 
     if (ImGui::CollapsingHeader("Render Passes"))

@@ -2,6 +2,12 @@
 
 namespace Strontium
 {
+  void
+  ComputeShader::memoryBarrier(const MemoryBarrierType &type)
+  {
+    glMemoryBarrier(static_cast<GLenum>(type));
+  }
+
   ComputeShader::ComputeShader(const std::string &filepath)
   {
     this->buildShader(GL_COMPUTE_SHADER, filepath.c_str());

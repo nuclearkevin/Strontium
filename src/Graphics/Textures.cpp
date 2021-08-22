@@ -167,21 +167,39 @@ namespace Strontium
     if (outTex->n == 1)
     {
       if (isHDR)
+      {
         glTexImage2D(GL_TEXTURE_2D, 0, GL_R16F, width, height, 0,
                      GL_RED, GL_FLOAT, dataF);
+        outTex->params.dataType = TextureDataType::Floats;
+        outTex->params.format = TextureFormats::Red;
+        outTex->params.internal = TextureInternalFormats::R16f;
+      }
       else
+      {
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, width, height, 0,
                      GL_RED, GL_UNSIGNED_BYTE, dataU);
+        outTex->params.format = TextureFormats::Red;
+        outTex->params.internal = TextureInternalFormats::Red;
+      }
       glGenerateMipmap(GL_TEXTURE_2D);
     }
     else if (outTex->n == 2)
     {
       if (isHDR)
+      {
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RG16F, width, height, 0,
                      GL_RG, GL_FLOAT, dataF);
+        outTex->params.dataType = TextureDataType::Floats;
+        outTex->params.format = TextureFormats::RG;
+        outTex->params.internal = TextureInternalFormats::RG16f;
+      }
       else
+      {
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RG, width, height, 0,
                      GL_RG, GL_UNSIGNED_BYTE, dataU);
+        outTex->params.format = TextureFormats::RG;
+        outTex->params.internal = TextureInternalFormats::RG;
+      }
       glGenerateMipmap(GL_TEXTURE_2D);
     }
     else if (outTex->n == 3)
@@ -206,21 +224,37 @@ namespace Strontium
         }
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, width, height, 0,
                      GL_RGBA, GL_FLOAT, dataFNew);
+        outTex->params.dataType = TextureDataType::Floats;
+        outTex->params.format = TextureFormats::RGBA;
+        outTex->params.internal = TextureInternalFormats::RGBA16f;
         stbi_image_free(dataFNew);
       }
       else
+      {
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0,
                      GL_RGB, GL_UNSIGNED_BYTE, dataU);
+        outTex->params.format = TextureFormats::RGB;
+        outTex->params.internal = TextureInternalFormats::RGB;
+      }
       glGenerateMipmap(GL_TEXTURE_2D);
     }
     else if (outTex->n == 4)
     {
       if (isHDR)
+      {
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, width, height, 0,
                      GL_RGBA, GL_FLOAT, dataF);
+        outTex->params.dataType = TextureDataType::Floats;
+        outTex->params.format = TextureFormats::RGBA;
+        outTex->params.internal = TextureInternalFormats::RGBA16f;
+      }
       else
+      {
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0,
                      GL_RGBA, GL_UNSIGNED_BYTE, dataU);
+        outTex->params.format = TextureFormats::RGBA;
+        outTex->params.internal = TextureInternalFormats::RGBA;
+      }
       glGenerateMipmap(GL_TEXTURE_2D);
     }
 
@@ -256,18 +290,84 @@ namespace Strontium
     glBindTexture(GL_TEXTURE_2D, this->textureID);
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S,
-                    static_cast<GLint>(params.sWrap));
+                    static_cast<GLint>(this->params.sWrap));
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T,
-                    static_cast<GLint>(params.tWrap));
+                    static_cast<GLint>(this->params.tWrap));
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
-                    static_cast<GLint>(params.minFilter));
+                    static_cast<GLint>(this->params.minFilter));
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER,
-                    static_cast<GLint>(params.maxFilter));
+                    static_cast<GLint>(this->params.maxFilter));
   }
 
   Texture2D::~Texture2D()
   {
     glDeleteTextures(1, &this->textureID);
+  }
+
+  // Init the texture using given data.
+  void
+  Texture2D::initNullTexture()
+  {
+    glBindTexture(GL_TEXTURE_2D, this->textureID);
+    glTexImage2D(GL_TEXTURE_2D, 0, static_cast<GLenum>(this->params.internal),
+                 this->width, this->height, 0, static_cast<GLenum>(this->params.format),
+                 static_cast<GLenum>(this->params.dataType), nullptr);
+    glBindTexture(GL_TEXTURE_2D, 0);
+  }
+
+  void
+  Texture2D::loadData(const GLfloat* data)
+  {
+    glBindTexture(GL_TEXTURE_2D, this->textureID);
+    glTexImage2D(GL_TEXTURE_2D, 0, static_cast<GLenum>(this->params.internal),
+                 this->width, this->height, 0, static_cast<GLenum>(this->params.format),
+                 static_cast<GLenum>(this->params.dataType), data);
+    glBindTexture(GL_TEXTURE_2D, 0);
+  }
+
+  void
+  Texture2D::loadData(const unsigned char* data)
+  {
+    glBindTexture(GL_TEXTURE_2D, this->textureID);
+    glTexImage2D(GL_TEXTURE_2D, 0, static_cast<GLenum>(this->params.internal),
+                 this->width, this->height, 0, static_cast<GLenum>(this->params.format),
+                 static_cast<GLenum>(this->params.dataType), data);
+    glBindTexture(GL_TEXTURE_2D, 0);
+  }
+
+  // Generate mipmaps.
+  void
+  Texture2D::generateMips()
+  {
+    glBindTexture(GL_TEXTURE_CUBE_MAP, this->textureID);
+    glGenerateMipmap(GL_TEXTURE_2D);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
+  }
+
+  void
+  Texture2D::setSize(GLuint width, GLuint height, GLuint n)
+  {
+    this->width = width;
+    this->height = height;
+    this->n = n;
+  }
+
+  // Set the parameters after generating the texture.
+  void
+  Texture2D::setParams(const Texture2DParams &newParams)
+  {
+    this->params = newParams;
+
+    glBindTexture(GL_TEXTURE_2D, this->textureID);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S,
+                    static_cast<GLint>(this->params.sWrap));
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T,
+                    static_cast<GLint>(this->params.tWrap));
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
+                    static_cast<GLint>(this->params.minFilter));
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER,
+                    static_cast<GLint>(this->params.maxFilter));
+    glBindTexture(GL_TEXTURE_2D, 0);
   }
 
   void
@@ -296,6 +396,15 @@ namespace Strontium
     glBindTexture(GL_TEXTURE_2D, 0);
   }
 
+  // Bind the texture as an image unit.
+  void
+  Texture2D::bindAsImage(GLuint bindPoint, GLuint miplevel, ImageAccessPolicy policy)
+  {
+    glBindImageTexture(bindPoint, this->textureID, miplevel, GL_FALSE, 0,
+                       static_cast<GLenum>(policy),
+                       static_cast<GLenum>(this->params.internal));
+  }
+
   //----------------------------------------------------------------------------
   // Cubemap textures.
   //----------------------------------------------------------------------------
@@ -317,8 +426,8 @@ namespace Strontium
     }
 
     glGenTextures(1, &this->textureID);
-    glBindTexture(GL_TEXTURE_CUBE_MAP, this->textureID);
 
+    glBindTexture(GL_TEXTURE_CUBE_MAP, this->textureID);
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S,
                     static_cast<GLint>(params.sWrap));
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T,
@@ -329,11 +438,53 @@ namespace Strontium
                     static_cast<GLint>(params.minFilter));
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER,
                     static_cast<GLint>(params.maxFilter));
+    glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
   }
 
   CubeMap::~CubeMap()
   {
     glDeleteTextures(1, &this->textureID);
+  }
+
+  void
+  CubeMap::initNullTexture()
+  {
+    glBindTexture(GL_TEXTURE_CUBE_MAP, this->textureID);
+    for (unsigned int i = 0; i < 6; i++)
+    {
+      glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, static_cast<GLenum>(this->params.internal),
+                  this->width[i], this->height[i], 0, static_cast<GLenum>(this->params.format),
+                  static_cast<GLenum>(this->params.dataType), nullptr);
+    }
+    glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
+  }
+
+  void
+  CubeMap::generateMips()
+  {
+    glBindTexture(GL_TEXTURE_CUBE_MAP, this->textureID);
+    glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
+  }
+
+  // Set the parameters after generating the texture.
+  void
+  CubeMap::setParams(const TextureCubeMapParams &newParams)
+  {
+    this->params = newParams;
+
+    glBindTexture(GL_TEXTURE_CUBE_MAP, this->textureID);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S,
+                    static_cast<GLint>(params.sWrap));
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T,
+                    static_cast<GLint>(params.tWrap));
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R,
+                    static_cast<GLint>(params.rWrap));
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER,
+                    static_cast<GLint>(params.minFilter));
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER,
+                    static_cast<GLint>(params.maxFilter));
+    glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
   }
 
   void
@@ -360,5 +511,16 @@ namespace Strontium
   {
     glActiveTexture(GL_TEXTURE0 + bindPoint);
     glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
+  }
+
+  // Bind the texture as an image unit.
+  void
+  CubeMap::bindAsImage(GLuint bindPoint, GLuint miplevel, bool isLayered,
+                       GLuint layer, ImageAccessPolicy policy)
+  {
+    glBindImageTexture(bindPoint, this->textureID, miplevel,
+                       static_cast<GLenum>(isLayered), layer,
+                       static_cast<GLenum>(policy),
+                       static_cast<GLenum>(this->params.internal));
   }
 }

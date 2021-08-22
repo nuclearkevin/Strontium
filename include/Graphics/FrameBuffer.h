@@ -58,6 +58,19 @@ namespace Strontium
       , minFilter(TextureMinFilterParams::Linear)
       , maxFilter(TextureMaxFilterParams::Linear)
     { };
+
+    operator Texture2DParams() const
+    {
+      Texture2DParams outParams = Texture2DParams();
+      outParams.sWrap = sWrap;
+      outParams.tWrap = tWrap;
+      outParams.minFilter = minFilter;
+      outParams.maxFilter = maxFilter;
+      outParams.internal = internal;
+      outParams.format = format;
+      outParams.dataType = dataType;
+      return outParams;
+    }
   };
 
   namespace Textures
@@ -113,6 +126,7 @@ namespace Strontium
     bool isValid();
     glm::vec2 getSize() { return glm::vec2(this->width, this->height); }
     GLuint getAttachID(const FBOTargetParam &attachment) { return this->textureAttachments.at(attachment).second->getID(); }
+    Shared<Texture2D> getAttachment(const FBOTargetParam &attachment) { return this->textureAttachments.at(attachment).second; }
     GLuint getRenderBufferID() { return this->depthBuffer != nullptr ? this->depthBuffer->getID() : 0; };
     GLuint getID() { return this->bufferID; }
   protected:

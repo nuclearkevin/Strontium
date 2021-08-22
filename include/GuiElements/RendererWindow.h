@@ -6,6 +6,8 @@
 // Project includes.
 #include "Core/ApplicationBase.h"
 #include "Core/Events.h"
+#include "Graphics/FrameBuffer.h"
+#include "Graphics/Shaders.h"
 #include "GuiElements/GuiWindow.h"
 #include "Scenes/Scene.h"
 
@@ -23,6 +25,6 @@ namespace Strontium
     void onEvent(Event &event);
 
   private:
-
+    
   };
 }

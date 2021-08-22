@@ -864,8 +864,6 @@ namespace Strontium
       {
         auto storage = Renderer3D::getStorage();
 
-        bool drawingMips = component.ambient->drawingFilter();
-
         if (ImGui::Button("Load New Environment"))
         {
           EventDispatcher* dispatcher = EventDispatcher::getInstance();
@@ -876,6 +874,8 @@ namespace Strontium
 
         if (component.ambient->hasEqrMap())
         {
+          bool drawingMips = component.ambient->drawingFilter();
+
           ImGui::Checkbox("Draw Blurred", &drawingMips);
           if (drawingMips)
           {

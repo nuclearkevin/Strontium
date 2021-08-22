@@ -45,17 +45,17 @@ void main()
 
   for (float phi = 0.0; phi < 2.0 * PI; phi += sampleDelta)
   {
-      for (float theta = 0.0; theta < 0.5 * PI; theta += sampleDelta)
-      {
-        // Spherical to cartesian (in tangent space).
-        vec3 tangentSample = vec3(sin(theta) * cos(phi), sin(theta) * sin(phi), cos(theta));
-        // Tangent space to world.
-        vec3 sampleVec = tangentSample.x * right + tangentSample.y * up + tangentSample.z * normal;
-        ivec3 sampleCoord = texToCube(sampleVec, cubemapSize);
+    for (float theta = 0.0; theta < 0.5 * PI; theta += sampleDelta)
+    {
+      // Spherical to cartesian (in tangent space).
+      vec3 tangentSample = vec3(sin(theta) * cos(phi), sin(theta) * sin(phi), cos(theta));
+      // Tangent space to world.
+      vec3 sampleVec = tangentSample.x * right + tangentSample.y * up + tangentSample.z * normal;
+      ivec3 sampleCoord = texToCube(sampleVec, cubemapSize);
 
-        irradiance += imageLoad(environmentMap, sampleCoord).rgb * cos(theta) * sin(theta);
-        nrSamples++;
-      }
+      irradiance += imageLoad(environmentMap, sampleCoord).rgb * cos(theta) * sin(theta);
+      nrSamples++;
+    }
   }
 
   irradiance = PI * irradiance * (1.0 / float(nrSamples));

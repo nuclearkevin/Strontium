@@ -62,6 +62,7 @@ namespace Strontium
     void addUniformVector(const char* uniformName, const glm::vec3 &vector);
     void addUniformVector(const char* uniformName, const glm::vec2 &vector);
     void addUniformFloat(const char* uniformName, GLfloat value);
+    void addUniformInt(const char* uniformName, GLint value);
     void addUniformUInt(const char* uniformName, GLuint value);
 
     void addUniformSampler(const char* uniformName, GLuint texID);

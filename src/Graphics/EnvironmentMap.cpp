@@ -210,33 +210,15 @@ namespace Strontium
     auto start = std::chrono::steady_clock::now();
 
     // The resulting cubemap from the conversion process.
-    this->skybox = createUnique<CubeMap>();
-
-    // Assign the texture sizes to the cubemap struct.
-    for (unsigned i = 0; i < 6; i++)
+    TextureCubeMapParams params = TextureCubeMapParams();
+    params.minFilter = TextureMinFilterParams::LinearMipMapLinear;
+    if (isHDR)
     {
-      this->skybox->width[i]  = width;
-      this->skybox->height[i] = height;
-      this->skybox->n[i]      = 3;
+      params.internal = TextureInternalFormats::RGBA16f;
+      params.dataType = TextureDataType::Floats;
     }
-
-    for (unsigned i = 0; i < 6; i++)
-    {
-      if (isHDR)
-        glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGBA16F,
-                     width, height, 0, GL_RGBA,
-                     GL_FLOAT, nullptr);
-      else
-        glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGBA,
-                     width, height, 0, GL_RGBA,
-                     GL_UNSIGNED_BYTE, nullptr);
-    }
-
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    this->skybox = createUnique<CubeMap>(width, height, 4, params);
+    this->skybox->initNullTexture();
 
     // The equirectangular to cubemap compute shader.
     ComputeShader conversionShader = ComputeShader("./assets/shaders/compute/equiConversion.cs");
@@ -254,24 +236,22 @@ namespace Strontium
     sizeBuff.bindToPoint(2);
 
     // Bind the equirectangular map for reading by the compute shader.
-    glBindImageTexture(0, this->erMap->getID(), 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA16F);
+    this->erMap->bindAsImage(0, 0, ImageAccessPolicy::Read);
 
     // Bind the irradiance map for writing to by the compute shader.
-    glBindImageTexture(1, this->skybox->getID(), 0, GL_TRUE, 0, GL_READ_WRITE, GL_RGBA16F);
+    this->skybox->bindAsImage(1, 0, true, 0, ImageAccessPolicy::ReadWrite);
 
     // Launch the compute shader.
-    conversionShader.bind();
     conversionShader.launchCompute(glm::ivec3(width / 32, height / 32, 6));
+
+    this->skybox->generateMips();
 
     auto end = std::chrono::steady_clock::now();
     std::chrono::duration<double> elapsed = end - start;
 
-
     logs->logMessage(LogMessage("Converted the equirectangular map to a cubemap"
                                 " (elapsed time: " + std::to_string(elapsed.count())
                                 + " s).", true, true));
-    this->skybox->bind();
-    glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
   }
 
   // Generate the diffuse irradiance map.
@@ -284,33 +264,14 @@ namespace Strontium
     auto start = std::chrono::steady_clock::now();
 
     // The resulting cubemap from the convolution process.
-    this->irradiance = createUnique<CubeMap>();
-
-    // Assign the texture sizes to the cubemap struct.
-    for (unsigned i = 0; i < 6; i++)
+    TextureCubeMapParams params = TextureCubeMapParams();
+    if (isHDR)
     {
-      this->irradiance->width[i]  = width;
-      this->irradiance->height[i] = height;
-      this->irradiance->n[i]      = 3;
+      params.internal = TextureInternalFormats::RGBA16f;
+      params.dataType = TextureDataType::Floats;
     }
-
-    for (unsigned i = 0; i < 6; i++)
-    {
-      if (isHDR)
-        glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGBA16F,
-                     width, height, 0, GL_RGBA,
-                     GL_FLOAT, nullptr);
-      else
-        glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGBA,
-                     width, height, 0, GL_RGBA,
-                     GL_UNSIGNED_BYTE, nullptr);
-    }
-
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    this->irradiance = createUnique<CubeMap>(width, height, 4, params);
+    this->irradiance->initNullTexture();
 
     // Convolution compute shader.
     ComputeShader convolutionShader = ComputeShader("./assets/shaders/compute/diffuseConv.cs");
@@ -323,13 +284,12 @@ namespace Strontium
     sizeBuff.bindToPoint(2);
 
     // Bind the skybox for reading by the compute shader.
-    glBindImageTexture(0, this->skybox->getID(), 0, GL_TRUE, 0, GL_READ_ONLY, GL_RGBA16F);
+    this->skybox->bindAsImage(0, 0, true, 0, ImageAccessPolicy::Read);
 
     // Bind the irradiance map for writing to by the compute shader.
-    glBindImageTexture(1, this->irradiance->getID(), 0, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA16F);
+    this->irradiance->bindAsImage(1, 0, true, 0, ImageAccessPolicy::Write);
 
     // Launch the compute shader.
-    convolutionShader.bind();
     convolutionShader.launchCompute(glm::ivec3(width / 32, height / 32, 6));
 
     auto end = std::chrono::steady_clock::now();
@@ -356,25 +316,16 @@ namespace Strontium
       auto start = std::chrono::steady_clock::now();
 
       // The resulting cubemap from the environment pre-filter.
-      this->specPrefilter = createUnique<CubeMap>();
-
-      for (unsigned i = 0; i < 6; i++)
+      TextureCubeMapParams params = TextureCubeMapParams();
+      params.minFilter = TextureMinFilterParams::LinearMipMapLinear;
+      if (isHDR)
       {
-        glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGBA16F,
-                     width, height, 0, GL_RGBA,
-                     GL_FLOAT, nullptr);
-        this->specPrefilter->width[i]  = width;
-        this->specPrefilter->height[i] = height;
-        this->specPrefilter->n[i]      = 3;
+        params.internal = TextureInternalFormats::RGBA16f;
+        params.dataType = TextureDataType::Floats;
       }
-
-      glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-      glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-      glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-      glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-      glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-      glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
+      this->specPrefilter = createUnique<CubeMap>(width, height, 4, params);
+      this->specPrefilter->initNullTexture();
+      this->specPrefilter->generateMips();
 
       // The specular prefilter compute shader.
       ComputeShader filterShader = ComputeShader("./assets/shaders/compute/specPrefilter.cs");
@@ -386,9 +337,8 @@ namespace Strontium
         glm::vec2 mipSize;
         GLfloat roughness;
         GLfloat resolution;
-      } params;
-      ShaderStorageBuffer paramBuff = ShaderStorageBuffer(sizeof(params),
-                                                          BufferType::Static);
+      } temp;
+      ShaderStorageBuffer paramBuff = ShaderStorageBuffer(sizeof(temp), BufferType::Static);
 
       // Bind the enviroment map which is to be prefiltered.
       this->skybox->bind(0);
@@ -400,22 +350,20 @@ namespace Strontium
         GLuint mipWidth  = (GLuint) ((GLfloat) width * std::pow(0.5f, i));
         GLuint mipHeight = (GLuint) ((GLfloat) height * std::pow(0.5f, i));
 
-        float roughness = ((float) i) / ((float) (5 - 1));
+        GLfloat roughness = ((GLfloat) i) / ((GLfloat) (5 - 1));
 
         // Bind the irradiance map for writing to by the compute shader.
-        glBindImageTexture(1, this->specPrefilter->getID(), i, GL_TRUE, 0,
-                           GL_WRITE_ONLY, GL_RGBA16F);
+        this->specPrefilter->bindAsImage(1, i, true, 0, ImageAccessPolicy::Write);
 
-        params.enviSize = glm::vec2((GLfloat) this->skybox->width[0],
+        temp.enviSize = glm::vec2((GLfloat) this->skybox->width[0],
                                     (GLfloat) this->skybox->height[0]);
-        params.mipSize = glm::vec2((GLfloat) mipWidth, (GLfloat) mipHeight);
-        params.roughness = roughness;
-        params.resolution = this->skybox->width[0];
-        paramBuff.setData(0, sizeof(params), &params);
+        temp.mipSize = glm::vec2((GLfloat) mipWidth, (GLfloat) mipHeight);
+        temp.roughness = roughness;
+        temp.resolution = this->skybox->width[0];
+        paramBuff.setData(0, sizeof(temp), &temp);
         paramBuff.bindToPoint(2);
 
         // Launch the compute.
-        filterShader.bind();
         filterShader.launchCompute(glm::ivec3(mipWidth / 32, mipHeight / 32, 6));
       }
 
@@ -434,25 +382,20 @@ namespace Strontium
       //--------------------------------------------------------------------------
       auto start = std::chrono::steady_clock::now();
 
-      this->brdfIntMap = createUnique<Texture2D>();
-      this->brdfIntMap->width = 512;
-      this->brdfIntMap->height = 512;
-
-      glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, 512, 512, 0,
-                   GL_RGBA, GL_FLOAT, nullptr);
-
-      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+      Texture2DParams params = Texture2DParams();
+      params.sWrap = TextureWrapParams::ClampEdges;
+      params.tWrap = TextureWrapParams::ClampEdges;
+      params.internal = TextureInternalFormats::RG16f;
+      params.dataType = TextureDataType::Floats;
+      this->brdfIntMap = createUnique<Texture2D>(512, 512, 2, params);
+      this->brdfIntMap->initNullTexture();
 
       ComputeShader integrateBRDF = ComputeShader("./assets/shaders/compute/integrateBRDF.cs");
 
       // Bind the integration map for writing to by the compute shader.
-      glBindImageTexture(3, this->brdfIntMap->getID(), 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);
+      this->brdfIntMap->bindAsImage(3, 0, ImageAccessPolicy::Write);
 
       // Launch the compute shader.
-      integrateBRDF.bind();
       integrateBRDF.launchCompute(glm::ivec3(512 / 32, 512 / 32, 1));
 
       auto end = std::chrono::steady_clock::now();

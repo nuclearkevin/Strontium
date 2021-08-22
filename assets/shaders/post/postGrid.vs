@@ -2,24 +2,28 @@
 
 layout (location = 0) in vec2 vPosition;
 
-uniform mat4 invViewProj;
-uniform vec3 camPos;
+// The post processing properties.
+layout(std140, binding = 0) uniform PostProcessBlock
+{
+  mat4 u_invViewProj;
+  mat4 u_viewProj;
+  vec4 u_camPosScreenSize; // Camera position (x, y, z) and the screen width (w).
+  vec3 u_screenSizeGammaBloom;  // Screen height (x), gamma (y) and bloom intensity (z).
+};
 
 // Vertex properties for shading.
 out VERT_OUT
 {
   vec3 fNearPoint;
   vec3 fFarPoint;
-  mat4 fInvViewProj;
 } vertOut;
 
 vec3 unProject(vec3 position, mat4 invVP);
 
 void main()
 {
-  vertOut.fNearPoint = unProject(vec3(vPosition.x, vPosition.y, 0.0), invViewProj);
-  vertOut.fFarPoint = unProject(vec3(vPosition.x, vPosition.y, 1.0), invViewProj);
-  vertOut.fInvViewProj = invViewProj;
+  vertOut.fNearPoint = unProject(vec3(vPosition.x, vPosition.y, 0.0), u_invViewProj);
+  vertOut.fFarPoint = unProject(vec3(vPosition.x, vPosition.y, 1.0), u_invViewProj);
   gl_Position = vec4(vPosition, 0.0, 1.0);
 }
 

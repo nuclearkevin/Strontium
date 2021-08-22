@@ -4,10 +4,19 @@ in VERT_OUT
 {
   vec3 fNearPoint;
   vec3 fFarPoint;
-  mat4 fInvViewProj;
 } fragIn;
 
 uniform mat4 viewProj;
+
+// The post processing properties.
+layout(std140, binding = 0) uniform PostProcessBlock
+{
+  mat4 u_invViewProj;
+  mat4 u_viewProj;
+  vec4 u_camPosScreenSize; // Camera position (x, y, z) and the screen width (w).
+  vec3 u_screenSizeGammaBloom;  // Screen height (x), gamma (y) and bloom intensity (z).
+};
+
 layout(binding = 0) uniform sampler2DShadow gDepth;
 
 layout(location = 1) out vec4 fragColour;
@@ -31,16 +40,16 @@ void main()
 
   // Compute the depth of the current fragment along both the x-y and x-z planes
   // [0, 1].
-  vec4 xzFragClipPos = viewProj * vec4(xzFragPos3D, 1.0);
+  vec4 xzFragClipPos = u_viewProj * vec4(xzFragPos3D, 1.0);
   float xzFragDepth = 0.5 * (xzFragClipPos.z / xzFragClipPos.w) + 0.5;
-  vec4 xyFragClipPos = viewProj * vec4(xyFragPos3D, 1.0);
+  vec4 xyFragClipPos = u_viewProj * vec4(xyFragPos3D, 1.0);
   float xyFragDepth = 0.5 * (xyFragClipPos.z / xyFragClipPos.w) + 0.5;
   // Fetch the scene depth test for both planes.
   vec2 fTexCoords = gl_FragCoord.xy / textureSize(gDepth, 0);
   float xzSceneDepth = texture(gDepth, vec3(fTexCoords, xzFragDepth)).r;
   float xySceneDepth = texture(gDepth, vec3(fTexCoords, xyFragDepth)).r;
 
-  vec3 screenNear = unProject(vec3(0.0), fragIn.fInvViewProj);
+  vec3 screenNear = unProject(vec3(0.0), u_invViewProj);
   float xzFalloff = max(1.5 - 0.1 * length(xzFragPos3D - screenNear), 0.0);
   float xyFalloff = max(1.5 - 0.1 * length(xyFragPos3D - screenNear), 0.0);
 

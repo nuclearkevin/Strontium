@@ -44,12 +44,17 @@ namespace Strontium
   {
     Nearest = GL_NEAREST, Linear = GL_LINEAR
   };
-  enum class TextureType
+  enum class CubemapFace
   {
-    Tex2 = GL_TEXTURE_2D,
     PosX = GL_TEXTURE_CUBE_MAP_POSITIVE_X, NegX = GL_TEXTURE_CUBE_MAP_NEGATIVE_X,
     PosY = GL_TEXTURE_CUBE_MAP_POSITIVE_Y, NegY = GL_TEXTURE_CUBE_MAP_NEGATIVE_Y,
     PosZ = GL_TEXTURE_CUBE_MAP_POSITIVE_Z, NegZ = GL_TEXTURE_CUBE_MAP_NEGATIVE_Z
+  };
+  enum class ImageAccessPolicy
+  {
+    Read =  GL_READ_ONLY,
+    Write = GL_WRITE_ONLY,
+    ReadWrite = GL_READ_WRITE
   };
 
   // Parameters for loading textures.
@@ -60,11 +65,18 @@ namespace Strontium
     TextureMinFilterParams minFilter;
     TextureMaxFilterParams maxFilter;
 
+    TextureInternalFormats internal;
+    TextureFormats         format;
+    TextureDataType        dataType;
+
     Texture2DParams()
       : sWrap(TextureWrapParams::Repeat)
       , tWrap(TextureWrapParams::Repeat)
       , minFilter(TextureMinFilterParams::Linear)
       , maxFilter(TextureMaxFilterParams::Linear)
+      , internal(TextureInternalFormats::RGBA)
+      , format(TextureFormats::RGBA)
+      , dataType(TextureDataType::Bytes)
     { };
   };
 
@@ -76,12 +88,19 @@ namespace Strontium
     TextureMinFilterParams minFilter;
     TextureMaxFilterParams maxFilter;
 
+    TextureInternalFormats internal;
+    TextureFormats         format;
+    TextureDataType        dataType;
+
     TextureCubeMapParams()
       : sWrap(TextureWrapParams::ClampEdges)
       , tWrap(TextureWrapParams::ClampEdges)
       , rWrap(TextureWrapParams::ClampEdges)
       , minFilter(TextureMinFilterParams::Linear)
       , maxFilter(TextureMaxFilterParams::Linear)
+      , internal(TextureInternalFormats::RGBA)
+      , format(TextureFormats::RGBA)
+      , dataType(TextureDataType::Bytes)
     { };
   };
 
@@ -128,11 +147,26 @@ namespace Strontium
     int n;
     Texture2DParams params;
 
+    // Init the texture using given data and stored params.
+    void initNullTexture();
+    void loadData(const GLfloat* data);
+    void loadData(const unsigned char* data);
+
+    // Set the parameters after generating the texture.
+    void setSize(GLuint width, GLuint height, GLuint n);
+    void setParams(const Texture2DParams &newParams);
+
+    // Generate mipmaps.
+    void generateMips();
+
     // Bind/unbind the texture.
     void bind();
     void bind(GLuint bindPoint);
     void unbind();
     void unbind(GLuint bindPoint);
+
+    // Bind the texture as an image unit.
+    void bindAsImage(GLuint bindPoint, GLuint miplevel, ImageAccessPolicy policy);
 
     GLuint& getID() { return this->textureID; }
     std::string& getFilepath() { return this->filepath; }
@@ -158,11 +192,24 @@ namespace Strontium
     int n[6];
     TextureCubeMapParams params;
 
+    // Init the texture using given data and stored params.
+    void initNullTexture();
+
+    // Generate mipmaps.
+    void generateMips();
+
+    // Set the parameters after generating the texture.
+    void setParams(const TextureCubeMapParams &newParams);
+
     // Bind/unbind the texture.
     void bind();
     void bind(GLuint bindPoint);
     void unbind();
     void unbind(GLuint bindPoint);
+
+    // Bind the texture as an image unit.
+    void bindAsImage(GLuint bindPoint, GLuint miplevel, bool isLayered,
+                     GLuint layer, ImageAccessPolicy policy);
 
     GLuint& getID() { return this->textureID; }
     std::string& getFilepath() { return this->filepath; }

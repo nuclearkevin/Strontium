@@ -456,6 +456,14 @@ namespace Strontium
 	}
 
 	void
+	Shader::addUniformInt(const char* uniformName, GLint value)
+	{
+		this->bind();
+		GLuint uniLoc = glGetUniformLocation(this->progID, uniformName);
+		glUniform1i(uniLoc, value);
+	}
+
+	void
 	Shader::addUniformUInt(const char* uniformName, GLuint value)
 	{
 		this->bind();

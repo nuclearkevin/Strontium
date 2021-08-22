@@ -59,6 +59,30 @@ namespace Strontium
       storage->fsq.addIndexBuffer(fsqIndices, 6, BufferType::Dynamic);
       storage->fsq.addAttribute(0, AttribType::Vec2, GL_FALSE, 2 * sizeof(GLfloat), 0);
 
+      // Prepare bloom settings.
+      Texture2DParams bloomParams = Texture2DParams();
+      bloomParams.sWrap = TextureWrapParams::ClampEdges;
+      bloomParams.tWrap = TextureWrapParams::ClampEdges;
+      bloomParams.internal = TextureInternalFormats::RGBA16f;
+      bloomParams.dataType = TextureDataType::Floats;
+
+      GLfloat powOf2 = 1.0f;
+      for (unsigned int i = 0; i < MAX_NUM_BLOOM_MIPS; i++)
+      {
+        storage->downscaleBloomTex[i].setSize((GLuint) ((GLfloat) width) / powOf2, (GLuint) ((GLfloat) height) / powOf2, 4);
+        storage->downscaleBloomTex[i].setParams(bloomParams);
+        storage->downscaleBloomTex[i].initNullTexture();
+
+        storage->upscaleBloomTex[i].setSize((GLuint) ((GLfloat) width) / powOf2, (GLuint) ((GLfloat) height) / powOf2, 4);
+        storage->upscaleBloomTex[i].setParams(bloomParams);
+        storage->upscaleBloomTex[i].initNullTexture();
+
+        storage->bufferBloomTex[i].setSize((GLuint) ((GLfloat) width) / powOf2, (GLuint) ((GLfloat) height) / powOf2, 4);
+        storage->bufferBloomTex[i].setParams(bloomParams);
+        storage->bufferBloomTex[i].initNullTexture();
+        powOf2 *= 2.0f;
+      }
+
       // Prepare the shadow buffers.
       auto dSpec = FBOCommands::getDefaultDepthSpec();
       auto vSpec = FBOCommands::getFloatColourSpec(FBOTargetParam::Colour0);
@@ -84,13 +108,6 @@ namespace Strontium
       auto cSpec = FBOCommands::getFloatColourSpec(FBOTargetParam::Colour0);
       storage->lightingPass.attachTexture2D(cSpec);
       storage->lightingPass.attachRenderBuffer();
-
-      // Prepare the various uniform buffers.
-      storage->camBuffer.bindToPoint(0);
-      storage->transformBuffer.bindToPoint(2);
-      storage->editorBuffer.bindToPoint(3);
-      storage->cascadeShadowPassBuffer.bindToPoint(6);
-      storage->cascadeShadowBuffer.bindToPoint(7);
     }
 
     // Shutdown the renderer.
@@ -127,6 +144,24 @@ namespace Strontium
       {
         storage->gBuffer.resize(width, height);
         storage->lightingPass.resize(width, height);
+
+        GLfloat powOf2 = 1.0f;
+        for (unsigned int i = 0; i < MAX_NUM_BLOOM_MIPS; i++)
+        {
+          storage->downscaleBloomTex[i].setSize((GLuint) ((GLfloat) width) / powOf2, (GLuint) ((GLfloat) height) / powOf2, 4);
+          storage->downscaleBloomTex[i].initNullTexture();
+
+          storage->upscaleBloomTex[i].setSize((GLuint) ((GLfloat) width) / powOf2, (GLuint) ((GLfloat) height) / powOf2, 4);
+          storage->upscaleBloomTex[i].initNullTexture();
+
+          if (i < MAX_NUM_BLOOM_MIPS - 1)
+          {
+            storage->bufferBloomTex[i].setSize((GLuint) ((GLfloat) width) / powOf2, (GLuint) ((GLfloat) height) / powOf2, 4);
+            storage->bufferBloomTex[i].initNullTexture();
+          }
+          powOf2 *= 2.0f;
+        }
+
         storage->width = width;
         storage->height = height;
       }
@@ -294,12 +329,16 @@ namespace Strontium
       auto camProj = storage->sceneCam->getProjMatrix();
       auto camView = storage->sceneCam->getViewMatrix();
       auto camPos = storage->sceneCam->getCamPos();
+      storage->camBuffer.bindToPoint(0);
       storage->camBuffer.setData(0, sizeof(glm::mat4), glm::value_ptr(camView));
       storage->camBuffer.setData(sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(camProj));
       storage->camBuffer.setData(2 * sizeof(glm::mat4), sizeof(glm::vec3), &camPos.x);
 
       // Start the geometry pass.
       storage->gBuffer.beginGeoPass();
+
+      storage->transformBuffer.bindToPoint(2);
+      storage->editorBuffer.bindToPoint(3);
 
       // Static geometry pass.
       Shader* program = shaderCache->getAsset("geometry_pass_shader");
@@ -553,9 +592,6 @@ namespace Strontium
 
           // Offset the matrix to texel space to fix shimmering:
           //--------------------------------------------------------------------
-          // https://stackoverflow.com/questions/33499053/cascaded-shadow-map-
-          // shimmering
-          //--------------------------------------------------------------------
           // https://docs.microsoft.com/en-ca/windows/win32/dxtecharts/common-
           // techniques-to-improve-shadow-depth-maps?redirectedfrom=MSDN
           //--------------------------------------------------------------------
@@ -586,6 +622,9 @@ namespace Strontium
       // Actual shadow pass.
       Shader* horizontalShadowBlur = shaderCache->getAsset("post_hor_gaussian_blur");
       Shader* verticalShadowBlur = shaderCache->getAsset("post_ver_gaussian_blur");
+
+      storage->transformBuffer.bindToPoint(2);
+
       for (unsigned int i = 0; i < NUM_CASCADES; i++)
       {
         storage->shadowBuffer[i].clear();
@@ -594,6 +633,7 @@ namespace Strontium
 
         if (storage->hasCascades)
         {
+          storage->cascadeShadowPassBuffer.bindToPoint(6);
           storage->cascadeShadowPassBuffer.setData(0, sizeof(glm::mat4), glm::value_ptr(storage->cascades[i]));
 
           // Static shadow pass.
@@ -728,6 +768,7 @@ namespace Strontium
       // Set the shadow map uniforms.
       if (storage->hasCascades)
       {
+        storage->cascadeShadowBuffer.bindToPoint(7);
         for (unsigned int i = 0; i < NUM_CASCADES; i++)
         {
           storage->cascadeShadowBuffer.setData(i * sizeof(glm::mat4), sizeof(glm::mat4),
@@ -831,6 +872,69 @@ namespace Strontium
       // Get the shader cache.
       auto shaderCache = AssetManager<Shader>::getManager();
 
+      //------------------------------------------------------------------------
+      // Bloom pass.
+      //------------------------------------------------------------------------
+      // Prefilter + downsample using the lighting buffer as the source.
+      storage->bloomSettingsBuffer.bindToPoint(2);
+      glm::vec2 bloomSettings = glm::vec2(state->bloomThreshold, state->bloomKnee);
+      storage->bloomSettingsBuffer.setData(0, sizeof(glm::vec2), &bloomSettings.x);
+
+      storage->lightingPass.getAttachment(FBOTargetParam::Colour0)
+             ->bindAsImage(0, 0, ImageAccessPolicy::Read);
+      storage->downscaleBloomTex[0].bindAsImage(1, 0, ImageAccessPolicy::Write);
+      glm::ivec3 invoke = glm::ivec3(glm::ceil(((GLfloat) storage->downscaleBloomTex[0].width) / 32.0f),
+                                     glm::ceil(((GLfloat) storage->downscaleBloomTex[0].height) / 32.0f),
+                                     1);
+      storage->bloomPrefilter.launchCompute(invoke);
+      ComputeShader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
+
+      // Continuous downsample the bloom texture to make an image pyramid.
+      for (unsigned int i = 1; i < MAX_NUM_BLOOM_MIPS; i++)
+      {
+        storage->downscaleBloomTex[i - 1].bindAsImage(0, 0, ImageAccessPolicy::Read);
+        storage->downscaleBloomTex[i].bindAsImage(1, 0, ImageAccessPolicy::Write);
+        invoke = glm::ivec3(glm::ceil(((GLfloat) storage->downscaleBloomTex[i].width) / 32.0f),
+                            glm::ceil(((GLfloat) storage->downscaleBloomTex[i].height) / 32.0f),
+                            1);
+        storage->bloomDownsample.launchCompute(invoke);
+        ComputeShader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
+      }
+
+      // Blur each of the mips.
+      for (unsigned int i = 0; i < MAX_NUM_BLOOM_MIPS - 1; i++)
+      {
+        storage->downscaleBloomTex[i].bindAsImage(0, 0, ImageAccessPolicy::Read);
+        storage->bufferBloomTex[i].bindAsImage(1, 0, ImageAccessPolicy::Write);
+        invoke = glm::ivec3(glm::ceil(((GLfloat) storage->bufferBloomTex[i].width) / 32.0f),
+                            glm::ceil(((GLfloat) storage->bufferBloomTex[i].height) / 32.0f),
+                            1);
+        storage->bloomUpsample.launchCompute(invoke);
+        ComputeShader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
+      }
+
+      storage->downscaleBloomTex[MAX_NUM_BLOOM_MIPS - 1].bindAsImage(0, 0, ImageAccessPolicy::Read);
+      storage->upscaleBloomTex[MAX_NUM_BLOOM_MIPS - 1].bindAsImage(1, 0, ImageAccessPolicy::Write);
+      invoke = glm::ivec3(glm::ceil(((GLfloat) storage->bufferBloomTex[MAX_NUM_BLOOM_MIPS - 1].width) / 32.0f),
+                          glm::ceil(((GLfloat) storage->bufferBloomTex[MAX_NUM_BLOOM_MIPS - 1].height) / 32.0f),
+                          1);
+      storage->bloomUpsample.launchCompute(invoke);
+      ComputeShader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
+
+      // Blend the previous mips together with a blur on the previous mip.
+      for (unsigned int i = MAX_NUM_BLOOM_MIPS - 1; i > 0; i--)
+      {
+        storage->upscaleBloomTex[i].bindAsImage(0, 0, ImageAccessPolicy::Read);
+        storage->bufferBloomTex[i - 1].bindAsImage(1, 0, ImageAccessPolicy::Read);
+        storage->upscaleBloomTex[i - 1].bindAsImage(2, 0, ImageAccessPolicy::Write);
+        invoke = glm::ivec3(glm::ceil(((GLfloat) storage->upscaleBloomTex[i - 1].width) / 32.0f),
+                            glm::ceil(((GLfloat) storage->upscaleBloomTex[i - 1].height) / 32.0f),
+                            1);
+        storage->bloomUpsampleBlend.launchCompute(invoke);
+        ComputeShader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
+      }
+
+      // Prep the front buffer.
       frontBuffer->clear();
       frontBuffer->bind();
       frontBuffer->setViewport();
@@ -839,12 +943,25 @@ namespace Strontium
       // HDR post processing pass. Also streams the entity IDs to the editor
       // buffer.
       //------------------------------------------------------------------------
-      Shader* hdrPost = shaderCache->getAsset("post_hdr");
-      hdrPost->addUniformVector("screenSize", frontBuffer->getSize());
+      // Prepare the post processing buffer.
+      storage->postProcessSettings.bindToPoint(0);
+      auto viewProj = storage->sceneCam->getProjMatrix() * storage->sceneCam->getViewMatrix();
+      auto invViewProj = glm::inverse(viewProj);
+      auto camPos = storage->sceneCam->getCamPos();
+      auto screenSize = frontBuffer->getSize();
+      auto data0 = glm::vec4(camPos.x, camPos.y, camPos.z, screenSize.x);
+      auto data1 = glm::vec3(screenSize.y, state->gamma, state->bloomIntensity);
+
+      storage->postProcessSettings.setData(0, sizeof(glm::mat4), glm::value_ptr(invViewProj));
+      storage->postProcessSettings.setData(sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(viewProj));
+      storage->postProcessSettings.setData(2 * sizeof(glm::mat4), sizeof(glm::vec4), &data0.x);
+      storage->postProcessSettings.setData(2 * sizeof(glm::mat4) + sizeof(glm::vec4), sizeof(glm::vec3), &data1.x);
+
       storage->lightingPass.bindTextureID(FBOTargetParam::Colour0, 0);
       storage->gBuffer.bindAttachment(FBOTargetParam::Colour4, 1);
+      storage->upscaleBloomTex[0].bind(2);
 
-      draw(&storage->fsq, hdrPost);
+      draw(&storage->fsq, shaderCache->getAsset("post_hdr"));
 
       RendererCommands::enable(RendererFunction::Blending);
       RendererCommands::blendEquation(BlendEquation::Additive);
@@ -856,11 +973,8 @@ namespace Strontium
       //------------------------------------------------------------------------
       if (state->drawGrid)
       {
-        Shader* grid = shaderCache->getAsset("post_grid");
-        grid->addUniformMatrix("invViewProj", glm::inverse(storage->sceneCam->getProjMatrix() * storage->sceneCam->getViewMatrix()), GL_FALSE);
-        grid->addUniformMatrix("viewProj", storage->sceneCam->getProjMatrix() * storage->sceneCam->getViewMatrix(), GL_FALSE);
         storage->gBuffer.bindAttachment(FBOTargetParam::Depth, 0);
-        draw(&storage->fsq, grid);
+        draw(&storage->fsq, shaderCache->getAsset("post_grid"));
       }
 
       //------------------------------------------------------------------------
@@ -869,11 +983,8 @@ namespace Strontium
       //------------------------------------------------------------------------
       if (storage->drawEdge)
       {
-        Shader* outline = shaderCache->getAsset("post_entity_outline");
-        outline->addUniformVector("screenSize", frontBuffer->getSize());
         storage->gBuffer.bindAttachment(FBOTargetParam::Colour4, 0);
-
-        draw(&storage->fsq, outline);
+        draw(&storage->fsq, shaderCache->getAsset("post_entity_outline"));
       }
       RendererCommands::enable(RendererFunction::DepthTest);
       RendererCommands::disable(RendererFunction::Blending);

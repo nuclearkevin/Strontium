@@ -4,12 +4,19 @@
 
 namespace Strontium
 {
+  enum class MemoryBarrierType
+  {
+    ShaderImageAccess = GL_SHADER_IMAGE_ACCESS_BARRIER_BIT
+  };
+
   //----------------------------------------------------------------------------
   // The compute shader class.
   //----------------------------------------------------------------------------
   class ComputeShader
   {
   public:
+    static void memoryBarrier(const MemoryBarrierType &type);
+
     ComputeShader(const std::string &filepath);
     ~ComputeShader();
 
