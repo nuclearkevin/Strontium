@@ -42,10 +42,6 @@ namespace Strontium
     this->materialAssets.reset(AssetManager<Material>::getManager());
 
     // Load the shaders into a cache.
-    this->shaderCache->attachAsset("pbr_shader",
-      new Shader("./assets/shaders/mesh.vs",
-                 "./assets/shaders/forward/pbr/pbrTex.fs"));
-
     this->shaderCache->attachAsset("static_shadow_shader",
       new Shader("./assets/shaders/shadows/staticDirectionalShadow.vs",
                  "./assets/shaders/shadows/directionalShadow.fs"));
@@ -88,11 +84,11 @@ namespace Strontium
 
     this->shaderCache->attachAsset("post_hor_gaussian_blur",
       new Shader("./assets/shaders/post/postProcessingPass.vs",
-                 "./assets/shaders/post/horShadowBlur.fs"));
+                 "./assets/shaders/shadows/horShadowBlur.fs"));
 
     this->shaderCache->attachAsset("post_ver_gaussian_blur",
       new Shader("./assets/shaders/post/postProcessingPass.vs",
-                 "./assets/shaders/post/verShadowBlur.fs"));
+                 "./assets/shaders/shadows/verShadowBlur.fs"));
 
     this->shaderCache->attachAsset("post_grid",
       new Shader("./assets/shaders/post/postGrid.vs",

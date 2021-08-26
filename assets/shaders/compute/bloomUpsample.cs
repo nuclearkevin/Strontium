@@ -13,15 +13,36 @@ layout(rgba16f, binding = 0) readonly uniform image2D blurImage;
 // The next mip in the upsampling mip chain.
 layout(rgba16f, binding = 1) writeonly uniform image2D nextImage;
 
+layout(std140, binding = 3) buffer prefilterParams
+{
+  vec4 u_filterParams; // Threshold (x), threshold - knee (y), 2.0 * knee (z) and 0.25 / knee (w).
+  float u_upsampleRadius;
+};
+
+// Interpolating sampler.
+vec3 samplePrevious(ivec2 centerCoords, ivec2 offsetCoords, float radius);
+
 // The upsampling tend filter.
-vec3 upsampleBoxTent(ivec2 coords);
+vec3 upsampleBoxTent(ivec2 coords, float radius);
 
 void main()
 {
   ivec2 sourceCoords = ivec2(gl_GlobalInvocationID.xy);
 
-  vec3 filteredColour = upsampleBoxTent(sourceCoords);
+  vec3 filteredColour = upsampleBoxTent(sourceCoords, u_upsampleRadius);
   imageStore(nextImage, sourceCoords, vec4(filteredColour, 1.0));
+}
+
+// Interpolating sampler.
+vec3 samplePrevious(ivec2 centerCoords, ivec2 offsetCoords, float radius)
+{
+  ivec2 sampleCoords0 = centerCoords + int(floor(radius)) * offsetCoords;
+  vec3 sample0 = imageLoad(blurImage, sampleCoords0).rgb;
+
+  ivec2 sampleCoords1 = centerCoords + int(ceil(radius)) * offsetCoords;
+  vec3 sample1 = imageLoad(blurImage, sampleCoords1).rgb;
+
+  return mix(sample0, sample1, fract(radius));
 }
 
 /*
@@ -30,17 +51,17 @@ void main()
   G  H  I
 */
 // http://www.iryoku.com/next-generation-post-processing-in-call-of-duty-advanced-warfare
-vec3 upsampleBoxTent(ivec2 coords)
+vec3 upsampleBoxTent(ivec2 coords, float radius)
 {
-  vec3 A = imageLoad(blurImage, coords + ivec2(-1, 1)).rgb;
-  vec3 B = imageLoad(blurImage, coords + ivec2(0, 1)).rgb * 2.0;
-  vec3 C = imageLoad(blurImage, coords + ivec2(1, 1)).rgb;
-  vec3 D = imageLoad(blurImage, coords + ivec2(-1, 0)).rgb * 2.0;
-  vec3 E = imageLoad(blurImage, coords).rgb * 4.0;
-  vec3 F = imageLoad(blurImage, coords + ivec2(1, 0)).rgb * 2.0;
-  vec3 G = imageLoad(blurImage, coords + ivec2(-1, -1)).rgb;
-  vec3 H = imageLoad(blurImage, coords + ivec2(0, -1)).rgb * 2.0;
-  vec3 I = imageLoad(blurImage, coords + ivec2(1, -1)).rgb;
+  vec3 A = samplePrevious(coords, ivec2(-1, 1), radius);
+  vec3 B = samplePrevious(coords, ivec2(0, 1), radius) * 2.0;
+  vec3 C = samplePrevious(coords, ivec2(1, 1), radius);
+  vec3 D = samplePrevious(coords, ivec2(-1, 0), radius) * 2.0;
+  vec3 E = samplePrevious(coords, ivec2(0, 0), radius) * 4.0;
+  vec3 F = samplePrevious(coords, ivec2(1, 0), radius) * 2.0;
+  vec3 G = samplePrevious(coords, ivec2(-1, -1), radius);
+  vec3 H = samplePrevious(coords, ivec2(0, -1), radius) * 2.0;
+  vec3 I = samplePrevious(coords, ivec2(1, -1), radius);
 
   return (A + B + C + D + E + F + G + H + I) * 0.0625; // * 1/16
 }

@@ -4,28 +4,49 @@
 #include "Core/Logs.h"
 #include "Core/AssetManager.h"
 #include "Graphics/Buffers.h"
-#include "Graphics/Compute.h"
 
 namespace Strontium
 {
+  std::string
+  EnvironmentMap::mapEnumToString(const MapType &type)
+  {
+    switch(type)
+    {
+      case MapType::Skybox: return "Skybox";
+      case MapType::Irradiance: return "Diffuse Irradiance";
+      case MapType::Prefilter: return "Specular Irradiance";
+      case MapType::Preetham: return "Preetham Dynamic Sky";
+      default: return "Unknown";
+    }
+  }
+
   EnvironmentMap::EnvironmentMap()
     : erMap(nullptr)
     , skybox(nullptr)
     , irradiance(nullptr)
     , specPrefilter(nullptr)
     , brdfIntMap(nullptr)
+    , paramBuffer(sizeof(glm::vec4) + sizeof(GLfloat), BufferType::Dynamic)
+    , equiToCubeCompute("./assets/shaders/compute/equiConversion.cs")
+    , diffIrradCompute("./assets/shaders/compute/diffuseConv.cs")
+    , specIrradCompute("./assets/shaders/compute/specPrefilter.cs")
+    , brdfCompute("./assets/shaders/compute/integrateBRDF.cs")
+    , cubeShader("./assets/shaders/forward/pbrSkybox.vs", "./assets/shaders/forward/pbrSkybox.fs")
+    , preethamShader("./assets/shaders/forward/pbrSkybox.vs", "./assets/shaders/forward/preethamSkybox.fs")
+    , turbidity(2.0f)
+    , azimuth(0.0f)
+    , inclination(0.0f)
     , currentEnvironment(MapType::Skybox)
     , intensity(1.0f)
     , roughness(0.0f)
     , filepath("")
   {
-    auto modelManager = AssetManager<Model>::getManager();
-    auto shaderCache = AssetManager<Shader>::getManager();
-
-    this->cubeShader = new Shader("./assets/shaders/forward/pbr/pbrSkybox.vs", "./assets/shaders/forward/pbr/pbrSkybox.fs");
-    shaderCache->attachAsset("skybox_shader", this->cubeShader);
-
     this->cube.loadModel("./assets/.internal/cube.fbx");
+    for (auto& submesh : this->cube.getSubmeshes())
+    {
+      if (!submesh.hasVAO())
+        submesh.generateVAO();
+    }
   }
 
   EnvironmentMap::~EnvironmentMap()
@@ -86,10 +107,6 @@ namespace Strontium
   {
     switch (type)
     {
-      case MapType::Equirectangular:
-        if (this->erMap != nullptr)
-          this->erMap->bind();
-        break;
       case MapType::Skybox:
         if (this->skybox != nullptr)
           this->skybox->bind();
@@ -101,10 +118,6 @@ namespace Strontium
       case MapType::Prefilter:
         if (this->specPrefilter != nullptr)
           this->specPrefilter->bind();
-        break;
-      case MapType::Integration:
-        if (this->brdfIntMap != nullptr)
-          this->brdfIntMap->bind();
         break;
     }
   }
@@ -120,10 +133,6 @@ namespace Strontium
   {
     switch (type)
     {
-      case MapType::Equirectangular:
-        if (this->erMap != nullptr)
-          this->erMap->bind(bindPoint);
-        break;
       case MapType::Skybox:
         if (this->skybox != nullptr)
           this->skybox->bind(bindPoint);
@@ -136,33 +145,33 @@ namespace Strontium
         if (this->specPrefilter != nullptr)
           this->specPrefilter->bind(bindPoint);
         break;
-      case MapType::Integration:
-        if (this->brdfIntMap != nullptr)
-          this->brdfIntMap->bind(bindPoint);
-        break;
     }
+  }
+
+  void
+  EnvironmentMap::bindBRDFLUT(GLuint bindPoint)
+  {
+    if (this->brdfIntMap != nullptr)
+      this->brdfIntMap->bind(bindPoint);
   }
 
   // Draw the skybox.
   void
-  EnvironmentMap::configure(Shared<Camera> camera)
+  EnvironmentMap::configure()
   {
-    glm::mat4 vP = camera->getProjMatrix() * glm::mat4(glm::mat3(camera->getViewMatrix()));
+    this->paramBuffer.bindToPoint(1);
+    this->paramBuffer.setData(0, sizeof(GLfloat), &this->roughness);
 
-    this->cubeShader->bind();
-    this->cubeShader->addUniformMatrix("vP", vP, GL_FALSE);
-    this->cubeShader->addUniformSampler("skybox", 0);
-
-    if (this->currentEnvironment == MapType::Prefilter)
-      this->cubeShader->addUniformFloat("roughness", this->roughness);
+    if (this->currentEnvironment == MapType::Preetham)
+    {
+      glm::vec3 sunDir = glm::vec3(sin(this->inclination) * cos(this->azimuth),
+                                   cos(this->inclination),
+                                   sin(this->inclination) * sin(this->azimuth));
+      this->paramBuffer.setData(sizeof(GLfloat), sizeof(glm::vec3), &sunDir.x);
+      this->paramBuffer.setData(sizeof(glm::vec4), sizeof(GLfloat), &this->turbidity);
+    }
 
     this->bind(this->currentEnvironment, 0);
-
-    for (auto& submesh : this->cube.getSubmeshes())
-    {
-      if (!submesh.hasVAO())
-        submesh.generateVAO();
-    }
   }
 
   // Getters.
@@ -171,9 +180,6 @@ namespace Strontium
   {
     switch (type)
     {
-      case MapType::Equirectangular:
-        if (this->erMap != nullptr)
-          return this->erMap->getID();
       case MapType::Skybox:
         if (this->skybox != nullptr)
           return this->skybox->getID();
@@ -183,9 +189,6 @@ namespace Strontium
       case MapType::Prefilter:
         if (this->specPrefilter != nullptr)
           return this->specPrefilter->getID();
-      case MapType::Integration:
-        if (this->brdfIntMap != nullptr)
-          return this->brdfIntMap->getID();
     }
 
     return 0;
@@ -220,9 +223,6 @@ namespace Strontium
     this->skybox = createUnique<CubeMap>(width, height, 4, params);
     this->skybox->initNullTexture();
 
-    // The equirectangular to cubemap compute shader.
-    ComputeShader conversionShader = ComputeShader("./assets/shaders/compute/equiConversion.cs");
-
     // Buffer to pass the sizes of the image to the compute shader.
     struct
     {
@@ -242,7 +242,7 @@ namespace Strontium
     this->skybox->bindAsImage(1, 0, true, 0, ImageAccessPolicy::ReadWrite);
 
     // Launch the compute shader.
-    conversionShader.launchCompute(glm::ivec3(width / 32, height / 32, 6));
+    this->equiToCubeCompute.launchCompute(glm::ivec3(width / 32, height / 32, 6));
 
     this->skybox->generateMips();
 
@@ -273,9 +273,6 @@ namespace Strontium
     this->irradiance = createUnique<CubeMap>(width, height, 4, params);
     this->irradiance->initNullTexture();
 
-    // Convolution compute shader.
-    ComputeShader convolutionShader = ComputeShader("./assets/shaders/compute/diffuseConv.cs");
-
     // Buffer to pass the sizes of the image to the compute shader.
     glm::vec2 dimensions = glm::vec2((GLfloat) width, (GLfloat) height);
     ShaderStorageBuffer sizeBuff = ShaderStorageBuffer(&dimensions,
@@ -290,7 +287,7 @@ namespace Strontium
     this->irradiance->bindAsImage(1, 0, true, 0, ImageAccessPolicy::Write);
 
     // Launch the compute shader.
-    convolutionShader.launchCompute(glm::ivec3(width / 32, height / 32, 6));
+    this->diffIrradCompute.launchCompute(glm::ivec3(width / 32, height / 32, 6));
 
     auto end = std::chrono::steady_clock::now();
     std::chrono::duration<double> elapsed = end - start;
@@ -327,9 +324,6 @@ namespace Strontium
       this->specPrefilter->initNullTexture();
       this->specPrefilter->generateMips();
 
-      // The specular prefilter compute shader.
-      ComputeShader filterShader = ComputeShader("./assets/shaders/compute/specPrefilter.cs");
-
       // A buffer with the parameters required for computing the prefilter.
       struct
       {
@@ -364,7 +358,7 @@ namespace Strontium
         paramBuff.bindToPoint(2);
 
         // Launch the compute.
-        filterShader.launchCompute(glm::ivec3(mipWidth / 32, mipHeight / 32, 6));
+        this->specIrradCompute.launchCompute(glm::ivec3(mipWidth / 32, mipHeight / 32, 6));
       }
 
       auto end = std::chrono::steady_clock::now();
@@ -373,7 +367,15 @@ namespace Strontium
       logs->logMessage(LogMessage("Pre-filtered environment map (elapsed time: "
                                   + std::to_string(elapsed.count()) + " s).", true,
                                   true));
+
+      this->computeBRDFLUT();
     }
+  }
+
+  void
+  EnvironmentMap::computeBRDFLUT()
+  {
+    Logger* logs = Logger::getInstance();
 
     if (this->brdfIntMap == nullptr)
     {
@@ -390,13 +392,11 @@ namespace Strontium
       this->brdfIntMap = createUnique<Texture2D>(512, 512, 2, params);
       this->brdfIntMap->initNullTexture();
 
-      ComputeShader integrateBRDF = ComputeShader("./assets/shaders/compute/integrateBRDF.cs");
-
       // Bind the integration map for writing to by the compute shader.
       this->brdfIntMap->bindAsImage(3, 0, ImageAccessPolicy::Write);
 
       // Launch the compute shader.
-      integrateBRDF.launchCompute(glm::ivec3(512 / 32, 512 / 32, 1));
+      this->brdfCompute.launchCompute(glm::ivec3(512 / 32, 512 / 32, 1));
 
       auto end = std::chrono::steady_clock::now();
       std::chrono::duration<double> elapsed = end - start;
@@ -404,6 +404,16 @@ namespace Strontium
       logs->logMessage(LogMessage("Generated BRDF lookup texture (elapsed time: "
                                   + std::to_string(elapsed.count()) + " s).", true,
                                   true));
+    }
+  }
+
+  Shader*
+  EnvironmentMap::getCubeProg()
+  {
+    switch (this->currentEnvironment)
+    {
+      case MapType::Preetham: return &this->preethamShader; break;
+      default:                return &this->cubeShader; break;
     }
   }
 }

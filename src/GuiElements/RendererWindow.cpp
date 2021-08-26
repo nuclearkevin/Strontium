@@ -45,8 +45,8 @@ namespace Strontium
       static int cascadeIndex = 0;
       ImGui::SliderInt("Cascade Index", &cascadeIndex, 0, NUM_CASCADES - 1);
 
-      ImGui::SliderFloat("Cascade Lambda", &state->cascadeLambda, 0.5f, 1.0f);
-      ImGui::SliderFloat("Bleed Reduction", &state->bleedReduction, 0.0f, 0.9f);
+      ImGui::DragFloat("Cascade Lambda", &state->cascadeLambda, 0.01f, 0.5f, 1.0f);
+      ImGui::DragFloat("Bleed Reduction", &state->bleedReduction, 0.01f, 0.0f, 0.9f);
 
       int shadowWidth = state->cascadeSize;
       if (ImGui::InputInt("Shadowmap Size", &shadowWidth))
@@ -95,13 +95,14 @@ namespace Strontium
       static int upMipView = 0;
       static int bufferMipView = 0;
 
-      ImGui::SliderFloat("Threshold", &state->bloomThreshold, 0.0f, 10.0f);
-      ImGui::SliderFloat("Knee", &state->bloomKnee, 0.0f, 10.0f);
-      ImGui::SliderFloat("Radius", &state->bloomRadius, 1.0f, 10.0f);
-      ImGui::SliderFloat("Intensity", &state->bloomIntensity, 0.0f, 10.0f);
-      ImGui::Indent();
+      ImGui::Checkbox("Use Bloom", &state->enableBloom);
+      ImGui::DragFloat("Threshold", &state->bloomThreshold, 0.01f, 0.0f, 10.0f);
+      ImGui::DragFloat("Knee", &state->bloomKnee, 0.01f, 0.0f, 1.0f);
+      ImGui::DragFloat("Radius", &state->bloomRadius, 0.01f, 0.0f, 10.0f);
+      ImGui::DragFloat("Intensity", &state->bloomIntensity, 0.01f, 0.0f, 10.0f);
       if (ImGui::CollapsingHeader("Debug View##bloom"))
       {
+        ImGui::Indent();
         ImGui::Text("Downsample Image Pyramid (%d, %d)",
                     storage->downscaleBloomTex[downMipView].width,
                     storage->downscaleBloomTex[downMipView].height);
@@ -122,41 +123,30 @@ namespace Strontium
         ImGui::SliderInt("Mip##buffer", &bufferMipView, 0, MAX_NUM_BLOOM_MIPS - 2);
         ImGui::Image((ImTextureID) (unsigned long) storage->bufferBloomTex[bufferMipView].getID(),
                      ImVec2(128.0f * ratio, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
+        ImGui::Unindent();
       }
-      ImGui::Unindent();
     }
 
-    if (ImGui::CollapsingHeader("Render Passes"))
+    if (ImGui::CollapsingHeader("Tone Mapping"))
     {
-      auto bufferSize = storage->gBuffer.getSize();
-      GLfloat ratio = bufferSize.x / bufferSize.y;
+      ImGui::DragFloat("Gamma", &state->gamma, 0.01f, 1.0f, 10.0f);
 
-      ImGui::Separator();
-      ImGui::Text("Lighting:");
-      ImGui::Separator();
-      ImGui::Image((ImTextureID) (unsigned long) storage->lightingPass.getAttachID(FBOTargetParam::Colour0),
-                   ImVec2(128.0f * ratio, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
-      ImGui::Separator();
-      ImGui::Text("GBuffer:");
-      ImGui::Separator();
-      ImGui::Text("Positions:");
-      ImGui::Image((ImTextureID) (unsigned long) storage->gBuffer.getAttachmentID(FBOTargetParam::Colour0),
-                   ImVec2(128.0f * ratio, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
-      ImGui::Text("Normals:");
-      ImGui::Image((ImTextureID) (unsigned long) storage->gBuffer.getAttachmentID(FBOTargetParam::Colour1),
-                   ImVec2(128.0f * ratio, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
-      ImGui::Text("Albedo:");
-      ImGui::Image((ImTextureID) (unsigned long) storage->gBuffer.getAttachmentID(FBOTargetParam::Colour2),
-                   ImVec2(128.0f * ratio, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
-      ImGui::Text("Materials:");
-      ImGui::Image((ImTextureID) (unsigned long) storage->gBuffer.getAttachmentID(FBOTargetParam::Colour3),
-                   ImVec2(128.0f * ratio, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
-      ImGui::Text("Entity Mask:");
-      ImGui::Image((ImTextureID) (unsigned long) storage->gBuffer.getAttachmentID(FBOTargetParam::Colour4),
-                   ImVec2(128.0f * ratio, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
-      ImGui::Text("Depth:");
-      ImGui::Image((ImTextureID) (unsigned long) storage->gBuffer.getAttachmentID(FBOTargetParam::Depth),
-                   ImVec2(128.0f * ratio, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
+      const char* toneMapOps[] = { "Reinhard", "Enhanced Reinhard", "Reinhard-Jodie", "Uncharted 2", "Fast ACES", "ACES", "None" };
+
+      if (ImGui::BeginCombo("##toneMapCombo", toneMapOps[state->postProcessSettings.x]))
+      {
+        for (unsigned int i = 0; i < IM_ARRAYSIZE(toneMapOps); i++)
+        {
+          bool isSelected = (toneMapOps[i] == toneMapOps[state->postProcessSettings.x]);
+          if (ImGui::Selectable(toneMapOps[i], isSelected))
+            state->postProcessSettings.x = i;
+
+          if (isSelected)
+            ImGui::SetItemDefaultFocus();
+        }
+
+        ImGui::EndCombo();
+      }
     }
 
     if (ImGui::CollapsingHeader("Environment Map"))
@@ -251,6 +241,39 @@ namespace Strontium
         prefilterSamples = std::pow(2, std::floor(std::log2(prefilterSamples)));
         state->prefilterSamples = prefilterSamples;
       }
+    }
+
+    if (ImGui::CollapsingHeader("Render Passes"))
+    {
+      auto bufferSize = storage->gBuffer.getSize();
+      GLfloat ratio = bufferSize.x / bufferSize.y;
+
+      ImGui::Separator();
+      ImGui::Text("Lighting:");
+      ImGui::Separator();
+      ImGui::Image((ImTextureID) (unsigned long) storage->lightingPass.getAttachID(FBOTargetParam::Colour0),
+      ImVec2(128.0f * ratio, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
+      ImGui::Separator();
+      ImGui::Text("GBuffer:");
+      ImGui::Separator();
+      ImGui::Text("Positions:");
+      ImGui::Image((ImTextureID) (unsigned long) storage->gBuffer.getAttachmentID(FBOTargetParam::Colour0),
+      ImVec2(128.0f * ratio, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
+      ImGui::Text("Normals:");
+      ImGui::Image((ImTextureID) (unsigned long) storage->gBuffer.getAttachmentID(FBOTargetParam::Colour1),
+      ImVec2(128.0f * ratio, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
+      ImGui::Text("Albedo:");
+      ImGui::Image((ImTextureID) (unsigned long) storage->gBuffer.getAttachmentID(FBOTargetParam::Colour2),
+      ImVec2(128.0f * ratio, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
+      ImGui::Text("Materials:");
+      ImGui::Image((ImTextureID) (unsigned long) storage->gBuffer.getAttachmentID(FBOTargetParam::Colour3),
+      ImVec2(128.0f * ratio, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
+      ImGui::Text("Entity Mask:");
+      ImGui::Image((ImTextureID) (unsigned long) storage->gBuffer.getAttachmentID(FBOTargetParam::Colour4),
+      ImVec2(128.0f * ratio, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
+      ImGui::Text("Depth:");
+      ImGui::Image((ImTextureID) (unsigned long) storage->gBuffer.getAttachmentID(FBOTargetParam::Depth),
+      ImVec2(128.0f * ratio, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
     }
 
     ImGui::End();

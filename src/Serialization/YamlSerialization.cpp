@@ -377,7 +377,7 @@ namespace Strontium
         out << YAML::Key << "FiltSam" << YAML::Value << state->prefilterSamples;
         out << YAML::Key << "IBLRough" << YAML::Value << component.ambient->getRoughness();
         out << YAML::Key << "Intensity" << YAML::Value << component.ambient->getIntensity();
-        out << YAML::Key << "DrawBlurred" << YAML::Value << component.ambient->drawingFilter();
+        out << YAML::Key << "DrawBlurred" << YAML::Value << (component.ambient->getDrawingType() == MapType::Prefilter);
 
         out << YAML::EndMap;
       }
@@ -423,6 +423,21 @@ namespace Strontium
       out << YAML::Key << "CascadeLambda" << YAML::Value << state->cascadeLambda;
       out << YAML::Key << "CascadeSize" << YAML::Value << state->cascadeSize;
       out << YAML::Key << "CascadeLightBleed" << YAML::Value << state->bleedReduction;
+      out << YAML::EndMap;
+
+      out << YAML::Key << "BloomSettings";
+      out << YAML::BeginMap;
+      out << YAML::Key << "EnableBloom" << YAML::Value << state->enableBloom;
+      out << YAML::Key << "Threshold" << YAML::Value << state->bloomThreshold;
+      out << YAML::Key << "Knee" << YAML::Value << state->bloomKnee;
+      out << YAML::Key << "Intensity" << YAML::Value << state->bloomIntensity;
+      out << YAML::Key << "Radius" << YAML::Value << state->bloomRadius;
+      out << YAML::EndMap;
+
+      out << YAML::Key << "ToneMapSettings";
+      out << YAML::BeginMap;
+      out << YAML::Key << "ToneMapType" << YAML::Value << state->postProcessSettings.x;
+      out << YAML::Key << "Gamma" << YAML::Value << state->gamma;
       out << YAML::EndMap;
 
       out << YAML::EndMap;
@@ -760,6 +775,22 @@ namespace Strontium
           state->cascadeLambda = shadowSettings["CascadeLambda"].as<GLfloat>();
           state->cascadeSize = shadowSettings["CascadeSize"].as<GLuint>();
           state->bleedReduction = shadowSettings["CascadeLightBleed"].as<GLfloat>();
+        }
+
+        auto bloomSettings = rendererSettings["BloomSettings"];
+        if (bloomSettings)
+        {
+          state->bloomThreshold = bloomSettings["Threshold"].as<GLfloat>();
+          state->bloomKnee = bloomSettings["Knee"].as<GLfloat>();
+          state->bloomIntensity = bloomSettings["Intensity"].as<GLfloat>();
+          state->bloomRadius = bloomSettings["Radius"].as<GLfloat>();
+        }
+
+        auto tonemapSettings = rendererSettings["ToneMapSettings"];
+        if (tonemapSettings)
+        {
+          state->postProcessSettings.x = tonemapSettings["ToneMapType"].as<GLuint>();
+          state->gamma = tonemapSettings["Gamma"].as<GLfloat>();
         }
       }
 

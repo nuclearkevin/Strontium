@@ -872,21 +872,49 @@ namespace Strontium
           this->fileTargets = FileLoadTargets::TargetEnvironment;
         }
 
+        auto drawingType = component.ambient->getDrawingType();
+        static GLuint mapTypes[] = { 0, 1, 2, 3 };
+
+        if (ImGui::BeginCombo("##ambientType", EnvironmentMap::mapEnumToString(drawingType).c_str()))
+        {
+          for (GLuint i = 0; i < IM_ARRAYSIZE(mapTypes); i++)
+          {
+            bool isSelected = (i == static_cast<GLuint>(drawingType));
+            auto mapTypeString = EnvironmentMap::mapEnumToString(static_cast<MapType>(mapTypes[i]));
+
+            if (ImGui::Selectable(mapTypeString.c_str(), isSelected))
+              component.ambient->setDrawingType(static_cast<MapType>(i));
+            if (isSelected)
+              ImGui::SetItemDefaultFocus();
+          }
+          ImGui::EndCombo();
+        }
+        ImGui::Separator();
+        ImGui::Text("");
+
+        if (component.ambient->getDrawingType() == MapType::Preetham)
+        {
+          GLfloat inclinationDeg = glm::degrees(component.ambient->getInclination());
+          GLfloat azimuthDeg = glm::degrees(component.ambient->getAzimuth());
+
+          Styles::drawFloatControl("Inclination", 2.0f, inclinationDeg, 0.0f, 0.1f, -180.0f, 180.0f);
+          Styles::drawFloatControl("Azimuth", 2.0f, azimuthDeg, 0.0f, 0.1f, -180.0f, 180.0f);
+
+          component.ambient->getInclination() = glm::radians(inclinationDeg);
+          component.ambient->getAzimuth() = glm::radians(azimuthDeg);
+
+          Styles::drawFloatControl("Turbidity", 2.0f, component.ambient->getTurbidity(), 0.0f, 0.1f, 2.0f, 10.0f);
+        }
+
         if (component.ambient->hasEqrMap())
         {
-          bool drawingMips = component.ambient->drawingFilter();
-
-          ImGui::Checkbox("Draw Blurred", &drawingMips);
-          if (drawingMips)
-          {
+          if (component.ambient->getDrawingType() == MapType::Prefilter)
             ImGui::SliderFloat("Roughness", &component.ambient->getRoughness(), 0.0f, 1.0f);
-            component.ambient->setDrawingType(MapType::Prefilter);
-          }
-          else
-            component.ambient->setDrawingType(MapType::Skybox);
 
-          Styles::drawFloatControl("Intensity", 1.0f, component.ambient->getIntensity(), 0.0f, 0.1f, 0.0f, 100.0f);
         }
+        ImGui::Separator();
+        ImGui::Text("");
+        Styles::drawFloatControl("Intensity", 1.0f, component.ambient->getIntensity(), 0.0f, 0.1f, 0.0f, 100.0f);
       });
     }
 

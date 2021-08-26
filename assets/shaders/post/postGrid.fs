@@ -6,15 +6,14 @@ in VERT_OUT
   vec3 fFarPoint;
 } fragIn;
 
-uniform mat4 viewProj;
-
 // The post processing properties.
 layout(std140, binding = 0) uniform PostProcessBlock
 {
   mat4 u_invViewProj;
   mat4 u_viewProj;
   vec4 u_camPosScreenSize; // Camera position (x, y, z) and the screen width (w).
-  vec3 u_screenSizeGammaBloom;  // Screen height (x), gamma (y) and bloom intensity (z).
+  vec4 u_screenSizeGammaBloom;  // Screen height (x), gamma (y) and bloom intensity (z). w is unused.
+  ivec4 u_postProcessingPasses;
 };
 
 layout(binding = 0) uniform sampler2DShadow gDepth;

@@ -187,7 +187,7 @@ namespace Strontium
 
         storage->currentEnvironment->bind(MapType::Irradiance, 0);
         storage->currentEnvironment->bind(MapType::Prefilter, 1);
-        storage->currentEnvironment->bind(MapType::Integration, 2);
+        storage->currentEnvironment->bindBRDFLUT(2);
       }
       else
       {
@@ -235,8 +235,9 @@ namespace Strontium
     drawEnvironment()
     {
       RendererCommands::depthFunction(DepthFunctions::LEq);
-      storage->currentEnvironment->configure(storage->sceneCam);
+      storage->currentEnvironment->configure();
 
+      storage->camBuffer.bindToPoint(0);
       for (auto& submesh : storage->currentEnvironment->getCubeMesh()->getSubmeshes())
         Renderer3D::draw(submesh.getVAO(), storage->currentEnvironment->getCubeProg());
 
@@ -736,7 +737,7 @@ namespace Strontium
       // Environment maps.
       storage->currentEnvironment->bind(MapType::Irradiance, 0);
       storage->currentEnvironment->bind(MapType::Prefilter, 1);
-      storage->currentEnvironment->bind(MapType::Integration, 2);
+      storage->currentEnvironment->bindBRDFLUT(2);
       // Gbuffer textures.
       storage->gBuffer.bindAttachment(FBOTargetParam::Colour0, 3);
       storage->gBuffer.bindAttachment(FBOTargetParam::Colour1, 4);
@@ -875,63 +876,70 @@ namespace Strontium
       //------------------------------------------------------------------------
       // Bloom pass.
       //------------------------------------------------------------------------
-      // Prefilter + downsample using the lighting buffer as the source.
-      storage->bloomSettingsBuffer.bindToPoint(2);
-      glm::vec2 bloomSettings = glm::vec2(state->bloomThreshold, state->bloomKnee);
-      storage->bloomSettingsBuffer.setData(0, sizeof(glm::vec2), &bloomSettings.x);
-
-      storage->lightingPass.getAttachment(FBOTargetParam::Colour0)
-             ->bindAsImage(0, 0, ImageAccessPolicy::Read);
-      storage->downscaleBloomTex[0].bindAsImage(1, 0, ImageAccessPolicy::Write);
-      glm::ivec3 invoke = glm::ivec3(glm::ceil(((GLfloat) storage->downscaleBloomTex[0].width) / 32.0f),
-                                     glm::ceil(((GLfloat) storage->downscaleBloomTex[0].height) / 32.0f),
-                                     1);
-      storage->bloomPrefilter.launchCompute(invoke);
-      ComputeShader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
-
-      // Continuous downsample the bloom texture to make an image pyramid.
-      for (unsigned int i = 1; i < MAX_NUM_BLOOM_MIPS; i++)
+      if (state->enableBloom)
       {
-        storage->downscaleBloomTex[i - 1].bindAsImage(0, 0, ImageAccessPolicy::Read);
-        storage->downscaleBloomTex[i].bindAsImage(1, 0, ImageAccessPolicy::Write);
-        invoke = glm::ivec3(glm::ceil(((GLfloat) storage->downscaleBloomTex[i].width) / 32.0f),
-                            glm::ceil(((GLfloat) storage->downscaleBloomTex[i].height) / 32.0f),
-                            1);
-        storage->bloomDownsample.launchCompute(invoke);
+        // Prefilter + downsample using the lighting buffer as the source.
+        storage->bloomSettingsBuffer.bindToPoint(3);
+        auto bloomSettings = glm::vec4(state->bloomThreshold, state->bloomThreshold - state->bloomKnee,
+                                       2.0f * state->bloomKnee, 0.25 / state->bloomKnee);
+        storage->bloomSettingsBuffer.setData(0, sizeof(glm::vec4), &bloomSettings.x);
+        storage->bloomSettingsBuffer.setData(sizeof(glm::vec4), sizeof(GLfloat), &state->bloomRadius);
+
+        storage->lightingPass.getAttachment(FBOTargetParam::Colour0)
+               ->bindAsImage(0, 0, ImageAccessPolicy::Read);
+        storage->downscaleBloomTex[0].bindAsImage(1, 0, ImageAccessPolicy::Write);
+        glm::ivec3 invoke = glm::ivec3(glm::ceil(((GLfloat) storage->downscaleBloomTex[0].width) / 32.0f),
+                                       glm::ceil(((GLfloat) storage->downscaleBloomTex[0].height) / 32.0f),
+                                       1);
+        storage->bloomPrefilter.launchCompute(invoke);
         ComputeShader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
-      }
 
-      // Blur each of the mips.
-      for (unsigned int i = 0; i < MAX_NUM_BLOOM_MIPS - 1; i++)
-      {
-        storage->downscaleBloomTex[i].bindAsImage(0, 0, ImageAccessPolicy::Read);
-        storage->bufferBloomTex[i].bindAsImage(1, 0, ImageAccessPolicy::Write);
-        invoke = glm::ivec3(glm::ceil(((GLfloat) storage->bufferBloomTex[i].width) / 32.0f),
-                            glm::ceil(((GLfloat) storage->bufferBloomTex[i].height) / 32.0f),
+        // Continuous downsample the bloom texture to make an image pyramid.
+        for (unsigned int i = 1; i < MAX_NUM_BLOOM_MIPS; i++)
+        {
+          storage->downscaleBloomTex[i - 1].bindAsImage(0, 0, ImageAccessPolicy::Read);
+          storage->downscaleBloomTex[i].bindAsImage(1, 0, ImageAccessPolicy::Write);
+          invoke = glm::ivec3(glm::ceil(((GLfloat) storage->downscaleBloomTex[i].width) / 32.0f),
+                              glm::ceil(((GLfloat) storage->downscaleBloomTex[i].height) / 32.0f),
+                              1);
+          storage->bloomDownsample.launchCompute(invoke);
+          ComputeShader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
+        }
+
+        // Blur each of the mips.
+        for (unsigned int i = 0; i < MAX_NUM_BLOOM_MIPS - 1; i++)
+        {
+          storage->downscaleBloomTex[i].bindAsImage(0, 0, ImageAccessPolicy::Read);
+          storage->bufferBloomTex[i].bindAsImage(1, 0, ImageAccessPolicy::Write);
+          invoke = glm::ivec3(glm::ceil(((GLfloat) storage->bufferBloomTex[i].width) / 32.0f),
+                              glm::ceil(((GLfloat) storage->bufferBloomTex[i].height) / 32.0f),
+                              1);
+          storage->bloomUpsample.launchCompute(invoke);
+          ComputeShader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
+        }
+
+        // Copy and blur the last mip of the downsampling pyramid into the last
+        // mip of the upsampling pyramid.
+        storage->downscaleBloomTex[MAX_NUM_BLOOM_MIPS - 1].bindAsImage(0, 0, ImageAccessPolicy::Read);
+        storage->upscaleBloomTex[MAX_NUM_BLOOM_MIPS - 1].bindAsImage(1, 0, ImageAccessPolicy::Write);
+        invoke = glm::ivec3(glm::ceil(((GLfloat) storage->bufferBloomTex[MAX_NUM_BLOOM_MIPS - 1].width) / 32.0f),
+                            glm::ceil(((GLfloat) storage->bufferBloomTex[MAX_NUM_BLOOM_MIPS - 1].height) / 32.0f),
                             1);
         storage->bloomUpsample.launchCompute(invoke);
         ComputeShader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
-      }
 
-      storage->downscaleBloomTex[MAX_NUM_BLOOM_MIPS - 1].bindAsImage(0, 0, ImageAccessPolicy::Read);
-      storage->upscaleBloomTex[MAX_NUM_BLOOM_MIPS - 1].bindAsImage(1, 0, ImageAccessPolicy::Write);
-      invoke = glm::ivec3(glm::ceil(((GLfloat) storage->bufferBloomTex[MAX_NUM_BLOOM_MIPS - 1].width) / 32.0f),
-                          glm::ceil(((GLfloat) storage->bufferBloomTex[MAX_NUM_BLOOM_MIPS - 1].height) / 32.0f),
-                          1);
-      storage->bloomUpsample.launchCompute(invoke);
-      ComputeShader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
-
-      // Blend the previous mips together with a blur on the previous mip.
-      for (unsigned int i = MAX_NUM_BLOOM_MIPS - 1; i > 0; i--)
-      {
-        storage->upscaleBloomTex[i].bindAsImage(0, 0, ImageAccessPolicy::Read);
-        storage->bufferBloomTex[i - 1].bindAsImage(1, 0, ImageAccessPolicy::Read);
-        storage->upscaleBloomTex[i - 1].bindAsImage(2, 0, ImageAccessPolicy::Write);
-        invoke = glm::ivec3(glm::ceil(((GLfloat) storage->upscaleBloomTex[i - 1].width) / 32.0f),
-                            glm::ceil(((GLfloat) storage->upscaleBloomTex[i - 1].height) / 32.0f),
-                            1);
-        storage->bloomUpsampleBlend.launchCompute(invoke);
-        ComputeShader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
+        // Blend the previous mips together with a blur on the previous mip.
+        for (unsigned int i = MAX_NUM_BLOOM_MIPS - 1; i > 0; i--)
+        {
+          storage->upscaleBloomTex[i].bindAsImage(0, 0, ImageAccessPolicy::Read);
+          storage->bufferBloomTex[i - 1].bindAsImage(1, 0, ImageAccessPolicy::Read);
+          storage->upscaleBloomTex[i - 1].bindAsImage(2, 0, ImageAccessPolicy::Write);
+          invoke = glm::ivec3(glm::ceil(((GLfloat) storage->upscaleBloomTex[i - 1].width) / 32.0f),
+                              glm::ceil(((GLfloat) storage->upscaleBloomTex[i - 1].height) / 32.0f),
+                              1);
+          storage->bloomUpsampleBlend.launchCompute(invoke);
+          ComputeShader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
+        }
       }
 
       // Prep the front buffer.
@@ -940,8 +948,7 @@ namespace Strontium
       frontBuffer->setViewport();
 
       //------------------------------------------------------------------------
-      // HDR post processing pass. Also streams the entity IDs to the editor
-      // buffer.
+      // Generalized post processing shader.
       //------------------------------------------------------------------------
       // Prepare the post processing buffer.
       storage->postProcessSettings.bindToPoint(0);
@@ -950,12 +957,15 @@ namespace Strontium
       auto camPos = storage->sceneCam->getCamPos();
       auto screenSize = frontBuffer->getSize();
       auto data0 = glm::vec4(camPos.x, camPos.y, camPos.z, screenSize.x);
-      auto data1 = glm::vec3(screenSize.y, state->gamma, state->bloomIntensity);
+      auto data1 = glm::vec4(screenSize.y, state->gamma, state->bloomIntensity, 0.0f);
+
+      state->postProcessSettings.y = (GLuint) state->enableBloom;
 
       storage->postProcessSettings.setData(0, sizeof(glm::mat4), glm::value_ptr(invViewProj));
       storage->postProcessSettings.setData(sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(viewProj));
       storage->postProcessSettings.setData(2 * sizeof(glm::mat4), sizeof(glm::vec4), &data0.x);
-      storage->postProcessSettings.setData(2 * sizeof(glm::mat4) + sizeof(glm::vec4), sizeof(glm::vec3), &data1.x);
+      storage->postProcessSettings.setData(2 * sizeof(glm::mat4) + sizeof(glm::vec4), sizeof(glm::vec4), &data1.x);
+      storage->postProcessSettings.setData(2 * sizeof(glm::mat4) + 2 * sizeof(glm::vec4), sizeof(glm::ivec4), &state->postProcessSettings.x);
 
       storage->lightingPass.bindTextureID(FBOTargetParam::Colour0, 0);
       storage->gBuffer.bindAttachment(FBOTargetParam::Colour4, 1);

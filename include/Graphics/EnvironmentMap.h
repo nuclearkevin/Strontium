@@ -8,16 +8,25 @@
 #include "Core/ApplicationBase.h"
 #include "Graphics/Model.h"
 #include "Graphics/Shaders.h"
+#include "Graphics/Compute.h"
 #include "Graphics/Camera.h"
 #include "Graphics/Textures.h"
 
 namespace Strontium
 {
-  enum class MapType { Equirectangular, Skybox, Irradiance, Prefilter, Integration };
+  enum class MapType
+  {
+    Skybox = 0,
+    Irradiance = 1,
+    Prefilter = 2,
+    Preetham = 3
+  };
 
   class EnvironmentMap
   {
   public:
+    static std::string mapEnumToString(const MapType &type);
+
     EnvironmentMap();
     ~EnvironmentMap();
 
@@ -40,9 +49,10 @@ namespace Strontium
 
     // Binds one of the environment map PBR textures to a point.
     void bind(const MapType &type, GLuint bindPoint);
+    void bindBRDFLUT(GLuint bindPoint);
 
     // Draw the skybox.
-    void configure(Shared<Camera> camera);
+    void configure();
 
     // Generate the diffuse irradiance map.
     void precomputeIrradiance(const GLuint &width = 512, const GLuint &height = 512, bool isHDR = true);
@@ -50,22 +60,29 @@ namespace Strontium
     // Generate the specular map components (pre-filter and BRDF integration map).
     void precomputeSpecular(const GLuint &width = 512, const GLuint &height = 512, bool isHDR = true);
 
+    // Compute the BRDF integration LUT separately.
+    void computeBRDFLUT();
+
     // Getters.
     GLuint getTexID(const MapType &type);
 
     GLfloat& getIntensity() { return this->intensity; }
     GLfloat& getRoughness() { return this->roughness; }
+
+    GLfloat& getInclination() { return this->inclination; }
+    GLfloat& getAzimuth() { return this->azimuth; }
+    GLfloat& getTurbidity() { return this->turbidity; }
+
+    MapType getDrawingType() { return this->currentEnvironment; }
     Model* getCubeMesh() { return &this->cube; }
-    Shader* getCubeProg() { return this->cubeShader; }
+    Shader* getCubeProg();
     std::string& getFilepath() { return this->filepath; }
+
     bool hasEqrMap() { return this->erMap != nullptr; }
     bool hasSkybox() { return this->skybox != nullptr; }
     bool hasIrradiance() { return this->irradiance != nullptr; }
     bool hasPrefilter() { return this->specPrefilter != nullptr; }
     bool hasIntegration() { return this->brdfIntMap != nullptr; }
-    bool drawingSkybox() { return this->currentEnvironment == MapType::Skybox; }
-    bool drawingIrrad() { return this->currentEnvironment == MapType::Irradiance; }
-    bool drawingFilter() { return this->currentEnvironment == MapType::Prefilter; }
 
     void setDrawingType(MapType type) { this->currentEnvironment = type; }
   protected:
@@ -75,15 +92,27 @@ namespace Strontium
     Unique<CubeMap>   specPrefilter;
     Unique<Texture2D> brdfIntMap;
 
+    ComputeShader equiToCubeCompute;
+    ComputeShader diffIrradCompute;
+    ComputeShader specIrradCompute;
+    ComputeShader brdfCompute;
+
+    UniformBuffer paramBuffer;
+
+    Shader cubeShader;
+    Shader preethamShader;
+
+    GLfloat turbidity;
+    GLfloat azimuth;
+    GLfloat inclination;
+
     std::string filepath;
+    MapType currentEnvironment;
 
-    MapType   currentEnvironment;
+    // Parameters for drawing the skybox.
+    GLfloat intensity;
+    GLfloat roughness;
 
-    // Tone-mapped parameters.
-    GLfloat   intensity;
-    GLfloat   roughness;
-
-    Shader*  cubeShader;
 
     Model    cube;
   };

@@ -118,14 +118,14 @@ namespace Strontium
         , cascadeShadowBuffer(NUM_CASCADES * sizeof(glm::mat4)
                               + NUM_CASCADES * sizeof(glm::vec4) * sizeof(GLfloat),
                               BufferType::Dynamic)
-        , postProcessSettings(2 * sizeof(glm::mat4) + sizeof(glm::vec4)
-                              + sizeof(glm::vec3), BufferType::Dynamic)
+        , postProcessSettings(2 * sizeof(glm::mat4) + 2 * sizeof(glm::vec4)
+                              + sizeof(glm::ivec4), BufferType::Dynamic)
         , boneBuffer(MAX_BONES_PER_MODEL * sizeof(glm::mat4), BufferType::Dynamic)
         , bloomPrefilter("./assets/shaders/compute/bloomPrefilter.cs")
         , bloomDownsample("./assets/shaders/compute/bloomDownsample.cs")
         , bloomUpsample("./assets/shaders/compute/bloomUpsample.cs")
         , bloomUpsampleBlend("./assets/shaders/compute/bloomUpsampleBlend.cs")
-        , bloomSettingsBuffer(sizeof(glm::vec2), BufferType::Dynamic)
+        , bloomSettingsBuffer(sizeof(glm::vec4) + sizeof(GLfloat), BufferType::Dynamic)
       {
         currentEnvironment = createUnique<EnvironmentMap>();
       }
@@ -156,10 +156,13 @@ namespace Strontium
       GLfloat gamma;
 
       // Bloom settings.
+      bool enableBloom;
       GLfloat bloomThreshold;
       GLfloat bloomKnee;
       GLfloat bloomIntensity;
       GLfloat bloomRadius;
+
+      glm::ivec4 postProcessSettings;
 
       // Some editor settings.
       bool drawGrid;
@@ -176,10 +179,12 @@ namespace Strontium
         , cascadeSize(2048)
         , bleedReduction(0.2f)
         , gamma(2.2f)
+        , enableBloom(true)
         , bloomThreshold(1.0f)
         , bloomKnee(1.0f)
         , bloomIntensity(1.0f)
         , bloomRadius(1.0f)
+        , postProcessSettings(0) // Tone mapping operator (x), compositing bloom (y). z and w are unused.
         , drawGrid(true)
       { }
     };

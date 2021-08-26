@@ -25,6 +25,6 @@ namespace Strontium
     void onEvent(Event &event);
 
   private:
-    
+
   };
 }

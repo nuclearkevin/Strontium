@@ -13,9 +13,10 @@ layout(rgba16f, binding = 0) readonly uniform image2D lightingPassImage;
 layout(rgba16f, binding = 1) writeonly uniform image2D prefilteredImage;
 
 // The knee and threshold.
-layout(std140, binding = 2) buffer prefilterParams
+layout(std140, binding = 3) buffer prefilterParams
 {
-  vec2 u_kneeThreshold;
+  vec4 u_filterParams; // Threshold (x), threshold - knee (y), 2.0 * knee (z) and 0.25 / knee (w).
+  float u_upsampleRadius;
 };
 
 // The threshold curve.
@@ -32,12 +33,10 @@ void main()
   ivec2 destCoords = ivec2(gl_GlobalInvocationID.xy);
   ivec2 sourceCoords = destCoords;
 
-  float threshold = u_kneeThreshold.x;
-  float knee = u_kneeThreshold.y;
-  vec3 curve = vec3(threshold - knee, 2.0 * knee, 0.25 / knee);
+  vec3 curve = vec3(u_filterParams.y, u_filterParams.z, u_filterParams.w);
 
   vec3 colour = downsampleBox13Tap(sourceCoords);
-  vec3 filteredColour = max(quadraticThreshold(colour, threshold, curve), vec3(0.0));
+  vec3 filteredColour = max(quadraticThreshold(colour, u_filterParams.x, curve), vec3(0.0));
 
   imageStore(prefilteredImage, destCoords, vec4(filteredColour, 1.0));
 }
