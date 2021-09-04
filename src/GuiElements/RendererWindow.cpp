@@ -151,6 +151,8 @@ namespace Strontium
 
     if (ImGui::CollapsingHeader("Environment Map"))
     {
+      auto ambient = Renderer3D::getStorage()->currentEnvironment.get();
+
       int skyboxWidth = state->skyboxWidth;
       int irradianceWidth = state->irradianceWidth;
       int prefilterWidth = state->prefilterWidth;
@@ -158,8 +160,6 @@ namespace Strontium
 
       if (ImGui::Button("Recompute Environment Map"))
       {
-        auto ambient = Renderer3D::getStorage()->currentEnvironment.get();
-
         ambient->unloadComputedMaps();
         ambient->equiToCubeMap(true, state->skyboxWidth, state->skyboxWidth);
         ambient->precomputeIrradiance(state->irradianceWidth, state->irradianceWidth, true);
@@ -240,6 +240,15 @@ namespace Strontium
 
         prefilterSamples = std::pow(2, std::floor(std::log2(prefilterSamples)));
         state->prefilterSamples = prefilterSamples;
+      }
+
+      if (ambient->getDrawingType() == MapType::Preetham)
+      {
+        ImGui::Text("");
+        ImGui::Separator();
+        ImGui::Text("Preetham LUT");
+        ImGui::Image((ImTextureID) (unsigned long) ambient->getTexID(MapType::Preetham),
+                     ImVec2(256.0f, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
       }
     }
 

@@ -13,7 +13,7 @@ layout(rgba16f, binding = 0) readonly uniform image2D lightingPassImage;
 layout(rgba16f, binding = 1) writeonly uniform image2D prefilteredImage;
 
 // The knee and threshold.
-layout(std140, binding = 3) buffer prefilterParams
+layout(std140, binding = 3) buffer PrefilterParams
 {
   vec4 u_filterParams; // Threshold (x), threshold - knee (y), 2.0 * knee (z) and 0.25 / knee (w).
   float u_upsampleRadius;

@@ -26,16 +26,20 @@ namespace Strontium
     , irradiance(nullptr)
     , specPrefilter(nullptr)
     , brdfIntMap(nullptr)
-    , paramBuffer(sizeof(glm::vec4) + sizeof(GLfloat), BufferType::Dynamic)
+    , paramBuffer(2 * sizeof(glm::vec4), BufferType::Dynamic)
+    , preethamParams(2 * sizeof(glm::vec4), BufferType::Dynamic)
     , equiToCubeCompute("./assets/shaders/compute/equiConversion.cs")
     , diffIrradCompute("./assets/shaders/compute/diffuseConv.cs")
     , specIrradCompute("./assets/shaders/compute/specPrefilter.cs")
     , brdfCompute("./assets/shaders/compute/integrateBRDF.cs")
+    , preethamLUTCompute("./assets/shaders/compute/preethamLUT.cs")
     , cubeShader("./assets/shaders/forward/pbrSkybox.vs", "./assets/shaders/forward/pbrSkybox.fs")
     , preethamShader("./assets/shaders/forward/pbrSkybox.vs", "./assets/shaders/forward/preethamSkybox.fs")
     , turbidity(2.0f)
     , azimuth(0.0f)
     , inclination(0.0f)
+    , sunSize(1.0f)
+    , sunIntensity(1.0f)
     , currentEnvironment(MapType::Skybox)
     , intensity(1.0f)
     , roughness(0.0f)
@@ -47,6 +51,14 @@ namespace Strontium
       if (!submesh.hasVAO())
         submesh.generateVAO();
     }
+    this->computeBRDFLUT();
+
+    Texture2DParams params = Texture2DParams();
+    params.internal = TextureInternalFormats::RGBA16f;
+    params.format = TextureFormats::RGBA;
+    params.dataType = TextureDataType::Floats;
+    this->preethamLUT = createUnique<Texture2D>(1024, 512, 4, params);
+    this->preethamLUT->initNullTexture();
   }
 
   EnvironmentMap::~EnvironmentMap()
@@ -74,10 +86,6 @@ namespace Strontium
     {
       this->specPrefilter = Unique<CubeMap>(nullptr);
     }
-    if (this->brdfIntMap != nullptr)
-    {
-      this->brdfIntMap = Unique<Texture2D>(nullptr);
-    }
   }
 
   void
@@ -94,10 +102,6 @@ namespace Strontium
     if (this->specPrefilter != nullptr)
     {
       this->specPrefilter = Unique<CubeMap>(nullptr);
-    }
-    if (this->brdfIntMap != nullptr)
-    {
-      this->brdfIntMap = Unique<Texture2D>(nullptr);
     }
   }
 
@@ -168,9 +172,24 @@ namespace Strontium
                                    cos(this->inclination),
                                    sin(this->inclination) * sin(this->azimuth));
       this->paramBuffer.setData(sizeof(GLfloat), sizeof(glm::vec3), &sunDir.x);
-      this->paramBuffer.setData(sizeof(glm::vec4), sizeof(GLfloat), &this->turbidity);
+      auto preethamParams = glm::vec4(this->turbidity, this->sunSize, this->sunIntensity, 0.0f);
+      this->paramBuffer.setData(sizeof(glm::vec4), sizeof(glm::vec4), &preethamParams.x);
+
+      this->preethamParams.bindToPoint(1);
+      this->preethamParams.setData(0, sizeof(glm::vec3), &sunDir.x);
+      this->preethamParams.setData(sizeof(glm::vec3), sizeof(GLfloat), &this->turbidity);
+      this->preethamParams.setData(sizeof(glm::vec4), sizeof(GLfloat), &this->sunIntensity);
+      this->preethamParams.setData(sizeof(glm::vec4) + sizeof(GLfloat), sizeof(GLfloat), &this->sunSize);
+
+      this->preethamLUT->bindAsImage(0, 0, ImageAccessPolicy::Write);
+
+      this->preethamLUTCompute.launchCompute(glm::ivec3(1024 / 32, 512 / 32, 1));
+      ComputeShader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
+
+      this->preethamLUT->bind(0);
     }
 
+    this->paramBuffer.bindToPoint(1);
     this->bind(this->currentEnvironment, 0);
   }
 
@@ -189,6 +208,9 @@ namespace Strontium
       case MapType::Prefilter:
         if (this->specPrefilter != nullptr)
           return this->specPrefilter->getID();
+      case MapType::Preetham:
+        if (this->preethamLUT != nullptr)
+          return this->preethamLUT->getID();
     }
 
     return 0;
@@ -367,8 +389,6 @@ namespace Strontium
       logs->logMessage(LogMessage("Pre-filtered environment map (elapsed time: "
                                   + std::to_string(elapsed.count()) + " s).", true,
                                   true));
-
-      this->computeBRDFLUT();
     }
   }
 

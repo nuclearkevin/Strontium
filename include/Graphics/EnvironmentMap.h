@@ -72,6 +72,8 @@ namespace Strontium
     GLfloat& getInclination() { return this->inclination; }
     GLfloat& getAzimuth() { return this->azimuth; }
     GLfloat& getTurbidity() { return this->turbidity; }
+    GLfloat& getSunSize() { return this->sunSize; }
+    GLfloat& getSunIntensity() { return this->sunIntensity; }
 
     MapType getDrawingType() { return this->currentEnvironment; }
     Model* getCubeMesh() { return &this->cube; }
@@ -91,13 +93,16 @@ namespace Strontium
     Unique<CubeMap>   irradiance;
     Unique<CubeMap>   specPrefilter;
     Unique<Texture2D> brdfIntMap;
+    Unique<Texture2D> preethamLUT;
 
     ComputeShader equiToCubeCompute;
     ComputeShader diffIrradCompute;
     ComputeShader specIrradCompute;
     ComputeShader brdfCompute;
+    ComputeShader preethamLUTCompute;
 
     UniformBuffer paramBuffer;
+    ShaderStorageBuffer preethamParams;
 
     Shader cubeShader;
     Shader preethamShader;
@@ -105,6 +110,8 @@ namespace Strontium
     GLfloat turbidity;
     GLfloat azimuth;
     GLfloat inclination;
+    GLfloat sunSize;
+    GLfloat sunIntensity;
 
     std::string filepath;
     MapType currentEnvironment;

@@ -897,12 +897,14 @@ namespace Strontium
           GLfloat inclinationDeg = glm::degrees(component.ambient->getInclination());
           GLfloat azimuthDeg = glm::degrees(component.ambient->getAzimuth());
 
-          Styles::drawFloatControl("Inclination", 2.0f, inclinationDeg, 0.0f, 0.1f, -180.0f, 180.0f);
-          Styles::drawFloatControl("Azimuth", 2.0f, azimuthDeg, 0.0f, 0.1f, -180.0f, 180.0f);
+          Styles::drawFloatControl("Inclination", 2.0f, inclinationDeg, 0.0f, 0.1f, 0.0f, 90.0f);
+          Styles::drawFloatControl("Azimuth", 2.0f, azimuthDeg, 0.0f, 0.1f, 0.0f, 360.0f);
 
           component.ambient->getInclination() = glm::radians(inclinationDeg);
           component.ambient->getAzimuth() = glm::radians(azimuthDeg);
 
+          Styles::drawFloatControl("Sun Size", 0.5f, component.ambient->getSunSize(), 0.0f, 0.1f, 0.0f, 10.0f);
+          Styles::drawFloatControl("Sun Intensity", 0.0f, component.ambient->getSunIntensity(), 0.0f, 0.1f, 0.0f, 10.0f);
           Styles::drawFloatControl("Turbidity", 2.0f, component.ambient->getTurbidity(), 0.0f, 0.1f, 2.0f, 10.0f);
         }
 
@@ -914,7 +916,7 @@ namespace Strontium
         }
         ImGui::Separator();
         ImGui::Text("");
-        Styles::drawFloatControl("Intensity", 1.0f, component.ambient->getIntensity(), 0.0f, 0.1f, 0.0f, 100.0f);
+        Styles::drawFloatControl("Ambient Intensity", 0.5f, component.ambient->getIntensity(), 0.0f, 0.1f, 0.0f, 100.0f);
       });
     }
 
