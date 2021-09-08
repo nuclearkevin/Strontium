@@ -1,7 +1,7 @@
 #version 440
 
 /*
- * A bloom upsampling compute shader.
+ * A bloom blurring compute shader.
 */
 
 layout(local_size_x = 32, local_size_y = 32) in;

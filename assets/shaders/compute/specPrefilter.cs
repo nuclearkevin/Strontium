@@ -1,10 +1,15 @@
 #version 440
 /*
- * A fragment shader to compute the prefilter component of the split-sum
+ * A compute shader to compute the prefilter component of the split-sum
  * approach for environmental specular lighting.
+ * Many thanks to http://alinloghin.com/articles/compute_ibl.html, some of the
+ * code here was adapted from their excellent article.
 */
 
 #define PI 3.141592654
+
+// Total number of Monte Carlo integration samples.
+#define SAMPLE_COUNT 1024u
 
 layout(local_size_x = 32, local_size_y = 32) in;
 
@@ -17,10 +22,7 @@ layout(rgba16f, binding = 1) writeonly uniform imageCube prefilterMap;
 // The required parameters.
 layout(std140, binding = 2) buffer paramBuff
 {
-  vec2 enviSize;
-  vec2 mipSize;
-  float roughness;
-  float resolution;
+  vec4 u_iblParams; // Roughness (x). y, z and w are unused.
 };
 
 // Function for converting between image coordiantes and world coordiantes.
@@ -34,12 +36,12 @@ vec2 Hammersley(uint i, uint N);
 // Importance sampling of the Smith-Schlick-Beckmann geometry function.
 vec3 SSBImportance(vec2 Xi, vec3 N, float roughness);
 
-// Total number of samples.
-const uint SAMPLE_COUNT = 1024u;
-
 void main()
 {
+  vec2 enviSize = vec2(textureSize(environmentMap, 0).xy);
+  vec2 mipSize = vec2(imageSize(prefilterMap).xy);
   ivec3 cubeCoord = ivec3(gl_GlobalInvocationID);
+
   vec3 worldPos = cubeToWorld(cubeCoord, mipSize);
   vec3 N = normalize(worldPos);
 
@@ -49,21 +51,21 @@ void main()
   for (uint i = 0u; i < SAMPLE_COUNT; ++i)
   {
     vec2 Xi = Hammersley(i, SAMPLE_COUNT);
-    vec3 H = SSBImportance(Xi, N, roughness);
+    vec3 H = SSBImportance(Xi, N, u_iblParams.x);
     vec3 L  = normalize(2.0 * dot(N, H) * H - N);
 
     float NdotL = max(dot(N, L), 0.0);
     if(NdotL > 0.0)
     {
-      float D   = SSBGeometry(N, H, roughness);
+      float D   = SSBGeometry(N, H, u_iblParams.x);
       float NdotH = max(dot(N, H), 0.0);
       float HdotV = max(dot(H, N), 0.0);
       float pdf = D * NdotH / (4.0 * HdotV) + 0.0001;
 
-      float saTexel  = 4.0 * PI / (6.0 * resolution * resolution);
+      float saTexel  = 4.0 * PI / (6.0 * enviSize.x * enviSize.x);
       float saSample = 1.0 / (float(SAMPLE_COUNT) * pdf + 0.0001);
 
-      float mipLevel = roughness == 0.0 ? 0.0 : 0.5 * log2(saSample / saTexel);
+      float mipLevel = u_iblParams.x == 0.0 ? 0.0 : 0.5 * log2(saSample / saTexel);
 
       prefilteredColor += textureLod(environmentMap, L, mipLevel).rgb * NdotL;
       totalWeight      += NdotL;

@@ -39,6 +39,7 @@ namespace Strontium
                 stats->numPointLights, stats->numSpotLights);
 
     ImGui::Checkbox("Frustum Cull", &state->frustumCull);
+    ImGui::Checkbox("Enable FXAA", &state->enableFXAA);
 
     if (ImGui::CollapsingHeader("Shadows"))
     {
@@ -242,12 +243,12 @@ namespace Strontium
         state->prefilterSamples = prefilterSamples;
       }
 
-      if (ambient->getDrawingType() == MapType::Preetham)
+      if (ambient->getDrawingType() == MapType::DynamicSky)
       {
         ImGui::Text("");
         ImGui::Separator();
         ImGui::Text("Preetham LUT");
-        ImGui::Image((ImTextureID) (unsigned long) ambient->getTexID(MapType::Preetham),
+        ImGui::Image((ImTextureID) (unsigned long) ambient->getTexID(MapType::DynamicSky),
                      ImVec2(256.0f, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
       }
     }

@@ -15,7 +15,7 @@ namespace Strontium
       case MapType::Skybox: return "Skybox";
       case MapType::Irradiance: return "Diffuse Irradiance";
       case MapType::Prefilter: return "Specular Irradiance";
-      case MapType::Preetham: return "Preetham Dynamic Sky";
+      case MapType::DynamicSky: return "Dynamic Sky";
       default: return "Unknown";
     }
   }
@@ -26,8 +26,9 @@ namespace Strontium
     , irradiance(nullptr)
     , specPrefilter(nullptr)
     , brdfIntMap(nullptr)
-    , paramBuffer(2 * sizeof(glm::vec4), BufferType::Dynamic)
+    , paramBuffer(sizeof(glm::vec4), BufferType::Dynamic)
     , preethamParams(2 * sizeof(glm::vec4), BufferType::Dynamic)
+    , iblParams(sizeof(glm::vec4), BufferType::Dynamic)
     , equiToCubeCompute("./assets/shaders/compute/equiConversion.cs")
     , diffIrradCompute("./assets/shaders/compute/diffuseConv.cs")
     , specIrradCompute("./assets/shaders/compute/specPrefilter.cs")
@@ -35,16 +36,13 @@ namespace Strontium
     , preethamLUTCompute("./assets/shaders/compute/preethamLUT.cs")
     , cubeShader("./assets/shaders/forward/pbrSkybox.vs", "./assets/shaders/forward/pbrSkybox.fs")
     , preethamShader("./assets/shaders/forward/pbrSkybox.vs", "./assets/shaders/forward/preethamSkybox.fs")
-    , turbidity(2.0f)
-    , azimuth(0.0f)
-    , inclination(0.0f)
-    , sunSize(1.0f)
-    , sunIntensity(1.0f)
     , currentEnvironment(MapType::Skybox)
+    , currentDynamicSky(DynamicSkyType::Preetham)
     , intensity(1.0f)
     , roughness(0.0f)
     , filepath("")
   {
+    // Load in the cube mesh and pre-integrate the BRDF LUT.
     this->cube.loadModel("./assets/.internal/cube.fbx");
     for (auto& submesh : this->cube.getSubmeshes())
     {
@@ -53,17 +51,35 @@ namespace Strontium
     }
     this->computeBRDFLUT();
 
+    // The Preetham dynamic sky model LUT.
     Texture2DParams params = Texture2DParams();
     params.internal = TextureInternalFormats::RGBA16f;
     params.format = TextureFormats::RGBA;
     params.dataType = TextureDataType::Floats;
-    this->preethamLUT = createUnique<Texture2D>(1024, 512, 4, params);
-    this->preethamLUT->initNullTexture();
+    this->dynamicSkyLUT = createUnique<Texture2D>(1024, 512, 4, params);
+    this->dynamicSkyLUT->initNullTexture();
+
+    // Prepare parameters for dynamic sky models.
+    this->dynamicSkyParams.emplace(DynamicSkyType::Preetham, new PreethamSkyParams());
+    this->updateDynamicSky();
   }
 
   EnvironmentMap::~EnvironmentMap()
   {
     this->unloadEnvironment();
+
+    // Clean up the dynamic sky data. TODO: unique pointer?
+    for (auto& pair : this->dynamicSkyParams)
+    {
+      switch (pair.first)
+      {
+        case DynamicSkyType::Preetham:
+        {
+          delete static_cast<PreethamSkyParams*>(pair.second);
+          break;
+        }
+      }
+    }
   }
 
   // Unload all the textures associated from this environment.
@@ -149,6 +165,10 @@ namespace Strontium
         if (this->specPrefilter != nullptr)
           this->specPrefilter->bind(bindPoint);
         break;
+      case MapType::DynamicSky:
+        if (this->dynamicSkyLUT != nullptr)
+          this->dynamicSkyLUT->bind(bindPoint);
+        break;
     }
   }
 
@@ -165,32 +185,41 @@ namespace Strontium
   {
     this->paramBuffer.bindToPoint(1);
     this->paramBuffer.setData(0, sizeof(GLfloat), &this->roughness);
-
-    if (this->currentEnvironment == MapType::Preetham)
-    {
-      glm::vec3 sunDir = glm::vec3(sin(this->inclination) * cos(this->azimuth),
-                                   cos(this->inclination),
-                                   sin(this->inclination) * sin(this->azimuth));
-      this->paramBuffer.setData(sizeof(GLfloat), sizeof(glm::vec3), &sunDir.x);
-      auto preethamParams = glm::vec4(this->turbidity, this->sunSize, this->sunIntensity, 0.0f);
-      this->paramBuffer.setData(sizeof(glm::vec4), sizeof(glm::vec4), &preethamParams.x);
-
-      this->preethamParams.bindToPoint(1);
-      this->preethamParams.setData(0, sizeof(glm::vec3), &sunDir.x);
-      this->preethamParams.setData(sizeof(glm::vec3), sizeof(GLfloat), &this->turbidity);
-      this->preethamParams.setData(sizeof(glm::vec4), sizeof(GLfloat), &this->sunIntensity);
-      this->preethamParams.setData(sizeof(glm::vec4) + sizeof(GLfloat), sizeof(GLfloat), &this->sunSize);
-
-      this->preethamLUT->bindAsImage(0, 0, ImageAccessPolicy::Write);
-
-      this->preethamLUTCompute.launchCompute(glm::ivec3(1024 / 32, 512 / 32, 1));
-      ComputeShader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
-
-      this->preethamLUT->bind(0);
-    }
-
-    this->paramBuffer.bindToPoint(1);
     this->bind(this->currentEnvironment, 0);
+  }
+
+  // Update the dynamic sky.
+  void
+  EnvironmentMap::updateDynamicSky()
+  {
+    switch (this->currentDynamicSky)
+    {
+      case DynamicSkyType::Preetham:
+      {
+        auto& skyParams = this->getSkyModelParams(DynamicSkyType::Preetham);
+        auto& preethamSkyParams = *(static_cast<PreethamSkyParams*>(&skyParams));
+
+        glm::vec3 sunDir = glm::vec3(sin(skyParams.inclination) * cos(skyParams.azimuth),
+                                     cos(skyParams.inclination),
+                                     sin(skyParams.inclination) * sin(skyParams.azimuth));
+        auto preethamModel = glm::vec4(preethamSkyParams.turbidity, skyParams.sunSize,
+                                       skyParams.sunIntensity, 0.0f);
+
+        this->preethamParams.bindToPoint(1);
+        this->preethamParams.setData(0, sizeof(glm::vec3), &sunDir.x);
+        this->preethamParams.setData(sizeof(glm::vec3), sizeof(GLfloat), &preethamSkyParams.turbidity);
+        this->preethamParams.setData(sizeof(glm::vec4), sizeof(GLfloat), &skyParams.sunIntensity);
+        this->preethamParams.setData(sizeof(glm::vec4) + sizeof(GLfloat), sizeof(GLfloat), &skyParams.sunSize);
+
+        this->dynamicSkyLUT->bindAsImage(0, 0, ImageAccessPolicy::Write);
+
+        this->preethamLUTCompute.launchCompute(glm::ivec3(1024 / 32, 512 / 32, 1));
+        ComputeShader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
+
+        this->paramBuffer.setData(sizeof(GLfloat), sizeof(glm::vec3), &sunDir.x);
+        break;
+      }
+    }
   }
 
   // Getters.
@@ -208,9 +237,9 @@ namespace Strontium
       case MapType::Prefilter:
         if (this->specPrefilter != nullptr)
           return this->specPrefilter->getID();
-      case MapType::Preetham:
-        if (this->preethamLUT != nullptr)
-          return this->preethamLUT->getID();
+      case MapType::DynamicSky:
+        if (this->dynamicSkyLUT != nullptr)
+          return this->dynamicSkyLUT->getID();
     }
 
     return 0;
@@ -244,18 +273,6 @@ namespace Strontium
     }
     this->skybox = createUnique<CubeMap>(width, height, 4, params);
     this->skybox->initNullTexture();
-
-    // Buffer to pass the sizes of the image to the compute shader.
-    struct
-    {
-      glm::vec2 equiSize;
-      glm::vec2 enviSize;
-    } dims;
-    dims.equiSize = glm::vec2(this->erMap->width, this->erMap->height);
-    dims.enviSize = glm::vec2(width, height);
-    ShaderStorageBuffer sizeBuff = ShaderStorageBuffer(&dims, sizeof(dims),
-                                                       BufferType::Static);
-    sizeBuff.bindToPoint(2);
 
     // Bind the equirectangular map for reading by the compute shader.
     this->erMap->bindAsImage(0, 0, ImageAccessPolicy::Read);
@@ -294,13 +311,6 @@ namespace Strontium
     }
     this->irradiance = createUnique<CubeMap>(width, height, 4, params);
     this->irradiance->initNullTexture();
-
-    // Buffer to pass the sizes of the image to the compute shader.
-    glm::vec2 dimensions = glm::vec2((GLfloat) width, (GLfloat) height);
-    ShaderStorageBuffer sizeBuff = ShaderStorageBuffer(&dimensions,
-                                                       2 * sizeof(GLfloat),
-                                                       BufferType::Static);
-    sizeBuff.bindToPoint(2);
 
     // Bind the skybox for reading by the compute shader.
     this->skybox->bindAsImage(0, 0, true, 0, ImageAccessPolicy::Read);
@@ -346,15 +356,8 @@ namespace Strontium
       this->specPrefilter->initNullTexture();
       this->specPrefilter->generateMips();
 
-      // A buffer with the parameters required for computing the prefilter.
-      struct
-      {
-        glm::vec2 enviSize;
-        glm::vec2 mipSize;
-        GLfloat roughness;
-        GLfloat resolution;
-      } temp;
-      ShaderStorageBuffer paramBuff = ShaderStorageBuffer(sizeof(temp), BufferType::Static);
+      this->iblParams.bindToPoint(2);
+      glm::vec4 paramsToUpload = glm::vec4(0.0f);
 
       // Bind the enviroment map which is to be prefiltered.
       this->skybox->bind(0);
@@ -366,18 +369,12 @@ namespace Strontium
         GLuint mipWidth  = (GLuint) ((GLfloat) width * std::pow(0.5f, i));
         GLuint mipHeight = (GLuint) ((GLfloat) height * std::pow(0.5f, i));
 
-        GLfloat roughness = ((GLfloat) i) / ((GLfloat) (5 - 1));
-
         // Bind the irradiance map for writing to by the compute shader.
         this->specPrefilter->bindAsImage(1, i, true, 0, ImageAccessPolicy::Write);
 
-        temp.enviSize = glm::vec2((GLfloat) this->skybox->width[0],
-                                    (GLfloat) this->skybox->height[0]);
-        temp.mipSize = glm::vec2((GLfloat) mipWidth, (GLfloat) mipHeight);
-        temp.roughness = roughness;
-        temp.resolution = this->skybox->width[0];
-        paramBuff.setData(0, sizeof(temp), &temp);
-        paramBuff.bindToPoint(2);
+        // Roughness.
+        paramsToUpload.x = ((GLfloat) i) / ((GLfloat) (5 - 1));
+        this->iblParams.setData(0, sizeof(glm::vec4), &paramsToUpload.x);
 
         // Launch the compute.
         this->specIrradCompute.launchCompute(glm::ivec3(mipWidth / 32, mipHeight / 32, 6));
@@ -432,8 +429,29 @@ namespace Strontium
   {
     switch (this->currentEnvironment)
     {
-      case MapType::Preetham: return &this->preethamShader; break;
-      default:                return &this->cubeShader; break;
+      case MapType::DynamicSky: return &this->preethamShader; break;
+      default:                  return &this->cubeShader; break;
+    }
+  }
+
+  void
+  EnvironmentMap::setSkyModelParams(DynamicSkyCommonParams* params)
+  {
+    switch (params->type)
+    {
+      case DynamicSkyType::Preetham:
+      {
+        auto preethamParams = *(static_cast<PreethamSkyParams*>(params));
+        bool shouldUpdate = *(static_cast<PreethamSkyParams*>(this->dynamicSkyParams[params->type])) != preethamParams;
+
+        if (shouldUpdate)
+        {
+          // TODO: figure out how to do this with C++.
+          memcpy(this->dynamicSkyParams[params->type], &preethamParams, sizeof(PreethamSkyParams));
+          this->updateDynamicSky();
+        }
+        break;
+      }
     }
   }
 }

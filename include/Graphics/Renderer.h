@@ -162,6 +162,9 @@ namespace Strontium
       GLfloat bloomIntensity;
       GLfloat bloomRadius;
 
+      bool enableFXAA;
+
+      // Post processing indicators for the post processing megashader.
       glm::ivec4 postProcessSettings;
 
       // Some editor settings.
@@ -184,7 +187,8 @@ namespace Strontium
         , bloomKnee(1.0f)
         , bloomIntensity(1.0f)
         , bloomRadius(1.0f)
-        , postProcessSettings(0) // Tone mapping operator (x), compositing bloom (y). z and w are unused.
+        , enableFXAA(false)
+        , postProcessSettings(0) // Tone mapping operator (x), compositing bloom (y), FXAA (z). w is unused.
         , drawGrid(true)
       { }
     };

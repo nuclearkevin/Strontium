@@ -12,7 +12,6 @@ layout(binding = 0) uniform samplerCube skybox;
 layout(std140, binding = 1) uniform SkyboxBlock
 {
   vec4 u_lodDirection; // IBL lod (x), sun direction (y, z, w).
-  vec4 u_turbSizeIntensity; // Atmosphere turbidity (x), sun size (y) and sun intensity (z). w is unused.
 };
 
 in VERT_OUT

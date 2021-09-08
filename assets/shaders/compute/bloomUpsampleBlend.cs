@@ -16,7 +16,7 @@ layout(rgba16f, binding = 1) readonly uniform image2D currentDownscaleImage;
 // The next mip in the upsampling mip chain.
 layout(rgba16f, binding = 2) writeonly uniform image2D nextUpscaleImage;
 
-layout(std140, binding = 3) buffer prefilterParams
+layout(std140, binding = 3) buffer PrefilterParams
 {
   vec4 u_filterParams; // Threshold (x), threshold - knee (y), 2.0 * knee (z) and 0.25 / knee (w).
   float u_upsampleRadius;
@@ -47,7 +47,7 @@ vec3 samplePrevious(ivec2 centerCoords, ivec2 offsetCoords, float radius)
 
   ivec2 sampleCoords1 = centerCoords + int(ceil(radius)) * offsetCoords;
   vec3 sample1 = imageLoad(previousUpscaleImage, sampleCoords1).rgb;
-  
+
   return mix(sample0, sample1, fract(radius));
 }
 

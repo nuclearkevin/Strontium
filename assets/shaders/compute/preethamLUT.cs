@@ -52,7 +52,7 @@ void main()
 
   // Reconstruct the view vector.
   float cosInclination = cos(viewInclination);
-  vec3 viewDir = vec3(cosInclination * sin(viewAzimuth), sin(viewInclination), -cosInclination * cos(viewAzimuth));
+  vec3 viewDir = normalize(vec3(cosInclination * sin(viewAzimuth), sin(viewInclination), -cosInclination * cos(viewAzimuth)));
 
   // Sun direction and the sky turbidity.
   vec3 sunDir = normalize(u_sunDirTurbidity.xyz);

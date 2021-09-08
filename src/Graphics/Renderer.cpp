@@ -894,7 +894,7 @@ namespace Strontium
         storage->bloomPrefilter.launchCompute(invoke);
         ComputeShader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
 
-        // Continuous downsample the bloom texture to make an image pyramid.
+        // Continuously downsample the bloom texture to make an image pyramid.
         for (unsigned int i = 1; i < MAX_NUM_BLOOM_MIPS; i++)
         {
           storage->downscaleBloomTex[i - 1].bindAsImage(0, 0, ImageAccessPolicy::Read);
@@ -960,6 +960,7 @@ namespace Strontium
       auto data1 = glm::vec4(screenSize.y, state->gamma, state->bloomIntensity, 0.0f);
 
       state->postProcessSettings.y = (GLuint) state->enableBloom;
+      state->postProcessSettings.z = (GLuint) state->enableFXAA;
 
       storage->postProcessSettings.setData(0, sizeof(glm::mat4), glm::value_ptr(invViewProj));
       storage->postProcessSettings.setData(sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(viewProj));

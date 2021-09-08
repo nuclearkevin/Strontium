@@ -15,13 +15,6 @@ layout(rgba16f, binding = 0) uniform readonly image2D equirectangularMap;
 // The output environment map after conversion.
 layout(rgba16f, binding = 1) writeonly uniform imageCube environmentMap;
 
-// The size of the equirectangular and environment maps.
-layout(std140, binding = 2) buffer imageSizes
-{
-  vec2 equiSize;
-  vec2 enviSize;
-};
-
 // Function for converting between cubemap image coordiantes and world coordiantes.
 vec3 cubeToWorld(ivec3 cubeCoord, vec2 cubeSize);
 // Function for converting between tangent coordinates and image coordiantes.
@@ -34,6 +27,8 @@ vec2 sampleSphericalMap(vec3 v);
 void main()
 {
   // Fetch the world position of the cubemap.
+  vec2 equiSize = vec2(imageSize(equirectangularMap));
+  vec2 enviSize = vec2(imageSize(environmentMap).xy);
   vec3 worldPos = cubeToWorld(ivec3(gl_GlobalInvocationID), enviSize);
 
   // Convert the cubemap coords to equirectangular coords.

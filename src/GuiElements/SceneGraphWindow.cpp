@@ -892,20 +892,25 @@ namespace Strontium
         ImGui::Separator();
         ImGui::Text("");
 
-        if (component.ambient->getDrawingType() == MapType::Preetham)
+        if (component.ambient->getDrawingType() == MapType::DynamicSky)
         {
-          GLfloat inclinationDeg = glm::degrees(component.ambient->getInclination());
-          GLfloat azimuthDeg = glm::degrees(component.ambient->getAzimuth());
+          DynamicSkyCommonParams& skyParams = component.ambient->getSkyModelParams(DynamicSkyType::Preetham);
+          PreethamSkyParams preethamParams = *(static_cast<PreethamSkyParams*>(&skyParams));
 
-          Styles::drawFloatControl("Inclination", 2.0f, inclinationDeg, 0.0f, 0.1f, 0.0f, 90.0f);
+          GLfloat inclinationDeg = glm::degrees(preethamParams.inclination);
+          GLfloat azimuthDeg = glm::degrees(preethamParams.azimuth);
+
+          Styles::drawFloatControl("Inclination", 2.0f, inclinationDeg, 0.0f, 0.1f, -180.0f, 180.0f);
           Styles::drawFloatControl("Azimuth", 2.0f, azimuthDeg, 0.0f, 0.1f, 0.0f, 360.0f);
 
-          component.ambient->getInclination() = glm::radians(inclinationDeg);
-          component.ambient->getAzimuth() = glm::radians(azimuthDeg);
+          preethamParams.inclination = glm::radians(inclinationDeg);
+          preethamParams.azimuth = glm::radians(azimuthDeg);
 
-          Styles::drawFloatControl("Sun Size", 0.5f, component.ambient->getSunSize(), 0.0f, 0.1f, 0.0f, 10.0f);
-          Styles::drawFloatControl("Sun Intensity", 0.0f, component.ambient->getSunIntensity(), 0.0f, 0.1f, 0.0f, 10.0f);
-          Styles::drawFloatControl("Turbidity", 2.0f, component.ambient->getTurbidity(), 0.0f, 0.1f, 2.0f, 10.0f);
+          Styles::drawFloatControl("Sun Size", 0.5f, preethamParams.sunSize, 0.0f, 0.1f, 0.0f, 10.0f);
+          Styles::drawFloatControl("Sun Intensity", 0.0f, preethamParams.sunIntensity, 0.0f, 0.1f, 0.0f, 10.0f);
+          Styles::drawFloatControl("Turbidity", 2.0f, preethamParams.turbidity, 0.0f, 0.1f, 2.0f, 10.0f);
+
+          component.ambient->setSkyModelParams(static_cast<DynamicSkyCommonParams*>(&preethamParams));
         }
 
         if (component.ambient->hasEqrMap())

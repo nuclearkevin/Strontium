@@ -1,7 +1,7 @@
 #version 440
 /*
  * A compute shader to compute the diffuse lighting integral through
- * convolution. Far faster than using the normal rasterized pipeline.
+ * convolution.
  * Many thanks to http://alinloghin.com/articles/compute_ibl.html, some of the
  * code here was adapted from their excellent article.
 */
@@ -16,12 +16,6 @@ layout(rgba16f, binding = 0) uniform readonly imageCube environmentMap;
 // The output irradiance map.
 layout(rgba16f, binding = 1) writeonly uniform imageCube irradianceMap;
 
-// The size of the cubemap.
-layout(std140, binding = 2) buffer imageSize
-{
-  vec2 cubemapSize;
-};
-
 // Function for converting between image coordiantes and world coordiantes.
 vec3 cubeToWorld(ivec3 cubeCoord, vec2 cubeSize);
 // Function for converting between tangent coordinates and image coordiantes.
@@ -29,6 +23,7 @@ ivec3 texToCube(vec3 texCoord, vec2 cubeSize);
 
 void main()
 {
+  vec2 cubemapSize = vec2(imageSize(irradianceMap).xy);
   vec3 worldPos = cubeToWorld(ivec3(gl_GlobalInvocationID), cubemapSize);
 
   // The normal is the same as the worldspace position.

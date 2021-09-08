@@ -19,9 +19,63 @@ namespace Strontium
     Skybox = 0,
     Irradiance = 1,
     Prefilter = 2,
-    Preetham = 3
+    DynamicSky = 3
   };
 
+  enum class DynamicSkyType
+  {
+    Preetham = 0
+  };
+
+  // Parameters for dynamic sky models.
+  struct DynamicSkyCommonParams
+  {
+    GLfloat azimuth;
+    GLfloat inclination;
+    GLfloat sunSize;
+    GLfloat sunIntensity;
+
+    const DynamicSkyType type;
+
+    DynamicSkyCommonParams(const DynamicSkyType &type)
+      : azimuth(0.0f)
+      , inclination(0.0f)
+      , sunSize(1.0f)
+      , sunIntensity(1.0f)
+      , type(type)
+    { }
+
+    bool operator ==(const DynamicSkyCommonParams& other)
+    {
+      return this->azimuth == other.azimuth &&
+             this->inclination == other.inclination &&
+             this->sunSize == other.sunSize &&
+             this->sunIntensity == other.sunIntensity &&
+             this->type == other.type;
+    }
+
+    bool operator !=(const DynamicSkyCommonParams& other) { return !((*this) == other); }
+  };
+
+  struct PreethamSkyParams : public DynamicSkyCommonParams
+  {
+    GLfloat turbidity;
+
+    PreethamSkyParams()
+      : DynamicSkyCommonParams(DynamicSkyType::Preetham)
+      , turbidity(2.0f)
+    { }
+
+    bool operator==(const PreethamSkyParams& other)
+    {
+      return this->turbidity == other.turbidity &&
+             DynamicSkyCommonParams::operator==(other);
+    }
+
+    bool operator !=(const PreethamSkyParams& other) { return !((*this) == other); }
+  };
+
+  // The environment map class. Responsible for ambient lighting and IBL.
   class EnvironmentMap
   {
   public:
@@ -54,6 +108,9 @@ namespace Strontium
     // Draw the skybox.
     void configure();
 
+    // Update the dynamic sky.
+    void updateDynamicSky();
+
     // Generate the diffuse irradiance map.
     void precomputeIrradiance(const GLuint &width = 512, const GLuint &height = 512, bool isHDR = true);
 
@@ -69,11 +126,7 @@ namespace Strontium
     GLfloat& getIntensity() { return this->intensity; }
     GLfloat& getRoughness() { return this->roughness; }
 
-    GLfloat& getInclination() { return this->inclination; }
-    GLfloat& getAzimuth() { return this->azimuth; }
-    GLfloat& getTurbidity() { return this->turbidity; }
-    GLfloat& getSunSize() { return this->sunSize; }
-    GLfloat& getSunIntensity() { return this->sunIntensity; }
+    DynamicSkyCommonParams& getSkyModelParams(const DynamicSkyType &type) { return (*this->dynamicSkyParams.at(type)); }
 
     MapType getDrawingType() { return this->currentEnvironment; }
     Model* getCubeMesh() { return &this->cube; }
@@ -87,13 +140,14 @@ namespace Strontium
     bool hasIntegration() { return this->brdfIntMap != nullptr; }
 
     void setDrawingType(MapType type) { this->currentEnvironment = type; }
+    void setSkyModelParams(DynamicSkyCommonParams* params);
   protected:
     Unique<Texture2D> erMap;
-    Unique<CubeMap>   skybox;
-    Unique<CubeMap>   irradiance;
-    Unique<CubeMap>   specPrefilter;
+    Unique<CubeMap> skybox;
+    Unique<CubeMap> irradiance;
+    Unique<CubeMap> specPrefilter;
     Unique<Texture2D> brdfIntMap;
-    Unique<Texture2D> preethamLUT;
+    Unique<Texture2D> dynamicSkyLUT;
 
     ComputeShader equiToCubeCompute;
     ComputeShader diffIrradCompute;
@@ -103,23 +157,20 @@ namespace Strontium
 
     UniformBuffer paramBuffer;
     ShaderStorageBuffer preethamParams;
+    ShaderStorageBuffer iblParams;
 
     Shader cubeShader;
     Shader preethamShader;
 
-    GLfloat turbidity;
-    GLfloat azimuth;
-    GLfloat inclination;
-    GLfloat sunSize;
-    GLfloat sunIntensity;
+    std::unordered_map<DynamicSkyType, DynamicSkyCommonParams*> dynamicSkyParams;
 
     std::string filepath;
     MapType currentEnvironment;
+    DynamicSkyType currentDynamicSky;
 
     // Parameters for drawing the skybox.
     GLfloat intensity;
     GLfloat roughness;
-
 
     Model    cube;
   };
