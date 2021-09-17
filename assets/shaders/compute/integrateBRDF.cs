@@ -28,8 +28,10 @@ void main()
 {
   ivec2 invoke = ivec2(gl_GlobalInvocationID.xy);
 
-  float NdotV = float(invoke.x) / 512.0;
-  float roughness = float(invoke.y) / 512.0;
+  vec2 size = vec2(imageSize(brdfIntMap).xy);
+
+  float NdotV = float(invoke.x) / size.x;
+  float roughness = float(invoke.y) / size.y;
 
   vec3 V;
   V.x = sqrt(1.0 - NdotV*NdotV);

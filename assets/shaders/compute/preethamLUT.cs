@@ -32,7 +32,6 @@ void calculatePerezDistribution(float t, out vec3 A, out vec3 B, out vec3 C, out
 vec3 calculateZenithLuminanceYxy(float t, float thetaS);
 vec3 calculatePerezLuminanceYxy(float theta, float gamma, vec3 A, vec3 B, vec3 C, vec3 D, vec3 E);
 vec3 calculateSkyLuminanceRGB(vec3 s, vec3 e, float t);
-vec3 computeSunLuminance(vec3 e, vec3 s, float size);
 
 void main()
 {
@@ -56,12 +55,10 @@ void main()
 
   // Sun direction and the sky turbidity.
   vec3 sunDir = normalize(u_sunDirTurbidity.xyz);
-  vec3 sunLuminance = u_sunIntensitySize.x * computeSunLuminance(viewDir, sunDir, u_sunIntensitySize.y);
   float turbidity = u_sunDirTurbidity.w;
 
   // Compute the luminance.
-  vec3 skyLuminance = 0.05 * calculateSkyLuminanceRGB(sunDir, viewDir, turbidity)
-                      + sunLuminance;
+  vec3 skyLuminance = 0.05 * calculateSkyLuminanceRGB(sunDir, viewDir, turbidity);
 
   imageStore(writeImage, invoke, vec4(skyLuminance, 1.0));
 }
@@ -159,15 +156,4 @@ vec3 calculateSkyLuminanceRGB(vec3 s, vec3 e, float t)
   vec3 Yp = Yz * (fThetaGamma / fZeroThetaS);
 
   return YxyToRGB(Yp);
-}
-
-vec3 computeSunLuminance(vec3 e, vec3 s, float size)
-{
-  float sunSolidAngle = size * PI * 0.005555556; // 1.0 / 180.0
-  float minSunCosTheta = cos(sunSolidAngle);
-
-  float cosTheta = dot(s, e);
-
-  float comp = float(cosTheta >= minSunCosTheta);
-  return comp * vec3(1.0);
 }

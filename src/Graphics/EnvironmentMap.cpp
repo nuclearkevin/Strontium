@@ -20,26 +20,37 @@ namespace Strontium
     }
   }
 
+  std::string
+  EnvironmentMap::skyEnumToString(const DynamicSkyType &type)
+  {
+    switch(type)
+    {
+      case DynamicSkyType::Preetham: return "Preetham";
+      case DynamicSkyType::Hillaire: return "UE4";
+      default: return "Unknown";
+    }
+  }
+
   EnvironmentMap::EnvironmentMap()
     : erMap(nullptr)
-    , skybox(nullptr)
-    , irradiance(nullptr)
-    , specPrefilter(nullptr)
-    , brdfIntMap(nullptr)
-    , paramBuffer(sizeof(glm::vec4), BufferType::Dynamic)
+    , skyboxParamBuffer(3 * sizeof(glm::vec4) + sizeof(glm::ivec4), BufferType::Dynamic)
     , preethamParams(2 * sizeof(glm::vec4), BufferType::Dynamic)
+    , hillaireParams(5 * sizeof(glm::vec4), BufferType::Dynamic)
     , iblParams(sizeof(glm::vec4), BufferType::Dynamic)
     , equiToCubeCompute("./assets/shaders/compute/equiConversion.cs")
     , diffIrradCompute("./assets/shaders/compute/diffuseConv.cs")
     , specIrradCompute("./assets/shaders/compute/specPrefilter.cs")
     , brdfCompute("./assets/shaders/compute/integrateBRDF.cs")
     , preethamLUTCompute("./assets/shaders/compute/preethamLUT.cs")
-    , cubeShader("./assets/shaders/forward/pbrSkybox.vs", "./assets/shaders/forward/pbrSkybox.fs")
-    , preethamShader("./assets/shaders/forward/pbrSkybox.vs", "./assets/shaders/forward/preethamSkybox.fs")
+    , transmittanceCompute("./assets/shaders/compute/transCompute.cs")
+    , multiScatCompute("./assets/shaders/compute/multiscatCompute.cs")
+    , skyViewCompute("./assets/shaders/compute/skyviewCompute.cs")
+    , dynamicSkyShader("./assets/shaders/forward/pbrSkybox.vs", "./assets/shaders/forward/pbrSkybox.fs")
     , currentEnvironment(MapType::Skybox)
     , currentDynamicSky(DynamicSkyType::Preetham)
     , intensity(1.0f)
     , roughness(0.0f)
+    , skyboxParameters(0)
     , filepath("")
   {
     // Load in the cube mesh and pre-integrate the BRDF LUT.
@@ -51,17 +62,46 @@ namespace Strontium
     }
     this->computeBRDFLUT();
 
-    // The Preetham dynamic sky model LUT.
+    // The dynamic sky model LUT.
     Texture2DParams params = Texture2DParams();
+    params.sWrap = TextureWrapParams::ClampEdges;
+    params.tWrap = TextureWrapParams::ClampEdges;
     params.internal = TextureInternalFormats::RGBA16f;
     params.format = TextureFormats::RGBA;
     params.dataType = TextureDataType::Floats;
-    this->dynamicSkyLUT = createUnique<Texture2D>(1024, 512, 4, params);
-    this->dynamicSkyLUT->initNullTexture();
+    this->dynamicSkyLUT.width = 1024;
+    this->dynamicSkyLUT.height = 512;
+    this->dynamicSkyLUT.n = 4;
+    this->dynamicSkyLUT.setParams(params);
+    this->dynamicSkyLUT.initNullTexture();
+
+    // The transmittance LUT.
+    this->transmittanceLUT.width = 256;
+    this->transmittanceLUT.height = 64;
+    this->transmittanceLUT.n = 4;
+    this->transmittanceLUT.setParams(params);
+    this->transmittanceLUT.initNullTexture();
+
+    // The multi-scattering LUT.
+    this->multiScatLUT.width = 32;
+    this->multiScatLUT.height = 32;
+    this->multiScatLUT.n = 4;
+    this->multiScatLUT.setParams(params);
+    this->multiScatLUT.initNullTexture();
+
+    // The sky-view LUT.
+    this->skyViewLUT.width = 256;
+    this->skyViewLUT.height = 128;
+    this->skyViewLUT.n = 4;
+    this->skyViewLUT.setParams(params);
+    this->skyViewLUT.initNullTexture();
 
     // Prepare parameters for dynamic sky models.
     this->dynamicSkyParams.emplace(DynamicSkyType::Preetham, new PreethamSkyParams());
+    this->dynamicSkyParams.emplace(DynamicSkyType::Hillaire, new HillaireSkyParams());
+
     this->updateDynamicSky();
+    this->updateHillaireLUTs();
   }
 
   EnvironmentMap::~EnvironmentMap()
@@ -78,6 +118,11 @@ namespace Strontium
           delete static_cast<PreethamSkyParams*>(pair.second);
           break;
         }
+        case DynamicSkyType::Hillaire:
+        {
+          delete static_cast<HillaireSkyParams*>(pair.second);
+          break;
+        }
       }
     }
   }
@@ -87,38 +132,18 @@ namespace Strontium
   EnvironmentMap::unloadEnvironment()
   {
     if (this->erMap != nullptr)
-    {
-      this->erMap = Unique<Texture2D>(nullptr);
-    }
-    if (this->skybox != nullptr)
-    {
-      this->skybox = Unique<CubeMap>(nullptr);
-    }
-    if (this->irradiance != nullptr)
-    {
-      this->irradiance = Unique<CubeMap>(nullptr);
-    }
-    if (this->specPrefilter != nullptr)
-    {
-      this->specPrefilter = Unique<CubeMap>(nullptr);
-    }
+      this->erMap->clearTexture();
+    this->skybox.clearTexture();
+    this->irradiance.clearTexture();
+    this->specPrefilter.clearTexture();
   }
 
   void
   EnvironmentMap::unloadComputedMaps()
   {
-    if (this->skybox != nullptr)
-    {
-      this->skybox = Unique<CubeMap>(nullptr);
-    }
-    if (this->irradiance != nullptr)
-    {
-      this->irradiance = Unique<CubeMap>(nullptr);
-    }
-    if (this->specPrefilter != nullptr)
-    {
-      this->specPrefilter = Unique<CubeMap>(nullptr);
-    }
+    this->skybox.clearTexture();
+    this->irradiance.clearTexture();
+    this->specPrefilter.clearTexture();
   }
 
   // Bind/unbind a specific cubemap.
@@ -128,17 +153,20 @@ namespace Strontium
     switch (type)
     {
       case MapType::Skybox:
-        if (this->skybox != nullptr)
-          this->skybox->bind();
+      {
+        this->skybox.bind();
         break;
+      }
       case MapType::Irradiance:
-        if (this->irradiance != nullptr)
-          this->irradiance->bind();
+      {
+        this->irradiance.bind();
         break;
+      }
       case MapType::Prefilter:
-        if (this->specPrefilter != nullptr)
-          this->specPrefilter->bind();
+      {
+        this->specPrefilter.bind();
         break;
+      }
     }
   }
 
@@ -154,37 +182,100 @@ namespace Strontium
     switch (type)
     {
       case MapType::Skybox:
-        if (this->skybox != nullptr)
-          this->skybox->bind(bindPoint);
+      {
+        this->skybox.bind(bindPoint);
         break;
+      }
       case MapType::Irradiance:
-        if (this->irradiance != nullptr)
-          this->irradiance->bind(bindPoint);
+      {
+        this->irradiance.bind(bindPoint);
         break;
+      }
       case MapType::Prefilter:
-        if (this->specPrefilter != nullptr)
-          this->specPrefilter->bind(bindPoint);
+      {
+        this->specPrefilter.bind(bindPoint);
         break;
-      case MapType::DynamicSky:
-        if (this->dynamicSkyLUT != nullptr)
-          this->dynamicSkyLUT->bind(bindPoint);
-        break;
+      }
     }
   }
 
   void
   EnvironmentMap::bindBRDFLUT(GLuint bindPoint)
   {
-    if (this->brdfIntMap != nullptr)
-      this->brdfIntMap->bind(bindPoint);
+    this->brdfIntLUT.bind(bindPoint);
   }
 
   // Draw the skybox.
   void
   EnvironmentMap::configure()
   {
-    this->paramBuffer.bindToPoint(1);
-    this->paramBuffer.setData(0, sizeof(GLfloat), &this->roughness);
+    glm::vec4 params0 = glm::vec4(0.0f);
+    glm::vec4 params1 = glm::vec4(0.0f);
+    glm::vec4 params2 = glm::vec4(0.0f);
+
+    this->skyboxParamBuffer.bindToPoint(1);
+    if (this->currentEnvironment == MapType::DynamicSky)
+    {
+      this->skyboxParameters.x = 1;
+      switch (this->currentDynamicSky)
+      {
+        case DynamicSkyType::Preetham:
+        {
+          auto& skyParams = this->getSkyModelParams(DynamicSkyType::Preetham);
+          auto& preethamSkyParams = *(static_cast<PreethamSkyParams*>(&skyParams));
+
+          params0.y = preethamSkyParams.sunPos.x;
+          params0.z = preethamSkyParams.sunPos.y;
+          params0.w = preethamSkyParams.sunPos.z;
+
+          params1.x = preethamSkyParams.sunIntensity;
+          params1.y = preethamSkyParams.sunSize;
+
+          params2.w = preethamSkyParams.skyIntensity;
+
+          this->dynamicSkyLUT.bind(1);
+          break;
+        }
+
+        case DynamicSkyType::Hillaire:
+        {
+          auto& skyParams = this->getSkyModelParams(DynamicSkyType::Hillaire);
+          auto& hillaireSkyParams = *(static_cast<HillaireSkyParams*>(&skyParams));
+
+          this->skyboxParameters.x = 2;
+
+          params0.y = hillaireSkyParams.sunPos.x;
+          params0.z = hillaireSkyParams.sunPos.y;
+          params0.w = hillaireSkyParams.sunPos.z;
+
+          params1.x = hillaireSkyParams.sunIntensity;
+          params1.y = hillaireSkyParams.sunSize;
+          params1.z = hillaireSkyParams.planetRadius;
+          params1.w = hillaireSkyParams.atmosphereRadius;
+
+          params2.x = hillaireSkyParams.viewPos.x;
+          params2.y = hillaireSkyParams.viewPos.y;
+          params2.z = hillaireSkyParams.viewPos.z;
+          params2.w = hillaireSkyParams.skyIntensity;
+
+          this->skyViewLUT.bind(1);
+          this->transmittanceLUT.bind(2);
+          break;
+        }
+      }
+    }
+    else
+    {
+      this->skyboxParameters.x = 0;
+      params0.x = this->roughness;
+    }
+
+    this->skyboxParamBuffer.setData(0, sizeof(glm::vec4), &(params0.x));
+    this->skyboxParamBuffer.setData(1 * sizeof(glm::vec4), sizeof(glm::vec4), &(params1.x));
+    this->skyboxParamBuffer.setData(2 * sizeof(glm::vec4), sizeof(glm::vec4), &(params2.x));
+    this->skyboxParamBuffer.setData(3 * sizeof(glm::vec4), sizeof(glm::ivec4),
+                                    &(this->skyboxParameters.x));
+
     this->bind(this->currentEnvironment, 0);
   }
 
@@ -199,27 +290,130 @@ namespace Strontium
         auto& skyParams = this->getSkyModelParams(DynamicSkyType::Preetham);
         auto& preethamSkyParams = *(static_cast<PreethamSkyParams*>(&skyParams));
 
-        glm::vec3 sunDir = glm::vec3(sin(skyParams.inclination) * cos(skyParams.azimuth),
-                                     cos(skyParams.inclination),
-                                     sin(skyParams.inclination) * sin(skyParams.azimuth));
         auto preethamModel = glm::vec4(preethamSkyParams.turbidity, skyParams.sunSize,
                                        skyParams.sunIntensity, 0.0f);
 
         this->preethamParams.bindToPoint(1);
-        this->preethamParams.setData(0, sizeof(glm::vec3), &sunDir.x);
+        this->preethamParams.setData(0, sizeof(glm::vec3), &skyParams.sunPos.x);
         this->preethamParams.setData(sizeof(glm::vec3), sizeof(GLfloat), &preethamSkyParams.turbidity);
         this->preethamParams.setData(sizeof(glm::vec4), sizeof(GLfloat), &skyParams.sunIntensity);
         this->preethamParams.setData(sizeof(glm::vec4) + sizeof(GLfloat), sizeof(GLfloat), &skyParams.sunSize);
 
-        this->dynamicSkyLUT->bindAsImage(0, 0, ImageAccessPolicy::Write);
+        this->dynamicSkyLUT.bindAsImage(0, 0, ImageAccessPolicy::Write);
 
         this->preethamLUTCompute.launchCompute(glm::ivec3(1024 / 32, 512 / 32, 1));
         ComputeShader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
 
-        this->paramBuffer.setData(sizeof(GLfloat), sizeof(glm::vec3), &sunDir.x);
+        break;
+      }
+
+      case DynamicSkyType::Hillaire:
+      {
+        glm::vec4 params1 = glm::vec4(0.0f);
+        glm::vec4 params2 = glm::vec4(0.0f);
+        glm::vec4 params3 = glm::vec4(0.0f);
+        glm::vec4 params4 = glm::vec4(0.0f);
+        glm::vec4 params5 = glm::vec4(0.0f);
+
+        auto& skyParams = this->getSkyModelParams(DynamicSkyType::Hillaire);
+        auto& hillaireSkyParams = *(static_cast<HillaireSkyParams*>(&skyParams));
+
+        params1.x = hillaireSkyParams.rayleighScatteringBase.x;
+        params1.y = hillaireSkyParams.rayleighScatteringBase.y;
+        params1.z = hillaireSkyParams.rayleighScatteringBase.z;
+        params1.w = hillaireSkyParams.rayleighAbsorptionBase;
+
+        params2.x = hillaireSkyParams.ozoneAbsorptionBase.x;
+        params2.y = hillaireSkyParams.ozoneAbsorptionBase.y;
+        params2.z = hillaireSkyParams.ozoneAbsorptionBase.z;
+        params2.w = hillaireSkyParams.mieScatteringBase;
+
+        params3.x = hillaireSkyParams.mieAbsorptionBase;
+        params3.y = hillaireSkyParams.planetRadius;
+        params3.z = hillaireSkyParams.atmosphereRadius;
+        params3.w = hillaireSkyParams.viewPos.x;
+
+        params4.x = -1.0f * hillaireSkyParams.sunPos.x;
+        params4.y = -1.0f * hillaireSkyParams.sunPos.y;
+        params4.z = -1.0f * hillaireSkyParams.sunPos.z;
+        params4.w = hillaireSkyParams.viewPos.y;
+
+        params5.x = hillaireSkyParams.viewPos.z;
+
+        this->hillaireParams.bindToPoint(1);
+        this->hillaireParams.setData(0, sizeof(glm::vec4), &(params1.x));
+        this->hillaireParams.setData(1 * sizeof(glm::vec4), sizeof(glm::vec4), &(params2.x));
+        this->hillaireParams.setData(2 * sizeof(glm::vec4), sizeof(glm::vec4), &(params3.x));
+        this->hillaireParams.setData(3 * sizeof(glm::vec4), sizeof(glm::vec4), &(params4.x));
+        this->hillaireParams.setData(4 * sizeof(glm::vec4), sizeof(glm::vec4), &(params5.x));
+
+        this->transmittanceLUT.bind(2);
+        this->multiScatLUT.bind(3);
+        this->skyViewLUT.bindAsImage(0, 0, ImageAccessPolicy::Write);
+        this->skyViewCompute.launchCompute(glm::ivec3(256 / 32, 128 / 32, 1));
+        ComputeShader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
+
         break;
       }
     }
+  }
+
+  void
+  EnvironmentMap::updateHillaireLUTs()
+  {
+    // Transmittance LUT updating.
+    glm::vec4 params1 = glm::vec4(0.0f);
+    glm::vec4 params2 = glm::vec4(0.0f);
+    glm::vec4 params3 = glm::vec4(0.0f);
+    glm::vec4 params4 = glm::vec4(0.0f);
+    glm::vec4 params5 = glm::vec4(0.0f);
+
+    auto& skyParams = this->getSkyModelParams(DynamicSkyType::Hillaire);
+    auto& hillaireSkyParams = *(static_cast<HillaireSkyParams*>(&skyParams));
+
+    params1.x = hillaireSkyParams.rayleighScatteringBase.x;
+    params1.y = hillaireSkyParams.rayleighScatteringBase.y;
+    params1.z = hillaireSkyParams.rayleighScatteringBase.z;
+    params1.w = hillaireSkyParams.rayleighAbsorptionBase;
+
+    params2.x = hillaireSkyParams.ozoneAbsorptionBase.x;
+    params2.y = hillaireSkyParams.ozoneAbsorptionBase.y;
+    params2.z = hillaireSkyParams.ozoneAbsorptionBase.z;
+    params2.w = hillaireSkyParams.mieScatteringBase;
+
+    params3.x = hillaireSkyParams.mieAbsorptionBase;
+    params3.y = hillaireSkyParams.planetRadius;
+    params3.z = hillaireSkyParams.atmosphereRadius;
+    params3.w = hillaireSkyParams.viewPos.x;
+
+    params4.x = -1.0f * hillaireSkyParams.sunPos.x;
+    params4.y = -1.0f * hillaireSkyParams.sunPos.y;
+    params4.z = -1.0f * hillaireSkyParams.sunPos.z;
+    params4.w = hillaireSkyParams.viewPos.y;
+
+    params5.x = hillaireSkyParams.viewPos.z;
+
+    this->hillaireParams.bindToPoint(1);
+    this->hillaireParams.setData(0, sizeof(glm::vec4), &(params1.x));
+    this->hillaireParams.setData(1 * sizeof(glm::vec4), sizeof(glm::vec4), &(params2.x));
+    this->hillaireParams.setData(2 * sizeof(glm::vec4), sizeof(glm::vec4), &(params3.x));
+    this->hillaireParams.setData(3 * sizeof(glm::vec4), sizeof(glm::vec4), &(params4.x));
+    this->hillaireParams.setData(4 * sizeof(glm::vec4), sizeof(glm::vec4), &(params5.x));
+
+    this->transmittanceLUT.bindAsImage(0, 0, ImageAccessPolicy::Write);
+    this->transmittanceCompute.launchCompute(glm::ivec3(256 / 32, 64 / 32, 1));
+    ComputeShader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
+
+    this->transmittanceLUT.bind(2);
+    this->multiScatLUT.bindAsImage(0, 0, ImageAccessPolicy::Write);
+    this->multiScatCompute.launchCompute(glm::ivec3(32 / 32, 32 / 32, 1));
+    ComputeShader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
+
+    this->transmittanceLUT.bind(2);
+    this->multiScatLUT.bind(3);
+    this->skyViewLUT.bindAsImage(0, 0, ImageAccessPolicy::Write);
+    this->skyViewCompute.launchCompute(glm::ivec3(256 / 32, 128 / 32, 1));
+    ComputeShader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
   }
 
   // Getters.
@@ -229,17 +423,13 @@ namespace Strontium
     switch (type)
     {
       case MapType::Skybox:
-        if (this->skybox != nullptr)
-          return this->skybox->getID();
+        return this->skybox.getID();
       case MapType::Irradiance:
-        if (this->irradiance != nullptr)
-          return this->irradiance->getID();
+        return this->irradiance.getID();
       case MapType::Prefilter:
-        if (this->specPrefilter != nullptr)
-          return this->specPrefilter->getID();
+        return this->specPrefilter.getID();
       case MapType::DynamicSky:
-        if (this->dynamicSkyLUT != nullptr)
-          return this->dynamicSkyLUT->getID();
+        return this->dynamicSkyLUT.getID();
     }
 
     return 0;
@@ -271,19 +461,20 @@ namespace Strontium
       params.internal = TextureInternalFormats::RGBA16f;
       params.dataType = TextureDataType::Floats;
     }
-    this->skybox = createUnique<CubeMap>(width, height, 4, params);
-    this->skybox->initNullTexture();
+    this->skybox.setSize(width, height, 4);
+    this->skybox.setParams(params);
+    this->skybox.initNullTexture();
 
     // Bind the equirectangular map for reading by the compute shader.
     this->erMap->bindAsImage(0, 0, ImageAccessPolicy::Read);
 
     // Bind the irradiance map for writing to by the compute shader.
-    this->skybox->bindAsImage(1, 0, true, 0, ImageAccessPolicy::ReadWrite);
+    this->skybox.bindAsImage(1, 0, true, 0, ImageAccessPolicy::ReadWrite);
 
     // Launch the compute shader.
     this->equiToCubeCompute.launchCompute(glm::ivec3(width / 32, height / 32, 6));
 
-    this->skybox->generateMips();
+    this->skybox.generateMips();
 
     auto end = std::chrono::steady_clock::now();
     std::chrono::duration<double> elapsed = end - start;
@@ -309,14 +500,16 @@ namespace Strontium
       params.internal = TextureInternalFormats::RGBA16f;
       params.dataType = TextureDataType::Floats;
     }
-    this->irradiance = createUnique<CubeMap>(width, height, 4, params);
-    this->irradiance->initNullTexture();
+
+    this->irradiance.setSize(width, height, 4);
+    this->irradiance.setParams(params);
+    this->irradiance.initNullTexture();
 
     // Bind the skybox for reading by the compute shader.
-    this->skybox->bindAsImage(0, 0, true, 0, ImageAccessPolicy::Read);
+    this->skybox.bindAsImage(0, 0, true, 0, ImageAccessPolicy::Read);
 
     // Bind the irradiance map for writing to by the compute shader.
-    this->irradiance->bindAsImage(1, 0, true, 0, ImageAccessPolicy::Write);
+    this->irradiance.bindAsImage(1, 0, true, 0, ImageAccessPolicy::Write);
 
     // Launch the compute shader.
     this->diffIrradCompute.launchCompute(glm::ivec3(width / 32, height / 32, 6));
@@ -337,56 +530,55 @@ namespace Strontium
   {
     Logger* logs = Logger::getInstance();
 
-    if (this->specPrefilter == nullptr)
+    //--------------------------------------------------------------------------
+    // The pre-filtered environment map component.
+    //--------------------------------------------------------------------------
+    auto start = std::chrono::steady_clock::now();
+
+    // The resulting cubemap from the environment pre-filter.
+    TextureCubeMapParams params = TextureCubeMapParams();
+    params.minFilter = TextureMinFilterParams::LinearMipMapLinear;
+    if (isHDR)
     {
-      //--------------------------------------------------------------------------
-      // The pre-filtered environment map component.
-      //--------------------------------------------------------------------------
-      auto start = std::chrono::steady_clock::now();
-
-      // The resulting cubemap from the environment pre-filter.
-      TextureCubeMapParams params = TextureCubeMapParams();
-      params.minFilter = TextureMinFilterParams::LinearMipMapLinear;
-      if (isHDR)
-      {
-        params.internal = TextureInternalFormats::RGBA16f;
-        params.dataType = TextureDataType::Floats;
-      }
-      this->specPrefilter = createUnique<CubeMap>(width, height, 4, params);
-      this->specPrefilter->initNullTexture();
-      this->specPrefilter->generateMips();
-
-      this->iblParams.bindToPoint(2);
-      glm::vec4 paramsToUpload = glm::vec4(0.0f);
-
-      // Bind the enviroment map which is to be prefiltered.
-      this->skybox->bind(0);
-
-      // Perform the pre-filter for each roughness level.
-      for (GLuint i = 0; i < 5; i++)
-      {
-        // Compute the current mip levels.
-        GLuint mipWidth  = (GLuint) ((GLfloat) width * std::pow(0.5f, i));
-        GLuint mipHeight = (GLuint) ((GLfloat) height * std::pow(0.5f, i));
-
-        // Bind the irradiance map for writing to by the compute shader.
-        this->specPrefilter->bindAsImage(1, i, true, 0, ImageAccessPolicy::Write);
-
-        // Roughness.
-        paramsToUpload.x = ((GLfloat) i) / ((GLfloat) (5 - 1));
-        this->iblParams.setData(0, sizeof(glm::vec4), &paramsToUpload.x);
-
-        // Launch the compute.
-        this->specIrradCompute.launchCompute(glm::ivec3(mipWidth / 32, mipHeight / 32, 6));
-      }
-
-      auto end = std::chrono::steady_clock::now();
-      std::chrono::duration<double> elapsed = end - start;
-
-      logs->logMessage(LogMessage("Pre-filtered environment map (elapsed time: "
-                                  + std::to_string(elapsed.count()) + " s).", true,
-                                  true));
+      params.internal = TextureInternalFormats::RGBA16f;
+      params.dataType = TextureDataType::Floats;
     }
+
+    this->specPrefilter.setSize(width, height, 4);
+    this->specPrefilter.setParams(params);
+    this->specPrefilter.initNullTexture();
+    this->specPrefilter.generateMips();
+
+    this->iblParams.bindToPoint(2);
+    glm::vec4 paramsToUpload = glm::vec4(0.0f);
+
+    // Bind the enviroment map which is to be prefiltered.
+    this->skybox.bind(0);
+
+    // Perform the pre-filter for each roughness level.
+    for (GLuint i = 0; i < 5; i++)
+    {
+      // Compute the current mip levels.
+      GLuint mipWidth  = (GLuint) ((GLfloat) width * std::pow(0.5f, i));
+      GLuint mipHeight = (GLuint) ((GLfloat) height * std::pow(0.5f, i));
+
+      // Bind the irradiance map for writing to by the compute shader.
+      this->specPrefilter.bindAsImage(1, i, true, 0, ImageAccessPolicy::Write);
+
+      // Roughness.
+      paramsToUpload.x = ((GLfloat) i) / ((GLfloat) (5 - 1));
+      this->iblParams.setData(0, sizeof(glm::vec4), &paramsToUpload.x);
+
+      // Launch the compute.
+      this->specIrradCompute.launchCompute(glm::ivec3(mipWidth / 32, mipHeight / 32, 6));
+    }
+
+    auto end = std::chrono::steady_clock::now();
+    std::chrono::duration<double> elapsed = end - start;
+
+    logs->logMessage(LogMessage("Pre-filtered environment map (elapsed time: "
+                                + std::to_string(elapsed.count()) + " s).", true,
+                                true));
   }
 
   void
@@ -394,44 +586,39 @@ namespace Strontium
   {
     Logger* logs = Logger::getInstance();
 
-    if (this->brdfIntMap == nullptr)
-    {
-      //--------------------------------------------------------------------------
-      // The BRDF integration map component.
-      //--------------------------------------------------------------------------
-      auto start = std::chrono::steady_clock::now();
+    //--------------------------------------------------------------------------
+    // The BRDF integration map component.
+    //--------------------------------------------------------------------------
+    auto start = std::chrono::steady_clock::now();
 
-      Texture2DParams params = Texture2DParams();
-      params.sWrap = TextureWrapParams::ClampEdges;
-      params.tWrap = TextureWrapParams::ClampEdges;
-      params.internal = TextureInternalFormats::RG16f;
-      params.dataType = TextureDataType::Floats;
-      this->brdfIntMap = createUnique<Texture2D>(512, 512, 2, params);
-      this->brdfIntMap->initNullTexture();
+    Texture2DParams params = Texture2DParams();
+    params.sWrap = TextureWrapParams::ClampEdges;
+    params.tWrap = TextureWrapParams::ClampEdges;
+    params.internal = TextureInternalFormats::RG16f;
+    params.dataType = TextureDataType::Floats;
 
-      // Bind the integration map for writing to by the compute shader.
-      this->brdfIntMap->bindAsImage(3, 0, ImageAccessPolicy::Write);
+    this->brdfIntLUT.setSize(32, 32, 2);
+    this->brdfIntLUT.setParams(params);
+    this->brdfIntLUT.initNullTexture();
 
-      // Launch the compute shader.
-      this->brdfCompute.launchCompute(glm::ivec3(512 / 32, 512 / 32, 1));
+    // Bind the integration map for writing to by the compute shader.
+    this->brdfIntLUT.bindAsImage(3, 0, ImageAccessPolicy::Write);
 
-      auto end = std::chrono::steady_clock::now();
-      std::chrono::duration<double> elapsed = end - start;
+    // Launch the compute shader.
+    this->brdfCompute.launchCompute(glm::ivec3(32 / 32, 32 / 32, 1));
 
-      logs->logMessage(LogMessage("Generated BRDF lookup texture (elapsed time: "
-                                  + std::to_string(elapsed.count()) + " s).", true,
-                                  true));
-    }
+    auto end = std::chrono::steady_clock::now();
+    std::chrono::duration<double> elapsed = end - start;
+
+    logs->logMessage(LogMessage("Generated BRDF lookup texture (elapsed time: "
+                                + std::to_string(elapsed.count()) + " s).", true,
+                                true));
   }
 
   Shader*
   EnvironmentMap::getCubeProg()
   {
-    switch (this->currentEnvironment)
-    {
-      case MapType::DynamicSky: return &this->preethamShader; break;
-      default:                  return &this->cubeShader; break;
-    }
+    return &this->dynamicSkyShader;
   }
 
   void
@@ -452,6 +639,39 @@ namespace Strontium
         }
         break;
       }
+
+      case DynamicSkyType::Hillaire:
+      {
+        auto hillaireParams = *(static_cast<HillaireSkyParams*>(params));
+        auto& other = *(static_cast<HillaireSkyParams*>(this->dynamicSkyParams[params->type]));
+        bool shouldUpdate = other != hillaireParams;
+
+        bool updateLUTs = !(hillaireParams.rayleighScatteringBase == other.rayleighScatteringBase &&
+                            hillaireParams.rayleighAbsorptionBase == other.rayleighAbsorptionBase &&
+                            hillaireParams.mieScatteringBase == other.mieScatteringBase &&
+                            hillaireParams.mieAbsorptionBase == other.mieAbsorptionBase &&
+                            hillaireParams.ozoneAbsorptionBase == other.ozoneAbsorptionBase &&
+                            hillaireParams.planetRadius == other.planetRadius &&
+                            hillaireParams.atmosphereRadius == other.atmosphereRadius);
+
+        if (shouldUpdate)
+        {
+          // TODO: figure out how to do this with C++.
+          memcpy(this->dynamicSkyParams[params->type], &hillaireParams, sizeof(HillaireSkyParams));
+
+          if (updateLUTs)
+            this->updateHillaireLUTs();
+          else
+            this->updateDynamicSky();
+        }
+      }
     }
+  }
+
+  void
+  EnvironmentMap::setSkyboxType(const DynamicSkyType &type)
+  {
+    this->currentDynamicSky = type;
+    this->updateDynamicSky();
   }
 }

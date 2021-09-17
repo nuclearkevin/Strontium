@@ -1,0 +1,145 @@
+#version 440
+
+/*
+ * Computes the transmittance lookup texture as described in [Hillaire2020].
+ * https://sebh.github.io/publications/egsr2020.pdf
+ *
+ * Based off of a shadertoy implementation by Andrew Helmer:
+ * https://www.shadertoy.com/view/slSXRW
+*/
+
+#define TRANSMITTANCE_STEPS 40.0
+
+layout(local_size_x = 32, local_size_y = 32) in;
+
+layout(rgba16f, binding = 0) writeonly uniform image2D transImage;
+
+// TODO: Convert Mie scattering, Mie absorption and Rayleigh absorption to vec3s
+// for more control. Add in density parameters for Mie, Rayleigh and Ozone
+// coefficients. Add in a planet albedo factor. Add in a light colour and
+// intensity factor.
+layout(std140, binding = 1) buffer HillaireParams
+{
+  vec4 u_rayleighScatAbsBase; // Rayleigh scattering base (x, y, z) and the Rayleigh absorption base (w).
+  vec4 u_ozoneAbsBaseMieScatBase; // Ozone absorption base (x, y, z) and the Mie scattering base (w).
+  vec4 u_mieAbsBaseGradiusAradiusViewX; // Mie absorption base (x), ground radius in megameters (y), atmosphere radius in megameters (z), x component of the view pos (w).
+  vec4 u_sunDirViewY; // Sun direction (x, y, z) and the y component of the view position (w).
+  vec4 u_viewPosZ; // Z component of the view position (x). y, z and w are unused.
+};
+
+// 2 * vec4 + 1 * float.
+struct ScatteringParams
+{
+  vec3 rayleighScatteringBase;
+  float rayleighAbsorptionBase;
+  float mieScatteringBase;
+  float mieAbsorptionBase;
+  vec3 ozoneAbsorptionBase;
+};
+
+// Helper functions.
+float rayIntersectSphere(vec3 ro, vec3 rd, float rad);
+float safeACos(float x);
+
+// Compute scattering parameters.
+vec3 computeExtinction(vec3 pos, ScatteringParams params, float groundRadiusMM);
+
+// Compute the transmittance.
+vec3 getSunTransmittance(vec3 pos, vec3 sunDir, ScatteringParams params,
+                         float groundRadiusMM, float atmoRadiusMM);
+
+void main()
+{
+  ScatteringParams params;
+  params.rayleighScatteringBase = u_rayleighScatAbsBase.xyz;
+  params.rayleighAbsorptionBase = u_rayleighScatAbsBase.w;
+  params.mieScatteringBase = u_ozoneAbsBaseMieScatBase.w;
+  params.mieAbsorptionBase = u_mieAbsBaseGradiusAradiusViewX.x;
+  params.ozoneAbsorptionBase = u_ozoneAbsBaseMieScatBase.xyz;
+
+  float groundRadiusMM = u_mieAbsBaseGradiusAradiusViewX.y;
+  float atmosphereRadiusMM = u_mieAbsBaseGradiusAradiusViewX.z;
+
+  ivec2 invoke = ivec2(gl_GlobalInvocationID.xy);
+  vec2 size = vec2(imageSize(transImage).xy);
+  vec2 coords = vec2(invoke);
+
+  vec2 uv = coords / size;
+
+  float sunCosTheta = 2.0 * uv.x - 1.0;
+  float sunTheta = safeACos(sunCosTheta);
+  float height = mix(groundRadiusMM, atmosphereRadiusMM, uv.y);
+
+  vec3 pos = vec3(0.0, height, 0.0);
+  vec3 sunDir = normalize(vec3(0.0, sunCosTheta, -sin(sunTheta)));
+
+  vec3 transmittance = getSunTransmittance(pos, sunDir, params, groundRadiusMM, atmosphereRadiusMM);
+
+  imageStore(transImage, invoke, vec4(max(transmittance, vec3(0.0)), 1.0));
+}
+
+float rayIntersectSphere(vec3 ro, vec3 rd, float rad)
+{
+  float b = dot(ro, rd);
+  float c = dot(ro, ro) - rad * rad;
+  if (c > 0.0f && b > 0.0)
+    return -1.0;
+
+  float discr = b * b - c;
+  if (discr < 0.0)
+    return -1.0;
+
+  // Special case: inside sphere, use far discriminant
+  if (discr > b * b)
+    return (-b + sqrt(discr));
+
+  return -b - sqrt(discr);
+}
+
+float safeACos(float x)
+{
+  return acos(clamp(x, -1.0, 1.0));
+}
+
+vec3 computeExtinction(vec3 pos, ScatteringParams params, float groundRadiusMM)
+{
+  float altitudeKM = (length(pos) - groundRadiusMM) * 1000.0;
+
+  float rayleighDensity = exp(-altitudeKM / 8.0);
+  float mieDensity = exp(-altitudeKM / 1.2);
+
+  vec3 rayleighScattering = params.rayleighScatteringBase * rayleighDensity;
+  float rayleighAbsorption = params.rayleighAbsorptionBase * rayleighDensity;
+
+  float mieScattering = params.mieScatteringBase * mieDensity;
+  float mieAbsorption = params.mieAbsorptionBase * mieDensity;
+
+  vec3 ozoneAbsorption = params.ozoneAbsorptionBase * max(0.0, 1.0 - abs(altitudeKM - 25.0) / 15.0);
+
+  return rayleighScattering + vec3(rayleighAbsorption + mieScattering + mieAbsorption) + ozoneAbsorption;
+}
+
+vec3 getSunTransmittance(vec3 pos, vec3 sunDir, ScatteringParams params,
+                         float groundRadiusMM, float atmoRadiusMM)
+{
+  if (rayIntersectSphere(pos, sunDir, groundRadiusMM) > 0.0)
+    return vec3(0.0);
+
+  float atmoDist = rayIntersectSphere(pos, sunDir, atmoRadiusMM);
+
+  float t = 0.0;
+  vec3 transmittance = vec3(1.0);
+  for (float i = 0.0; i < TRANSMITTANCE_STEPS; i += 1.0)
+  {
+    float newT = ((i + 0.3) / TRANSMITTANCE_STEPS) * atmoDist;
+    float dt = newT - t;
+    t = newT;
+
+    vec3 newPos = pos + t * sunDir;
+    vec3 extinction = computeExtinction(newPos, params, groundRadiusMM);
+
+    transmittance *= exp(-dt * extinction);
+  }
+
+  return transmittance;
+}

@@ -99,8 +99,12 @@ void main()
     }
   }
 
-  fragColour = vec4(shadowFactor * (kD * albedo / PI + spec) * u_lColourIntensity.rgb
-                    * u_lColourIntensity.a * max(dot(normal, light), THRESHHOLD), 1.0);
+  vec3 radiance = shadowFactor * (kD * albedo / PI + spec) * u_lColourIntensity.rgb
+                  * u_lColourIntensity.a * max(dot(normal, light), THRESHHOLD);
+
+  radiance = max(radiance, vec3(0.0));
+
+  fragColour = vec4(radiance, 1.0);
 }
 
 // Trowbridge-Reitz distribution function.

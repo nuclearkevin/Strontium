@@ -357,9 +357,7 @@ namespace Strontium
 
           Material* material = materials->getMaterial(submesh.getName());
           if (!material)
-          {
             continue;
-          }
 
           storage->transformBuffer.setData(0, sizeof(glm::mat4), glm::value_ptr(transform));
 

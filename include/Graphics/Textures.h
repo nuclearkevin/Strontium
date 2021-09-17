@@ -159,6 +159,9 @@ namespace Strontium
     // Generate mipmaps.
     void generateMips();
 
+    // Clear the texture.
+    void clearTexture();
+
     // Bind/unbind the texture.
     void bind();
     void bind(GLuint bindPoint);
@@ -198,7 +201,11 @@ namespace Strontium
     // Generate mipmaps.
     void generateMips();
 
+    // Clear the texture.
+    void clearTexture();
+
     // Set the parameters after generating the texture.
+    void setSize(GLuint width, GLuint height, GLuint n);
     void setParams(const TextureCubeMapParams &newParams);
 
     // Bind/unbind the texture.

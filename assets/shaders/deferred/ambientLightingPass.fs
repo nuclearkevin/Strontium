@@ -68,10 +68,12 @@ void main()
   vec2 brdfInt = texture(brdfLookUp, vec2(nDotV, roughness)).rg;
   ambientSpec = ambientSpec * (brdfInt.r * ks + brdfInt.g);
 
-	vec3 colour = u_screenSizeIntensity.z * ((ambientDiff + ambientSpec) * ao)
-                + albedo * emiss;
+	vec3 radiance = u_screenSizeIntensity.z * ((ambientDiff + ambientSpec) * ao)
+                  + albedo * emiss;
 
-  fragColour = vec4(colour, 1.0);
+  radiance = max(radiance, vec3(0.0));
+
+  fragColour = vec4(radiance, 1.0);
 }
 
 // Trowbridge-Reitz distribution function.

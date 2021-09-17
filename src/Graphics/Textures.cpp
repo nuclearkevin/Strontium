@@ -344,6 +344,62 @@ namespace Strontium
     glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
   }
 
+  // Clear the texture.
+  /*
+  Depth = GL_DEPTH_COMPONENT, DepthStencil = GL_DEPTH_STENCIL,
+  Depth24Stencil8 = GL_DEPTH24_STENCIL8, Depth32f = GL_DEPTH_COMPONENT32F,
+  Red = GL_RED, RG = GL_RG, RGB = GL_RGB, RGBA = GL_RGBA, R16f = GL_R16F,
+  RG16f = GL_RG16F, RGB16f = GL_RGB16F, RGBA16f = GL_RGBA16F, R32f = GL_R32F,
+  RG32f = GL_RG32F, RGB32f = GL_RGB32F, RGBA32f = GL_RGBA32F
+  */
+  void
+  Texture2D::clearTexture()
+  {
+    switch (this->n)
+    {
+      case 1:
+      {
+        GLfloat clearElement = 0.0f;
+        glClearTexSubImage(this->textureID, 0, 0, 0, 0, this->width, this->height, 0,
+                           static_cast<GLenum>(this->params.internal),
+                           static_cast<GLenum>(this->params.dataType),
+                           &clearElement);
+        break;
+      }
+      case 2:
+      {
+        glm::vec2 clearElement = glm::vec2(0.0f);
+        glClearTexSubImage(this->textureID, 0, 0, 0, 0, this->width, this->height, 0,
+                           static_cast<GLenum>(this->params.internal),
+                           static_cast<GLenum>(this->params.dataType),
+                           &clearElement.x);
+        break;
+      }
+      case 3:
+      {
+        glm::vec3 clearElement = glm::vec3(0.0f);
+        glClearTexSubImage(this->textureID, 0, 0, 0, 0, this->width, this->height, 0,
+                           static_cast<GLenum>(this->params.internal),
+                           static_cast<GLenum>(this->params.dataType),
+                           &clearElement.x);
+        break;
+      }
+      case 4:
+      {
+        glm::vec4 clearElement = glm::vec4(0.0f);
+        glClearTexSubImage(this->textureID, 0, 0, 0, 0, this->width, this->height, 0,
+                           static_cast<GLenum>(this->params.internal),
+                           static_cast<GLenum>(this->params.dataType),
+                           &clearElement.x);
+        break;
+      }
+      default:
+      {
+        return;
+      }
+    }
+  }
+
   void
   Texture2D::setSize(GLuint width, GLuint height, GLuint n)
   {
@@ -465,6 +521,66 @@ namespace Strontium
     glBindTexture(GL_TEXTURE_CUBE_MAP, this->textureID);
     glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
     glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
+  }
+
+  // Clear the texture.
+  void
+  CubeMap::clearTexture()
+  {
+    switch (this->n[0])
+    {
+      case 1:
+      {
+        GLfloat clearElement = 0.0f;
+        glClearTexSubImage(this->textureID, 0, 0, 0, 0, this->width[0], this->height[0], 6,
+                           static_cast<GLenum>(this->params.internal),
+                           static_cast<GLenum>(this->params.dataType),
+                           &clearElement);
+        break;
+      }
+      case 2:
+      {
+        glm::vec2 clearElement = glm::vec2(0.0f);
+        glClearTexSubImage(this->textureID, 0, 0, 0, 0, this->width[0], this->height[0], 6,
+                           static_cast<GLenum>(this->params.internal),
+                           static_cast<GLenum>(this->params.dataType),
+                           &clearElement.x);
+        break;
+      }
+      case 3:
+      {
+        glm::vec3 clearElement = glm::vec3(0.0f);
+        glClearTexSubImage(this->textureID, 0, 0, 0, 0, this->width[0], this->height[0], 6,
+                           static_cast<GLenum>(this->params.internal),
+                           static_cast<GLenum>(this->params.dataType),
+                           &clearElement.x);
+        break;
+      }
+      case 4:
+      {
+        glm::vec4 clearElement = glm::vec4(0.0f);
+        glClearTexSubImage(this->textureID, 0, 0, 0, 0, this->width[0], this->height[0], 6,
+                           static_cast<GLenum>(this->params.internal),
+                           static_cast<GLenum>(this->params.dataType),
+                           &clearElement.x);
+        break;
+      }
+      default:
+      {
+        return;
+      }
+    }
+  }
+
+  void
+  CubeMap::setSize(GLuint width, GLuint height, GLuint n)
+  {
+    for (unsigned int i = 0; i < 6; i++)
+    {
+      this->width[i] = width;
+      this->height[i] = height;
+      this->n[i] = n;
+    }
   }
 
   // Set the parameters after generating the texture.

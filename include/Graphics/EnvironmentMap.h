@@ -9,7 +9,6 @@
 #include "Graphics/Model.h"
 #include "Graphics/Shaders.h"
 #include "Graphics/Compute.h"
-#include "Graphics/Camera.h"
 #include "Graphics/Textures.h"
 
 namespace Strontium
@@ -24,33 +23,34 @@ namespace Strontium
 
   enum class DynamicSkyType
   {
-    Preetham = 0
+    Preetham = 0,
+    Hillaire = 1
   };
 
   // Parameters for dynamic sky models.
   struct DynamicSkyCommonParams
   {
-    GLfloat azimuth;
-    GLfloat inclination;
+    glm::vec3 sunPos;
     GLfloat sunSize;
     GLfloat sunIntensity;
+    GLfloat skyIntensity;
 
     const DynamicSkyType type;
 
     DynamicSkyCommonParams(const DynamicSkyType &type)
-      : azimuth(0.0f)
-      , inclination(0.0f)
+      : sunPos(0.0f, 1.0f, 0.0f)
       , sunSize(1.0f)
       , sunIntensity(1.0f)
+      , skyIntensity(1.0f)
       , type(type)
     { }
 
     bool operator ==(const DynamicSkyCommonParams& other)
     {
-      return this->azimuth == other.azimuth &&
-             this->inclination == other.inclination &&
+      return this->sunPos == other.sunPos &&
              this->sunSize == other.sunSize &&
              this->sunIntensity == other.sunIntensity &&
+             this->skyIntensity == other.skyIntensity &&
              this->type == other.type;
     }
 
@@ -75,11 +75,53 @@ namespace Strontium
     bool operator !=(const PreethamSkyParams& other) { return !((*this) == other); }
   };
 
+  struct HillaireSkyParams : public DynamicSkyCommonParams
+  {
+    glm::vec3 rayleighScatteringBase;
+    GLfloat rayleighAbsorptionBase;
+    GLfloat mieScatteringBase;
+    GLfloat mieAbsorptionBase;
+    glm::vec3 ozoneAbsorptionBase;
+
+    GLfloat planetRadius;
+    GLfloat atmosphereRadius;
+
+    glm::vec3 viewPos;
+
+    HillaireSkyParams()
+      : DynamicSkyCommonParams(DynamicSkyType::Hillaire)
+      , rayleighScatteringBase(5.802f, 13.558f, 33.1f)
+      , rayleighAbsorptionBase(0.0f)
+      , mieScatteringBase(3.996f)
+      , mieAbsorptionBase(4.4f)
+      , ozoneAbsorptionBase(0.650f, 1.881f, 0.085f)
+      , planetRadius(6.360f)
+      , atmosphereRadius(6.460f)
+      , viewPos(0.0f, 6.360f + 0.0002f, 0.0f)
+    { }
+
+    bool operator==(const HillaireSkyParams& other)
+    {
+      return this->rayleighScatteringBase == other.rayleighScatteringBase &&
+             this->rayleighAbsorptionBase == other.rayleighAbsorptionBase &&
+             this->mieScatteringBase == other.mieScatteringBase &&
+             this->mieAbsorptionBase == other.mieAbsorptionBase &&
+             this->ozoneAbsorptionBase == other.ozoneAbsorptionBase &&
+             this->planetRadius == other.planetRadius &&
+             this->atmosphereRadius == other.atmosphereRadius &&
+             this->viewPos == other.viewPos &&
+             DynamicSkyCommonParams::operator==(other);
+    }
+
+    bool operator !=(const HillaireSkyParams& other) { return !((*this) == other); }
+  };
+
   // The environment map class. Responsible for ambient lighting and IBL.
   class EnvironmentMap
   {
   public:
     static std::string mapEnumToString(const MapType &type);
+    static std::string skyEnumToString(const DynamicSkyType &type);
 
     EnvironmentMap();
     ~EnvironmentMap();
@@ -110,6 +152,7 @@ namespace Strontium
 
     // Update the dynamic sky.
     void updateDynamicSky();
+    void updateHillaireLUTs();
 
     // Generate the diffuse irradiance map.
     void precomputeIrradiance(const GLuint &width = 512, const GLuint &height = 512, bool isHDR = true);
@@ -122,6 +165,10 @@ namespace Strontium
 
     // Getters.
     GLuint getTexID(const MapType &type);
+    GLuint getBRDFLUTID() { return this->brdfIntLUT.getID(); }
+    GLuint getTransmittanceLUTID() { return this->transmittanceLUT.getID(); }
+    GLuint getMultiScatteringLUTID() { return this->multiScatLUT.getID(); }
+    GLuint getSkyViewLUTID() { return this->skyViewLUT.getID(); }
 
     GLfloat& getIntensity() { return this->intensity; }
     GLfloat& getRoughness() { return this->roughness; }
@@ -129,38 +176,42 @@ namespace Strontium
     DynamicSkyCommonParams& getSkyModelParams(const DynamicSkyType &type) { return (*this->dynamicSkyParams.at(type)); }
 
     MapType getDrawingType() { return this->currentEnvironment; }
+    DynamicSkyType getDynamicSkyType() { return this->currentDynamicSky; }
     Model* getCubeMesh() { return &this->cube; }
     Shader* getCubeProg();
     std::string& getFilepath() { return this->filepath; }
 
-    bool hasEqrMap() { return this->erMap != nullptr; }
-    bool hasSkybox() { return this->skybox != nullptr; }
-    bool hasIrradiance() { return this->irradiance != nullptr; }
-    bool hasPrefilter() { return this->specPrefilter != nullptr; }
-    bool hasIntegration() { return this->brdfIntMap != nullptr; }
-
-    void setDrawingType(MapType type) { this->currentEnvironment = type; }
+    void setDrawingType(const MapType &type) { this->currentEnvironment = type; }
+    void setSkyboxType(const DynamicSkyType &type);
     void setSkyModelParams(DynamicSkyCommonParams* params);
   protected:
     Unique<Texture2D> erMap;
-    Unique<CubeMap> skybox;
-    Unique<CubeMap> irradiance;
-    Unique<CubeMap> specPrefilter;
-    Unique<Texture2D> brdfIntMap;
-    Unique<Texture2D> dynamicSkyLUT;
+    CubeMap skybox;
+    CubeMap irradiance;
+    CubeMap specPrefilter;
+    Texture2D brdfIntLUT;
+
+    Texture2D dynamicSkyLUT;
+    Texture2D transmittanceLUT;
+    Texture2D multiScatLUT;
+    Texture2D skyViewLUT;
 
     ComputeShader equiToCubeCompute;
     ComputeShader diffIrradCompute;
     ComputeShader specIrradCompute;
     ComputeShader brdfCompute;
-    ComputeShader preethamLUTCompute;
 
-    UniformBuffer paramBuffer;
+    ComputeShader preethamLUTCompute;
+    ComputeShader transmittanceCompute;
+    ComputeShader multiScatCompute;
+    ComputeShader skyViewCompute;
+
+    UniformBuffer skyboxParamBuffer;
     ShaderStorageBuffer preethamParams;
+    ShaderStorageBuffer hillaireParams;
     ShaderStorageBuffer iblParams;
 
-    Shader cubeShader;
-    Shader preethamShader;
+    Shader dynamicSkyShader;
 
     std::unordered_map<DynamicSkyType, DynamicSkyCommonParams*> dynamicSkyParams;
 
@@ -171,6 +222,8 @@ namespace Strontium
     // Parameters for drawing the skybox.
     GLfloat intensity;
     GLfloat roughness;
+
+    glm::ivec4 skyboxParameters;
 
     Model    cube;
   };

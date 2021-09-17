@@ -65,6 +65,7 @@ void main()
 
   colour = toneMap(colour, uint(u_postProcessingPasses.x));
   colour = applyGamma(colour, u_screenSizeGammaBloom.y);
+  colour = max(colour, vec3(0.0));
 
   fragColour = vec4(colour, 1.0);
   fragID = texture(entityIDs, fTexCoords).a;

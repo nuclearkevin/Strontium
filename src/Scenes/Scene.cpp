@@ -83,6 +83,38 @@ namespace Strontium
   void
   Scene::render(Entity selectedEntity)
   {
+    // Prepare the ambient component.
+    auto ambLight = this->sceneECS.group<AmbientComponent>(entt::get<TransformComponent>);
+    for (auto entity : ambLight)
+    {
+      auto [ambient, transform] = ambLight.get<AmbientComponent, TransformComponent>(entity);
+      if (ambient.ambient->getDrawingType() == MapType::DynamicSky)
+      {
+        if (ambient.ambient->getDynamicSkyType() == DynamicSkyType::Preetham)
+        {
+          DynamicSkyCommonParams& skyParams = ambient.ambient->getSkyModelParams(DynamicSkyType::Preetham);
+          PreethamSkyParams preethamParams = *(static_cast<PreethamSkyParams*>(&skyParams));
+
+          glm::mat4 rotation = glm::transpose(glm::inverse((glm::mat4) transform));
+          preethamParams.sunPos = glm::vec3(rotation * glm::vec4(0.0, 1.0, 0.0, 0.0f));
+          preethamParams.sunPos.z *= -1.0f;
+
+          ambient.ambient->setSkyModelParams(static_cast<DynamicSkyCommonParams*>(&preethamParams));
+        }
+        else if (ambient.ambient->getDynamicSkyType() == DynamicSkyType::Hillaire)
+        {
+          DynamicSkyCommonParams& skyParams = ambient.ambient->getSkyModelParams(DynamicSkyType::Hillaire);
+          HillaireSkyParams hillaireParams = *(static_cast<HillaireSkyParams*>(&skyParams));
+
+          glm::mat4 rotation = glm::transpose(glm::inverse((glm::mat4) transform));
+          hillaireParams.sunPos = glm::vec3(rotation * glm::vec4(0.0, 1.0, 0.0, 0.0f));
+          hillaireParams.sunPos *= -1.0f;
+
+          ambient.ambient->setSkyModelParams(static_cast<DynamicSkyCommonParams*>(&hillaireParams));
+        }
+      }
+    }
+
     // Group together the lights and submit them to the renderer.
     auto dirLight = this->sceneECS.group<DirectionalLightComponent>(entt::get<TransformComponent>);
     for (auto entity : dirLight)

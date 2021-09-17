@@ -101,9 +101,9 @@ namespace Strontium
       ImGui::DragFloat("Knee", &state->bloomKnee, 0.01f, 0.0f, 1.0f);
       ImGui::DragFloat("Radius", &state->bloomRadius, 0.01f, 0.0f, 10.0f);
       ImGui::DragFloat("Intensity", &state->bloomIntensity, 0.01f, 0.0f, 10.0f);
+      ImGui::Indent();
       if (ImGui::CollapsingHeader("Debug View##bloom"))
       {
-        ImGui::Indent();
         ImGui::Text("Downsample Image Pyramid (%d, %d)",
                     storage->downscaleBloomTex[downMipView].width,
                     storage->downscaleBloomTex[downMipView].height);
@@ -124,8 +124,8 @@ namespace Strontium
         ImGui::SliderInt("Mip##buffer", &bufferMipView, 0, MAX_NUM_BLOOM_MIPS - 2);
         ImGui::Image((ImTextureID) (unsigned long) storage->bufferBloomTex[bufferMipView].getID(),
                      ImVec2(128.0f * ratio, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
-        ImGui::Unindent();
       }
+      ImGui::Unindent();
     }
 
     if (ImGui::CollapsingHeader("Tone Mapping"))
@@ -245,11 +245,28 @@ namespace Strontium
 
       if (ambient->getDrawingType() == MapType::DynamicSky)
       {
-        ImGui::Text("");
-        ImGui::Separator();
-        ImGui::Text("Preetham LUT");
-        ImGui::Image((ImTextureID) (unsigned long) ambient->getTexID(MapType::DynamicSky),
-                     ImVec2(256.0f, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
+        if (ambient->getDynamicSkyType() == DynamicSkyType::Preetham)
+        {
+          ImGui::Text("");
+          ImGui::Separator();
+          ImGui::Text("Preetham LUT");
+          ImGui::Image((ImTextureID) (unsigned long) ambient->getTexID(MapType::DynamicSky),
+                       ImVec2(256.0f, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
+        }
+        if (ambient->getDynamicSkyType() == DynamicSkyType::Hillaire)
+        {
+          ImGui::Text("");
+          ImGui::Separator();
+          ImGui::Text("Transmittance and Multi-Scatter LUTs");
+          ImGui::Image((ImTextureID) (unsigned long) ambient->getTransmittanceLUTID(),
+                       ImVec2(256.0f, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
+          ImGui::SameLine();
+          ImGui::Image((ImTextureID) (unsigned long) ambient->getMultiScatteringLUTID(),
+                       ImVec2(128.0f, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
+          ImGui::Text("Skyview LUT");
+          ImGui::Image((ImTextureID) (unsigned long) ambient->getSkyViewLUTID(),
+                       ImVec2(256.0f, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
+        }
       }
     }
 

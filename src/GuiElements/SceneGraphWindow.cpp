@@ -299,21 +299,11 @@ namespace Strontium
           {
             auto& ambient = this->selectedEntity.getComponent<AmbientComponent>();
 
-            if (ambient.ambient->hasEqrMap())
-            {
-              ambient.ambient->unloadEnvironment();
-              ambient.ambient->loadEquirectangularMap(path);
-              ambient.ambient->equiToCubeMap(true, 2048, 2048);
-              ambient.ambient->precomputeIrradiance(512, 512, true);
-              ambient.ambient->precomputeSpecular(2048, 2048, true);
-            }
-            else
-            {
-              ambient.ambient->loadEquirectangularMap(path);
-              ambient.ambient->equiToCubeMap(true, 2048, 2048);
-              ambient.ambient->precomputeIrradiance(512, 512, true);
-              ambient.ambient->precomputeSpecular(2048, 2048, true);
-            }
+            ambient.ambient->unloadEnvironment();
+            ambient.ambient->loadEquirectangularMap(path);
+            ambient.ambient->equiToCubeMap(true, 2048, 2048);
+            ambient.ambient->precomputeIrradiance(512, 512, true);
+            ambient.ambient->precomputeSpecular(2048, 2048, true);
 
             this->fileTargets = FileLoadTargets::TargetNone;
             break;
@@ -874,6 +864,7 @@ namespace Strontium
 
         auto drawingType = component.ambient->getDrawingType();
         static GLuint mapTypes[] = { 0, 1, 2, 3 };
+        static GLuint skyTypes[] = { 0, 1 };
 
         if (ImGui::BeginCombo("##ambientType", EnvironmentMap::mapEnumToString(drawingType).c_str()))
         {
@@ -894,31 +885,104 @@ namespace Strontium
 
         if (component.ambient->getDrawingType() == MapType::DynamicSky)
         {
-          DynamicSkyCommonParams& skyParams = component.ambient->getSkyModelParams(DynamicSkyType::Preetham);
-          PreethamSkyParams preethamParams = *(static_cast<PreethamSkyParams*>(&skyParams));
+          auto dynamicSkyType = component.ambient->getDynamicSkyType();
 
-          GLfloat inclinationDeg = glm::degrees(preethamParams.inclination);
-          GLfloat azimuthDeg = glm::degrees(preethamParams.azimuth);
+          if (ImGui::BeginCombo("##dynamicSkyType", EnvironmentMap::skyEnumToString(dynamicSkyType).c_str()))
+          {
+            for (GLuint i = 0; i < IM_ARRAYSIZE(skyTypes); i++)
+            {
+              bool isSelected = (i == static_cast<GLuint>(dynamicSkyType));
+              auto skyTypeString = EnvironmentMap::skyEnumToString(static_cast<DynamicSkyType>(skyTypes[i]));
 
-          Styles::drawFloatControl("Inclination", 2.0f, inclinationDeg, 0.0f, 0.1f, -180.0f, 180.0f);
-          Styles::drawFloatControl("Azimuth", 2.0f, azimuthDeg, 0.0f, 0.1f, 0.0f, 360.0f);
+              if (ImGui::Selectable(skyTypeString.c_str(), isSelected))
+                component.ambient->setSkyboxType(static_cast<DynamicSkyType>(i));
+              if (isSelected)
+                ImGui::SetItemDefaultFocus();
+            }
+            ImGui::EndCombo();
+          }
 
-          preethamParams.inclination = glm::radians(inclinationDeg);
-          preethamParams.azimuth = glm::radians(azimuthDeg);
+          if (component.ambient->getDynamicSkyType() == DynamicSkyType::Preetham)
+          {
+            DynamicSkyCommonParams& skyParams = component.ambient->getSkyModelParams(DynamicSkyType::Preetham);
+            PreethamSkyParams preethamParams = *(static_cast<PreethamSkyParams*>(&skyParams));
 
-          Styles::drawFloatControl("Sun Size", 0.5f, preethamParams.sunSize, 0.0f, 0.1f, 0.0f, 10.0f);
-          Styles::drawFloatControl("Sun Intensity", 0.0f, preethamParams.sunIntensity, 0.0f, 0.1f, 0.0f, 10.0f);
-          Styles::drawFloatControl("Turbidity", 2.0f, preethamParams.turbidity, 0.0f, 0.1f, 2.0f, 10.0f);
 
-          component.ambient->setSkyModelParams(static_cast<DynamicSkyCommonParams*>(&preethamParams));
+            ImGui::Indent();
+            if (ImGui::CollapsingHeader("Common Sky Parameters##PreethamAtmo"))
+            {
+              Styles::drawFloatControl("Sun Size", 1.5f, preethamParams.sunSize, 0.0f, 0.1f, 0.0f, 10.0f);
+              Styles::drawFloatControl("Sun Intensity", 1.0f, preethamParams.sunIntensity, 0.0f, 0.1f, 0.0f, 10.0f);
+              Styles::drawFloatControl("Sky Intensity", 1.0f, preethamParams.skyIntensity, 0.0f, 0.1f, 0.0f, 10.0f);
+            }
+
+            if (ImGui::CollapsingHeader("Preetham Parameters##PreethamAtmo"))
+            {
+              Styles::drawFloatControl("Turbidity", 2.0f, preethamParams.turbidity, 0.0f, 0.1f, 2.0f, 10.0f);
+            }
+            ImGui::Unindent();
+
+            component.ambient->setSkyModelParams(static_cast<DynamicSkyCommonParams*>(&preethamParams));
+          }
+
+          if (component.ambient->getDynamicSkyType() == DynamicSkyType::Hillaire)
+          {
+            DynamicSkyCommonParams& skyParams = component.ambient->getSkyModelParams(DynamicSkyType::Hillaire);
+            HillaireSkyParams hillaireParams = *(static_cast<HillaireSkyParams*>(&skyParams));
+
+            ImGui::Indent();
+            if (ImGui::CollapsingHeader("Common Sky Parameters##PreethamAtmo"))
+            {
+              Styles::drawFloatControl("Sun Size", 1.5f, hillaireParams.sunSize, 0.0f, 0.1f, 0.0f, 10.0f);
+              Styles::drawFloatControl("Sun Intensity", 1.0f, hillaireParams.sunIntensity, 0.0f, 0.1f, 0.0f, 10.0f);
+              Styles::drawFloatControl("Sky Intensity", 1.0f, hillaireParams.skyIntensity, 0.0f, 0.1f, 0.0f, 10.0f);
+            }
+
+            if (ImGui::CollapsingHeader("Scattering Parameters##UE4Atmo"))
+            {
+              Styles::drawVec3Controls("Rayleigh Scattering", glm::vec3(5.802f, 13.558f, 33.1f),
+                                       hillaireParams.rayleighScatteringBase, 0.0f, 0.1f,
+                                       0.0f, 100.0f);
+              Styles::drawFloatControl("Rayleigh Absorption", 0.0f,
+                                       hillaireParams.rayleighAbsorptionBase, 0.0f, 0.1f,
+                                       0.0f, 100.0f);
+              Styles::drawFloatControl("Mie Scattering", 3.996f, hillaireParams.mieScatteringBase,
+                                       0.0f, 0.1f, 0.0f, 100.0f);
+              Styles::drawFloatControl("Mie Absorption", 4.4f, hillaireParams.mieAbsorptionBase,
+                                       0.0f, 0.1f, 0.0f, 100.0f);
+              Styles::drawVec3Controls("Ozone Absorption", glm::vec3(0.650f, 1.881f, 0.085f),
+                                       hillaireParams.ozoneAbsorptionBase, 0.0f, 0.1f,
+                                       0.0f, 100.0f);
+            }
+
+            if (ImGui::CollapsingHeader("Planetary Parameters##UE4Atmo"))
+            {
+              GLfloat planetRadiusKM = hillaireParams.planetRadius * 1000.0f;
+              GLfloat atmosphereRadiusKM = hillaireParams.atmosphereRadius * 1000.0f;
+              glm::vec3 viewPosKM = hillaireParams.viewPos * 1000.0f;
+              Styles::drawFloatControl("Planet Radius (Km)",
+                                       6360.0f, planetRadiusKM,
+                                       0.0f, 1.0f, 0.0f, atmosphereRadiusKM);
+              Styles::drawFloatControl("Atmosphere Radius (Km)",
+                                       6460.0f, atmosphereRadiusKM,
+                                       0.0f, 1.0f, planetRadiusKM, 10000.0f);
+              Styles::drawFloatControl("View Height", 6360.0f + 0.2f,
+                                       viewPosKM.y, 0.0f, 0.1f,
+                                       planetRadiusKM,
+                                       atmosphereRadiusKM);
+              hillaireParams.planetRadius = planetRadiusKM / 1000.0f;
+              hillaireParams.atmosphereRadius = atmosphereRadiusKM / 1000.0f;
+              hillaireParams.viewPos = viewPosKM / 1000.0f;
+            }
+            ImGui::Unindent();
+
+            component.ambient->setSkyModelParams(static_cast<DynamicSkyCommonParams*>(&hillaireParams));
+          }
         }
 
-        if (component.ambient->hasEqrMap())
-        {
-          if (component.ambient->getDrawingType() == MapType::Prefilter)
-            ImGui::SliderFloat("Roughness", &component.ambient->getRoughness(), 0.0f, 1.0f);
+        if (component.ambient->getDrawingType() == MapType::Prefilter)
+          ImGui::SliderFloat("Roughness", &component.ambient->getRoughness(), 0.0f, 1.0f);
 
-        }
         ImGui::Separator();
         ImGui::Text("");
         Styles::drawFloatControl("Ambient Intensity", 0.5f, component.ambient->getIntensity(), 0.0f, 0.1f, 0.0f, 100.0f);

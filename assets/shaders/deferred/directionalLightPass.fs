@@ -72,8 +72,12 @@ void main()
   float den = 4.0 * max(dot(normal, view), THRESHHOLD) * max(dot(normal, light), THRESHHOLD);
   vec3 spec = num / max(den, THRESHHOLD);
 
-  fragColour = vec4((kD * albedo / PI + spec) * u_lColourIntensity.rgb
-                    * u_lColourIntensity.a * max(dot(normal, light), THRESHHOLD), 1.0);
+  vec3 radiance = (kD * albedo / PI + spec) * u_lColourIntensity.rgb
+                  * u_lColourIntensity.a * max(dot(normal, light), THRESHHOLD);
+
+  radiance = max(radiance, vec3(0.0));
+
+  fragColour = vec4(radiance, 1.0);
 }
 
 // Trowbridge-Reitz distribution function.
