@@ -126,10 +126,10 @@ namespace Strontium
 
     // Generic begin and end for the renderer.
     void
-    begin(GLuint width, GLuint height, Shared<Camera> sceneCam, bool isForward)
+    begin(GLuint width, GLuint height, const Camera &sceneCamera, bool isForward)
     {
-      storage->sceneCam = sceneCam;
-      storage->camFrustum = buildCameraFrustum(sceneCam);
+      storage->sceneCam = sceneCamera;
+      storage->camFrustum = buildCameraFrustum(sceneCamera);
 
       // Resize the framebuffer at the start of a frame, if required.
       storage->isForward = isForward;
@@ -327,13 +327,10 @@ namespace Strontium
       auto shaderCache = AssetManager<Shader>::getManager();
 
       // Upload camera uniforms to the camera uniform buffer.
-      auto camProj = storage->sceneCam->getProjMatrix();
-      auto camView = storage->sceneCam->getViewMatrix();
-      auto camPos = storage->sceneCam->getCamPos();
       storage->camBuffer.bindToPoint(0);
-      storage->camBuffer.setData(0, sizeof(glm::mat4), glm::value_ptr(camView));
-      storage->camBuffer.setData(sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(camProj));
-      storage->camBuffer.setData(2 * sizeof(glm::mat4), sizeof(glm::vec3), &camPos.x);
+      storage->camBuffer.setData(0, sizeof(glm::mat4), glm::value_ptr(storage->sceneCam.view));
+      storage->camBuffer.setData(sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(storage->sceneCam.projection));
+      storage->camBuffer.setData(2 * sizeof(glm::mat4), sizeof(glm::vec3), &(storage->sceneCam.position.x));
 
       // Start the geometry pass.
       storage->gBuffer.beginGeoPass();
@@ -474,12 +471,10 @@ namespace Strontium
       // https://docs.microsoft.com/en-us/windows/win32/dxtecharts/
       // cascaded-shadow-maps
       //------------------------------------------------------------------------
-      const float near = storage->sceneCam->getNear();
-      const float far = storage->sceneCam->getFar();
+      const float near = storage->sceneCam.near;
+      const float far = storage->sceneCam.far;
 
-      glm::mat4 camView = storage->sceneCam->getViewMatrix();
-      glm::mat4 camProj = storage->sceneCam->getProjMatrix();
-      glm::mat4 camInvVP = glm::inverse(camProj * camView);
+      glm::mat4 camInvVP = storage->sceneCam.invViewProj;
 
       float cascadeSplits[NUM_CASCADES];
       for (unsigned int i = 0; i < NUM_CASCADES; i++)
@@ -950,9 +945,9 @@ namespace Strontium
       //------------------------------------------------------------------------
       // Prepare the post processing buffer.
       storage->postProcessSettings.bindToPoint(0);
-      auto viewProj = storage->sceneCam->getProjMatrix() * storage->sceneCam->getViewMatrix();
-      auto invViewProj = glm::inverse(viewProj);
-      auto camPos = storage->sceneCam->getCamPos();
+      auto viewProj = storage->sceneCam.projection * storage->sceneCam.view;
+      auto invViewProj = storage->sceneCam.invViewProj;
+      auto camPos = storage->sceneCam.position;
       auto screenSize = frontBuffer->getSize();
       auto data0 = glm::vec4(camPos.x, camPos.y, camPos.z, screenSize.x);
       auto data1 = glm::vec4(screenSize.y, state->gamma, state->bloomIntensity, 0.0f);

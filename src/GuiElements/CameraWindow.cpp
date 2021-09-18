@@ -1,7 +1,6 @@
 #include "GuiElements/CameraWindow.h"
 
 // Project includes.
-#include "Graphics/Camera.h"
 #include "Graphics/Renderer.h"
 #include "GuiElements/Styles.h"
 
@@ -11,7 +10,7 @@
 
 namespace Strontium
 {
-  CameraWindow::CameraWindow(EditorLayer* parentLayer, Shared<Camera> camera)
+  CameraWindow::CameraWindow(EditorLayer* parentLayer, Shared<EditorCamera> camera)
     : GuiWindow(parentLayer)
     , camera(camera)
   { }

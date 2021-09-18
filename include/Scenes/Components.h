@@ -167,6 +167,23 @@ namespace Strontium
     }
   };
 
+  // The camera component contants some of the information required to construct
+  // a camera shading component. Transform component also required.
+  struct CameraComponent
+  {
+    Camera entCamera;
+    bool isPrimary;
+    bool fixedFOV;
+
+    CameraComponent(const CameraComponent&) = default;
+
+    CameraComponent()
+      : entCamera()
+      , isPrimary(false)
+      , fixedFOV(false)
+    { }
+  };
+
   // This is an IBL ambient light component. TODO: Finish and overhaul environment maps.
   struct AmbientComponent
   {

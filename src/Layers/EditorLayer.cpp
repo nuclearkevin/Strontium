@@ -23,12 +23,23 @@ namespace Strontium
     , dndScenePath("")
     , showPerf(true)
     , editorSize(ImVec2(0, 0))
-  { }
+    , sceneState(SceneState::Edit)
+  {
+    // Load in the icons.
+    Texture2D* tex;
+    tex = Texture2D::loadTexture2D("./assets/.icons/playButton.png", Texture2DParams(), false);
+    this->icons.insert({ "playButton", tex });
+    tex = Texture2D::loadTexture2D("./assets/.icons/stopButton.png", Texture2DParams(), false);
+    this->icons.insert({ "stopButton", tex });
+  }
 
   EditorLayer::~EditorLayer()
   {
     for (auto& window : this->windows)
       delete window;
+
+    for (auto& pair : this->icons)
+      delete pair.second;
   }
 
   void
@@ -58,8 +69,8 @@ namespace Strontium
     this->currentScene = createShared<Scene>();
 
     // Finally, the editor camera.
-    this->editorCam = createShared<Camera>(1920 / 2, 1080 / 2, glm::vec3 { 0.0f, 1.0f, 4.0f },
-                                           EditorCameraType::Stationary);
+    this->editorCam = createShared<EditorCamera>(1920 / 2, 1080 / 2, glm::vec3 { 0.0f, 1.0f, 4.0f },
+                                                 EditorCameraType::Stationary);
     this->editorCam->init(90.0f, 1.0f, 0.1f, 200.0f);
 
     // All the windows!
@@ -197,15 +208,42 @@ namespace Strontium
     }
 
     // Update the scene.
-    this->currentScene->onUpdate(dt);
+    switch (this->sceneState)
+    {
+      case SceneState::Edit:
+      {
+        // Update the scene.
+        this->currentScene->onUpdateEditor(dt);
 
-    // Draw the scene.
-    Renderer3D::begin(this->editorSize.x, this->editorSize.y, this->editorCam, false);
-    this->currentScene->render(this->getSelectedEntity());
-    Renderer3D::end(this->drawBuffer);
+        // Draw the scene.
+        Renderer3D::begin(this->editorSize.x, this->editorSize.y, (Camera) (*this->editorCam.get()), false);
+        this->currentScene->onRenderEditor(this->getSelectedEntity());
+        Renderer3D::end(this->drawBuffer);
 
-    // Update the editor camera.
-    this->editorCam->onUpdate(dt);
+        // Update the editor camera.
+        this->editorCam->onUpdate(dt);
+        break;
+      }
+
+      case SceneState::Play:
+      {
+        // Update the scene.
+        this->currentScene->onUpdateRuntime(dt);
+
+        auto primaryCameraEntity = this->currentScene->getPrimaryCameraEntity();
+
+        Camera primaryCamera;
+        if (primaryCameraEntity)
+          primaryCamera = primaryCameraEntity.getComponent<CameraComponent>().entCamera;
+        else
+          primaryCamera = (Camera) (*this->editorCam.get());
+
+        Renderer3D::begin(this->editorSize.x, this->editorSize.y, primaryCamera, false);
+        this->currentScene->onRenderRuntime();
+        Renderer3D::end(this->drawBuffer);
+        break;
+      }
+    }
   }
 
   void
@@ -416,6 +454,33 @@ namespace Strontium
       ImGui::End();
     }
 
+    // Toolbar window.
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 2));
+    ImGui::PushStyleVar(ImGuiStyleVar_ItemInnerSpacing, ImVec2(0, 0));
+    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
+    auto& colors = ImGui::GetStyle().Colors;
+    const auto& buttonHovered = colors[ImGuiCol_ButtonHovered];
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(buttonHovered.x, buttonHovered.y, buttonHovered.z, 0.5f));
+    const auto& buttonActive = colors[ImGuiCol_ButtonActive];
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(buttonActive.x, buttonActive.y, buttonActive.z, 0.5f));
+
+    auto icon = this->sceneState == SceneState::Edit ? this->icons["playButton"] : this->icons["stopButton"];
+
+    ImGui::Begin("##buttonBar", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
+    float size = ImGui::GetWindowHeight() - 4.0f;
+    ImGui::SetCursorPosX((ImGui::GetWindowContentRegionMax().x * 0.5f) - (size * 0.5f));
+    if (ImGui::ImageButton((ImTextureID) (unsigned long) icon->getID(),
+                           ImVec2(size, size), ImVec2(0, 0), ImVec2(1, 1), 0))
+    {
+      if (this->sceneState == SceneState::Edit)
+        this->onScenePlay();
+      else if (this->sceneState == SceneState::Play)
+        this->onSceneStop();
+    }
+    ImGui::PopStyleVar(2);
+    ImGui::PopStyleColor(3);
+    ImGui::End();
+
     // Show a warning when a new scene is to be loaded.
     if (this->dndScenePath != "" && this->currentScene->getRegistry().size() > 0)
     {
@@ -583,6 +648,18 @@ namespace Strontium
         break;
       }
     }
+  }
+
+  void
+  EditorLayer::onScenePlay()
+  {
+    this->sceneState = SceneState::Play;
+  }
+
+  void
+  EditorLayer::onSceneStop()
+  {
+    this->sceneState = SceneState::Edit;
   }
 
   Entity

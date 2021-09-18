@@ -22,7 +22,6 @@
 #include "Graphics/Model.h"
 #include "Graphics/Animations.h"
 #include "Graphics/Material.h"
-#include "Graphics/Camera.h"
 #include "Graphics/ShadingPrimatives.h"
 
 // STL includes.
@@ -99,7 +98,7 @@ namespace Strontium
 
       Unique<EnvironmentMap> currentEnvironment;
 
-      Shared<Camera> sceneCam;
+      Camera sceneCam;
       Frustum camFrustum;
 
       // Light queues.
@@ -234,7 +233,7 @@ namespace Strontium
     void drawEnvironment();
 
     // Generic begin and end for the renderer.
-    void begin(GLuint width, GLuint height, Shared<Camera> sceneCam, bool isForward = false);
+    void begin(GLuint width, GLuint height, const Camera &sceneCamera, bool isForward = false);
     void end(Shared<FrameBuffer> frontBuffer);
 
     // Deferred rendering setup.

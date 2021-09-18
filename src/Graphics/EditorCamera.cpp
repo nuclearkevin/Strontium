@@ -1,4 +1,4 @@
-#include "Graphics/Camera.h"
+#include "Graphics/EditorCamera.h"
 
 // Project includes.
 #include "Core/Logs.h"
@@ -7,7 +7,7 @@
 
 namespace Strontium
 {
-  Camera::Camera(GLfloat xCenter, GLfloat yCenter, EditorCameraType type)
+  EditorCamera::EditorCamera(GLfloat xCenter, GLfloat yCenter, EditorCameraType type)
     : position(glm::vec3 { 0.0f, 0.0f, 0.0f })
     , camFront(glm::vec3 { 0.0f, 0.0f, -1.0f })
     , camTop(glm::vec3 { 0.0f, 1.0f, 0.0f })
@@ -24,8 +24,8 @@ namespace Strontium
                              this->camTop);
   }
 
-  Camera::Camera(GLfloat xCenter, GLfloat yCenter, const glm::vec3 &initPosition,
-                 EditorCameraType type)
+  EditorCamera::EditorCamera(GLfloat xCenter, GLfloat yCenter, const glm::vec3 &initPosition,
+                             EditorCameraType type)
     : position(initPosition)
     , camFront(glm::vec3 { 0.0f, 0.0f, -1.0f })
     , camTop(glm::vec3 { 0.0f, 1.0f, 0.0f })
@@ -43,8 +43,8 @@ namespace Strontium
   }
 
   void
-  Camera::init(const GLfloat &fov, const GLfloat &aspect,
-               const GLfloat &near, const GLfloat &far)
+  EditorCamera::init(const GLfloat &fov, const GLfloat &aspect,
+                     const GLfloat &near, const GLfloat &far)
   {
     this->proj = glm::perspective(glm::radians(fov), aspect, near, far);
     switch (this->currentType)
@@ -71,7 +71,7 @@ namespace Strontium
 
   // On update function for the camera.
   void
-  Camera::onUpdate(float dt)
+  EditorCamera::onUpdate(float dt)
   {
     // Fetch the application window for input polling.
     Shared<Window> appWindow = Application::getInstance()->getWindow();
@@ -147,7 +147,7 @@ namespace Strontium
 
   // Camera zoom function.
   void
-  Camera::cameraZoom(glm::vec2 offsets)
+  EditorCamera::cameraZoom(glm::vec2 offsets)
   {
     GLfloat cameraSpeed = 0.02 * (offsets.y) * this->scalarSpeed;
 
@@ -159,7 +159,7 @@ namespace Strontium
 
   // The event handling function.
   void
-  Camera::onEvent(Event &event)
+  EditorCamera::onEvent(Event &event)
   {
     switch (event.getType())
     {
@@ -177,7 +177,7 @@ namespace Strontium
   }
 
   void
-  Camera::onMouseScroll(MouseScrolledEvent &mouseEvent)
+  EditorCamera::onMouseScroll(MouseScrolledEvent &mouseEvent)
   {
     // Fetch the application window for input polling.
     Shared<Window>appWindow = Application::getInstance()->getWindow();
@@ -196,13 +196,13 @@ namespace Strontium
   }
 
   void
-  Camera::onWindowResize(WindowResizeEvent &windowEvent)
+  EditorCamera::onWindowResize(WindowResizeEvent &windowEvent)
   {
 
   }
 
   void
-  Camera::onKeyPress(KeyPressedEvent &keyEvent)
+  EditorCamera::onKeyPress(KeyPressedEvent &keyEvent)
   {
     // Fetch the application window for input polling.
     Shared<Window> appWindow = Application::getInstance()->getWindow();
@@ -215,7 +215,7 @@ namespace Strontium
 
   // Swap the camera types.
   void
-  Camera::swap()
+  EditorCamera::swap()
   {
     Logger* logs = Logger::getInstance();
     Shared<Window> appWindow = Application::getInstance()->getWindow();
@@ -240,7 +240,7 @@ namespace Strontium
 
   // Update the projection matrix.
   void
-  Camera::updateProj(GLfloat fov, GLfloat aspect, GLfloat near, GLfloat far)
+  EditorCamera::updateProj(GLfloat fov, GLfloat aspect, GLfloat near, GLfloat far)
   {
     this->proj = glm::perspective(glm::radians(fov), aspect, near, far);
 
@@ -252,27 +252,27 @@ namespace Strontium
 
   // Fetch the view/projection matrix of the camera.
   glm::mat4&
-  Camera::getViewMatrix()
+  EditorCamera::getViewMatrix()
   {
     return this->view;
   }
 
   glm::mat4&
-  Camera::getProjMatrix()
+  EditorCamera::getProjMatrix()
   {
     return this->proj;
   }
 
   // Fetch the camera position (for shading).
   glm::vec3
-  Camera::getCamPos()
+  EditorCamera::getCamPos()
   {
     return this->position;
   }
 
   // Fetch the camera front vector (for shading).
   glm::vec3
-  Camera::getCamFront()
+  EditorCamera::getCamFront()
   {
     return this->camFront;
   }

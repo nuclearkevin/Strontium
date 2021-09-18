@@ -22,7 +22,7 @@ namespace Strontium
     	style.GrabRounding = 2;
     	style.ItemInnerSpacing = { 6, 4 };
     	style.TabRounding = 2;
-    	style.WindowMenuButtonPosition = ImGuiDir_None;
+    	style.WindowMenuButtonPosition = ImGuiDir_Left;
 
     	setColour(ImGuiCol_MenuBarBg, "#181816");
     	setColour(ImGuiCol_Text, "#B9B9B9");
@@ -74,7 +74,7 @@ namespace Strontium
     	style.FramePadding = ImVec2(6, 2);
 
     	style.WindowTitleAlign = ImVec2(0, 0.5);
-    	style.WindowMenuButtonPosition = ImGuiDir_None;
+    	style.WindowMenuButtonPosition = ImGuiDir_Left;
 
     	style.IndentSpacing = 8;
     	style.ScrollbarSize = 16;

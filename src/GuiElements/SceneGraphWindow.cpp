@@ -377,6 +377,7 @@ namespace Strontium
         // Add various components.
         drawComponentAdd<TransformComponent>("Transform Component", entity);
         drawComponentAdd<RenderableComponent>("Renderable Component", entity);
+        drawComponentAdd<CameraComponent>("Camera Component", entity);
         drawComponentAdd<DirectionalLightComponent>("Directional Light Component", entity);
         drawComponentAdd<PointLightComponent>("Point Light Component", entity);
         drawComponentAdd<SpotLightComponent>("Spot Light Component", entity);
@@ -390,6 +391,7 @@ namespace Strontium
         // Remove various components.
         drawComponentRemove<TransformComponent>("Transform Component", entity);
         drawComponentRemove<RenderableComponent>("Renderable Component", entity);
+        drawComponentRemove<CameraComponent>("Camera Component", entity);
         drawComponentRemove<DirectionalLightComponent>("Directional Light Component", entity);
         drawComponentRemove<PointLightComponent>("Point Light Component", entity);
         drawComponentRemove<SpotLightComponent>("Spot Light Component", entity);
@@ -518,6 +520,10 @@ namespace Strontium
     if (entity.hasComponent<RenderableComponent>())
     {
       ImGui::TreeNodeEx("Renderable Componenet", leafFlag);
+    }
+    if (entity.hasComponent<CameraComponent>())
+    {
+      ImGui::TreeNodeEx("Camera Componenet", leafFlag);
     }
     if (entity.hasComponent<DirectionalLightComponent>())
     {
@@ -786,6 +792,21 @@ namespace Strontium
             }
           }
         }
+      });
+
+      drawComponentProperties<CameraComponent>("Camera Component",
+        this->selectedEntity, [this, activeScene](auto& component)
+      {
+        auto& camera = component.entCamera;
+
+        GLfloat degFOV = camera.fov;
+
+        ImGui::Checkbox("Primary Camera", &component.isPrimary);
+        Styles::drawFloatControl("Near", 0.1f, camera.near, 0.0f, 0.1f, 0.1f, 100.0f);
+        Styles::drawFloatControl("Far", 30.0f, camera.far, 0.0f, 0.1f, 30.0f, 500.0f);
+        Styles::drawFloatControl("FOV", 45.0f, degFOV, 0.0f, 0.1f, 30.0f, 180.0f);
+
+        camera.fov = glm::radians(degFOV);
       });
 
       drawComponentProperties<DirectionalLightComponent>("Directional Light Component",

@@ -198,6 +198,8 @@ vec3 computeMultiScat(vec3 pos, vec3 sunDir, ScatteringParams params,
   vec3 fms = vec3(0.0);
 
   float invSamples = 1.0 / float(SQURT_SAMPLES * SQURT_SAMPLES);
+  // Integrate the second order scattering luminance over the sphere surrounding
+  // the viewing position.
   for (int i = 0; i < SQURT_SAMPLES; i++)
   {
     for (int j = 0; j < SQURT_SAMPLES; j++)
@@ -208,9 +210,7 @@ vec3 computeMultiScat(vec3 pos, vec3 sunDir, ScatteringParams params,
 
       float atmoDist = rayIntersectSphere(pos, rayDir, atmosphereRadiusMM);
       float groundDist = rayIntersectSphere(pos, rayDir, groundRadiusMM);
-      float tMax = atmoDist;
-      if (groundDist > 0.0)
-        tMax = groundDist;
+      float tMax = groundDist > 0.0 ? groundDist : atmoDist;
 
       float cosTheta = dot(rayDir, sunDir);
 

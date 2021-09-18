@@ -82,13 +82,8 @@ namespace Strontium
   }
 
   Frustum
-  buildCameraFrustum(Shared<Camera> camera)
+  buildCameraFrustum(const Camera &camera)
   {
-    glm::vec3 camViewVec = camera->getCamFront();
-    glm::mat4 camView = camera->getViewMatrix();
-    glm::mat4 camProj = camera->getProjMatrix();
-    glm::mat4 camInvVP = glm::inverse(camProj * camView);
-
     Frustum outFrustum;
 
     glm::vec4 frustumCorners[8] =
@@ -111,7 +106,7 @@ namespace Strontium
     outFrustum.max = glm::vec3(std::numeric_limits<float>::min());
     for (unsigned int i = 0; i < 8; i++)
     {
-      glm::vec4 worldDepthless = camInvVP * frustumCorners[i];
+      glm::vec4 worldDepthless = camera.invViewProj * frustumCorners[i];
       outFrustum.corners[i] = glm::vec3(worldDepthless / worldDepthless.w);
       outFrustum.min = glm::min(outFrustum.corners[i], outFrustum.min);
       outFrustum.max = glm::max(outFrustum.corners[i], outFrustum.max);
@@ -123,12 +118,12 @@ namespace Strontium
 
     glm::vec3 edge1, edge2;
     Plane back;
-    back.normal = glm::normalize(camViewVec);
+    back.normal = glm::normalize(camera.front);
     back.d = glm::dot(outFrustum.corners[0], back.normal);
     back.point = outFrustum.corners[0];
 
     Plane front;
-    front.normal = glm::normalize(-1.0f * camViewVec);
+    front.normal = glm::normalize(-1.0f * camera.front);
     front.d = glm::dot(outFrustum.corners[4], front.normal);
     front.point = outFrustum.corners[4];
 

@@ -5,7 +5,7 @@
 
 // Project includes.
 #include "Core/ApplicationBase.h"
-#include "Graphics/Camera.h"
+#include "Graphics/ShadingPrimatives.h"
 
 namespace Strontium
 {
@@ -35,7 +35,7 @@ namespace Strontium
   };
 
   BoundingBox buildBoundingBox(const glm::vec3 &min, const glm::vec3 &max);
-  Frustum buildCameraFrustum(Shared<Camera> camera);
+  Frustum buildCameraFrustum(const Camera &camera);
   Frustum buildCameraFrustum(const glm::mat4 &viewProj, const glm::vec3 &viewVec);
 
   GLfloat signedPlaneDistance(const Plane &plane, const glm::vec3 &point);

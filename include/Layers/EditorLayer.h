@@ -8,7 +8,7 @@
 #include "Core/Events.h"
 #include "Core/AssetManager.h"
 #include "Graphics/FrameBuffer.h"
-#include "Graphics/Camera.h"
+#include "Graphics/EditorCamera.h"
 #include "Layers/Layers.h"
 #include "Scenes/Scene.h"
 #include "Scenes/Entity.h"
@@ -20,6 +20,12 @@
 
 namespace Strontium
 {
+  enum class SceneState
+  {
+    Edit = 0,
+    Play = 1
+  };
+
   class EditorLayer : public Layer
   {
   public:
@@ -32,7 +38,7 @@ namespace Strontium
     virtual void onEvent(Event &event) override;
     virtual void onUpdate(float dt) override;
 
-    Shared<Camera> getEditorCamera() { return this->editorCam; }
+    Shared<EditorCamera> getEditorCamera() { return this->editorCam; }
     Shared<FrameBuffer> getFrontBuffer() { return this->drawBuffer; }
     Shared<Scene> getActiveScene() { return this->currentScene; }
     ImVec2& getEditorSize() { return this->editorSize; }
@@ -43,14 +49,18 @@ namespace Strontium
     void onKeyPressEvent(KeyPressedEvent &keyEvent);
     void onMouseEvent(MouseClickEvent &mouseEvent);
 
+    void onScenePlay();
+    void onSceneStop();
+
     // The current scene.
     Shared<Scene> currentScene;
     // The framebuffer for the scene.
     Shared<FrameBuffer> drawBuffer;
     // Editor camera.
-    Shared<Camera> editorCam;
+    Shared<EditorCamera> editorCam;
 
     // Managing the current scene.
+    SceneState sceneState;
     FileLoadTargets loadTarget;
     FileSaveTargets saveTarget;
     std::string dndScenePath;
@@ -63,5 +73,7 @@ namespace Strontium
     bool showPerf;
     bool showSceneGraph;
     ImVec2 editorSize;
+
+    std::unordered_map<std::string, Texture2D*> icons;
   };
 }

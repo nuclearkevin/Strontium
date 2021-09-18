@@ -1,6 +1,7 @@
 #include "Utils/AsyncAssetLoading.h"
 
 // Project includes.
+#include "Core/Events.h"
 #include "Core/ThreadPool.h"
 #include "Graphics/Material.h"
 #include "Scenes/Entity.h"

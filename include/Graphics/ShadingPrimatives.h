@@ -2,6 +2,31 @@
 
 namespace Strontium
 {
+  struct Camera
+  {
+    GLfloat near;
+    GLfloat far;
+    GLfloat fov;
+
+    glm::mat4 view;
+    glm::mat4 projection;
+    glm::mat4 invViewProj;
+
+    glm::vec3 position;
+    glm::vec3 front;
+
+    Camera()
+      : near(0.1f)
+      , far(30.0f)
+      , fov(glm::radians(90.0f))
+      , view(glm::mat4(1.0f))
+      , projection(glm::mat4(1.0f))
+      , invViewProj(glm::inverse(projection * view))
+      , position(glm::vec3(0.0))
+      , front(glm::normalize(glm::vec3(0.0f, 0.0f, -1.0f)))
+    { }
+  };
+
   struct DirectionalLight
   {
     glm::vec3 direction;

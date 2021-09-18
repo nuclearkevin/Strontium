@@ -7,21 +7,22 @@
 // Project includes.
 #include "Core/ApplicationBase.h"
 #include "Core/Events.h"
+#include "Graphics/ShadingPrimatives.h"
 
 namespace Strontium
 {
   enum class EditorCameraType { Stationary, Free };
 
-  class Camera
+  class EditorCamera
   {
   public:
     // Constructors.
-    Camera(GLfloat xCenter, GLfloat yCenter, EditorCameraType type);
-    Camera(GLfloat xCenter, GLfloat yCenter, const glm::vec3 &initPosition,
-           EditorCameraType type);
+    EditorCamera(GLfloat xCenter, GLfloat yCenter, EditorCameraType type);
+    EditorCamera(GLfloat xCenter, GLfloat yCenter, const glm::vec3 &initPosition,
+                 EditorCameraType type);
 
     // Destructor.
-    ~Camera() = default;
+    ~EditorCamera() = default;
 
     // Implement init.
     void init(const GLfloat &fov = 90.0f, const GLfloat &aspect = 1.0f,
@@ -59,6 +60,21 @@ namespace Strontium
 
     GLfloat& getSpeed() { return this->scalarSpeed; }
     GLfloat& getSens() { return this->sensitivity; }
+
+    operator Camera()
+    {
+      Camera outCam;
+      outCam.fov = this->horFOV;
+      outCam.near = this->near;
+      outCam.far = this->far;
+      outCam.view = this->view;
+      outCam.projection = this->proj;
+      outCam.invViewProj = glm::inverse(this->proj * this->view);
+      outCam.position = this->position;
+      outCam.front = this->camFront;
+
+      return outCam;
+    }
   protected:
     // Event handling functions.
     void onMouseScroll(MouseScrolledEvent &mouseEvent);

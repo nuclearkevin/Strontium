@@ -113,13 +113,8 @@ void main()
   float groundDist = rayIntersectSphere(viewPos, rayDir, groundRadiusMM);
   float tMax = (groundDist < 0.0) ? atmoDist : groundDist;
 
-  float cutoff = dot(-1.0 * up, sunDir);
-  // Compares with the cos(30deg). Fixes a strange issue where the skybox gets
-  // computed when the sun is close to directly below the viewer.
-  float comp = float(cutoff < 0.154);
-
-  vec3 lum = comp * raymarchScattering(viewPos, rayDir, newSunDir, tMax, params,
-                                       groundRadiusMM, atmosphereRadiusMM);
+  vec3 lum = raymarchScattering(viewPos, rayDir, newSunDir, tMax, params,
+                                groundRadiusMM, atmosphereRadiusMM);
   imageStore(skyviewImage, invoke, vec4(lum, 1.0));
 }
 

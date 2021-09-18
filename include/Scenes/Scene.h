@@ -3,6 +3,9 @@
 // Macro include file.
 #include "StrontiumPCH.h"
 
+// Project includes.
+#include "Graphics/ShadingPrimatives.h"
+
 // Entity component system include.
 #include "entt.hpp"
 
@@ -21,8 +24,12 @@ namespace Strontium
     void recurseDeleteEntity(Entity entity);
     void deleteEntity(Entity entity);
 
-    void onUpdate(float dt);
-    void render(Entity selectedEntity);
+    void onUpdateEditor(float dt);
+    void onUpdateRuntime(float dt);
+    void onRenderEditor(Entity selectedEntity);
+    void onRenderRuntime();
+
+    Entity getPrimaryCameraEntity();
 
     entt::registry& getRegistry() { return this->sceneECS; }
     std::string& getSaveFilepath() { return this->saveFilepath; }
