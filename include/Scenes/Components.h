@@ -173,14 +173,12 @@ namespace Strontium
   {
     Camera entCamera;
     bool isPrimary;
-    bool fixedFOV;
 
     CameraComponent(const CameraComponent&) = default;
 
     CameraComponent()
       : entCamera()
       , isPrimary(false)
-      , fixedFOV(false)
     { }
   };
 

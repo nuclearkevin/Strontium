@@ -7,7 +7,6 @@ SRC_DIR 			     := ./src/
 GLAD_DIR           := ./vendor/glad/src/
 IMGUI_DIR				   := ./vendor/imgui/
 IMGUI_FB_DIR			 := ./vendor/imguibrowser/FileBrowser/
-IMGUI_TEXT_DIR     := ./vendor/imguitexteditor/
 IMGUIZMO_DIR			 := ./vendor/imguizmo/
 YAML_DIR_ONE       := ./vendor/yamlcpp/src/yaml-cpp/
 YAML_DIR_TWO       := $(YAML_DIR_ONE)contrib/
@@ -25,7 +24,6 @@ SERIAL_SOURCES     := $(wildcard $(SRC_DIR)Serialization/*.cpp)
 GLAD_SOURCES       := $(wildcard $(GLAD_DIR)*.c)
 IMGUI_SOURCES 	   := $(wildcard $(IMGUI_DIR)*.cpp)
 IMGUI_FB_SOURCES   := $(wildcard $(IMGUI_FB_DIR)*.cpp)
-IMGUI_TEXT_SOURCES := $(wildcard $(IMGUI_TEXT_DIR)*.cpp)
 IMGUIZMO_SOURCES   := $(wildcard $(IMGUIZMO_DIR)*.cpp)
 YAML_SOURCES_ONE   := $(wildcard $(YAML_DIR_ONE)*.cpp)
 YAML_SOURCES_TWO   := $(wildcard $(YAML_DIR_TWO)*.cpp)
@@ -40,7 +38,6 @@ SERIAL_OBJECTS     := $(patsubst $(SRC_DIR)Serialization/%.cpp, $(OUTPUT_DIR)Ser
 GLAD_OBJECTS       := $(patsubst $(GLAD_DIR)%.c, $(OUTPUT_DIR)vendor/%.o, $(GLAD_SOURCES))
 IMGUI_OBJECTS      := $(patsubst $(IMGUI_DIR)%.cpp, $(OUTPUT_DIR)vendor/%.o, $(IMGUI_SOURCES))
 IMGUI_FB_OBJECTS   := $(patsubst $(IMGUI_FB_DIR)%.cpp, $(OUTPUT_DIR)vendor/%.o, $(IMGUI_FB_SOURCES))
-IMGUI_TEXT_OBJECTS := $(patsubst $(IMGUI_TEXT_DIR)%.cpp, $(OUTPUT_DIR)vendor/%.o, $(IMGUI_TEXT_SOURCES))
 IMGUIZMO_OBJECTS   := $(patsubst $(IMGUIZMO_DIR)%.cpp, $(OUTPUT_DIR)vendor/%.o, $(IMGUIZMO_SOURCES))
 YAML_OBJECTS_ONE   := $(patsubst $(YAML_DIR_ONE)%.cpp, $(OUTPUT_DIR)vendor/%.o, $(YAML_SOURCES_ONE))
 YAML_SOURCES_TWO   := $(patsubst $(YAML_DIR_TWO)%.cpp, $(OUTPUT_DIR)vendor/%.o, $(YAML_SOURCES_TWO))
@@ -50,8 +47,7 @@ makebuild: make_dir Application
 # Link everything together.
 Application: $(CORE_OBJECTS) $(LAYERS_OBJECTS) $(GRAPHICS_OBJECTS) $(SCENE_OBJECTS) \
 	$(UTILS_OBJECTS) $(GUI_OBJECTS) $(GLAD_OBJECTS) $(IMGUI_OBJECTS) $(IMGUI_FB_OBJECTS) \
-	$(IMGUI_TEXT_OBJECTS) $(IMGUIZMO_OBJECTS) $(YAML_OBJECTS_ONE) $(YAML_OBJECTS_TWO) \
-	$(SERIAL_OBJECTS)
+  $(IMGUIZMO_OBJECTS) $(YAML_OBJECTS_ONE) $(YAML_OBJECTS_TWO) $(SERIAL_OBJECTS)
 	@echo Linking the application.
 	@$(COMPILE_FLAGS) -o Application $^ -ldl $(GLFW_FLAGS) $(ASSIMP_FLAGS)
 
@@ -74,11 +70,6 @@ $(OUTPUT_DIR)vendor/%.o: $(IMGUI_DIR)%.cpp
 $(OUTPUT_DIR)vendor/%.o: $(IMGUI_FB_DIR)%.cpp
 	@echo Compiling $<
 	@$(COMPILE_FLAGS) -I$(IMGUI_FB_DIR) -c $< -o $@
-
-# Compile the Imgui text editor.
-$(OUTPUT_DIR)vendor/%.o: $(IMGUI_TEXT_DIR)%.cpp
-	@echo Compiling $<
-	@$(COMPILE_FLAGS) -I$(IMGUI_TEXT_DIR) -c $< -o $@
 
 # Compile the ImGuizmos.
 $(OUTPUT_DIR)vendor/%.o: $(IMGUIZMO_DIR)%.cpp

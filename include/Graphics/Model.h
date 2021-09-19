@@ -8,14 +8,14 @@
 #include "Graphics/Meshes.h"
 #include "Graphics/Animations.h"
 
-// Assimp includes.
-#include <assimp/Importer.hpp>
-#include <assimp/scene.h>
-#include <assimp/postprocess.h>
-
 // STL includes.
 #include <mutex>
 #include <tuple>
+
+// Forward declare Assimp garbage.
+struct aiScene;
+struct aiNode;
+struct aiMesh;
 
 namespace Strontium
 {

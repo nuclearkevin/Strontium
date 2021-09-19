@@ -11,9 +11,6 @@
 #include "Scenes/Scene.h"
 #include "GuiElements/Styles.h"
 
-// ImGui text editor for editoring the shader source and recompiling.
-#include "imguitexteditor/TextEditor.h"
-
 namespace Strontium
 {
   class ShaderWindow : public GuiWindow
@@ -27,9 +24,6 @@ namespace Strontium
     void onEvent(Event &event);
 
   private:
-    TextEditor vertEditor;
-    TextEditor fragEditor;
-
     Shader* selectedShader;
     std::string shaderName;
   };

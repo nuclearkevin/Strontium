@@ -6,7 +6,13 @@
 #include "Core/Events.h"
 #include "Utils/AssimpUtilities.h"
 
+// GLM stuff.
 #include "glm/gtx/string_cast.hpp"
+
+// Assimp includes.
+#include <assimp/Importer.hpp>
+#include <assimp/scene.h>
+#include <assimp/postprocess.h>
 
 namespace Strontium
 {

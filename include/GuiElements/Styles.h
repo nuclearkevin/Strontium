@@ -10,9 +10,6 @@
 // Font awesome includes.
 #include "GuiElements/IconsFontAwesome4.h"
 
-// ImGui text editor include.
-#include "imguitexteditor/TextEditor.h"
-
 namespace Strontium
 {
   namespace Styles
@@ -42,9 +39,6 @@ namespace Strontium
     ImVec4 colourFromHex(const std::string &hex);
     std::string colourToHex(const ImVec4 &colour);
     std::string colourToHex(const glm::vec4 &colour);
-
-    void drawTextEditorWindow(TextEditor &editor, const std::string &name,
-                              bool &isOpen, std::string &outString);
   }
 }
 

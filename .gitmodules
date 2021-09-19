@@ -16,9 +16,6 @@
 [submodule "vendor/assimp"]
 	path = vendor/assimp
 	url = https://github.com/assimp/assimp.git
-[submodule "vendor/imguitexteditor"]
-	path = vendor/imguitexteditor
-	url = https://github.com/BalazsJako/ImGuiColorTextEdit.git
 [submodule "vendor/imguizmo"]
 	path = vendor/imguizmo
 	url = https://github.com/ksawatzky777/ImGuizmo.git

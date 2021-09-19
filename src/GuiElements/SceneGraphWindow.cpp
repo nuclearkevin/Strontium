@@ -799,7 +799,7 @@ namespace Strontium
       {
         auto& camera = component.entCamera;
 
-        GLfloat degFOV = camera.fov;
+        GLfloat degFOV = glm::degrees(camera.fov);
 
         ImGui::Checkbox("Primary Camera", &component.isPrimary);
         Styles::drawFloatControl("Near", 0.1f, camera.near, 0.0f, 0.1f, 0.1f, 100.0f);

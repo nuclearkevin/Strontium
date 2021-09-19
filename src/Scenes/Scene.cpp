@@ -71,25 +71,13 @@ namespace Strontium
   void
   Scene::onUpdateEditor(float dt)
   {
-    // Get all the renderable components to update animations.
-    auto renderables = this->sceneECS.view<RenderableComponent>();
-    for (auto entity : renderables)
-    {
-      auto& renderable = renderables.get<RenderableComponent>(entity);
-      renderable.animator.onUpdate(dt);
-    }
+    this->updateAnimations(dt);
   }
 
   void
   Scene::onUpdateRuntime(float dt)
   {
-    // Get all the renderable components to update animations.
-    auto renderables = this->sceneECS.view<RenderableComponent>();
-    for (auto entity : renderables)
-    {
-      auto& renderable = renderables.get<RenderableComponent>(entity);
-      renderable.animator.onUpdate(dt);
-    }
+    this->updateAnimations(dt);
   }
 
   void
@@ -292,7 +280,6 @@ namespace Strontium
     // Loop over all the cameras with transform components to find the primary camera.
     auto cameras = this->sceneECS.group<CameraComponent>(entt::get<TransformComponent>);
 
-    Entity lastCamera = Entity();
     for (auto entity : cameras)
     {
       auto [camera, transform] = cameras.get<CameraComponent, TransformComponent>(entity);
@@ -306,33 +293,11 @@ namespace Strontium
         camera.entCamera.view = glm::lookAt(camera.entCamera.position,
                                             camera.entCamera.position + camera.entCamera.front,
                                             glm::vec3(0.0f, 1.0f, 0.0f));
-        camera.entCamera.projection = glm::perspective(camera.entCamera.fov,
-                                                       1.0f, camera.entCamera.near,
-                                                       camera.entCamera.far);
         return Entity(entity, this);
       }
-
-      lastCamera = Entity(entity, this);
     }
 
-    // If we got here, there is no primary camera. Using the last camera in the
-    // pool as a last resort. If there is no last camera, return a null entity.
-    if (lastCamera)
-    {
-      auto& transform = lastCamera.getComponent<TransformComponent>();
-      glm::mat4 tMatrix = transform;
-
-      auto& camera = lastCamera.getComponent<CameraComponent>();
-      camera.entCamera.front = glm::normalize(glm::vec3(tMatrix * glm::vec4(0.0f, 0.0f, -1.0f, 0.0f)));
-      camera.entCamera.position = glm::vec3(tMatrix * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
-      camera.entCamera.view = glm::lookAt(camera.entCamera.position,
-                                          camera.entCamera.position + camera.entCamera.front,
-                                          glm::vec3(0.0f, 1.0f, 0.0f));
-      camera.entCamera.projection = glm::perspective(camera.entCamera.fov,
-                                                     1.0f, camera.entCamera.near,
-                                                     camera.entCamera.far);
-    }
-    return lastCamera;
+    return Entity();
   }
 
   // Compute the global transform given a parent-child transform hierarchy.
@@ -364,6 +329,18 @@ namespace Strontium
       }
       else
         return glm::mat4(1.0f);
+    }
+  }
+
+  void
+  Scene::updateAnimations(float dt)
+  {
+    // Get all the renderable components to update animations.
+    auto renderables = this->sceneECS.view<RenderableComponent>();
+    for (auto entity : renderables)
+    {
+      auto& renderable = renderables.get<RenderableComponent>(entity);
+      renderable.animator.onUpdate(dt);
     }
   }
 }

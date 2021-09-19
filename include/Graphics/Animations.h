@@ -11,13 +11,12 @@
 // Project includes.
 #include "Core/AssetManager.h"
 
-// Assimp includes.
-#include <assimp/Importer.hpp>
-#include <assimp/scene.h>
-#include <assimp/postprocess.h>
+// Forward declare Assimp garbage.
+struct aiAnimation;
 
 namespace Strontium
 {
+  // Forward declare various classes.
   class Model;
 
   struct VertexBone

@@ -36,6 +36,8 @@ namespace Strontium
   protected:
     glm::mat4 computeGlobalTransform(Entity parent);
 
+    void updateAnimations(float dt);
+
     entt::registry sceneECS;
 
     std::string saveFilepath;

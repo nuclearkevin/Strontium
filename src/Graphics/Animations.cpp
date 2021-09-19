@@ -4,6 +4,11 @@
 #include "Utils/AssimpUtilities.h"
 #include "Graphics/Model.h"
 
+// Assimp includes.
+#include <assimp/Importer.hpp>
+#include <assimp/scene.h>
+#include <assimp/postprocess.h>
+
 namespace Strontium
 {
   //----------------------------------------------------------------------------

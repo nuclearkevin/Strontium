@@ -201,7 +201,7 @@ namespace Strontium
     {
       if (this->editorSize.x >= 1.0f && this->editorSize.y >= 1.0f)
         this->editorCam->updateProj(this->editorCam->getHorFOV(),
-                                    editorSize.x / editorSize.y,
+                                    this->editorSize.x / this->editorSize.y,
                                     this->editorCam->getNear(),
                                     this->editorCam->getFar());
       this->drawBuffer->resize(this->editorSize.x, this->editorSize.y);
@@ -230,13 +230,18 @@ namespace Strontium
         // Update the scene.
         this->currentScene->onUpdateRuntime(dt);
 
+        // Fetch the primary camera entity.
         auto primaryCameraEntity = this->currentScene->getPrimaryCameraEntity();
-
         Camera primaryCamera;
         if (primaryCameraEntity)
           primaryCamera = primaryCameraEntity.getComponent<CameraComponent>().entCamera;
         else
           primaryCamera = (Camera) (*this->editorCam.get());
+
+        GLfloat ratio = this->editorSize.x / this->editorSize.y;
+        primaryCamera.projection = glm::perspective(primaryCamera.fov,
+                                                    ratio, primaryCamera.near,
+                                                    primaryCamera.far);
 
         Renderer3D::begin(this->editorSize.x, this->editorSize.y, primaryCamera, false);
         this->currentScene->onRenderRuntime();
