@@ -5,7 +5,9 @@
 */
 
 #define PI 3.141592654
+
 #define THRESHHOLD 0.00005
+
 #define NUM_CASCADES 4
 #define WARP 44.0
 
@@ -15,6 +17,15 @@ layout(std140, binding = 0) uniform CameraBlock
   mat4 u_viewMatrix;
   mat4 u_projMatrix;
   vec3 u_camPosition;
+};
+
+layout(std140, binding = 1) uniform PostProcessBlock
+{
+  mat4 u_invViewProj;
+  mat4 u_viewProj;
+  vec4 u_camPosScreenSize; // Camera position (x, y, z) and the screen width (w).
+  vec4 u_screenSizeGammaBloom;  // Screen height (x), gamma (y) and bloom intensity (z). w is unused.
+  ivec4 u_postProcessingPasses; // Tone mapping operator (x), using bloom (y), using FXAA (z) and using screenspace godrays (w).
 };
 
 // Directional light uniforms.
@@ -33,6 +44,7 @@ layout(std140, binding = 7) uniform CascadedShadowBlock
 };
 
 // Uniforms for the geometry buffer.
+layout(binding = 2) uniform sampler2D godrayTex;
 layout(binding = 3) uniform sampler2D gPosition;
 layout(binding = 4) uniform sampler2D gNormal;
 layout(binding = 5) uniform sampler2D gAlbedo;
@@ -101,6 +113,10 @@ void main()
 
   vec3 radiance = shadowFactor * (kD * albedo / PI + spec) * u_lColourIntensity.rgb
                   * u_lColourIntensity.a * max(dot(normal, light), THRESHHOLD);
+
+  // Add on screen-space godrays.
+  if (u_postProcessingPasses.w != 0)
+    radiance += texture(godrayTex, fTexCoords).rgb;
 
   radiance = max(radiance, vec3(0.0));
 

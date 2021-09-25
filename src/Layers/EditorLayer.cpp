@@ -234,14 +234,17 @@ namespace Strontium
         auto primaryCameraEntity = this->currentScene->getPrimaryCameraEntity();
         Camera primaryCamera;
         if (primaryCameraEntity)
+        {
           primaryCamera = primaryCameraEntity.getComponent<CameraComponent>().entCamera;
+
+          GLfloat ratio = this->editorSize.x / this->editorSize.y;
+          primaryCamera.projection = glm::perspective(primaryCamera.fov,
+                                                      ratio, primaryCamera.near,
+                                                      primaryCamera.far);
+          primaryCamera.invViewProj = glm::inverse(primaryCamera.projection * primaryCamera.view);
+        }
         else
           primaryCamera = (Camera) (*this->editorCam.get());
-
-        GLfloat ratio = this->editorSize.x / this->editorSize.y;
-        primaryCamera.projection = glm::perspective(primaryCamera.fov,
-                                                    ratio, primaryCamera.near,
-                                                    primaryCamera.far);
 
         Renderer3D::begin(this->editorSize.x, this->editorSize.y, primaryCamera, false);
         this->currentScene->onRenderRuntime();

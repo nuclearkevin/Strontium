@@ -928,7 +928,6 @@ namespace Strontium
             DynamicSkyCommonParams& skyParams = component.ambient->getSkyModelParams(DynamicSkyType::Preetham);
             PreethamSkyParams preethamParams = *(static_cast<PreethamSkyParams*>(&skyParams));
 
-
             ImGui::Indent();
             if (ImGui::CollapsingHeader("Common Sky Parameters##PreethamAtmo"))
             {

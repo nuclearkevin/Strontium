@@ -461,6 +461,15 @@ namespace Strontium
       out << YAML::Key << "CascadeLightBleed" << YAML::Value << state->bleedReduction;
       out << YAML::EndMap;
 
+      out << YAML::Key << "VolumetricLightSettings";
+      out << YAML::BeginMap;
+      out << YAML::Key << "EnableVolumetricPrimaryLight" << YAML::Value << state->enableSkyshafts;
+      out << YAML::Key << "VolumetricIntensity" << YAML::Value << state->mieScatIntensity.w;
+      out << YAML::Key << "ParticleDensity" << YAML::Value << state->mieAbsDensity.w;
+      out << YAML::Key << "MieScattering" << YAML::Value << glm::vec3(state->mieScatIntensity);
+      out << YAML::Key << "MieAbsorption" << YAML::Value << glm::vec3(state->mieAbsDensity);
+      out << YAML::EndMap;
+
       out << YAML::Key << "BloomSettings";
       out << YAML::BeginMap;
       out << YAML::Key << "EnableBloom" << YAML::Value << state->enableBloom;
@@ -854,6 +863,23 @@ namespace Strontium
           state->cascadeLambda = shadowSettings["CascadeLambda"].as<GLfloat>();
           state->cascadeSize = shadowSettings["CascadeSize"].as<GLuint>();
           state->bleedReduction = shadowSettings["CascadeLightBleed"].as<GLfloat>();
+        }
+
+        auto volumetricSettings = rendererSettings["VolumetricLightSettings"];
+        if (volumetricSettings)
+        {
+          state->enableSkyshafts = volumetricSettings["EnableVolumetricPrimaryLight"].as<bool>();
+          state->mieScatIntensity.w = volumetricSettings["VolumetricIntensity"].as<GLfloat>();
+          state->mieAbsDensity.w = volumetricSettings["ParticleDensity"].as<GLfloat>();
+          glm::vec3 mieScattering = volumetricSettings["MieScattering"].as<glm::vec3>();
+          state->mieScatIntensity.x = mieScattering.x;
+          state->mieScatIntensity.y = mieScattering.y;
+          state->mieScatIntensity.z = mieScattering.z;
+
+          glm::vec3 mieAbsorption = volumetricSettings["MieAbsorption"].as<glm::vec3>();
+          state->mieAbsDensity.x = mieAbsorption.x;
+          state->mieAbsDensity.y = mieAbsorption.y;
+          state->mieAbsDensity.z = mieAbsorption.z;
         }
 
         auto bloomSettings = rendererSettings["BloomSettings"];

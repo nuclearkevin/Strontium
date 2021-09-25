@@ -9,13 +9,13 @@
 #define FXAA_REDUCE_MIN 0.0078125 // 1.0 / 180.0
 
 // The post processing properties.
-layout(std140, binding = 0) uniform PostProcessBlock
+layout(std140, binding = 1) uniform PostProcessBlock
 {
   mat4 u_invViewProj;
   mat4 u_viewProj;
   vec4 u_camPosScreenSize; // Camera position (x, y, z) and the screen width (w).
   vec4 u_screenSizeGammaBloom;  // Screen height (x), gamma (y) and bloom intensity (z). w is unused.
-  ivec4 u_postProcessingPasses; // Tone mapping operator (x), using bloom (y), using FXAA (z). w unused.
+  ivec4 u_postProcessingPasses; // Tone mapping operator (x), using bloom (y), using FXAA (z) and using sunshafts (w).
 };
 
 layout(binding = 0) uniform sampler2D screenColour;

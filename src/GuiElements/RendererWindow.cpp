@@ -88,6 +88,45 @@ namespace Strontium
       }
     }
 
+    if (ImGui::CollapsingHeader("Volumetric Lights"))
+    {
+      auto bufferSize = storage->gBuffer.getSize();
+      GLfloat ratio = bufferSize.x / bufferSize.y;
+
+      ImGui::Checkbox("Enable Godrays", &state->enableSkyshafts);
+
+      Styles::drawFloatControl("Volumetric Intensity", 1.0f, state->mieScatIntensity.w,
+                               0.0f, 0.1f, 0.0f, 100.0f);
+      Styles::drawFloatControl("Particle Density", 1.0f, state->mieAbsDensity.w,
+                               0.0f, 0.1f, 0.0f, 1000.0f);
+
+      glm::vec3 mieAbs = glm::vec3(state->mieAbsDensity);
+      Styles::drawVec3Controls("Mie Absorption", glm::vec3(4.4f),
+                               mieAbs,  0.0f, 0.01f,
+                               0.0f, 10.0f);
+      state->mieAbsDensity.x = mieAbs.x;
+      state->mieAbsDensity.y = mieAbs.y;
+      state->mieAbsDensity.z = mieAbs.z;
+
+      glm::vec3 mieScat = glm::vec3(state->mieScatIntensity);
+      Styles::drawVec3Controls("Mie Scattering", glm::vec3(4.0f),
+                               mieScat, 0.0f, 0.01f,
+                               0.0f, 10.0f);
+      state->mieScatIntensity.x = mieScat.x;
+      state->mieScatIntensity.y = mieScat.y;
+      state->mieScatIntensity.z = mieScat.z;
+
+      static bool showLightTexture = false;
+      ImGui::Checkbox("Show Volumetric Light Texture", &showLightTexture);
+
+      if (showLightTexture)
+      {
+        ImGui::Text("Sunshaft Texture");
+        ImGui::Image((ImTextureID) (unsigned long) storage->downsampleLightshaft.getID(),
+                     ImVec2(128.0f * ratio, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
+      }
+    }
+
     if (ImGui::CollapsingHeader("Bloom"))
     {
       auto bufferSize = storage->gBuffer.getSize();

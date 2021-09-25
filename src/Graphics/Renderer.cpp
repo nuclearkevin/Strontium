@@ -83,6 +83,14 @@ namespace Strontium
         powOf2 *= 2.0f;
       }
 
+      // Init the texture for the volumetric light shafts. Use same params as bloom.
+      storage->downsampleLightshaft.setSize(width / 2, height / 2, 4);
+      storage->downsampleLightshaft.setParams(bloomParams);
+      storage->downsampleLightshaft.initNullTexture();
+      storage->halfResBuffer1.setSize(width / 2, height / 2, 4);
+      storage->halfResBuffer1.setParams(bloomParams);
+      storage->halfResBuffer1.initNullTexture();
+
       // Prepare the shadow buffers.
       auto dSpec = FBOCommands::getDefaultDepthSpec();
       auto vSpec = FBOCommands::getFloatColourSpec(FBOTargetParam::Colour0);
@@ -140,6 +148,7 @@ namespace Strontium
       if (state->currentFrame == 6)
         state->currentFrame = 0;
 
+      // Resize any fullscreen textures.
       if (storage->width != width || storage->height != height)
       {
         storage->gBuffer.resize(width, height);
@@ -161,6 +170,11 @@ namespace Strontium
           }
           powOf2 *= 2.0f;
         }
+
+        storage->downsampleLightshaft.setSize(width / 2, height / 2, 4);
+        storage->downsampleLightshaft.initNullTexture();
+        storage->halfResBuffer1.setSize(width / 2, height / 2, 4);
+        storage->halfResBuffer1.initNullTexture();
 
         storage->width = width;
         storage->height = height;
@@ -796,7 +810,36 @@ namespace Strontium
         storage->directionalPassBuffer.setData(sizeof(glm::vec4), sizeof(glm::vec4), &dirDirection.x);
 
         if (light.castShadows && light.primaryLight)
+        {
+          // Launch the godray compute shaders.
+          if (state->enableSkyshafts)
+          {
+            storage->lightShaftSettingsBuffer.bindToPoint(0);
+            storage->lightShaftSettingsBuffer.setData(0, sizeof(glm::vec4),
+                                                      &(state->mieScatIntensity.x));
+            storage->lightShaftSettingsBuffer.setData(sizeof(glm::vec4), sizeof(glm::vec4),
+                                                      &(state->mieAbsDensity.x));
+
+            storage->halfResBuffer1.bindAsImage(0, 0, ImageAccessPolicy::Write);
+            GLint iWidth = (GLint) glm::ceil(storage->downsampleLightshaft.width / 32.0f);
+            GLint iHeight = (GLint) glm::ceil(storage->downsampleLightshaft.height / 32.0f);
+            storage->halfLightshaft.launchCompute(glm::ivec3(iWidth, iHeight, 1));
+            ComputeShader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
+
+            storage->halfResBuffer1.bindAsImage(0, 0, ImageAccessPolicy::Read);
+            storage->downsampleLightshaft.bindAsImage(1, 0, ImageAccessPolicy::Write);
+            storage->bilatBlur.launchCompute(glm::ivec3(iWidth, iHeight, 1));
+            ComputeShader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
+
+            state->postProcessSettings.w = (GLuint) (storage->hasCascades && state->enableSkyshafts);
+            storage->downsampleLightshaft.bind(2);
+            storage->postProcessSettings.bindToPoint(1);
+            storage->postProcessSettings.setData(2 * sizeof(glm::mat4) + 2 * sizeof(glm::vec4), sizeof(glm::ivec4), &state->postProcessSettings.x);
+          }
+
+          // Launch the primary shadowed directional light pass.
           draw(&storage->fsq, directionalLightShadowed);
+        }
         else
           draw(&storage->fsq, directionalLight);
       }
@@ -944,7 +987,7 @@ namespace Strontium
       // Generalized post processing shader.
       //------------------------------------------------------------------------
       // Prepare the post processing buffer.
-      storage->postProcessSettings.bindToPoint(0);
+      storage->postProcessSettings.bindToPoint(1);
       auto viewProj = storage->sceneCam.projection * storage->sceneCam.view;
       auto invViewProj = storage->sceneCam.invViewProj;
       auto camPos = storage->sceneCam.position;

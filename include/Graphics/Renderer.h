@@ -85,6 +85,13 @@ namespace Strontium
       ComputeShader bloomUpsampleBlend;
       ShaderStorageBuffer bloomSettingsBuffer;
 
+      // Required parameters for volumetric light shafts.
+      Texture2D downsampleLightshaft;
+      Texture2D halfResBuffer1;
+      ShaderStorageBuffer lightShaftSettingsBuffer;
+      ComputeShader halfLightshaft;
+      ComputeShader bilatBlur;
+
       // Items for the geometry pass.
       std::vector<std::tuple<Model*, ModelMaterial*, glm::mat4, GLuint, bool>> staticRenderQueue;
       std::vector<std::tuple<Model*, Animator*, ModelMaterial*, glm::mat4, GLuint, bool>> dynamicRenderQueue;
@@ -124,6 +131,9 @@ namespace Strontium
         , bloomDownsample("./assets/shaders/compute/bloomDownsample.cs")
         , bloomUpsample("./assets/shaders/compute/bloomUpsample.cs")
         , bloomUpsampleBlend("./assets/shaders/compute/bloomUpsampleBlend.cs")
+        , lightShaftSettingsBuffer(2 * sizeof(glm::vec4), BufferType::Dynamic)
+        , halfLightshaft("./assets/shaders/compute/volumetricDirLight.cs")
+        , bilatBlur("./assets/shaders/compute/bilatBlur.cs")
         , bloomSettingsBuffer(sizeof(glm::vec4) + sizeof(GLfloat), BufferType::Dynamic)
       {
         currentEnvironment = createUnique<EnvironmentMap>();
@@ -150,6 +160,11 @@ namespace Strontium
       GLfloat cascadeLambda;
       GLuint cascadeSize;
       GLfloat bleedReduction;
+
+      // Volumetric light settings.
+      bool enableSkyshafts;
+      glm::vec4 mieScatIntensity;
+      glm::vec4 mieAbsDensity;
 
       // HDR settings.
       GLfloat gamma;
@@ -180,6 +195,9 @@ namespace Strontium
         , cascadeLambda(0.5f)
         , cascadeSize(2048)
         , bleedReduction(0.2f)
+        , enableSkyshafts(false)
+        , mieScatIntensity(4.0f, 4.0f, 4.0f, 1.0f)
+        , mieAbsDensity(4.4f, 4.4f, 4.4f, 1.0f)
         , gamma(2.2f)
         , enableBloom(true)
         , bloomThreshold(1.0f)

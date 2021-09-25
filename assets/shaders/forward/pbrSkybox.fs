@@ -55,12 +55,14 @@ void main()
   vec3 colour;
   switch (u_skyboxParams2.x)
   {
+    // Generic skybox skybox.
     case 0:
     {
       colour = textureLod(skybox, viewDir, u_lodDirection.x * MAX_MIP).rgb;
       break;
     }
 
+    // Preetham dynamic sky.
     case 1:
     {
       sunPos.z *= -1.0;
@@ -69,6 +71,7 @@ void main()
       break;
     }
 
+    // Hillaire2020 dynamic sky.
     case 2:
     {
       vec3 viewPos = u_viewPosSkyIntensity.xyz;

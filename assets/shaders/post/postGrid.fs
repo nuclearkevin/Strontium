@@ -7,7 +7,7 @@ in VERT_OUT
 } fragIn;
 
 // The post processing properties.
-layout(std140, binding = 0) uniform PostProcessBlock
+layout(std140, binding = 1) uniform PostProcessBlock
 {
   mat4 u_invViewProj;
   mat4 u_viewProj;
