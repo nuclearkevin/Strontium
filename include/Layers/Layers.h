@@ -54,6 +54,6 @@ namespace Strontium
 
   private:
     std::vector<Layer*> layers;
-    GLuint              insertIndex;
+    uint              insertIndex;
   };
 }

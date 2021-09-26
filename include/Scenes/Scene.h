@@ -20,7 +20,7 @@ namespace Strontium
     ~Scene();
 
     Entity createEntity(const std::string& name = "New Entity");
-    Entity createEntity(GLuint entityID, const std::string& name = "New Entity");
+    Entity createEntity(uint entityID, const std::string& name = "New Entity");
     void recurseDeleteEntity(Entity entity);
     void deleteEntity(Entity entity);
 

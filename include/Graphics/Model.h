@@ -38,7 +38,7 @@ namespace Strontium
     std::vector<Mesh>& getSubmeshes() { return this->subMeshes; }
     std::vector<Animation>& getAnimations() { return this->storedAnimations; }
     std::unordered_map<std::string, SceneNode>& getSceneNodes() { return this->sceneNodes; }
-    std::unordered_map<std::string, GLuint>& getBoneMap() { return this->boneMap; }
+    std::unordered_map<std::string, uint>& getBoneMap() { return this->boneMap; }
     std::vector<VertexBone>& getBones() { return this->storedBones; }
     glm::mat4& getGlobalInverseTransform() { return this->globalInverseTransform; }
     SceneNode& getRootNode() { return this->rootNode; }
@@ -47,7 +47,7 @@ namespace Strontium
     void processNode(aiNode* node, const aiScene* scene, const std::string &directory);
     void processMesh(aiMesh* mesh, const aiScene* scene, const std::string &directory);
 
-    void addBoneData(unsigned int boneIndex, GLfloat boneWeight, Vertex &toMod);
+    void addBoneData(unsigned int boneIndex, float boneWeight, Vertex &toMod);
 
     // Scene information for this model.
     glm::mat4 globalInverseTransform;
@@ -60,7 +60,7 @@ namespace Strontium
     // Animation information for this model.
     std::vector<Animation> storedAnimations;
     std::vector<VertexBone> storedBones;
-    std::unordered_map<std::string, GLuint> boneMap;
+    std::unordered_map<std::string, uint> boneMap;
 
     // Is the model loaded or not?
     bool loaded;

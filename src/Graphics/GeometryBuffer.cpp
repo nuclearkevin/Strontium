@@ -1,5 +1,8 @@
 #include "Graphics/GeometryBuffer.h"
 
+// OpenGL includes.
+#include "glad/glad.h"
+
 namespace Strontium
 {
   GeometryBuffer::GeometryBuffer()
@@ -35,7 +38,7 @@ namespace Strontium
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LESS);
   }
 
-  GeometryBuffer::GeometryBuffer(const RuntimeType &type, GLuint width, GLuint height)
+  GeometryBuffer::GeometryBuffer(const RuntimeType &type, uint width, uint height)
     : type(type)
   {
     this->geoBuffer = FrameBuffer(width, height);
@@ -158,7 +161,7 @@ namespace Strontium
   }
 
   void
-  GeometryBuffer::resize(GLuint width, GLuint height)
+  GeometryBuffer::resize(uint width, uint height)
   {
     this->geoBuffer.resize(width, height);
   }
@@ -170,7 +173,7 @@ namespace Strontium
   }
 
   void
-  GeometryBuffer::bindAttachment(const FBOTargetParam &attachment, GLuint bindPoint)
+  GeometryBuffer::bindAttachment(const FBOTargetParam &attachment, uint bindPoint)
   {
     this->geoBuffer.bindTextureID(attachment, bindPoint);
   }

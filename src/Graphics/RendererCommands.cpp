@@ -1,5 +1,8 @@
 #include "Graphics/RendererCommands.h"
 
+// OpenGL includes.
+#include "glad/glad.h"
+
 namespace Strontium
 {
   void
@@ -71,7 +74,7 @@ namespace Strontium
   }
 
   void
-  RendererCommands::drawPrimatives(PrimativeType primative, GLuint count,
+  RendererCommands::drawPrimatives(PrimativeType primative, uint count,
                                    const void* indices)
   {
     glDrawElements(static_cast<GLenum>(primative), count, GL_UNSIGNED_INT, indices);

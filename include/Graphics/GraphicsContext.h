@@ -3,9 +3,11 @@
 // Macro include file.
 #include "StrontiumPCH.h"
 
+// Forward declare the window.
+struct GLFWwindow;
+
 namespace Strontium
 {
-  // A wrapper class for the OpenGL (loaded through GLAD) graphics contexts.
   class GraphicsContext
   {
   public:

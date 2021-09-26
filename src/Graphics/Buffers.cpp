@@ -1,6 +1,9 @@
 // Project includes.
 #include "Graphics/Buffers.h"
 
+// OpenGL includes.
+#include "glad/glad.h"
+
 namespace Strontium
 {
   //----------------------------------------------------------------------------
@@ -40,7 +43,7 @@ namespace Strontium
   //----------------------------------------------------------------------------
   // Index buffer here.
   //----------------------------------------------------------------------------
-  IndexBuffer::IndexBuffer(const GLuint* bufferData,
+  IndexBuffer::IndexBuffer(const uint* bufferData,
                            unsigned numIndices,
                            BufferType bufferType)
     : hasData(true)
@@ -50,7 +53,7 @@ namespace Strontium
   {
     glGenBuffers(1, &this->bufferID);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, this->bufferID);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLuint) * numIndices, bufferData,
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(uint) * numIndices, bufferData,
                  static_cast<GLenum>(bufferType));
   }
 
@@ -119,7 +122,7 @@ namespace Strontium
 
   // Bind/unbind the buffer.
   void
-  UniformBuffer::bindToPoint(const GLuint bindPoint)
+  UniformBuffer::bindToPoint(const uint bindPoint)
   {
     glBindBuffer(GL_UNIFORM_BUFFER, this->bufferID);
     glBindBufferBase(GL_UNIFORM_BUFFER, bindPoint, this->bufferID);
@@ -139,7 +142,7 @@ namespace Strontium
 
   // Set a specific part of the buffer data.
   void
-  UniformBuffer::setData(GLuint start, GLuint newDataSize, const void* newData)
+  UniformBuffer::setData(uint start, uint newDataSize, const void* newData)
   {
     assert(("New data exceeds buffer size.", !(start + newDataSize > this->dataSize)));
 
@@ -150,7 +153,7 @@ namespace Strontium
     this->filled = true;
   }
 
-  RenderBuffer::RenderBuffer(GLuint width, GLuint height)
+  RenderBuffer::RenderBuffer(uint width, uint height)
     : format(RBOInternalFormat::DepthStencil)
     , width(width)
     , height(height)
@@ -163,7 +166,7 @@ namespace Strontium
                           width, height);
   }
 
-  RenderBuffer::RenderBuffer(GLuint width, GLuint height,
+  RenderBuffer::RenderBuffer(uint width, uint height,
                              const RBOInternalFormat &format)
     : format(format)
     , width(width)
@@ -234,7 +237,7 @@ namespace Strontium
   }
 
   void
-  ShaderStorageBuffer::bindToPoint(const GLuint bindPoint)
+  ShaderStorageBuffer::bindToPoint(const uint bindPoint)
   {
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->bufferID);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, bindPoint, this->bufferID);
@@ -247,7 +250,7 @@ namespace Strontium
   }
 
   void
-  ShaderStorageBuffer::setData(GLuint start, GLuint newDataSize,
+  ShaderStorageBuffer::setData(uint start, uint newDataSize,
                                const void* newData)
   {
     assert(("New data exceeds buffer size.", !(start + newDataSize > this->dataSize)));

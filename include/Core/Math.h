@@ -11,7 +11,7 @@ namespace Strontium
 {
   struct Plane
   {
-    GLfloat d;
+    float d;
     glm::vec3 point;
     glm::vec3 normal;
   };
@@ -31,15 +31,15 @@ namespace Strontium
     glm::vec3 center;
     glm::vec3 min;
     glm::vec3 max;
-    GLfloat bSphereRadius;
+    float bSphereRadius;
   };
 
   BoundingBox buildBoundingBox(const glm::vec3 &min, const glm::vec3 &max);
   Frustum buildCameraFrustum(const Camera &camera);
   Frustum buildCameraFrustum(const glm::mat4 &viewProj, const glm::vec3 &viewVec);
 
-  GLfloat signedPlaneDistance(const Plane &plane, const glm::vec3 &point);
+  float signedPlaneDistance(const Plane &plane, const glm::vec3 &point);
 
-  bool sphereInFrustum(const Frustum &frustum, const glm::vec3 center, GLfloat radius);
+  bool sphereInFrustum(const Frustum &frustum, const glm::vec3 center, float radius);
   bool boundingBoxInFrustum(const Frustum &frustum, const glm::vec3 min, const glm::vec3 max);
 }

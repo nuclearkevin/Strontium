@@ -251,18 +251,18 @@ namespace Strontium
     return outFrustum;
   }
 
-  GLfloat
+  float
   signedPlaneDistance(const Plane &plane, const glm::vec3 &point)
   {
     return plane.normal.x * point.x + plane.normal.y * point.y + plane.normal.z * point.z - plane.d;
   }
 
   bool
-  sphereInFrustum(const Frustum &frustum, const glm::vec3 center, GLfloat radius)
+  sphereInFrustum(const Frustum &frustum, const glm::vec3 center, float radius)
   {
     for (unsigned int i = 0; i < 6; i++)
     {
-      GLfloat distance = signedPlaneDistance(frustum.sides[i], center);
+      float distance = signedPlaneDistance(frustum.sides[i], center);
 
       if (distance + radius < 0.0f)
         return false;
@@ -282,7 +282,7 @@ namespace Strontium
     {
       for (unsigned int j = 0; j < 6; j++)
       {
-        GLfloat distance = signedPlaneDistance(frustum.sides[j], bb.corners[i]);
+        float distance = signedPlaneDistance(frustum.sides[j], bb.corners[i]);
         if (distance >= 0.0f)
           planeTest++;
       }
@@ -298,7 +298,7 @@ namespace Strontium
     {
       for (unsigned j = 0; j < 6; j++)
       {
-        GLfloat distance = signedPlaneDistance(bb.sides[j], frustum.corners[i]);
+        float distance = signedPlaneDistance(bb.sides[j], frustum.corners[i]);
         if (distance >= 0.0f)
           planeTest++;
       }

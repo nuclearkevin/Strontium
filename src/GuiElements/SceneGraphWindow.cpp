@@ -597,7 +597,7 @@ namespace Strontium
               {
                 EventDispatcher* dispatcher = EventDispatcher::getInstance();
                 dispatcher->queueEvent(new EntitySwapEvent(-1, activeScene.get()));
-                dispatcher->queueEvent(new EntityDeleteEvent((GLint) entity, activeScene.get()));
+                dispatcher->queueEvent(new EntityDeleteEvent((int) entity, activeScene.get()));
 
                 YAMLSerialization::deserializePrefab(activeScene, tempPath);
               }
@@ -799,7 +799,7 @@ namespace Strontium
       {
         auto& camera = component.entCamera;
 
-        GLfloat degFOV = glm::degrees(camera.fov);
+        float degFOV = glm::degrees(camera.fov);
 
         ImGui::Checkbox("Primary Camera", &component.isPrimary);
         Styles::drawFloatControl("Near", 0.1f, camera.near, 0.0f, 0.1f, 0.1f, 100.0f);
@@ -859,11 +859,11 @@ namespace Strontium
         Styles::drawFloatControl("Radius", 0.0f, component.light.radius, 0.0f, 0.1f, 0.0f, 100.0f);
         Styles::drawFloatControl("Intensity", 0.0f, component.light.intensity,
                                  0.0f, 0.1f, 0.0f, 100.0f);
-        GLfloat innerAngle = glm::degrees(std::acos(component.light.innerCutoff));
+        float innerAngle = glm::degrees(std::acos(component.light.innerCutoff));
         Styles::drawFloatControl("Inner Cutoff", 45.0f, innerAngle,
                                  0.0f, 0.1f, 0.0f, 360.0f);
         component.light.innerCutoff = std::cos(glm::radians(innerAngle));
-        GLfloat outerAngle = glm::degrees(std::acos(component.light.outerCutoff));
+        float outerAngle = glm::degrees(std::acos(component.light.outerCutoff));
         Styles::drawFloatControl("Outer Cutoff", 90.0f, outerAngle,
                                  0.0f, 0.1f, 0.0f, 360.0f);
         component.light.outerCutoff = std::cos(glm::radians(outerAngle));
@@ -884,14 +884,14 @@ namespace Strontium
         }
 
         auto drawingType = component.ambient->getDrawingType();
-        static GLuint mapTypes[] = { 0, 1, 2, 3 };
-        static GLuint skyTypes[] = { 0, 1 };
+        static uint mapTypes[] = { 0, 1, 2, 3 };
+        static uint skyTypes[] = { 0, 1 };
 
         if (ImGui::BeginCombo("##ambientType", EnvironmentMap::mapEnumToString(drawingType).c_str()))
         {
-          for (GLuint i = 0; i < IM_ARRAYSIZE(mapTypes); i++)
+          for (uint i = 0; i < IM_ARRAYSIZE(mapTypes); i++)
           {
-            bool isSelected = (i == static_cast<GLuint>(drawingType));
+            bool isSelected = (i == static_cast<uint>(drawingType));
             auto mapTypeString = EnvironmentMap::mapEnumToString(static_cast<MapType>(mapTypes[i]));
 
             if (ImGui::Selectable(mapTypeString.c_str(), isSelected))
@@ -910,9 +910,9 @@ namespace Strontium
 
           if (ImGui::BeginCombo("##dynamicSkyType", EnvironmentMap::skyEnumToString(dynamicSkyType).c_str()))
           {
-            for (GLuint i = 0; i < IM_ARRAYSIZE(skyTypes); i++)
+            for (uint i = 0; i < IM_ARRAYSIZE(skyTypes); i++)
             {
-              bool isSelected = (i == static_cast<GLuint>(dynamicSkyType));
+              bool isSelected = (i == static_cast<uint>(dynamicSkyType));
               auto skyTypeString = EnvironmentMap::skyEnumToString(static_cast<DynamicSkyType>(skyTypes[i]));
 
               if (ImGui::Selectable(skyTypeString.c_str(), isSelected))
@@ -977,8 +977,8 @@ namespace Strontium
 
             if (ImGui::CollapsingHeader("Planetary Parameters##UE4Atmo"))
             {
-              GLfloat planetRadiusKM = hillaireParams.planetRadius * 1000.0f;
-              GLfloat atmosphereRadiusKM = hillaireParams.atmosphereRadius * 1000.0f;
+              float planetRadiusKM = hillaireParams.planetRadius * 1000.0f;
+              float atmosphereRadiusKM = hillaireParams.atmosphereRadius * 1000.0f;
               glm::vec3 viewPosKM = hillaireParams.viewPos * 1000.0f;
               Styles::drawFloatControl("Planet Radius (Km)",
                                        6360.0f, planetRadiusKM,
@@ -1036,9 +1036,9 @@ namespace Strontium
       this->dirBuffer->bind();
       this->dirBuffer->setViewport();
 
-      this->dirWidgetShader.addUniformMatrix("mVP", mVP, GL_FALSE);
-      this->dirWidgetShader.addUniformMatrix("normalMat", glm::transpose(glm::inverse(glm::mat3(model))), GL_FALSE);
-      this->dirWidgetShader.addUniformMatrix("model", model, GL_FALSE);
+      this->dirWidgetShader.addUniformMatrix("mVP", mVP, false);
+      this->dirWidgetShader.addUniformMatrix("normalMat", glm::transpose(glm::inverse(glm::mat3(model))), false);
+      this->dirWidgetShader.addUniformMatrix("model", model, false);
       this->dirWidgetShader.addUniformVector("lDirection", lightDir);
 
       for (auto& submesh : this->sphere.getSubmeshes())

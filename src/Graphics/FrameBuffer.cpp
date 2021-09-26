@@ -3,6 +3,9 @@
 // Project includes.
 #include "Core/Logs.h"
 
+// OpenGL includes.
+#include "glad/glad.h"
+
 namespace Strontium
 {
   FrameBuffer::FrameBuffer()
@@ -17,7 +20,7 @@ namespace Strontium
   }
 
   // Constructors and destructor.
-  FrameBuffer::FrameBuffer(GLuint width, GLuint height)
+  FrameBuffer::FrameBuffer(uint width, uint height)
     : depthBuffer(nullptr)
     , width(width)
     , height(height)
@@ -59,7 +62,7 @@ namespace Strontium
 
     Texture2DParams newTexParam = spec;
 
-    GLuint n;
+    uint n;
     if (spec.format == TextureFormats::Red || spec.format == TextureFormats::Depth)
       n = 1;
     else if (spec.format == TextureFormats::RG || spec.format == TextureFormats::DepthStencil)
@@ -81,8 +84,8 @@ namespace Strontium
       this->textureAttachments.erase(targetLoc);
 
     this->bind();
-    glFramebufferTexture2D(GL_FRAMEBUFFER, static_cast<GLuint>(spec.target),
-                           static_cast<GLuint>(spec.type),
+    glFramebufferTexture2D(GL_FRAMEBUFFER, static_cast<uint>(spec.target),
+                           static_cast<uint>(spec.type),
                            newTex->getID(), 0);
     this->unbind();
 
@@ -120,8 +123,8 @@ namespace Strontium
       this->textureAttachments.erase(targetLoc);
 
 
-    glFramebufferTexture2D(GL_FRAMEBUFFER, static_cast<GLuint>(spec.target),
-                           static_cast<GLuint>(spec.type),
+    glFramebufferTexture2D(GL_FRAMEBUFFER, static_cast<uint>(spec.target),
+                           static_cast<uint>(spec.type),
                            tex->getID(), 0);
 
     this->unbind();
@@ -164,8 +167,8 @@ namespace Strontium
   FrameBuffer::detach(const FBOTargetParam &attachment)
   {
     auto& pair = this->textureAttachments.at(attachment);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, static_cast<GLuint>(pair.first.target),
-                           static_cast<GLuint>(pair.first.type),
+    glFramebufferTexture2D(GL_FRAMEBUFFER, static_cast<uint>(pair.first.target),
+                           static_cast<uint>(pair.first.type),
                            0, 0);
   }
 
@@ -173,8 +176,8 @@ namespace Strontium
   FrameBuffer::reattach(const FBOTargetParam &attachment)
   {
     auto& pair = this->textureAttachments.at(attachment);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, static_cast<GLuint>(pair.first.target),
-                           static_cast<GLuint>(pair.first.type),
+    glFramebufferTexture2D(GL_FRAMEBUFFER, static_cast<uint>(pair.first.target),
+                           static_cast<uint>(pair.first.type),
                            pair.second->getID(), 0);
   }
 
@@ -204,7 +207,7 @@ namespace Strontium
         auto otherSize = target.getSize();
         glBlitNamedFramebuffer(this->bufferID, target.getID(), 0, 0,
                                this->width, this->height, 0, 0,
-                               (GLuint) otherSize.x, (GLuint) otherSize.y,
+                               (uint) otherSize.x, (uint) otherSize.y,
                                GL_DEPTH_BUFFER_BIT, GL_NEAREST);
         break;
       }
@@ -214,7 +217,7 @@ namespace Strontium
         auto otherSize = target.getSize();
         glBlitNamedFramebuffer(this->bufferID, target.getID(), 0, 0,
                                this->width, this->height, 0, 0,
-                               (GLuint) otherSize.x, (GLuint) otherSize.y,
+                               (uint) otherSize.x, (uint) otherSize.y,
                                GL_STENCIL_BUFFER_BIT, GL_NEAREST);
         break;
       }
@@ -224,7 +227,7 @@ namespace Strontium
         auto otherSize = target.getSize();
         glBlitNamedFramebuffer(this->bufferID, target.getID(), 0, 0,
                                this->width, this->height, 0, 0,
-                               (GLuint) otherSize.x, (GLuint) otherSize.y,
+                               (uint) otherSize.x, (uint) otherSize.y,
                                GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT,
                                GL_NEAREST);
         break;
@@ -236,26 +239,26 @@ namespace Strontium
         auto otherSize = target.getSize();
         glBlitNamedFramebuffer(this->bufferID, target.getID(), 0, 0,
                                this->width, this->height, 0, 0,
-                               (GLuint) otherSize.x, (GLuint) otherSize.y,
+                               (uint) otherSize.x, (uint) otherSize.y,
                                GL_COLOR_BUFFER_BIT, GL_LINEAR);
         break;
       }
     }
   }
 
-  GLint
+  int
   FrameBuffer::readPixel(const FBOTargetParam &target, const glm::vec2 &mousePos)
   {
     this->bind();
     glReadBuffer(static_cast<GLenum>(target));
-    GLfloat data;
-    glReadPixels((GLint) mousePos.x, (GLint) mousePos.y, 1, 1, GL_RED, GL_FLOAT, &data);
-    return static_cast<GLint>(data);
+    float data;
+    glReadPixels((int) mousePos.x, (int) mousePos.y, 1, 1, GL_RED, GL_FLOAT, &data);
+    return static_cast<int>(data);
   }
 
   // Resize the framebuffer.
   void
-  FrameBuffer::resize(GLuint width, GLuint height)
+  FrameBuffer::resize(uint width, uint height)
   {
     this->width = width;
     this->height = height;
@@ -270,10 +273,10 @@ namespace Strontium
         continue;
 
       tex->bind();
-      glTexImage2D(static_cast<GLuint>(spec.type), 0,
-                   static_cast<GLuint>(spec.internal), this->width, this->height, 0,
-                   static_cast<GLuint>(spec.format),
-                   static_cast<GLuint>(spec.dataType), nullptr);
+      glTexImage2D(static_cast<uint>(spec.type), 0,
+                   static_cast<uint>(spec.internal), this->width, this->height, 0,
+                   static_cast<uint>(spec.format),
+                   static_cast<uint>(spec.dataType), nullptr);
     }
 
     // Update the attached render buffer.
@@ -281,7 +284,7 @@ namespace Strontium
     {
       this->depthBuffer->bind();
       glRenderbufferStorage(GL_RENDERBUFFER,
-                            static_cast<GLuint>(this->depthBuffer->getFormat()),
+                            static_cast<uint>(this->depthBuffer->getFormat()),
                             this->width, this->height);
     }
   }
@@ -305,7 +308,7 @@ namespace Strontium
   }
 
   void
-  FrameBuffer::bindTextureID(const FBOTargetParam &attachment, GLuint bindPoint)
+  FrameBuffer::bindTextureID(const FBOTargetParam &attachment, uint bindPoint)
   {
     this->textureAttachments.at(attachment).second->bind(bindPoint);
   }

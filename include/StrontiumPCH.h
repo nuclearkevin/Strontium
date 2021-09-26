@@ -1,4 +1,4 @@
-// All of the includes required for SciRender are housed in here.
+// All of the includes required for Strontium are housed here.
 #define GLFW_INCLUDE_NONE
 #define GLM_FORCE_RADIANS
 
@@ -21,9 +21,7 @@
 #include <utility>
 #include <chrono>
 
-// OpenGL includes.
-#include "glad/glad.h"
-#include <GLFW/glfw3.h>
+// GLM includes. TODO: Move to Math?
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
 #include "glm/gtc/type_ptr.hpp"

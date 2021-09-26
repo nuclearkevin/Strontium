@@ -3,12 +3,15 @@
 // Project includes.
 #include "Core/Events.h"
 
+// GLFW includes.
+#include <GLFW/glfw3.h>
+
 namespace Strontium
 {
-  GLuint Window::windowInstances = 0;
+  uint Window::windowInstances = 0;
 
-  Window::Window(const std::string &name, const GLuint &width,
-                 const GLuint &height, const bool &debug, const bool &setVSync)
+  Window::Window(const std::string &name, const uint &width,
+                 const uint &height, const bool &debug, const bool &setVSync)
     : initialized(false)
     , isDebug(debug)
     , hasVSync(setVSync)
@@ -23,8 +26,8 @@ namespace Strontium
     this->init();
   }
 
-  Shared<Window> Window::getNewInstance(const std::string &name, const GLuint &width,
-                                        const GLuint &height, const bool &debug,
+  Shared<Window> Window::getNewInstance(const std::string &name, const uint &width,
+                                        const uint &height, const bool &debug,
                                         const bool &setVSync)
   {
     return createShared<Window>(name, width, height, debug, setVSync);
@@ -146,8 +149,8 @@ namespace Strontium
       EventDispatcher* appEvents = EventDispatcher::getInstance();
 
       // Dispatch the event.
-      appEvents->queueEvent(new MouseScrolledEvent((GLfloat) xOffset,
-                                                   (GLfloat) yOffset));
+      appEvents->queueEvent(new MouseScrolledEvent((float) xOffset,
+                                                   (float) yOffset));
     });
 
     // Mouse position callback.
@@ -158,8 +161,8 @@ namespace Strontium
       WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);
 
       // Set the window cursor position.
-      data.cursorX = (GLfloat) xPos;
-      data.cursorY = (GLfloat) yPos;
+      data.cursorX = (float) xPos;
+      data.cursorY = (float) yPos;
     });
 
     // Window resize callback.
@@ -170,7 +173,7 @@ namespace Strontium
       EventDispatcher* appEvents = EventDispatcher::getInstance();
 
       // Dispatch the event.
-      appEvents->queueEvent(new WindowResizeEvent((GLuint) width, (GLuint) height));
+      appEvents->queueEvent(new WindowResizeEvent((uint) width, (uint) height));
 
       // Fetch the window data.
       WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);
@@ -239,7 +242,7 @@ namespace Strontium
     double mouseX, mouseY;
     glfwGetCursorPos(this->glfwWindowRef, &mouseX, &mouseY);
 
-    return glm::vec2((GLfloat) mouseX, (GLfloat) mouseY);
+    return glm::vec2((float) mouseX, (float) mouseY);
   }
 
   void
@@ -249,6 +252,12 @@ namespace Strontium
       glfwSetInputMode(this->glfwWindowRef, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     else
       glfwSetInputMode(this->glfwWindowRef, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+  }
+
+  float
+  Window::getTime()
+  {
+    return glfwGetTime();
   }
 
   // Manually poll input.

@@ -3,6 +3,11 @@
 // Project includes.
 #include "Core/Application.h"
 
+// ImGui backend.
+#include <GLFW/glfw3.h>
+#include "imgui/imgui_impl_glfw.h"
+#include "imgui/imgui_impl_opengl3.h"
+
 #include "GuiElements/IconsFontAwesome4.h"
 
 namespace Strontium

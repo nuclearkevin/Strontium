@@ -64,7 +64,7 @@ namespace Strontium
     // Load the model data.
     this->globalInverseTransform = glm::inverse(Utilities::mat4ToGLM(scene->mRootNode->mTransformation));
     this->rootNode = SceneNode(scene->mRootNode->mName.C_Str(), Utilities::mat4ToGLM(scene->mRootNode->mTransformation));
-    for (GLuint i = 0; i < scene->mRootNode->mNumChildren; i++)
+    for (uint i = 0; i < scene->mRootNode->mNumChildren; i++)
       this->rootNode.childNames.emplace_back(scene->mRootNode->mChildren[i]->mName.C_Str());
 
     this->processNode(scene->mRootNode, scene, directory);
@@ -89,17 +89,17 @@ namespace Strontium
     if (this->sceneNodes.find(node->mName.C_Str()) == this->sceneNodes.end())
     {
       this->sceneNodes.insert(std::make_pair<std::string, SceneNode>(node->mName.C_Str(), SceneNode(node->mName.C_Str(), Utilities::mat4ToGLM(node->mTransformation))));
-      for (GLuint i = 0; i < node->mNumChildren; i++)
+      for (uint i = 0; i < node->mNumChildren; i++)
         this->sceneNodes[node->mName.C_Str()].childNames.emplace_back(node->mChildren[i]->mName.C_Str());
     }
 
-    for (GLuint i = 0; i < node->mNumMeshes; i++)
+    for (uint i = 0; i < node->mNumMeshes; i++)
     {
       aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
       this->processMesh(mesh, scene, directory);
     }
 
-    for (GLuint i = 0; i < node->mNumChildren; i++)
+    for (uint i = 0; i < node->mNumChildren; i++)
       this->processNode(node->mChildren[i], scene, directory);
   }
 
@@ -124,10 +124,10 @@ namespace Strontium
     {
       meshVertices.reserve(mesh->mNumVertices);
 
-      for (GLuint i = 0; i < mesh->mNumVertices; i++)
+      for (uint i = 0; i < mesh->mNumVertices; i++)
         meshVertices.emplace_back();
 
-      for (GLuint i = 0; i < mesh->mNumVertices; i++)
+      for (uint i = 0; i < mesh->mNumVertices; i++)
       {
         meshVertices[i].position.x = mesh->mVertices[i].x;
         meshVertices[i].position.y = mesh->mVertices[i].y;
@@ -148,7 +148,7 @@ namespace Strontium
 
     if (mesh->HasNormals())
     {
-      for (GLuint i = 0; i < mesh->mNumVertices; i++)
+      for (uint i = 0; i < mesh->mNumVertices; i++)
       {
         meshVertices[i].normal.x = mesh->mNormals[i].x;
         meshVertices[i].normal.y = mesh->mNormals[i].y;
@@ -160,7 +160,7 @@ namespace Strontium
     if (mesh->mTextureCoords[0])
     {
       // Loop over the texture coords and assign them.
-      for (GLuint i = 0; i < mesh->mNumVertices; i++)
+      for (uint i = 0; i < mesh->mNumVertices; i++)
       {
         meshVertices[i].uv.x = mesh->mTextureCoords[0][i].x;
         meshVertices[i].uv.y = mesh->mTextureCoords[0][i].y;
@@ -168,7 +168,7 @@ namespace Strontium
     }
     else
     {
-      for (GLuint i = 0; i < mesh->mNumVertices; i++)
+      for (uint i = 0; i < mesh->mNumVertices; i++)
       {
         meshVertices[i].uv = glm::vec2(0.0f);
       }
@@ -177,7 +177,7 @@ namespace Strontium
     // Fetch the tangents and bitangents.
     if (mesh->HasTangentsAndBitangents())
     {
-      for (GLuint i = 0; i <mesh->mNumVertices; i++)
+      for (uint i = 0; i <mesh->mNumVertices; i++)
       {
         meshVertices[i].tangent.x = mesh->mTangents[i].x;
         meshVertices[i].tangent.y = mesh->mTangents[i].y;
@@ -191,11 +191,11 @@ namespace Strontium
 
     // Fetch the indicies.
     meshIndicies.reserve(mesh->mNumFaces * 3);
-    for (GLuint i = 0; i < mesh->mNumFaces; i++)
+    for (uint i = 0; i < mesh->mNumFaces; i++)
     {
       aiFace face = mesh->mFaces[i];
 
-      for (GLuint j = 0; j < face.mNumIndices; j++)
+      for (uint j = 0; j < face.mNumIndices; j++)
         meshIndicies.push_back(face.mIndices[j]);
     }
 
@@ -306,7 +306,7 @@ namespace Strontium
         for (unsigned int j = 0; j < mesh->mBones[i]->mNumWeights; j++)
         {
           unsigned int vertexIndex = mesh->mBones[i]->mWeights[j].mVertexId;
-          GLfloat weight = mesh->mBones[i]->mWeights[j].mWeight;
+          float weight = mesh->mBones[i]->mWeights[j].mWeight;
 
           this->addBoneData(boneIndex, weight, meshVertices[vertexIndex]);
         }
@@ -317,7 +317,7 @@ namespace Strontium
   }
 
   void
-  Model::addBoneData(unsigned int boneIndex, GLfloat boneWeight, Vertex &toMod)
+  Model::addBoneData(unsigned int boneIndex, float boneWeight, Vertex &toMod)
   {
     for (unsigned int i = 0; i < MAX_BONES_PER_VERTEX; i++)
     {

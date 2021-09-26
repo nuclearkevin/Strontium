@@ -71,7 +71,7 @@ namespace Strontium
   }
 
   void
-  Animation::computeBoneTransforms(GLfloat aniTime, std::vector<glm::mat4>& outBones)
+  Animation::computeBoneTransforms(float aniTime, std::vector<glm::mat4>& outBones)
   {
     outBones.clear();
     outBones.resize(this->parentModel->getBones().size(), glm::mat4(1.0f));
@@ -79,7 +79,7 @@ namespace Strontium
   }
 
   void
-  Animation::readNodeHierarchy(GLfloat aniTime, const SceneNode &node,
+  Animation::readNodeHierarchy(float aniTime, const SceneNode &node,
                                const glm::mat4 parentTransform,
                                std::vector<glm::mat4> &outBones)
   {
@@ -113,7 +113,7 @@ namespace Strontium
   }
 
   glm::mat4
-  Animation::interpolateTranslation(GLfloat aniTime, const AnimationNode &node)
+  Animation::interpolateTranslation(float aniTime, const AnimationNode &node)
   {
     if (node.keyTranslations.size() == 1)
       return glm::translate(glm::mat4(1.0f), node.keyTranslations[0].second);
@@ -139,7 +139,7 @@ namespace Strontium
   }
 
   glm::mat4
-  Animation::interpolateRotation(GLfloat aniTime, const AnimationNode &node)
+  Animation::interpolateRotation(float aniTime, const AnimationNode &node)
   {
     if (node.keyRotations.size() == 1)
       return glm::toMat4(node.keyRotations[0].second);
@@ -164,7 +164,7 @@ namespace Strontium
   }
 
   glm::mat4
-  Animation::interpolateScale(GLfloat aniTime, const AnimationNode &node)
+  Animation::interpolateScale(float aniTime, const AnimationNode &node)
   {
     if (node.keyScales.size() == 1)
       return glm::scale(glm::mat4(1.0f), node.keyScales[0].second);
@@ -213,7 +213,7 @@ namespace Strontium
   }
 
   void
-  Animator::onUpdate(GLfloat dt)
+  Animator::onUpdate(float dt)
   {
     if (this->storedAnimation && this->animating && !this->paused)
     {

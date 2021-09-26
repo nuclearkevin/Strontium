@@ -1,8 +1,5 @@
 #include "Core/ThreadPool.h"
 
-// Project includes.
-#include "Core/Application.h"
-
 namespace Strontium
 {
   //----------------------------------------------------------------------------

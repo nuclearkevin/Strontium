@@ -12,10 +12,16 @@ namespace Strontium
   enum class AttribType { Vec4, Vec3, Vec2, IVec4, IVec3, IVec2 };
   enum class UniformType
   {
-    Float = GL_FLOAT, Vec2 = GL_FLOAT_VEC2, Vec3 = GL_FLOAT_VEC3,
-    Vec4 = GL_FLOAT_VEC4, Mat3 = GL_FLOAT_MAT3, Mat4 = GL_FLOAT_MAT4,
-    Sampler1D = GL_SAMPLER_1D, Sampler2D = GL_SAMPLER_2D,
-    Sampler3D = GL_SAMPLER_3D, SamplerCube = GL_SAMPLER_CUBE,
+    Float = 0x1406, // GL_FLOAT
+    Vec2 = 0x8B50, // GL_FLOAT_VEC2
+    Vec3 = 0x8B51, // GL_FLOAT_VEC3
+    Vec4 = 0x8B52, // GL_FLOAT_VEC4
+    Mat3 = 0x8B5B, // GL_FLOAT_MAT3
+    Mat4 = 0x8B5C, // GL_FLOAT_MAT4
+    Sampler1D = 0x8B5D, // GL_SAMPLER_1D
+    Sampler2D = 0x8B5E, // GL_SAMPLER_2D
+    Sampler3D = 0x8B5F, // GL_SAMPLER_3D
+    SamplerCube = 0x8B60, // GL_SAMPLER_CUBE
     Unknown
   };
 
@@ -32,7 +38,7 @@ namespace Strontium
     void buildShaderSource(int type, const std::string &strSource);
 
     // Program linker function.
-    void buildProgram(GLuint first, ...);
+    void buildProgram(uint first, ...);
 
     // Rebuild the shader. Includes source parsing, compiling and linking.
     void rebuild();
@@ -53,30 +59,30 @@ namespace Strontium
 
     // Setters for shader uniforms.
     void addUniformMatrix(const char* uniformName, const glm::mat4 &matrix,
-                          GLboolean transpose);
+                          bool transpose);
     void addUniformMatrix(const char* uniformName, const glm::mat3 &matrix,
-                          GLboolean transpose);
+                          bool transpose);
     void addUniformMatrix(const char* uniformName, const glm::mat2 &matrix,
-                          GLboolean transpose);
+                          bool transpose);
     void addUniformVector(const char* uniformName, const glm::vec4 &vector);
     void addUniformVector(const char* uniformName, const glm::vec3 &vector);
     void addUniformVector(const char* uniformName, const glm::vec2 &vector);
-    void addUniformFloat(const char* uniformName, GLfloat value);
-    void addUniformInt(const char* uniformName, GLint value);
-    void addUniformUInt(const char* uniformName, GLuint value);
+    void addUniformFloat(const char* uniformName, float value);
+    void addUniformInt(const char* uniformName, int value);
+    void addUniformUInt(const char* uniformName, uint value);
 
-    void addUniformSampler(const char* uniformName, GLuint texID);
-    GLint getSamplerLocation(const char* uniformName);
+    void addUniformSampler(const char* uniformName, uint texID);
+    int getSamplerLocation(const char* uniformName);
 
     // Setters for vertex attributes.
     void addAtribute(const char* attribName, AttribType type,
-                     GLboolean normalized, unsigned size, unsigned stride);
+                     bool transpose, unsigned size, unsigned stride);
 
     // Shader dumb method, returns a string with all of the shader properties.
     std::string dumpProgram();
 
     // Getters.
-    GLuint getShaderID() { return this->progID; }
+    uint getShaderID() { return this->progID; }
     std::string& getInfoString() { return this->shaderInfoString; }
     std::string& getVertSource() { return this->vertSource; }
     std::string& getFragSource() { return this->fragSource; }
@@ -88,12 +94,12 @@ namespace Strontium
     void setFragSource(const std::string &source) { this->fragPath = source; }
 
     // Convert GLenums to strings.
-    static std::string enumToString(GLenum sEnum);
-    static UniformType enumToUniform(GLenum sEnum);
+    static std::string enumToString(uint sEnum);
+    static UniformType enumToUniform(uint sEnum);
   protected:
-    GLuint progID;
-    GLuint vertID;
-    GLuint fragID;
+    uint progID;
+    uint vertID;
+    uint fragID;
 
     std::string vertPath;
     std::string fragPath;

@@ -1,8 +1,5 @@
 #include "Core/Events.h"
 
-// Project includes.
-#include "Core/Application.h"
-
 namespace Strontium
 {
   //----------------------------------------------------------------------------
@@ -16,7 +13,7 @@ namespace Strontium
   //----------------------------------------------------------------------------
   // Key pressed event.
   //----------------------------------------------------------------------------
-  KeyPressedEvent::KeyPressedEvent(const int keyCode, const GLuint repeat)
+  KeyPressedEvent::KeyPressedEvent(const int keyCode, const uint repeat)
     : Event(EventType::KeyPressedEvent, "Key pressed event")
     , keyCode(keyCode)
     , numRepeat(repeat)
@@ -33,7 +30,7 @@ namespace Strontium
   //----------------------------------------------------------------------------
   // Key typed event.
   //----------------------------------------------------------------------------
-  KeyTypedEvent::KeyTypedEvent(const GLuint keyCode)
+  KeyTypedEvent::KeyTypedEvent(const uint keyCode)
     : Event(EventType::KeyTypedEvent, "Key typed event")
     , keyCode(keyCode)
   { }
@@ -57,8 +54,8 @@ namespace Strontium
   //----------------------------------------------------------------------------
   // Mouse scroll event.
   //----------------------------------------------------------------------------
-  MouseScrolledEvent::MouseScrolledEvent(const GLfloat xOffset,
-                                         const GLfloat yOffset)
+  MouseScrolledEvent::MouseScrolledEvent(const float xOffset,
+                                         const float yOffset)
     : Event(EventType::MouseScrolledEvent, "Mouse scrolled event")
     , xOffset(xOffset)
     , yOffset(yOffset)
@@ -74,7 +71,7 @@ namespace Strontium
   //----------------------------------------------------------------------------
   // Window resize event.
   //----------------------------------------------------------------------------
-  WindowResizeEvent::WindowResizeEvent(GLuint width, GLuint height)
+  WindowResizeEvent::WindowResizeEvent(uint width, uint height)
     : Event(EventType::WindowResizeEvent, "Window resize event")
     , width(width)
     , height(height)
@@ -122,7 +119,7 @@ namespace Strontium
   //----------------------------------------------------------------------------
   // The entity swapped event.
   //----------------------------------------------------------------------------
-  EntitySwapEvent::EntitySwapEvent(GLint entityID, Scene* entityParentScene)
+  EntitySwapEvent::EntitySwapEvent(int entityID, Scene* entityParentScene)
     : Event(EventType::EntitySwapEvent, "Entity swap event")
     , storedEntity(entityID)
     , entityParentScene(entityParentScene)
@@ -131,7 +128,7 @@ namespace Strontium
   //----------------------------------------------------------------------------
   // The entity deleted event.
   //----------------------------------------------------------------------------
-  EntityDeleteEvent::EntityDeleteEvent(GLint entityID, Scene* entityParentScene)
+  EntityDeleteEvent::EntityDeleteEvent(int entityID, Scene* entityParentScene)
     : Event(EventType::EntityDeleteEvent, "Entity delete event")
     , storedEntity(entityID)
     , entityParentScene(entityParentScene)

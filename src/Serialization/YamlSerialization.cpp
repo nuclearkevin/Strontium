@@ -215,7 +215,7 @@ namespace Strontium
 
       // Serialize the entity.
       out << YAML::BeginMap;
-      out << YAML::Key << "EntityID" << YAML::Value << (GLuint) entity;
+      out << YAML::Key << "EntityID" << YAML::Value << (uint) entity;
 
       if (entity.hasComponent<NameComponent>())
       {
@@ -377,10 +377,10 @@ namespace Strontium
         out << YAML::Key << "FiltSam" << YAML::Value << state->prefilterSamples;
         out << YAML::Key << "IBLRough" << YAML::Value << component.ambient->getRoughness();
         out << YAML::Key << "Intensity" << YAML::Value << component.ambient->getIntensity();
-        out << YAML::Key << "SkyboxType" << YAML::Value << static_cast<GLuint>(component.ambient->getDrawingType());
+        out << YAML::Key << "SkyboxType" << YAML::Value << static_cast<uint>(component.ambient->getDrawingType());
 
         auto dynamicSkyType = component.ambient->getDynamicSkyType();
-        out << YAML::Key << "DynamicSkyType" << YAML::Value << static_cast<GLuint>(dynamicSkyType);
+        out << YAML::Key << "DynamicSkyType" << YAML::Value << static_cast<uint>(dynamicSkyType);
 
         out << YAML::Key << "DynamicSkyParams";
         out << YAML::BeginMap;
@@ -563,7 +563,7 @@ namespace Strontium
           {
             auto uName = uFloat["UniformName"];
             if (uName)
-              outMat->getFloat(uName.as<std::string>()) = uFloat["UniformValue"].as<GLfloat>();
+              outMat->getFloat(uName.as<std::string>()) = uFloat["UniformValue"].as<float>();
           }
         }
 
@@ -642,7 +642,7 @@ namespace Strontium
       // Fetch the logs.
       Logger* logs = Logger::getInstance();
 
-      GLuint entityID = entity["EntityID"].as<GLuint>();
+      uint entityID = entity["EntityID"].as<uint>();
 
       Entity newEntity = scene->createEntity(entityID);
 
@@ -732,7 +732,7 @@ namespace Strontium
         auto& dComponent = newEntity.addComponent<DirectionalLightComponent>();
         dComponent.light.direction = directionalComponent["Direction"].as<glm::vec3>();
         dComponent.light.colour = directionalComponent["Colour"].as<glm::vec3>();
-        dComponent.light.intensity = directionalComponent["Intensity"].as<GLfloat>();
+        dComponent.light.intensity = directionalComponent["Intensity"].as<float>();
         dComponent.light.castShadows = directionalComponent["CastShadows"].as<bool>();
         dComponent.light.primaryLight = directionalComponent["PrimaryLight"].as<bool>();
       }
@@ -743,9 +743,9 @@ namespace Strontium
         auto& pComponent = newEntity.addComponent<PointLightComponent>();
         pComponent.light.position = pointComponent["Position"].as<glm::vec3>();
         pComponent.light.colour = pointComponent["Colour"].as<glm::vec3>();
-        pComponent.light.intensity = pointComponent["Intensity"].as<GLfloat>();
-        pComponent.light.radius = pointComponent["Radius"].as<GLfloat>();
-        pComponent.light.falloff = pointComponent["Falloff"].as<GLfloat>();
+        pComponent.light.intensity = pointComponent["Intensity"].as<float>();
+        pComponent.light.radius = pointComponent["Radius"].as<float>();
+        pComponent.light.falloff = pointComponent["Falloff"].as<float>();
         pComponent.light.castShadows = pointComponent["CastShadows"].as<bool>();
       }
 
@@ -756,10 +756,10 @@ namespace Strontium
         sComponent.light.position = spotComponent["Position"].as<glm::vec3>();
         sComponent.light.direction = spotComponent["Direction"].as<glm::vec3>();
         sComponent.light.colour = spotComponent["Colour"].as<glm::vec3>();
-        sComponent.light.intensity = spotComponent["Intensity"].as<GLfloat>();
-        sComponent.light.innerCutoff = spotComponent["InnerCutoff"].as<GLfloat>();
-        sComponent.light.outerCutoff = spotComponent["OuterCutoff"].as<GLfloat>();
-        sComponent.light.radius = spotComponent["Radius"].as<GLfloat>();
+        sComponent.light.intensity = spotComponent["Intensity"].as<float>();
+        sComponent.light.innerCutoff = spotComponent["InnerCutoff"].as<float>();
+        sComponent.light.outerCutoff = spotComponent["OuterCutoff"].as<float>();
+        sComponent.light.radius = spotComponent["Radius"].as<float>();
         sComponent.light.castShadows = spotComponent["CastShadows"].as<bool>();
       }
 
@@ -770,20 +770,20 @@ namespace Strontium
         auto storage = Renderer3D::getStorage();
 
         std::string iblImagePath = ambientComponent["IBLPath"].as<std::string>();
-        state->skyboxWidth = ambientComponent["EnviRes"].as<GLuint>();
-        state->irradianceWidth = ambientComponent["IrraRes"].as<GLuint>();
-        state->prefilterWidth = ambientComponent["FiltRes"].as<GLuint>();
-        state->prefilterSamples = ambientComponent["FiltSam"].as<GLuint>();
+        state->skyboxWidth = ambientComponent["EnviRes"].as<uint>();
+        state->irradianceWidth = ambientComponent["IrraRes"].as<uint>();
+        state->prefilterWidth = ambientComponent["FiltRes"].as<uint>();
+        state->prefilterSamples = ambientComponent["FiltSam"].as<uint>();
         storage->currentEnvironment->unloadEnvironment();
 
         auto& aComponent = newEntity.addComponent<AmbientComponent>(iblImagePath);
-        aComponent.ambient->getRoughness() = ambientComponent["IBLRough"].as<GLfloat>();
-        aComponent.ambient->getIntensity() = ambientComponent["Intensity"].as<GLfloat>();
+        aComponent.ambient->getRoughness() = ambientComponent["IBLRough"].as<float>();
+        aComponent.ambient->getIntensity() = ambientComponent["Intensity"].as<float>();
 
-        GLuint skyboxType = ambientComponent["SkyboxType"].as<GLuint>();
+        uint skyboxType = ambientComponent["SkyboxType"].as<uint>();
         aComponent.ambient->setDrawingType(static_cast<MapType>(skyboxType));
 
-        auto dynamicSkyType = static_cast<DynamicSkyType>(ambientComponent["DynamicSkyType"].as<GLuint>());
+        auto dynamicSkyType = static_cast<DynamicSkyType>(ambientComponent["DynamicSkyType"].as<uint>());
         aComponent.ambient->setSkyboxType(dynamicSkyType);
 
         if (ambientComponent["DynamicSkyParams"])
@@ -792,9 +792,9 @@ namespace Strontium
 
           auto skyParams = aComponent.ambient->getSkyModelParams(dynamicSkyType);
           skyParams.sunPos = dynamicSkyParams["SunPosition"].as<glm::vec3>();
-          skyParams.sunSize = dynamicSkyParams["SunSize"].as<GLfloat>();
-          skyParams.sunIntensity = dynamicSkyParams["SunIntensity"].as<GLfloat>();
-          skyParams.skyIntensity = dynamicSkyParams["SkyIntensity"].as<GLfloat>();
+          skyParams.sunSize = dynamicSkyParams["SunSize"].as<float>();
+          skyParams.sunIntensity = dynamicSkyParams["SunIntensity"].as<float>();
+          skyParams.skyIntensity = dynamicSkyParams["SkyIntensity"].as<float>();
 
           switch (dynamicSkyType)
           {
@@ -802,7 +802,7 @@ namespace Strontium
             {
               auto& preethamParams = *(static_cast<PreethamSkyParams*>(&skyParams));
 
-              preethamParams.turbidity = dynamicSkyParams["Turbidity"].as<GLfloat>();
+              preethamParams.turbidity = dynamicSkyParams["Turbidity"].as<float>();
 
               aComponent.ambient->setSkyModelParams(&preethamParams);
               break;
@@ -813,12 +813,12 @@ namespace Strontium
               auto& hillaireParams = *(static_cast<HillaireSkyParams*>(&skyParams));
 
               hillaireParams.rayleighScatteringBase = dynamicSkyParams["RayleighScatteringBase"].as<glm::vec3>();
-              hillaireParams.rayleighAbsorptionBase = dynamicSkyParams["RayleighAbsorptionBase"].as<GLfloat>();
-              hillaireParams.mieScatteringBase = dynamicSkyParams["MieScatteringBase"].as<GLfloat>();
-              hillaireParams.mieAbsorptionBase = dynamicSkyParams["MieAbsorptionBase"].as<GLfloat>();
+              hillaireParams.rayleighAbsorptionBase = dynamicSkyParams["RayleighAbsorptionBase"].as<float>();
+              hillaireParams.mieScatteringBase = dynamicSkyParams["MieScatteringBase"].as<float>();
+              hillaireParams.mieAbsorptionBase = dynamicSkyParams["MieAbsorptionBase"].as<float>();
               hillaireParams.ozoneAbsorptionBase = dynamicSkyParams["OzoneAbsorptionBase"].as<glm::vec3>();
-              hillaireParams.planetRadius = dynamicSkyParams["PlanetRadius"].as<GLfloat>();
-              hillaireParams.atmosphereRadius = dynamicSkyParams["AtmosphereRadius"].as<GLfloat>();
+              hillaireParams.planetRadius = dynamicSkyParams["PlanetRadius"].as<float>();
+              hillaireParams.atmosphereRadius = dynamicSkyParams["AtmosphereRadius"].as<float>();
               hillaireParams.viewPos = dynamicSkyParams["ViewPosition"].as<glm::vec3>();
 
               aComponent.ambient->setSkyModelParams(&hillaireParams);
@@ -860,17 +860,17 @@ namespace Strontium
         auto shadowSettings = rendererSettings["ShadowSettings"];
         if (shadowSettings)
         {
-          state->cascadeLambda = shadowSettings["CascadeLambda"].as<GLfloat>();
-          state->cascadeSize = shadowSettings["CascadeSize"].as<GLuint>();
-          state->bleedReduction = shadowSettings["CascadeLightBleed"].as<GLfloat>();
+          state->cascadeLambda = shadowSettings["CascadeLambda"].as<float>();
+          state->cascadeSize = shadowSettings["CascadeSize"].as<uint>();
+          state->bleedReduction = shadowSettings["CascadeLightBleed"].as<float>();
         }
 
         auto volumetricSettings = rendererSettings["VolumetricLightSettings"];
         if (volumetricSettings)
         {
           state->enableSkyshafts = volumetricSettings["EnableVolumetricPrimaryLight"].as<bool>();
-          state->mieScatIntensity.w = volumetricSettings["VolumetricIntensity"].as<GLfloat>();
-          state->mieAbsDensity.w = volumetricSettings["ParticleDensity"].as<GLfloat>();
+          state->mieScatIntensity.w = volumetricSettings["VolumetricIntensity"].as<float>();
+          state->mieAbsDensity.w = volumetricSettings["ParticleDensity"].as<float>();
           glm::vec3 mieScattering = volumetricSettings["MieScattering"].as<glm::vec3>();
           state->mieScatIntensity.x = mieScattering.x;
           state->mieScatIntensity.y = mieScattering.y;
@@ -885,17 +885,17 @@ namespace Strontium
         auto bloomSettings = rendererSettings["BloomSettings"];
         if (bloomSettings)
         {
-          state->bloomThreshold = bloomSettings["Threshold"].as<GLfloat>();
-          state->bloomKnee = bloomSettings["Knee"].as<GLfloat>();
-          state->bloomIntensity = bloomSettings["Intensity"].as<GLfloat>();
-          state->bloomRadius = bloomSettings["Radius"].as<GLfloat>();
+          state->bloomThreshold = bloomSettings["Threshold"].as<float>();
+          state->bloomKnee = bloomSettings["Knee"].as<float>();
+          state->bloomIntensity = bloomSettings["Intensity"].as<float>();
+          state->bloomRadius = bloomSettings["Radius"].as<float>();
         }
 
         auto tonemapSettings = rendererSettings["ToneMapSettings"];
         if (tonemapSettings)
         {
-          state->postProcessSettings.x = tonemapSettings["ToneMapType"].as<GLuint>();
-          state->gamma = tonemapSettings["Gamma"].as<GLfloat>();
+          state->postProcessSettings.x = tonemapSettings["ToneMapType"].as<uint>();
+          state->gamma = tonemapSettings["Gamma"].as<float>();
         }
       }
 

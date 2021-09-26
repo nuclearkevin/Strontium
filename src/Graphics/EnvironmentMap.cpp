@@ -177,7 +177,7 @@ namespace Strontium
   }
 
   void
-  EnvironmentMap::bind(const MapType &type, GLuint bindPoint)
+  EnvironmentMap::bind(const MapType &type, uint bindPoint)
   {
     switch (type)
     {
@@ -200,7 +200,7 @@ namespace Strontium
   }
 
   void
-  EnvironmentMap::bindBRDFLUT(GLuint bindPoint)
+  EnvironmentMap::bindBRDFLUT(uint bindPoint)
   {
     this->brdfIntLUT.bind(bindPoint);
   }
@@ -295,9 +295,9 @@ namespace Strontium
 
         this->preethamParams.bindToPoint(1);
         this->preethamParams.setData(0, sizeof(glm::vec3), &skyParams.sunPos.x);
-        this->preethamParams.setData(sizeof(glm::vec3), sizeof(GLfloat), &preethamSkyParams.turbidity);
-        this->preethamParams.setData(sizeof(glm::vec4), sizeof(GLfloat), &skyParams.sunIntensity);
-        this->preethamParams.setData(sizeof(glm::vec4) + sizeof(GLfloat), sizeof(GLfloat), &skyParams.sunSize);
+        this->preethamParams.setData(sizeof(glm::vec3), sizeof(float), &preethamSkyParams.turbidity);
+        this->preethamParams.setData(sizeof(glm::vec4), sizeof(float), &skyParams.sunIntensity);
+        this->preethamParams.setData(sizeof(glm::vec4) + sizeof(float), sizeof(float), &skyParams.sunSize);
 
         this->dynamicSkyLUT.bindAsImage(0, 0, ImageAccessPolicy::Write);
 
@@ -417,7 +417,7 @@ namespace Strontium
   }
 
   // Getters.
-  GLuint
+  uint
   EnvironmentMap::getTexID(const MapType &type)
   {
     switch (type)
@@ -446,8 +446,8 @@ namespace Strontium
 
   // Convert the loaded equirectangular map to a cubemap.
   void
-  EnvironmentMap::equiToCubeMap(const bool &isHDR, const GLuint &width,
-                                const GLuint &height)
+  EnvironmentMap::equiToCubeMap(const bool &isHDR, const uint &width,
+                                const uint &height)
   {
     Logger* logs = Logger::getInstance();
 
@@ -486,7 +486,7 @@ namespace Strontium
 
   // Generate the diffuse irradiance map.
   void
-  EnvironmentMap::precomputeIrradiance(const GLuint &width, const GLuint &height,
+  EnvironmentMap::precomputeIrradiance(const uint &width, const uint &height,
                                        bool isHDR)
   {
     Logger* logs = Logger::getInstance();
@@ -525,7 +525,7 @@ namespace Strontium
   // Generate the specular map components. Computes the pre-filtered environment
   // map first, than integrates the BRDF and stores the result in an LUT.
   void
-  EnvironmentMap::precomputeSpecular(const GLuint &width, const GLuint &height,
+  EnvironmentMap::precomputeSpecular(const uint &width, const uint &height,
                                      bool isHDR)
   {
     Logger* logs = Logger::getInstance();
@@ -556,17 +556,17 @@ namespace Strontium
     this->skybox.bind(0);
 
     // Perform the pre-filter for each roughness level.
-    for (GLuint i = 0; i < 5; i++)
+    for (uint i = 0; i < 5; i++)
     {
       // Compute the current mip levels.
-      GLuint mipWidth  = (GLuint) ((GLfloat) width * std::pow(0.5f, i));
-      GLuint mipHeight = (GLuint) ((GLfloat) height * std::pow(0.5f, i));
+      uint mipWidth  = (uint) ((float) width * std::pow(0.5f, i));
+      uint mipHeight = (uint) ((float) height * std::pow(0.5f, i));
 
       // Bind the irradiance map for writing to by the compute shader.
       this->specPrefilter.bindAsImage(1, i, true, 0, ImageAccessPolicy::Write);
 
       // Roughness.
-      paramsToUpload.x = ((GLfloat) i) / ((GLfloat) (5 - 1));
+      paramsToUpload.x = ((float) i) / ((float) (5 - 1));
       this->iblParams.setData(0, sizeof(glm::vec4), &paramsToUpload.x);
 
       // Launch the compute.

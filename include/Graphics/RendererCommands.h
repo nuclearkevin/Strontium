@@ -8,31 +8,31 @@ namespace Strontium
   // Depth functions. Addition to this as they are required.
   enum class DepthFunctions
   {
-    Less = GL_LESS,
-    LEq = GL_LEQUAL
+    Less = 0x0201, // GL_LESS
+    LEq = 0x0203 // GL_LEQUAL
   };
 
   // Render functions to glEnable. Adding to this as they are required.
   enum class RendererFunction
   {
-    DepthTest = GL_DEPTH_TEST,
-    Blending = GL_BLEND,
-    CubeMapSeamless = GL_TEXTURE_CUBE_MAP_SEAMLESS
+    DepthTest = 0x0B71, // GL_DEPTH_TEST
+    Blending = 0x0BE2, // GL_BLEND
+    CubeMapSeamless = 0x884F // GL_TEXTURE_CUBE_MAP_SEAMLESS
   };
 
   enum class BlendEquation
   {
-    Additive = GL_FUNC_ADD
+    Additive = 0x8006 // GL_FUNC_ADD
   };
 
   enum class BlendFunction
   {
-    One = GL_ONE
+    One = 1 // GL_ONE
   };
 
   enum class PrimativeType
   {
-    Triangle = GL_TRIANGLES
+    Triangle = 0x0004 // GL_TRIANGLES
   };
 
   namespace RendererCommands
@@ -49,6 +49,6 @@ namespace Strontium
                const bool &clearStencil = true);
     void setViewport(const glm::ivec2 topRight, const glm::ivec2 bottomLeft = glm::ivec2(0));
 
-    void drawPrimatives(PrimativeType primative, GLuint count, const void* indices = nullptr);
+    void drawPrimatives(PrimativeType primative, uint count, const void* indices = nullptr);
   };
 }

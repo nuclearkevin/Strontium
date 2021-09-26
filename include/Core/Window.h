@@ -7,21 +7,24 @@
 #include "Core/ApplicationBase.h"
 #include "Graphics/GraphicsContext.h"
 
+// Forward declare the window.
+struct GLFWwindow;
+
 namespace Strontium
 {
   // A wrapper class for the GLFW window functionality.
   class Window
   {
   public:
-    Window(const std::string &name, const GLuint &width, const GLuint &height,
+    Window(const std::string &name, const uint &width, const uint &height,
            const bool &debug, const bool &setVSync);
 
     ~Window();
 
     // Ask for a new window.
     static Shared<Window> getNewInstance(const std::string &name = "Editor Viewport",
-                                         const GLuint &width = 1920,
-                                         const GLuint &height = 1080,
+                                         const uint &width = 1920,
+                                         const uint &height = 1080,
                                          const bool &debug = false,
                                          const bool &setVSync = true);
 
@@ -40,6 +43,8 @@ namespace Strontium
     // Set the cursor to be captured.
     void setCursorCapture(const bool &active);
 
+    float getTime();
+
     // Get the GLFW window pointer.
     GLFWwindow* getWindowPtr() { return this->glfwWindowRef; }
     // Get the window size.
@@ -54,7 +59,7 @@ namespace Strontium
     bool isKeyPressed(const int &key);
 
     // A counter of window instances.
-    static GLuint windowInstances;
+    static uint windowInstances;
   protected:
     bool initialized, isDebug, hasVSync;
 
@@ -63,10 +68,10 @@ namespace Strontium
 
     struct WindowData
     {
-      GLuint width;
-      GLuint height;
-      GLfloat cursorX;
-      GLfloat cursorY;
+      uint width;
+      uint height;
+      float cursorX;
+      float cursorY;
       std::string name;
     };
 

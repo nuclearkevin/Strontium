@@ -6,6 +6,9 @@
 // Memory management library.
 #include <memory>
 
+// Basic typedefs.
+typedef unsigned int uint;
+
 namespace Strontium
 {
   // Rewrapping smart pointers to make using them easier.

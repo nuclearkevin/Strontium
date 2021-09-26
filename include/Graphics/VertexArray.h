@@ -25,7 +25,7 @@ namespace Strontium
     void bind();
     void unbind();
 
-    void addAttribute(GLuint location, AttribType type, GLboolean normalized,
+    void addAttribute(uint location, AttribType type, bool normalized,
                       unsigned size, unsigned stride);
 
     // Replace the vertex buffer, also purges the index buffers for safety.
@@ -35,7 +35,7 @@ namespace Strontium
 
     // Add an index buffer to the vertex array.
     void addIndexBuffer(Shared<IndexBuffer> buffer);
-    void addIndexBuffer(const GLuint* bufferData, unsigned numIndices,
+    void addIndexBuffer(const uint* bufferData, unsigned numIndices,
                         BufferType bufferType);
 
     // Set the index buffer to be used by this vertex array.
@@ -49,7 +49,7 @@ namespace Strontium
 
   protected:
     // Vertex array ID.
-    GLuint                    arrayID;
+    uint                    arrayID;
 
     // Vertex buffer with the data to be associated with this vertex array.
     Shared<VertexBuffer>      data;

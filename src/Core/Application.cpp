@@ -155,7 +155,7 @@ namespace Strontium
     while (this->running)
     {
       // Fetch delta time.
-      float currentTime = glfwGetTime();
+      float currentTime = this->appWindow->getTime();
       float deltaTime = currentTime - this->lastTime;
       this->lastTime = currentTime;
 

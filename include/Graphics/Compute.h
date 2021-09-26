@@ -2,11 +2,14 @@
 
 #include "StrontiumPCH.h"
 
+// Project includes.
+#include "Core/ApplicationBase.h"
+
 namespace Strontium
 {
   enum class MemoryBarrierType
   {
-    ShaderImageAccess = GL_SHADER_IMAGE_ACCESS_BARRIER_BIT
+    ShaderImageAccess = 0x00000020 // GL_SHADER_IMAGE_ACCESS_BARRIER_BIT
   };
 
   //----------------------------------------------------------------------------
@@ -28,7 +31,7 @@ namespace Strontium
     void launchCompute(const glm::ivec3 &computeUnits);
 
     // Forward declaration of the shader debug function.
-    void dumpProgram(GLuint program, char* description);
+    void dumpProgram(uint program, char* description);
 
     // Shader parser/compiler function.
     void buildShader(int type, const char* filename);
@@ -36,8 +39,8 @@ namespace Strontium
     // Program linker function.
     void buildProgram();
   protected:
-    GLuint progID;
-    GLuint computeID;
+    uint progID;
+    uint computeID;
   private:
       char* readShaderFile(const char* filename);
   };

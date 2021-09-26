@@ -5,6 +5,9 @@
 // Project includes.
 #include "Core/Logs.h"
 
+// OpenGL includes.
+#include "glad/glad.h"
+
 namespace Strontium
 {
 	// Constructor and destructor.
@@ -30,7 +33,7 @@ namespace Strontium
 
 		char name[256];
 		GLsizei length;
-		GLint size;
+		int size;
 		GLenum type;
 		int uniforms;
 
@@ -69,7 +72,7 @@ namespace Strontium
 
 		char name[256];
 		GLsizei length;
-		GLint size;
+		int size;
 		GLenum type;
 		int uniforms;
 
@@ -96,7 +99,7 @@ namespace Strontium
 
 		char name[256];
 		GLsizei length;
-		GLint size;
+		int size;
 		GLenum type;
 		int uniforms;
 
@@ -124,7 +127,7 @@ namespace Strontium
 
 		char name[256];
 		GLsizei length;
-		GLint size;
+		int size;
 		GLenum type;
 		int uniforms;
 
@@ -144,7 +147,7 @@ namespace Strontium
 	{
 		Logger* logs = Logger::getInstance();
 
-		GLuint shaderID;
+		uint shaderID;
 		char *source;
 		int result;
 		char *buffer;
@@ -190,7 +193,7 @@ namespace Strontium
 	{
 		Logger* logs = Logger::getInstance();
 
-		GLuint shaderID;
+		uint shaderID;
 		int result;
 		char* buffer;
 
@@ -230,7 +233,7 @@ namespace Strontium
 
 	// Link the shader program together. TODO: Move away from C to C++.
 	void
-	Shader::buildProgram(GLuint first, ...)
+	Shader::buildProgram(uint first, ...)
 	{
 		int result;
 		char *buffer;
@@ -396,29 +399,32 @@ namespace Strontium
 	// Setters for uniform matrices.
 	void
 	Shader::addUniformMatrix(const char* uniformName, const glm::mat4 &matrix,
-													 GLboolean transpose)
+													 bool transpose)
 	{
+		GLboolean glTranspose = static_cast<GLboolean>(transpose);
 		this->bind();
-		GLuint uniLoc = glGetUniformLocation(this->progID, uniformName);
-		glUniformMatrix4fv(uniLoc, 1, transpose, glm::value_ptr(matrix));
+		uint uniLoc = glGetUniformLocation(this->progID, uniformName);
+		glUniformMatrix4fv(uniLoc, 1, glTranspose, glm::value_ptr(matrix));
 	}
 
 	void
 	Shader::addUniformMatrix(const char* uniformName, const glm::mat3 &matrix,
-													 GLboolean transpose)
+													 bool transpose)
 	{
+		GLboolean glTranspose = static_cast<GLboolean>(transpose);
 		this->bind();
-		GLuint uniLoc = glGetUniformLocation(this->progID, uniformName);
-		glUniformMatrix3fv(uniLoc, 1, transpose, glm::value_ptr(matrix));
+		uint uniLoc = glGetUniformLocation(this->progID, uniformName);
+		glUniformMatrix3fv(uniLoc, 1, glTranspose, glm::value_ptr(matrix));
 	}
 
 	void
 	Shader::addUniformMatrix(const char* uniformName, const glm::mat2 &matrix,
-													 GLboolean transpose)
+													 bool transpose)
 	{
+		GLboolean glTranspose = static_cast<GLboolean>(transpose);
 		this->bind();
-		GLuint uniLoc = glGetUniformLocation(this->progID, uniformName);
-		glUniformMatrix2fv(uniLoc, 1, transpose, glm::value_ptr(matrix));
+		uint uniLoc = glGetUniformLocation(this->progID, uniformName);
+		glUniformMatrix2fv(uniLoc, 1, glTranspose, glm::value_ptr(matrix));
 	}
 
 	// Setter for uniform vectors.
@@ -426,7 +432,7 @@ namespace Strontium
 	Shader::addUniformVector(const char* uniformName, const glm::vec4 &vector)
 	{
 		this->bind();
-		GLuint uniLoc = glGetUniformLocation(this->progID, uniformName);
+		uint uniLoc = glGetUniformLocation(this->progID, uniformName);
 		glUniform4f(uniLoc, vector[0], vector[1], vector[2], vector[3]);
 	}
 
@@ -434,7 +440,7 @@ namespace Strontium
 	Shader::addUniformVector(const char* uniformName, const glm::vec3 &vector)
 	{
 		this->bind();
-		GLuint uniLoc = glGetUniformLocation(this->progID, uniformName);
+		uint uniLoc = glGetUniformLocation(this->progID, uniformName);
 		glUniform3f(uniLoc, vector[0], vector[1], vector[2]);
 	}
 
@@ -442,45 +448,45 @@ namespace Strontium
 	Shader::addUniformVector(const char* uniformName, const glm::vec2 &vector)
 	{
 		this->bind();
-		GLuint uniLoc = glGetUniformLocation(this->progID, uniformName);
+		uint uniLoc = glGetUniformLocation(this->progID, uniformName);
 		glUniform2f(uniLoc, vector[0], vector[1]);
 	}
 
 	// Setters for singleton uniform data.
 	void
-	Shader::addUniformFloat(const char* uniformName, GLfloat value)
+	Shader::addUniformFloat(const char* uniformName, float value)
 	{
 		this->bind();
-		GLuint uniLoc = glGetUniformLocation(this->progID, uniformName);
+		uint uniLoc = glGetUniformLocation(this->progID, uniformName);
 		glUniform1f(uniLoc, value);
 	}
 
 	void
-	Shader::addUniformInt(const char* uniformName, GLint value)
+	Shader::addUniformInt(const char* uniformName, int value)
 	{
 		this->bind();
-		GLuint uniLoc = glGetUniformLocation(this->progID, uniformName);
+		uint uniLoc = glGetUniformLocation(this->progID, uniformName);
 		glUniform1i(uniLoc, value);
 	}
 
 	void
-	Shader::addUniformUInt(const char* uniformName, GLuint value)
+	Shader::addUniformUInt(const char* uniformName, uint value)
 	{
 		this->bind();
-		GLuint uniLoc = glGetUniformLocation(this->progID, uniformName);
+		uint uniLoc = glGetUniformLocation(this->progID, uniformName);
 		glUniform1ui(uniLoc, value);
 	}
 
 	// Set a texture sampler.
 	void
-	Shader::addUniformSampler(const char* uniformName, GLuint texID)
+	Shader::addUniformSampler(const char* uniformName, uint texID)
 	{
 		this->bind();
-		GLuint uniLoc = glGetUniformLocation(this->progID, uniformName);
+		uint uniLoc = glGetUniformLocation(this->progID, uniformName);
 		glUniform1i(uniLoc, texID);
 	}
 
-	GLint
+	int
 	Shader::getSamplerLocation(const char* uniformName)
 	{
 		return glGetUniformLocation(this->progID, uniformName);
@@ -489,25 +495,26 @@ namespace Strontium
 	// Vertex attribute setters.
 	void
 	Shader::addAtribute(const char* attribName, AttribType type,
-											GLboolean normalized, unsigned size, unsigned stride)
+											bool normalized, unsigned size, unsigned stride)
 	{
+		GLboolean glNormalized = static_cast<GLboolean>(normalized);
 		this->bind();
-		GLuint attribPos = glGetAttribLocation(this->progID, attribName);
+		uint attribPos = glGetAttribLocation(this->progID, attribName);
 		switch (type)
     {
       case AttribType::Vec4:
       {
-        glVertexAttribPointer(attribPos, 4, GL_FLOAT, normalized, size, (void*) (unsigned long) stride);
+        glVertexAttribPointer(attribPos, 4, GL_FLOAT, glNormalized, size, (void*) (unsigned long) stride);
         break;
       }
       case AttribType::Vec3:
       {
-        glVertexAttribPointer(attribPos, 3, GL_FLOAT, normalized, size, (void*) (unsigned long) stride);
+        glVertexAttribPointer(attribPos, 3, GL_FLOAT, glNormalized, size, (void*) (unsigned long) stride);
         break;
       }
       case AttribType::Vec2:
       {
-        glVertexAttribPointer(attribPos, 2, GL_FLOAT, normalized, size, (void*) (unsigned long) stride);
+        glVertexAttribPointer(attribPos, 2, GL_FLOAT, glNormalized, size, (void*) (unsigned long) stride);
         break;
       }
       case AttribType::IVec4:
@@ -536,7 +543,7 @@ namespace Strontium
 	{
 		char name[256];
 		GLsizei length;
-		GLint size;
+		int size;
 		GLenum type;
 		int uniforms, attributes, shaders;
 
@@ -591,7 +598,7 @@ namespace Strontium
 	// Convert an enum to a string to make shader validation and material
 	// properties easier to do. TODO: Add more uniforms and attributes.
 	std::string
-	Shader::enumToString(GLenum sEnum)
+	Shader::enumToString(uint sEnum)
 	{
 		switch (sEnum)
 		{
@@ -611,7 +618,7 @@ namespace Strontium
 	}
 
 	UniformType
-	Shader::enumToUniform(GLenum sEnum)
+	Shader::enumToUniform(uint sEnum)
 	{
 		switch (sEnum)
 		{

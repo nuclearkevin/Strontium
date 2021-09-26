@@ -1,9 +1,9 @@
+#pragma once
+
 // Maximum bones which can influence a vertex.
 #define MAX_BONES_PER_VERTEX 4
 // Maximum bones in a single model file. Using SSBOs to pass them to the skinning shaders.
 #define MAX_BONES_PER_MODEL 512
-
-#pragma once
 
 // Macro include file.
 #include "StrontiumPCH.h"
@@ -38,9 +38,9 @@ namespace Strontium
   {
     std::string name;
 
-    std::vector<std::pair<GLfloat, glm::vec3>> keyTranslations;
-    std::vector<std::pair<GLfloat, glm::quat>> keyRotations;
-    std::vector<std::pair<GLfloat, glm::vec3>> keyScales;
+    std::vector<std::pair<float, glm::vec3>> keyTranslations;
+    std::vector<std::pair<float, glm::quat>> keyRotations;
+    std::vector<std::pair<float, glm::vec3>> keyScales;
 
     AnimationNode(const std::string &name)
       : name(name)
@@ -73,18 +73,18 @@ namespace Strontium
 
     void loadAnimation(const aiAnimation* animation);
 
-    void computeBoneTransforms(GLfloat aniTime, std::vector<glm::mat4> &outBones);
+    void computeBoneTransforms(float aniTime, std::vector<glm::mat4> &outBones);
 
-    GLfloat getDuration() const { return this->duration; }
-    GLfloat getTPS() const { return this->ticksPerSecond; }
+    float getDuration() const { return this->duration; }
+    float getTPS() const { return this->ticksPerSecond; }
     std::string getName() const { return this->name; }
     std::unordered_map<std::string, AnimationNode>& getAniNodes() { return this->animationNodes; }
   private:
-    glm::mat4 interpolateTranslation(GLfloat aniTime, const AnimationNode &node);
-    glm::mat4 interpolateRotation(GLfloat aniTime, const AnimationNode &node);
-    glm::mat4 interpolateScale(GLfloat aniTime, const AnimationNode &node);
+    glm::mat4 interpolateTranslation(float aniTime, const AnimationNode &node);
+    glm::mat4 interpolateRotation(float aniTime, const AnimationNode &node);
+    glm::mat4 interpolateScale(float aniTime, const AnimationNode &node);
 
-    void readNodeHierarchy(GLfloat aniTime, const SceneNode &node,
+    void readNodeHierarchy(float aniTime, const SceneNode &node,
                            const glm::mat4 parentTransform,
                            std::vector<glm::mat4> &outBones);
     Model* parentModel;
@@ -92,8 +92,8 @@ namespace Strontium
     std::unordered_map<std::string, AnimationNode> animationNodes;
 
     std::string name;
-    GLfloat duration;
-    GLfloat ticksPerSecond;
+    float duration;
+    float ticksPerSecond;
   };
 
   class Animator
@@ -104,7 +104,7 @@ namespace Strontium
 
     void setAnimation(Animation* animation, const AssetHandle &modelHandle);
 
-    void onUpdate(GLfloat dt);
+    void onUpdate(float dt);
 
     void startAnimation() { this->animating = true; this->paused = false; }
     void pauseAnimation() { this->paused = true; }
@@ -113,12 +113,12 @@ namespace Strontium
 
     std::vector<glm::mat4>& getFinalBoneTransforms() { return this->finalBoneTransforms; }
     Animation* getStoredAnimation() { return this->storedAnimation; }
-    GLfloat& getAnimationTime() { return this->currentAniTime; }
+    float& getAnimationTime() { return this->currentAniTime; }
     bool isAnimating() { return this->animating; }
     bool isPaused() { return this->paused; }
     bool animationRenderable() { return this->storedAnimation != nullptr && this->animating; }
   private:
-    GLfloat currentAniTime;
+    float currentAniTime;
     AssetHandle storedModel;
     Animation* storedAnimation;
     std::vector<glm::mat4> finalBoneTransforms;

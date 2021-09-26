@@ -91,7 +91,7 @@ namespace Strontium
     if (ImGui::CollapsingHeader("Volumetric Lights"))
     {
       auto bufferSize = storage->gBuffer.getSize();
-      GLfloat ratio = bufferSize.x / bufferSize.y;
+      float ratio = bufferSize.x / bufferSize.y;
 
       ImGui::Checkbox("Enable Godrays", &state->enableSkyshafts);
 
@@ -130,7 +130,7 @@ namespace Strontium
     if (ImGui::CollapsingHeader("Bloom"))
     {
       auto bufferSize = storage->gBuffer.getSize();
-      GLfloat ratio = bufferSize.x / bufferSize.y;
+      float ratio = bufferSize.x / bufferSize.y;
       static int downMipView = 0;
       static int upMipView = 0;
       static int bufferMipView = 0;
@@ -312,7 +312,7 @@ namespace Strontium
     if (ImGui::CollapsingHeader("Render Passes"))
     {
       auto bufferSize = storage->gBuffer.getSize();
-      GLfloat ratio = bufferSize.x / bufferSize.y;
+      float ratio = bufferSize.x / bufferSize.y;
 
       ImGui::Separator();
       ImGui::Text("Lighting:");

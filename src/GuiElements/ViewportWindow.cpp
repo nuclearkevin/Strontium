@@ -2,6 +2,7 @@
 
 // Project includes.
 #include "Core/Application.h"
+#include "Core/KeyCodes.h"
 #include "Layers/EditorLayer.h"
 #include "Scenes/Components.h"
 #include "GuiElements/Styles.h"
@@ -99,32 +100,32 @@ namespace Strontium
     int keyCode = keyEvent.getKeyCode();
 
     bool camStationary = this->parentLayer->getEditorCamera()->isStationary();
-    bool lControlHeld = appWindow->isKeyPressed(GLFW_KEY_LEFT_CONTROL);
+    bool lControlHeld = appWindow->isKeyPressed(SR_KEY_LEFT_CONTROL);
 
     switch (keyCode)
     {
-      case GLFW_KEY_Q:
+      case SR_KEY_Q:
       {
         // Stop using the Gizmo.
         if (lControlHeld && keyEvent.getRepeatCount() == 0 && camStationary)
           this->gizmoType = -1;
         break;
       }
-      case GLFW_KEY_W:
+      case SR_KEY_W:
       {
         // Translate.
         if (lControlHeld && keyEvent.getRepeatCount() == 0 && camStationary)
           this->gizmoType = ImGuizmo::TRANSLATE;
         break;
       }
-      case GLFW_KEY_E:
+      case SR_KEY_E:
       {
         // Rotate.
         if (lControlHeld && keyEvent.getRepeatCount() == 0 && camStationary)
           this->gizmoType = ImGuizmo::ROTATE;
         break;
       }
-      case GLFW_KEY_R:
+      case SR_KEY_R:
       {
         // Scale.
         if (lControlHeld && keyEvent.getRepeatCount() == 0 && camStationary)
@@ -143,11 +144,11 @@ namespace Strontium
     int mouseCode = mouseEvent.getButton();
 
     bool camStationary = this->parentLayer->getEditorCamera()->isStationary();
-    bool lControlHeld = appWindow->isKeyPressed(GLFW_KEY_LEFT_CONTROL);
+    bool lControlHeld = appWindow->isKeyPressed(SR_KEY_LEFT_CONTROL);
 
     switch (mouseCode)
     {
-      case GLFW_MOUSE_BUTTON_1:
+      case SR_MOUSE_BUTTON_1:
       {
         if (lControlHeld && camStationary)
           this->selectEntity();
@@ -168,7 +169,7 @@ namespace Strontium
     if (mousePos.x >= 0.0f && mousePos.y >= 0.0f &&
         mousePos.x < (this->parentLayer->getEditorSize()).x && mousePos.y < (this->parentLayer->getEditorSize()).y)
     {
-      GLint id = this->parentLayer->getFrontBuffer()->readPixel(FBOTargetParam::Colour1, glm::vec2(mousePos.x, mousePos.y)) - 1;
+      int id = this->parentLayer->getFrontBuffer()->readPixel(FBOTargetParam::Colour1, glm::vec2(mousePos.x, mousePos.y)) - 1;
 
       EventDispatcher* dispatcher = EventDispatcher::getInstance();
       dispatcher->queueEvent(new EntitySwapEvent(id, this->parentLayer->getActiveScene().get()));

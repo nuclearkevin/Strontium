@@ -7,7 +7,7 @@
 
 #define PI 3.141592654
 
-#define NUM_STEPS 50
+#define NUM_STEPS 25
 
 #define NUM_CASCADES 4
 #define WARP 44.0
@@ -17,7 +17,7 @@ layout(local_size_x = 32, local_size_y = 32) in;
 // The output texture for the volumetric effect.
 layout(rgba16f, binding = 0) writeonly uniform image2D volumetric;
 
-layout(binding = 3) uniform sampler2D gPosition;
+layout(binding = 1) uniform sampler2D gDepth;
 layout(binding = 7) uniform sampler2D cascadeMaps[NUM_CASCADES]; // TODO: Texture arrays.
 
 // Camera specific uniforms.
@@ -26,6 +26,15 @@ layout(std140, binding = 0) uniform CameraBlock
   mat4 u_viewMatrix;
   mat4 u_projMatrix;
   vec3 u_camPosition;
+};
+
+layout(std140, binding = 1) uniform PostProcessBlock
+{
+  mat4 u_invViewProj;
+  mat4 u_viewProj;
+  vec4 u_camPosScreenSize; // Camera position (x, y, z) and the screen width (w).
+  vec4 u_screenSizeGammaBloom;  // Screen height (x), gamma (y) and bloom intensity (z). w is unused.
+  ivec4 u_postProcessingPasses; // Tone mapping operator (x), using bloom (y), using FXAA (z) and using screenspace godrays (w).
 };
 
 // Directional light uniforms.
@@ -66,7 +75,7 @@ void main()
 
   // Half resolution.
   ivec2 gBufferCoords = 2 * invoke;
-  vec2 gBufferSize = textureSize(gPosition, 0).xy;
+  vec2 gBufferSize = textureSize(gDepth, 0).xy;
   vec2 gBufferUV = vec2(gBufferCoords) / gBufferSize;
 
   // Light properties.
@@ -81,8 +90,15 @@ void main()
   vec3 mieAbsorption = density * u_mieAbsDensity.xyz * 0.01;
   vec3 extinction = (mieScattering + mieAbsorption);
 
+  // Compute the starting position from the depth.
+  vec2 xy = 2.0 * gBufferUV - 1.0;
+  float z = 2.0 * texture(gDepth, gBufferUV).r - 1.0;
+  vec4 posNDC = vec4(xy, z, 1.0);
+  posNDC = u_invViewProj * posNDC;
+  posNDC /= posNDC.w;
+
   // March from the camera position to the fragment position.
-  vec3 endPos = texture(gPosition, gBufferUV).rgb;
+  vec3 endPos = posNDC.xyz;
   vec3 startPos = u_camPosition.xyz;
   vec3 ray = endPos - startPos;
   vec3 rayDir = normalize(ray);

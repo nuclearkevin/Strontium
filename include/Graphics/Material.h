@@ -58,9 +58,9 @@ namespace Strontium
     Shader* getShader() { return this->program; }
 
     // Get the shader data.
-    GLfloat& getFloat(const std::string &name)
+    float& getFloat(const std::string &name)
     {
-      auto loc = Utilities::pairGet<std::string, GLfloat>(this->floats, name);
+      auto loc = Utilities::pairGet<std::string, float>(this->floats, name);
       return loc->second;
     };
     glm::vec2& getVec2(const std::string &name)
@@ -93,7 +93,7 @@ namespace Strontium
     operator Shader*() { return this->program; }
 
     // Get the internal storage for serialization.
-    std::vector<std::pair<std::string, GLfloat>>& getFloats() { return this->floats; }
+    std::vector<std::pair<std::string, float>>& getFloats() { return this->floats; }
     std::vector<std::pair<std::string, glm::vec2>>& getVec2s() { return this->vec2s; }
     std::vector<std::pair<std::string, glm::vec3>>& getVec3s() { return this->vec3s; }
     std::vector<std::pair<std::string, glm::vec4>>& getVec4s() { return this->vec4s; }
@@ -116,7 +116,7 @@ namespace Strontium
 
     // The shader and shader data.
     Shader* program;
-    std::vector<std::pair<std::string, GLfloat>> floats;
+    std::vector<std::pair<std::string, float>> floats;
     std::vector<std::pair<std::string, glm::vec2>> vec2s;
     std::vector<std::pair<std::string, glm::vec3>> vec3s;
     std::vector<std::pair<std::string, glm::vec4>> vec4s;
@@ -146,7 +146,7 @@ namespace Strontium
 
     Material* getMaterial(const std::string &meshName);
     AssetHandle getMaterialHandle(const std::string &meshName);
-    GLuint getNumStored() { return this->materials.size(); }
+    uint getNumStored() { return this->materials.size(); }
 
     // Get the storage.
     std::vector<std::pair<std::string, AssetHandle>>& getStorage() { return this->materials; };

@@ -27,14 +27,14 @@ namespace Strontium
     void setButtonColour(ImVec4 cDefault, ImVec4 cHovered, ImVec4 cActive);
 
     void drawVec3Controls(const std::string &label, glm::vec3 resetValue, glm::vec3& param,
-                          GLfloat offset = 0.0f, GLfloat speed = 0.1f,
-                          GLfloat min = 0.0f, GLfloat max = 0.0f);
+                          float offset = 0.0f, float speed = 0.1f,
+                          float min = 0.0f, float max = 0.0f);
     void drawVec2Controls(const std::string &label, glm::vec2 resetValue, glm::vec2& param,
-                          GLfloat offset = 0.0f, GLfloat speed = 0.1f,
-                          GLfloat min = 0.0f, GLfloat max = 0.0f);
-    void drawFloatControl(const std::string &label, GLfloat resetValue, GLfloat& param,
-                          GLfloat offset = 0.0f, GLfloat speed = 0.1f,
-                          GLfloat min = 0.0f, GLfloat max = 0.0f);
+                          float offset = 0.0f, float speed = 0.1f,
+                          float min = 0.0f, float max = 0.0f);
+    void drawFloatControl(const std::string &label, float resetValue, float& param,
+                          float offset = 0.0f, float speed = 0.1f,
+                          float min = 0.0f, float max = 0.0f);
 
     ImVec4 colourFromHex(const std::string &hex);
     std::string colourToHex(const ImVec4 &colour);

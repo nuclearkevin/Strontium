@@ -135,8 +135,8 @@ namespace Strontium
 
     void
     drawVec3Controls(const std::string &label, glm::vec3 resetValue,
-                     glm::vec3& param, GLfloat offset, GLfloat speed,
-                     GLfloat min, GLfloat max)
+                     glm::vec3& param, float offset, float speed,
+                     float min, float max)
     {
       ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4, 4));
       ImGui::PushMultiItemsWidths(4, ImGui::CalcItemWidth());
@@ -168,8 +168,8 @@ namespace Strontium
 
     void
     drawVec2Controls(const std::string &label, glm::vec2 resetValue,
-                     glm::vec2& param, GLfloat offset, GLfloat speed,
-                     GLfloat min, GLfloat max)
+                     glm::vec2& param, float offset, float speed,
+                     float min, float max)
     {
       ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4, 4));
       ImGui::PushMultiItemsWidths(3, ImGui::CalcItemWidth() * 4.5 / 4.0 - offset);
@@ -195,9 +195,9 @@ namespace Strontium
     }
 
     void
-    drawFloatControl(const std::string &label, GLfloat resetValue,
-                     GLfloat& param, GLfloat offset, GLfloat speed,
-                     GLfloat min, GLfloat max)
+    drawFloatControl(const std::string &label, float resetValue,
+                     float& param, float offset, float speed,
+                     float min, float max)
     {
       ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4, 4));
       setButtonColour(ImVec4{ 0.8f, 0.1f, 0.15f, 1.0f },
@@ -257,8 +257,8 @@ namespace Strontium
       if (hex.length() == 9)
         a = std::strtoul(hex.substr(7, 2).c_str(), 0, 16);
 
-      return ImVec4(((GLfloat) r) / 255.0f, ((GLfloat) g) / 255.0f,
-                    ((GLfloat) b) / 255.0f, ((GLfloat) a) / 255.0f);
+      return ImVec4(((float) r) / 255.0f, ((float) g) / 255.0f,
+                    ((float) b) / 255.0f, ((float) a) / 255.0f);
     }
 
     std::string

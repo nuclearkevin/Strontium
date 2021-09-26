@@ -31,9 +31,9 @@ namespace Strontium
   struct DynamicSkyCommonParams
   {
     glm::vec3 sunPos;
-    GLfloat sunSize;
-    GLfloat sunIntensity;
-    GLfloat skyIntensity;
+    float sunSize;
+    float sunIntensity;
+    float skyIntensity;
 
     const DynamicSkyType type;
 
@@ -59,7 +59,7 @@ namespace Strontium
 
   struct PreethamSkyParams : public DynamicSkyCommonParams
   {
-    GLfloat turbidity;
+    float turbidity;
 
     PreethamSkyParams()
       : DynamicSkyCommonParams(DynamicSkyType::Preetham)
@@ -78,13 +78,13 @@ namespace Strontium
   struct HillaireSkyParams : public DynamicSkyCommonParams
   {
     glm::vec3 rayleighScatteringBase;
-    GLfloat rayleighAbsorptionBase;
-    GLfloat mieScatteringBase;
-    GLfloat mieAbsorptionBase;
+    float rayleighAbsorptionBase;
+    float mieScatteringBase;
+    float mieAbsorptionBase;
     glm::vec3 ozoneAbsorptionBase;
 
-    GLfloat planetRadius;
-    GLfloat atmosphereRadius;
+    float planetRadius;
+    float atmosphereRadius;
 
     glm::vec3 viewPos;
 
@@ -131,8 +131,8 @@ namespace Strontium
                                 const Texture2DParams &params = Texture2DParams());
 
     // Convert an equirectangular map to a cubemap.
-    void equiToCubeMap(const bool &isHDR = true, const GLuint &width = 512,
-                       const GLuint &height = 512);
+    void equiToCubeMap(const bool &isHDR = true, const uint &width = 512,
+                       const uint &height = 512);
 
     // Unload all the textures associated with this environment.
     void unloadEnvironment();
@@ -144,8 +144,8 @@ namespace Strontium
     void unbind();
 
     // Binds one of the environment map PBR textures to a point.
-    void bind(const MapType &type, GLuint bindPoint);
-    void bindBRDFLUT(GLuint bindPoint);
+    void bind(const MapType &type, uint bindPoint);
+    void bindBRDFLUT(uint bindPoint);
 
     // Draw the skybox.
     void configure();
@@ -155,23 +155,23 @@ namespace Strontium
     void updateHillaireLUTs();
 
     // Generate the diffuse irradiance map.
-    void precomputeIrradiance(const GLuint &width = 512, const GLuint &height = 512, bool isHDR = true);
+    void precomputeIrradiance(const uint &width = 512, const uint &height = 512, bool isHDR = true);
 
     // Generate the specular map components (pre-filter and BRDF integration map).
-    void precomputeSpecular(const GLuint &width = 512, const GLuint &height = 512, bool isHDR = true);
+    void precomputeSpecular(const uint &width = 512, const uint &height = 512, bool isHDR = true);
 
     // Compute the BRDF integration LUT separately.
     void computeBRDFLUT();
 
     // Getters.
-    GLuint getTexID(const MapType &type);
-    GLuint getBRDFLUTID() { return this->brdfIntLUT.getID(); }
-    GLuint getTransmittanceLUTID() { return this->transmittanceLUT.getID(); }
-    GLuint getMultiScatteringLUTID() { return this->multiScatLUT.getID(); }
-    GLuint getSkyViewLUTID() { return this->skyViewLUT.getID(); }
+    uint getTexID(const MapType &type);
+    uint getBRDFLUTID() { return this->brdfIntLUT.getID(); }
+    uint getTransmittanceLUTID() { return this->transmittanceLUT.getID(); }
+    uint getMultiScatteringLUTID() { return this->multiScatLUT.getID(); }
+    uint getSkyViewLUTID() { return this->skyViewLUT.getID(); }
 
-    GLfloat& getIntensity() { return this->intensity; }
-    GLfloat& getRoughness() { return this->roughness; }
+    float& getIntensity() { return this->intensity; }
+    float& getRoughness() { return this->roughness; }
 
     DynamicSkyCommonParams& getSkyModelParams(const DynamicSkyType &type) { return (*this->dynamicSkyParams.at(type)); }
 
@@ -220,8 +220,8 @@ namespace Strontium
     DynamicSkyType currentDynamicSky;
 
     // Parameters for drawing the skybox.
-    GLfloat intensity;
-    GLfloat roughness;
+    float intensity;
+    float roughness;
 
     glm::ivec4 skyboxParameters;
 

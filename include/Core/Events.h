@@ -6,6 +6,9 @@
 // STL includes.
 #include <mutex>
 
+// Project includes.
+#include "Core/ApplicationBase.h"
+
 namespace Strontium
 {
   enum class EventType
@@ -53,14 +56,14 @@ namespace Strontium
   class KeyPressedEvent : public Event
   {
   public:
-    KeyPressedEvent(const int keyCode, const GLuint repeat);
+    KeyPressedEvent(const int keyCode, const uint repeat);
     ~KeyPressedEvent() = default;
 
     inline int getKeyCode() { return this->keyCode;}
-    inline GLuint getRepeatCount() { return this->numRepeat; }
+    inline uint getRepeatCount() { return this->numRepeat; }
   protected:
     int keyCode;
-    GLuint numRepeat;
+    uint numRepeat;
   };
 
   //----------------------------------------------------------------------------
@@ -83,12 +86,12 @@ namespace Strontium
   class KeyTypedEvent : public Event
   {
   public:
-    KeyTypedEvent(const GLuint keyCode);
+    KeyTypedEvent(const uint keyCode);
     ~KeyTypedEvent() = default;
 
     inline int getKeyCode() { return this->keyCode; }
   protected:
-    GLuint keyCode;
+    uint keyCode;
   };
 
   //----------------------------------------------------------------------------
@@ -125,12 +128,12 @@ namespace Strontium
   class MouseScrolledEvent : public Event
   {
   public:
-    MouseScrolledEvent(const GLfloat xOffset, const GLfloat yOffset);
+    MouseScrolledEvent(const float xOffset, const float yOffset);
     ~MouseScrolledEvent() = default;
 
     inline glm::vec2 getOffset() { return glm::vec2(this->xOffset, this->yOffset); }
   private:
-    GLfloat xOffset, yOffset;
+    float xOffset, yOffset;
   };
 
   //----------------------------------------------------------------------------
@@ -149,12 +152,12 @@ namespace Strontium
   class WindowResizeEvent : public Event
   {
   public:
-    WindowResizeEvent(GLuint width, GLuint height);
+    WindowResizeEvent(uint width, uint height);
     ~WindowResizeEvent() = default;
 
     inline glm::ivec2 getSize() { return glm::ivec2(this->width, this->height); }
   private:
-    GLuint width, height;
+    uint width, height;
   };
 
   //----------------------------------------------------------------------------
@@ -225,13 +228,13 @@ namespace Strontium
   class EntitySwapEvent : public Event
   {
   public:
-    EntitySwapEvent(GLint entityID, Scene* entityParentScene);
+    EntitySwapEvent(int entityID, Scene* entityParentScene);
     ~EntitySwapEvent() = default;
 
-    GLuint getStoredEntity() { return this->storedEntity; }
+    uint getStoredEntity() { return this->storedEntity; }
     Scene* getStoredScene() { return this->entityParentScene; }
   private:
-    GLint storedEntity;
+    int storedEntity;
     Scene* entityParentScene;
   };
 
@@ -241,13 +244,13 @@ namespace Strontium
   class EntityDeleteEvent : public Event
   {
   public:
-    EntityDeleteEvent(GLint entityID, Scene* entityParentScene);
+    EntityDeleteEvent(int entityID, Scene* entityParentScene);
     ~EntityDeleteEvent() = default;
 
-    GLuint getStoredEntity() { return this->storedEntity; }
+    uint getStoredEntity() { return this->storedEntity; }
     Scene* getStoredScene() { return this->entityParentScene; }
   private:
-    GLint storedEntity;
+    int storedEntity;
     Scene* entityParentScene;
   };
 

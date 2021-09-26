@@ -59,8 +59,8 @@ namespace Strontium
     operator bool() { return this->entityID != entt::null; }
     operator entt::entity() { return this->entityID; }
     operator Scene*() { return this->parentScene; }
-    operator GLuint() { return (GLuint) this->entityID; }
-    operator GLint() { return (GLint) (GLuint) this->entityID; }
+    operator uint() { return (uint) this->entityID; }
+    operator int() { return (int) (uint) this->entityID; }
     bool operator==(const Entity& other) { return this->entityID == other.entityID
                                            && this->parentScene == other.parentScene; }
     bool operator!=(const Entity& other) { return !(*this == other); }

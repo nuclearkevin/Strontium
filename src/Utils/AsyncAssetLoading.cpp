@@ -21,7 +21,7 @@ namespace Strontium
     //--------------------------------------------------------------------------
     // Models, materials and meshes.
     //--------------------------------------------------------------------------
-    std::queue<std::tuple<Model*, Scene*, GLuint>> asyncModelQueue;
+    std::queue<std::tuple<Model*, Scene*, uint>> asyncModelQueue;
     std::mutex asyncModelMutex;
 
     void
@@ -177,7 +177,7 @@ namespace Strontium
 
     void
     asyncLoadModel(const std::string &filepath, const std::string &name,
-                   GLuint entityID, Scene* activeScene)
+                   uint entityID, Scene* activeScene)
     {
       // Fetch the logs.
       Logger* logs = Logger::getInstance();
@@ -194,7 +194,7 @@ namespace Strontium
       auto workerGroup = ThreadPool::getInstance(2);
 
       auto loaderImpl = [](const std::string &filepath, const std::string &name,
-                           GLuint entityID, Scene* activeScene)
+                           uint entityID, Scene* activeScene)
       {
         auto modelAssets = AssetManager<Model>::getManager();
 
@@ -238,71 +238,113 @@ namespace Strontium
       {
         ImageData2D& image = asyncTexQueue.front();
 
+        // Generate a 2D texture. Currently supports both bytes and floating point
+        // HDR images!
+        switch (image.n)
+        {
+          case 1:
+          {
+            if (image.isHDR)
+            {
+              image.params.internal = TextureInternalFormats::R32f;
+              image.params.format = TextureFormats::Red;
+              image.params.dataType = TextureDataType::Floats;
+            }
+            else
+            {
+              image.params.internal = TextureInternalFormats::Red;
+              image.params.format = TextureFormats::Red;
+              image.params.dataType = TextureDataType::Bytes;
+            }
+            break;
+          }
+
+          case 2:
+          {
+            if (image.isHDR)
+            {
+              image.params.internal = TextureInternalFormats::RG32f;
+              image.params.format = TextureFormats::RG;
+              image.params.dataType = TextureDataType::Floats;
+            }
+            else
+            {
+              image.params.internal = TextureInternalFormats::RG;
+              image.params.format = TextureFormats::RG;
+              image.params.dataType = TextureDataType::Bytes;
+            }
+            break;
+          }
+
+          case 3:
+          {
+            // If its HDR, needs to be GL_RGBA16F instead of GL_RGB16F. Thanks OpenGL....
+            if (image.isHDR)
+            {
+              float* dataFNew;
+              dataFNew = new float[image.width * image.height * 4];
+              uint offset = 0;
+
+              for (uint i = 0; i < (image.width * image.height * 4); i+=4)
+              {
+                // Copy over the data from the image loading.
+                dataFNew[i] = ((float*) image.data)[i - offset];
+                dataFNew[i + 1] = ((float*) image.data)[i + 1 - offset];
+                dataFNew[i + 2] = ((float*) image.data)[i + 2 - offset];
+                // Make the 4th component (alpha) equal to 1.0f. Could make this a param :thinking:.
+                dataFNew[i + 3] = 1.0f;
+                // Increment the offset to we don't segfault. :D
+                offset ++;
+              }
+
+              image.n = 4;
+              image.params.internal = TextureInternalFormats::RGBA32f;
+              image.params.format = TextureFormats::RGBA;
+              image.params.dataType = TextureDataType::Floats;
+
+              stbi_image_free(image.data);
+              image.data = dataFNew;
+            }
+            else
+            {
+              image.params.internal = TextureInternalFormats::RGB;
+              image.params.format = TextureFormats::RGB;
+              image.params.dataType = TextureDataType::Bytes;
+            }
+
+            break;
+          }
+
+          case 4:
+          {
+            if (image.isHDR)
+            {
+              image.params.internal = TextureInternalFormats::RGBA32f;
+              image.params.format = TextureFormats::RGBA;
+              image.params.dataType = TextureDataType::Floats;
+            }
+            else
+            {
+              image.params.internal = TextureInternalFormats::RGBA;
+              image.params.format = TextureFormats::RGBA;
+              image.params.dataType = TextureDataType::Bytes;
+            }
+
+            break;
+          }
+
+          default: break;
+        }
+
         Texture2D* outTex = new Texture2D(image.width, image.height, image.n, image.params);
         outTex->bind();
         outTex->getFilepath() = image.filepath;
 
-        // Generate a 2D texture. Currently supports both bytes and floating point
-        // HDR images!
-        if (outTex->n == 1)
-        {
-          if (image.isHDR)
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_R16F, image.width, image.height, 0,
-                         GL_RED, GL_FLOAT, image.data);
-          else
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, image.width, image.height, 0,
-                         GL_RED, GL_UNSIGNED_BYTE, image.data);
-          glGenerateMipmap(GL_TEXTURE_2D);
-        }
-        else if (outTex->n == 2)
-        {
-          if (image.isHDR)
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RG16F, image.width, image.height, 0,
-                         GL_RG, GL_FLOAT, image.data);
-          else
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RG, image.width, image.height, 0,
-                         GL_RG, GL_UNSIGNED_BYTE, image.data);
-          glGenerateMipmap(GL_TEXTURE_2D);
-        }
-        else if (outTex->n == 3)
-        {
-          // If its HDR, needs to be GL_RGBA16F instead of GL_RGB16F. Thanks OpenGL....
-          if (image.isHDR)
-          {
-            float* dataFNew;
-            dataFNew = new float[image.width * image.height * 4];
-            GLuint offset = 0;
-
-            for (GLuint i = 0; i < (image.width * image.height * 4); i+=4)
-            {
-              // Copy over the data from the image loading.
-              dataFNew[i] = ((float*) image.data)[i - offset];
-              dataFNew[i + 1] = ((float*) image.data)[i + 1 - offset];
-              dataFNew[i + 2] = ((float*) image.data)[i + 2 - offset];
-              // Make the 4th component (alpha) equal to 1.0f. Could make this a param :thinking:.
-              dataFNew[i + 3] = 1.0f;
-              // Increment the offset to we don't segfault. :D
-              offset ++;
-            }
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, image.width, image.height, 0,
-                         GL_RGBA, GL_FLOAT, dataFNew);
-            stbi_image_free(dataFNew);
-          }
-          else
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, image.width, image.height, 0,
-                         GL_RGB, GL_UNSIGNED_BYTE, image.data);
-          glGenerateMipmap(GL_TEXTURE_2D);
-        }
-        else if (outTex->n == 4)
-        {
-          if (image.isHDR)
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, image.width, image.height, 0,
-                         GL_RGBA, GL_FLOAT, image.data);
-          else
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image.width, image.height, 0,
-                         GL_RGBA, GL_UNSIGNED_BYTE, image.data);
-          glGenerateMipmap(GL_TEXTURE_2D);
-        }
+        if (image.isHDR)
+          outTex->loadData((float*) image.data);
+        else
+          outTex->loadData((unsigned char*) image.data);
+        outTex->generateMips();
 
         textureCache->attachAsset(image.name, outTex);
 

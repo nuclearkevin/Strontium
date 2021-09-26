@@ -61,7 +61,7 @@ namespace Strontium
     Mesh(const std::string &name, Model* parent);
     // Mesh class. Must be loaded in as a part of a parent model.
     Mesh(const std::string &name, const std::vector<Vertex> &vertices,
-         const std::vector<GLuint> &indices, Model* parent);
+         const std::vector<uint> &indices, Model* parent);
     ~Mesh();
     Mesh(Mesh&&) = default;
 
@@ -74,7 +74,7 @@ namespace Strontium
 
     // Getters.
     std::vector<Vertex>& getData() { return this->data; }
-    std::vector<GLuint>& getIndices() { return this->indices; }
+    std::vector<uint>& getIndices() { return this->indices; }
     glm::vec3& getMinPos() { return this->minPos; }
     glm::vec3& getMaxPos() { return this->maxPos; }
     VertexArray*  getVAO() { return this->vArray.get(); }
@@ -89,7 +89,7 @@ namespace Strontium
     // Mesh properties.
     bool loaded;
     std::vector<Vertex> data;
-    std::vector<GLuint> indices;
+    std::vector<uint> indices;
 
     glm::vec3 minPos;
     glm::vec3 maxPos;

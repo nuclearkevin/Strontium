@@ -39,8 +39,8 @@ namespace Strontium
 
   void
   materialMapSliderFloat(const std::string &name, const std::string &samplerName,
-                         Material* material, GLfloat &property, std::string &selectedMap,
-                         GLfloat min = 0.0f, GLfloat max = 1.0f)
+                         Material* material, float &property, std::string &selectedMap,
+                         float min = 0.0f, float max = 1.0f)
   {
     ImGui::Text(name.c_str());
     ImGui::PushID(name.c_str());

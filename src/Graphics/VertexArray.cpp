@@ -1,6 +1,9 @@
 // Project includes.
 #include "Graphics/VertexArray.h"
 
+// OpenGL includes.
+#include "glad/glad.h"
+
 namespace Strontium
 {
   // Constructors and destructors.
@@ -59,25 +62,26 @@ namespace Strontium
 
   // Add an attribute
   void
-  VertexArray::addAttribute(GLuint location, AttribType type, GLboolean normalized,
+  VertexArray::addAttribute(GLuint location, AttribType type, bool normalized,
                             unsigned size, unsigned stride)
   {
+    GLboolean glNormalized = static_cast<GLboolean>(normalized);
     this->bind();
     switch (type)
     {
       case AttribType::Vec4:
       {
-        glVertexAttribPointer(location, 4, GL_FLOAT, normalized, size, (void*) (unsigned long) stride);
+        glVertexAttribPointer(location, 4, GL_FLOAT, glNormalized, size, (void*) (unsigned long) stride);
         break;
       }
       case AttribType::Vec3:
       {
-        glVertexAttribPointer(location, 3, GL_FLOAT, normalized, size, (void*) (unsigned long) stride);
+        glVertexAttribPointer(location, 3, GL_FLOAT, glNormalized, size, (void*) (unsigned long) stride);
         break;
       }
       case AttribType::Vec2:
       {
-        glVertexAttribPointer(location, 2, GL_FLOAT, normalized, size, (void*) (unsigned long) stride);
+        glVertexAttribPointer(location, 2, GL_FLOAT, glNormalized, size, (void*) (unsigned long) stride);
         break;
       }
       case AttribType::IVec4:

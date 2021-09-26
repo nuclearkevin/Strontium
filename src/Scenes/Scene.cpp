@@ -23,7 +23,7 @@ namespace Strontium
   }
 
   Entity
-  Scene::createEntity(GLuint entityID, const std::string& name)
+  Scene::createEntity(uint entityID, const std::string& name)
   {
     Entity newEntity = Entity(this->sceneECS.create(), this);
     newEntity.addComponent<NameComponent>(name, "");

@@ -25,7 +25,7 @@ namespace Strontium
 
     // Initialize the renderer.
     void
-    init(const GLuint width, const GLuint height)
+    init(const uint width, const uint height)
     {
       auto shaderCache = AssetManager<Shader>::getManager();
 
@@ -39,7 +39,7 @@ namespace Strontium
       stats = new RendererStats();
 
       // The full-screen quad for rendering.
-      GLfloat fsqVertices[] =
+      float fsqVertices[] =
       {
         -1.0f, -1.0f,
         1.0f, -1.0f,
@@ -47,7 +47,7 @@ namespace Strontium
         -1.0f, 1.0f
       };
 
-      GLuint fsqIndices[] =
+      uint fsqIndices[] =
       {
         0, 1, 2, 2, 3, 0
       };
@@ -55,9 +55,9 @@ namespace Strontium
       storage->width = width;
       storage->height = height;
 
-      storage->fsq = VertexArray(fsqVertices, 8 * sizeof(GLfloat), BufferType::Dynamic);
+      storage->fsq = VertexArray(fsqVertices, 8 * sizeof(float), BufferType::Dynamic);
       storage->fsq.addIndexBuffer(fsqIndices, 6, BufferType::Dynamic);
-      storage->fsq.addAttribute(0, AttribType::Vec2, GL_FALSE, 2 * sizeof(GLfloat), 0);
+      storage->fsq.addAttribute(0, AttribType::Vec2, false, 2 * sizeof(float), 0);
 
       // Prepare bloom settings.
       Texture2DParams bloomParams = Texture2DParams();
@@ -66,18 +66,18 @@ namespace Strontium
       bloomParams.internal = TextureInternalFormats::RGBA16f;
       bloomParams.dataType = TextureDataType::Floats;
 
-      GLfloat powOf2 = 1.0f;
+      float powOf2 = 1.0f;
       for (unsigned int i = 0; i < MAX_NUM_BLOOM_MIPS; i++)
       {
-        storage->downscaleBloomTex[i].setSize((GLuint) ((GLfloat) width) / powOf2, (GLuint) ((GLfloat) height) / powOf2, 4);
+        storage->downscaleBloomTex[i].setSize((uint) ((float) width) / powOf2, (uint) ((float) height) / powOf2, 4);
         storage->downscaleBloomTex[i].setParams(bloomParams);
         storage->downscaleBloomTex[i].initNullTexture();
 
-        storage->upscaleBloomTex[i].setSize((GLuint) ((GLfloat) width) / powOf2, (GLuint) ((GLfloat) height) / powOf2, 4);
+        storage->upscaleBloomTex[i].setSize((uint) ((float) width) / powOf2, (uint) ((float) height) / powOf2, 4);
         storage->upscaleBloomTex[i].setParams(bloomParams);
         storage->upscaleBloomTex[i].initNullTexture();
 
-        storage->bufferBloomTex[i].setSize((GLuint) ((GLfloat) width) / powOf2, (GLuint) ((GLfloat) height) / powOf2, 4);
+        storage->bufferBloomTex[i].setSize((uint) ((float) width) / powOf2, (uint) ((float) height) / powOf2, 4);
         storage->bufferBloomTex[i].setParams(bloomParams);
         storage->bufferBloomTex[i].initNullTexture();
         powOf2 *= 2.0f;
@@ -134,13 +134,12 @@ namespace Strontium
 
     // Generic begin and end for the renderer.
     void
-    begin(GLuint width, GLuint height, const Camera &sceneCamera, bool isForward)
+    begin(uint width, uint height, const Camera &sceneCamera)
     {
       storage->sceneCam = sceneCamera;
       storage->camFrustum = buildCameraFrustum(sceneCamera);
 
       // Resize the framebuffer at the start of a frame, if required.
-      storage->isForward = isForward;
       storage->drawEdge = false;
 
       // Update the frame.
@@ -154,18 +153,18 @@ namespace Strontium
         storage->gBuffer.resize(width, height);
         storage->lightingPass.resize(width, height);
 
-        GLfloat powOf2 = 1.0f;
+        float powOf2 = 1.0f;
         for (unsigned int i = 0; i < MAX_NUM_BLOOM_MIPS; i++)
         {
-          storage->downscaleBloomTex[i].setSize((GLuint) ((GLfloat) width) / powOf2, (GLuint) ((GLfloat) height) / powOf2, 4);
+          storage->downscaleBloomTex[i].setSize((uint) ((float) width) / powOf2, (uint) ((float) height) / powOf2, 4);
           storage->downscaleBloomTex[i].initNullTexture();
 
-          storage->upscaleBloomTex[i].setSize((GLuint) ((GLfloat) width) / powOf2, (GLuint) ((GLfloat) height) / powOf2, 4);
+          storage->upscaleBloomTex[i].setSize((uint) ((float) width) / powOf2, (uint) ((float) height) / powOf2, 4);
           storage->upscaleBloomTex[i].initNullTexture();
 
           if (i < MAX_NUM_BLOOM_MIPS - 1)
           {
-            storage->bufferBloomTex[i].setSize((GLuint) ((GLfloat) width) / powOf2, (GLuint) ((GLfloat) height) / powOf2, 4);
+            storage->bufferBloomTex[i].setSize((uint) ((float) width) / powOf2, (uint) ((float) height) / powOf2, 4);
             storage->bufferBloomTex[i].initNullTexture();
           }
           powOf2 *= 2.0f;
@@ -193,41 +192,21 @@ namespace Strontium
       stats->lightFrametime = 0.0f;
       stats->postFramtime = 0.0f;
 
-      if (isForward)
-      {
-        storage->lightingPass.clear();
-        storage->lightingPass.bind();
-        storage->lightingPass.setViewport();
-
-        storage->currentEnvironment->bind(MapType::Irradiance, 0);
-        storage->currentEnvironment->bind(MapType::Prefilter, 1);
-        storage->currentEnvironment->bindBRDFLUT(2);
-      }
-      else
-      {
-        storage->staticRenderQueue.clear();
-        storage->dynamicRenderQueue.clear();
-      }
+      // Clear the render queues.
+      storage->staticRenderQueue.clear();
+      storage->dynamicRenderQueue.clear();
     }
 
     void
     end(Shared<FrameBuffer> frontBuffer)
     {
-      if (storage->isForward)
-      {
-        drawEnvironment();
-        storage->lightingPass.unbind();
-      }
-      else
-      {
-        geometryPass();
+      geometryPass();
 
-        shadowPass();
+      shadowPass();
 
-        lightingPass();
+      lightingPass();
 
-        postProcessPass(frontBuffer);
-      }
+      postProcessPass(frontBuffer);
     }
 
     // Draw the data to the screen.
@@ -260,13 +239,13 @@ namespace Strontium
 
     void
     submit(Model* data, ModelMaterial &materials, const glm::mat4 &model,
-           GLfloat id, bool drawSelectionMask)
+           float id, bool drawSelectionMask)
     {
       // Cull the model early.
       glm::vec3 min = glm::vec3(model * glm::vec4(data->getMinPos(), 1.0f));
       glm::vec3 max = glm::vec3(model * glm::vec4(data->getMaxPos(), 1.0f));
       glm::vec3 center = (min + max) / 2.0f;
-      GLfloat radius = glm::length(min + center);
+      float radius = glm::length(min + center);
 
       if (boundingBoxInFrustum(storage->camFrustum, min, max) && state->frustumCull)
         storage->staticRenderQueue.emplace_back(data, &materials, model, id,
@@ -279,13 +258,13 @@ namespace Strontium
     }
 
     void submit(Model* data, Animator* animation, ModelMaterial &materials,
-                const glm::mat4 &model, GLfloat id, bool drawSelectionMask)
+                const glm::mat4 &model, float id, bool drawSelectionMask)
     {
       // Cull the model early.
       glm::vec3 min = glm::vec3(model * glm::vec4(data->getMinPos(), 1.0f));
       glm::vec3 max = glm::vec3(model * glm::vec4(data->getMaxPos(), 1.0f));
       glm::vec3 center = (min + max) / 2.0f;
-      GLfloat radius = glm::length(min + center);
+      float radius = glm::length(min + center);
 
       if (boundingBoxInFrustum(storage->camFrustum, min, max) && state->frustumCull)
         storage->dynamicRenderQueue.emplace_back(data, animation, &materials,
@@ -606,7 +585,7 @@ namespace Strontium
           glm::mat4 lightVP = cascadeProjMatrix[i] * cascadeViewMatrix[i];
           glm::vec4 shadowOrigin = glm::vec4(glm::vec3(0.0f), 1.0f);
           shadowOrigin = lightVP * shadowOrigin;
-          GLfloat storedShadowW = shadowOrigin.w;
+          float storedShadowW = shadowOrigin.w;
           shadowOrigin = 0.5f * shadowOrigin * storage->shadowBuffer[i].getSize().x;
 
           glm::vec4 roundedShadowOrigin = glm::round(shadowOrigin);
@@ -782,7 +761,7 @@ namespace Strontium
           storage->cascadeShadowBuffer.setData(i * sizeof(glm::mat4), sizeof(glm::mat4),
                                                 glm::value_ptr(storage->cascades[i]));
           storage->cascadeShadowBuffer.setData(NUM_CASCADES * sizeof(glm::mat4)
-                                                + i * sizeof(glm::vec4), sizeof(GLfloat),
+                                                + i * sizeof(glm::vec4), sizeof(float),
                                                 &storage->cascadeSplits[i]);
 
 
@@ -790,7 +769,7 @@ namespace Strontium
         }
         storage->cascadeShadowBuffer.setData(NUM_CASCADES * sizeof(glm::mat4)
                                               + NUM_CASCADES * sizeof(glm::vec4),
-                                              sizeof(GLfloat),
+                                              sizeof(float),
                                               &state->bleedReduction);
       }
 
@@ -814,6 +793,13 @@ namespace Strontium
           // Launch the godray compute shaders.
           if (state->enableSkyshafts)
           {
+            state->postProcessSettings.w = (uint) (storage->hasCascades && state->enableSkyshafts);
+            storage->downsampleLightshaft.bind(2);
+            storage->postProcessSettings.bindToPoint(1);
+            storage->postProcessSettings.setData(0, sizeof(glm::mat4), glm::value_ptr(storage->sceneCam.invViewProj));
+            storage->postProcessSettings.setData(2 * sizeof(glm::mat4) + 2 * sizeof(glm::vec4), sizeof(glm::ivec4), &state->postProcessSettings.x);
+
+            storage->gBuffer.bindAttachment(FBOTargetParam::Depth, 1);
             storage->lightShaftSettingsBuffer.bindToPoint(0);
             storage->lightShaftSettingsBuffer.setData(0, sizeof(glm::vec4),
                                                       &(state->mieScatIntensity.x));
@@ -821,8 +807,8 @@ namespace Strontium
                                                       &(state->mieAbsDensity.x));
 
             storage->halfResBuffer1.bindAsImage(0, 0, ImageAccessPolicy::Write);
-            GLint iWidth = (GLint) glm::ceil(storage->downsampleLightshaft.width / 32.0f);
-            GLint iHeight = (GLint) glm::ceil(storage->downsampleLightshaft.height / 32.0f);
+            int iWidth = (int) glm::ceil(storage->downsampleLightshaft.width / 32.0f);
+            int iHeight = (int) glm::ceil(storage->downsampleLightshaft.height / 32.0f);
             storage->halfLightshaft.launchCompute(glm::ivec3(iWidth, iHeight, 1));
             ComputeShader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
 
@@ -830,11 +816,6 @@ namespace Strontium
             storage->downsampleLightshaft.bindAsImage(1, 0, ImageAccessPolicy::Write);
             storage->bilatBlur.launchCompute(glm::ivec3(iWidth, iHeight, 1));
             ComputeShader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
-
-            state->postProcessSettings.w = (GLuint) (storage->hasCascades && state->enableSkyshafts);
-            storage->downsampleLightshaft.bind(2);
-            storage->postProcessSettings.bindToPoint(1);
-            storage->postProcessSettings.setData(2 * sizeof(glm::mat4) + 2 * sizeof(glm::vec4), sizeof(glm::ivec4), &state->postProcessSettings.x);
           }
 
           // Launch the primary shadowed directional light pass.
@@ -919,13 +900,13 @@ namespace Strontium
         auto bloomSettings = glm::vec4(state->bloomThreshold, state->bloomThreshold - state->bloomKnee,
                                        2.0f * state->bloomKnee, 0.25 / state->bloomKnee);
         storage->bloomSettingsBuffer.setData(0, sizeof(glm::vec4), &bloomSettings.x);
-        storage->bloomSettingsBuffer.setData(sizeof(glm::vec4), sizeof(GLfloat), &state->bloomRadius);
+        storage->bloomSettingsBuffer.setData(sizeof(glm::vec4), sizeof(float), &state->bloomRadius);
 
         storage->lightingPass.getAttachment(FBOTargetParam::Colour0)
                ->bindAsImage(0, 0, ImageAccessPolicy::Read);
         storage->downscaleBloomTex[0].bindAsImage(1, 0, ImageAccessPolicy::Write);
-        glm::ivec3 invoke = glm::ivec3(glm::ceil(((GLfloat) storage->downscaleBloomTex[0].width) / 32.0f),
-                                       glm::ceil(((GLfloat) storage->downscaleBloomTex[0].height) / 32.0f),
+        glm::ivec3 invoke = glm::ivec3(glm::ceil(((float) storage->downscaleBloomTex[0].width) / 32.0f),
+                                       glm::ceil(((float) storage->downscaleBloomTex[0].height) / 32.0f),
                                        1);
         storage->bloomPrefilter.launchCompute(invoke);
         ComputeShader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
@@ -935,8 +916,8 @@ namespace Strontium
         {
           storage->downscaleBloomTex[i - 1].bindAsImage(0, 0, ImageAccessPolicy::Read);
           storage->downscaleBloomTex[i].bindAsImage(1, 0, ImageAccessPolicy::Write);
-          invoke = glm::ivec3(glm::ceil(((GLfloat) storage->downscaleBloomTex[i].width) / 32.0f),
-                              glm::ceil(((GLfloat) storage->downscaleBloomTex[i].height) / 32.0f),
+          invoke = glm::ivec3(glm::ceil(((float) storage->downscaleBloomTex[i].width) / 32.0f),
+                              glm::ceil(((float) storage->downscaleBloomTex[i].height) / 32.0f),
                               1);
           storage->bloomDownsample.launchCompute(invoke);
           ComputeShader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
@@ -947,8 +928,8 @@ namespace Strontium
         {
           storage->downscaleBloomTex[i].bindAsImage(0, 0, ImageAccessPolicy::Read);
           storage->bufferBloomTex[i].bindAsImage(1, 0, ImageAccessPolicy::Write);
-          invoke = glm::ivec3(glm::ceil(((GLfloat) storage->bufferBloomTex[i].width) / 32.0f),
-                              glm::ceil(((GLfloat) storage->bufferBloomTex[i].height) / 32.0f),
+          invoke = glm::ivec3(glm::ceil(((float) storage->bufferBloomTex[i].width) / 32.0f),
+                              glm::ceil(((float) storage->bufferBloomTex[i].height) / 32.0f),
                               1);
           storage->bloomUpsample.launchCompute(invoke);
           ComputeShader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
@@ -958,8 +939,8 @@ namespace Strontium
         // mip of the upsampling pyramid.
         storage->downscaleBloomTex[MAX_NUM_BLOOM_MIPS - 1].bindAsImage(0, 0, ImageAccessPolicy::Read);
         storage->upscaleBloomTex[MAX_NUM_BLOOM_MIPS - 1].bindAsImage(1, 0, ImageAccessPolicy::Write);
-        invoke = glm::ivec3(glm::ceil(((GLfloat) storage->bufferBloomTex[MAX_NUM_BLOOM_MIPS - 1].width) / 32.0f),
-                            glm::ceil(((GLfloat) storage->bufferBloomTex[MAX_NUM_BLOOM_MIPS - 1].height) / 32.0f),
+        invoke = glm::ivec3(glm::ceil(((float) storage->bufferBloomTex[MAX_NUM_BLOOM_MIPS - 1].width) / 32.0f),
+                            glm::ceil(((float) storage->bufferBloomTex[MAX_NUM_BLOOM_MIPS - 1].height) / 32.0f),
                             1);
         storage->bloomUpsample.launchCompute(invoke);
         ComputeShader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
@@ -970,8 +951,8 @@ namespace Strontium
           storage->upscaleBloomTex[i].bindAsImage(0, 0, ImageAccessPolicy::Read);
           storage->bufferBloomTex[i - 1].bindAsImage(1, 0, ImageAccessPolicy::Read);
           storage->upscaleBloomTex[i - 1].bindAsImage(2, 0, ImageAccessPolicy::Write);
-          invoke = glm::ivec3(glm::ceil(((GLfloat) storage->upscaleBloomTex[i - 1].width) / 32.0f),
-                              glm::ceil(((GLfloat) storage->upscaleBloomTex[i - 1].height) / 32.0f),
+          invoke = glm::ivec3(glm::ceil(((float) storage->upscaleBloomTex[i - 1].width) / 32.0f),
+                              glm::ceil(((float) storage->upscaleBloomTex[i - 1].height) / 32.0f),
                               1);
           storage->bloomUpsampleBlend.launchCompute(invoke);
           ComputeShader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
@@ -995,8 +976,8 @@ namespace Strontium
       auto data0 = glm::vec4(camPos.x, camPos.y, camPos.z, screenSize.x);
       auto data1 = glm::vec4(screenSize.y, state->gamma, state->bloomIntensity, 0.0f);
 
-      state->postProcessSettings.y = (GLuint) state->enableBloom;
-      state->postProcessSettings.z = (GLuint) state->enableFXAA;
+      state->postProcessSettings.y = (uint) state->enableBloom;
+      state->postProcessSettings.z = (uint) state->enableFXAA;
 
       storage->postProcessSettings.setData(0, sizeof(glm::mat4), glm::value_ptr(invViewProj));
       storage->postProcessSettings.setData(sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(viewProj));

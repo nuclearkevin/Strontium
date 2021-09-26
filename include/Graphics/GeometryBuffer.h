@@ -17,7 +17,7 @@ namespace Strontium
   class GeometryBuffer
   {
   public:
-    GeometryBuffer(const RuntimeType &type, GLuint width, GLuint height);
+    GeometryBuffer(const RuntimeType &type, uint width, uint height);
     GeometryBuffer();
     ~GeometryBuffer() = default;
 
@@ -26,11 +26,11 @@ namespace Strontium
 
     void swapType(const RuntimeType &type);
 
-    void resize(GLuint width, GLuint height);
+    void resize(uint width, uint height);
     void blitzToOther(FrameBuffer &target, const FBOTargetParam &type);
 
-    void bindAttachment(const FBOTargetParam &attachment, GLuint bindPoint);
-    GLuint getAttachmentID(const FBOTargetParam &attachment) { return this->geoBuffer.getAttachID(attachment); }
+    void bindAttachment(const FBOTargetParam &attachment, uint bindPoint);
+    uint getAttachmentID(const FBOTargetParam &attachment) { return this->geoBuffer.getAttachID(attachment); }
     glm::vec2 getSize() { return this->geoBuffer.getSize(); }
   private:
     RuntimeType type;

@@ -1,8 +1,8 @@
-#define NUM_CASCADES 4
-#define MAX_NUM_BLOOM_MIPS 7
-
 // Include guard.
 #pragma once
+
+#define NUM_CASCADES 4
+#define MAX_NUM_BLOOM_MIPS 7
 
 // Macro include file.
 #include "StrontiumPCH.h"
@@ -45,11 +45,10 @@ namespace Strontium
     struct RendererStorage
     {
       // Size of the buffers.
-      GLuint width;
-      GLuint height;
+      uint width;
+      uint height;
 
       // Various properties for rendering.
-      bool isForward;
       bool drawEdge;
 
       // Geometric primatives for applying lights and effects.
@@ -93,14 +92,14 @@ namespace Strontium
       ComputeShader bilatBlur;
 
       // Items for the geometry pass.
-      std::vector<std::tuple<Model*, ModelMaterial*, glm::mat4, GLuint, bool>> staticRenderQueue;
-      std::vector<std::tuple<Model*, Animator*, ModelMaterial*, glm::mat4, GLuint, bool>> dynamicRenderQueue;
+      std::vector<std::tuple<Model*, ModelMaterial*, glm::mat4, uint, bool>> staticRenderQueue;
+      std::vector<std::tuple<Model*, Animator*, ModelMaterial*, glm::mat4, uint, bool>> dynamicRenderQueue;
 
       // Items for the shadow pass.
       std::vector<std::pair<Model*, glm::mat4>> staticShadowQueue;
       std::vector<std::tuple<Model*, Animator*, glm::mat4>> dynamicShadowQueue;
       glm::mat4 cascades[NUM_CASCADES];
-      GLfloat cascadeSplits[NUM_CASCADES];
+      float cascadeSplits[NUM_CASCADES];
       bool hasCascades;
 
       Unique<EnvironmentMap> currentEnvironment;
@@ -122,7 +121,7 @@ namespace Strontium
         , pointPassBuffer(3 * sizeof(glm::vec4), BufferType::Dynamic)
         , cascadeShadowPassBuffer(sizeof(glm::mat4), BufferType::Dynamic)
         , cascadeShadowBuffer(NUM_CASCADES * sizeof(glm::mat4)
-                              + NUM_CASCADES * sizeof(glm::vec4) * sizeof(GLfloat),
+                              + NUM_CASCADES * sizeof(glm::vec4) * sizeof(float),
                               BufferType::Dynamic)
         , postProcessSettings(2 * sizeof(glm::mat4) + 2 * sizeof(glm::vec4)
                               + sizeof(glm::ivec4), BufferType::Dynamic)
@@ -134,7 +133,7 @@ namespace Strontium
         , lightShaftSettingsBuffer(2 * sizeof(glm::vec4), BufferType::Dynamic)
         , halfLightshaft("./assets/shaders/compute/volumetricDirLight.cs")
         , bilatBlur("./assets/shaders/compute/bilatBlur.cs")
-        , bloomSettingsBuffer(sizeof(glm::vec4) + sizeof(GLfloat), BufferType::Dynamic)
+        , bloomSettingsBuffer(sizeof(glm::vec4) + sizeof(float), BufferType::Dynamic)
       {
         currentEnvironment = createUnique<EnvironmentMap>();
       }
@@ -144,22 +143,22 @@ namespace Strontium
     struct RendererState
     {
       // Current frame counter. Counts frames in 5 frame intervals.
-      GLuint currentFrame;
+      uint currentFrame;
 
       // Settings for rendering.
       bool isForward;
       bool frustumCull;
 
       // Environment map settings.
-      GLuint skyboxWidth;
-      GLuint irradianceWidth;
-      GLuint prefilterWidth;
-      GLuint prefilterSamples;
+      uint skyboxWidth;
+      uint irradianceWidth;
+      uint prefilterWidth;
+      uint prefilterSamples;
 
       // Cascaded shadow settings.
-      GLfloat cascadeLambda;
-      GLuint cascadeSize;
-      GLfloat bleedReduction;
+      float cascadeLambda;
+      uint cascadeSize;
+      float bleedReduction;
 
       // Volumetric light settings.
       bool enableSkyshafts;
@@ -167,14 +166,14 @@ namespace Strontium
       glm::vec4 mieAbsDensity;
 
       // HDR settings.
-      GLfloat gamma;
+      float gamma;
 
       // Bloom settings.
       bool enableBloom;
-      GLfloat bloomThreshold;
-      GLfloat bloomKnee;
-      GLfloat bloomIntensity;
-      GLfloat bloomRadius;
+      float bloomThreshold;
+      float bloomKnee;
+      float bloomIntensity;
+      float bloomRadius;
 
       bool enableFXAA;
 
@@ -212,12 +211,12 @@ namespace Strontium
 
     struct RendererStats
     {
-      GLuint drawCalls;
-      GLuint numVertices;
-      GLuint numTriangles;
-      GLuint numDirLights;
-      GLuint numPointLights;
-      GLuint numSpotLights;
+      uint drawCalls;
+      uint numVertices;
+      uint numTriangles;
+      uint numDirLights;
+      uint numPointLights;
+      uint numSpotLights;
 
       float geoFrametime;
       float shadowFrametime;
@@ -239,7 +238,7 @@ namespace Strontium
     };
 
     // Init the renderer for drawing.
-    void init(const GLuint width, const GLuint height);
+    void init(const uint width, const uint height);
     void shutdown();
 
     RendererStorage* getStorage();
@@ -251,14 +250,14 @@ namespace Strontium
     void drawEnvironment();
 
     // Generic begin and end for the renderer.
-    void begin(GLuint width, GLuint height, const Camera &sceneCamera, bool isForward = false);
+    void begin(uint width, uint height, const Camera &sceneCamera);
     void end(Shared<FrameBuffer> frontBuffer);
 
     // Deferred rendering setup.
     void submit(Model* data, ModelMaterial &materials, const glm::mat4 &model,
-                GLfloat id = 0.0f, bool drawSelectionMask = false);
+                float id = 0.0f, bool drawSelectionMask = false);
     void submit(Model* data, Animator* animation, ModelMaterial &materials,
-                const glm::mat4 &model, GLfloat id = 0.0f,
+                const glm::mat4 &model, float id = 0.0f,
                 bool drawSelectionMask = false);
     void submit(DirectionalLight light, const glm::mat4 &model);
     void submit(PointLight light, const glm::mat4 &model);

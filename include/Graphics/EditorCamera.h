@@ -17,16 +17,16 @@ namespace Strontium
   {
   public:
     // Constructors.
-    EditorCamera(GLfloat xCenter, GLfloat yCenter, EditorCameraType type);
-    EditorCamera(GLfloat xCenter, GLfloat yCenter, const glm::vec3 &initPosition,
+    EditorCamera(float xCenter, float yCenter, EditorCameraType type);
+    EditorCamera(float xCenter, float yCenter, const glm::vec3 &initPosition,
                  EditorCameraType type);
 
     // Destructor.
     ~EditorCamera() = default;
 
     // Implement init.
-    void init(const GLfloat &fov = 90.0f, const GLfloat &aspect = 1.0f,
-              const GLfloat &near = 1.0f, const GLfloat &far = 200.0f);
+    void init(const float &fov = 90.0f, const float &aspect = 1.0f,
+              const float &near = 1.0f, const float &far = 200.0f);
 
     // Function to zoom the camera.
     void cameraZoom(glm::vec2 offsets);
@@ -41,7 +41,7 @@ namespace Strontium
     void swap();
 
     // Update the projection matrx.
-    void updateProj(GLfloat fov, GLfloat aspect, GLfloat near, GLfloat far);
+    void updateProj(float fov, float aspect, float near, float far);
 
     // Get the view/projection matrices.
     glm::mat4& getViewMatrix();
@@ -52,14 +52,14 @@ namespace Strontium
     glm::vec3 getCamFront();
 
     // Get the perspective parameters.
-    GLfloat& getHorFOV() { return this->horFOV; }
-    GLfloat& getNear() { return this->near; }
-    GLfloat& getFar() { return this->far; }
-    GLfloat& getAspect() { return this->aspect; }
+    float& getHorFOV() { return this->horFOV; }
+    float& getNear() { return this->near; }
+    float& getFar() { return this->far; }
+    float& getAspect() { return this->aspect; }
     bool isStationary() { return this->currentType == EditorCameraType::Stationary; }
 
-    GLfloat& getSpeed() { return this->scalarSpeed; }
-    GLfloat& getSens() { return this->sensitivity; }
+    float& getSpeed() { return this->scalarSpeed; }
+    float& getSens() { return this->sensitivity; }
 
     operator Camera()
     {
@@ -91,22 +91,22 @@ namespace Strontium
     glm::mat4   proj;
 
     // Time steps to normalize camera movement to frame time.
-    GLfloat       lastTime;
+    float       lastTime;
 
     // Previous x and y coords of the mouse, plus a boolean to detect if the app
     // just launched.
-    GLfloat       lastMouseX;
-    GLfloat       lastMouseY;
+    float       lastMouseX;
+    float       lastMouseY;
 
     // FPS/free camera variables.
-    GLfloat       yaw;
-    GLfloat       pitch;
-    GLfloat       horFOV;
-    GLfloat       near;
-    GLfloat       far;
-    GLfloat       aspect;
-    GLfloat       scalarSpeed = 2.5f;
-    GLfloat       sensitivity = 0.1f;
+    float       yaw;
+    float       pitch;
+    float       horFOV;
+    float       near;
+    float       far;
+    float       aspect;
+    float       scalarSpeed = 2.5f;
+    float       sensitivity = 0.1f;
 
     EditorCameraType  currentType;
 

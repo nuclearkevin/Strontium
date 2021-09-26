@@ -23,7 +23,6 @@ namespace Strontium
     void onImGuiRender(bool &isOpen, Shared<Scene> activeScene);
     void onUpdate(float dt, Shared<Scene> activeScene);
     void onEvent(Event &event);
-
   private:
 
   };

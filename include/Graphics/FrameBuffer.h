@@ -13,22 +13,26 @@ namespace Strontium
   // Framebuffer parameters.
   enum class FBOTargetParam
   {
-    Colour0 = GL_COLOR_ATTACHMENT0, Colour1 = GL_COLOR_ATTACHMENT1,
-    Colour2 = GL_COLOR_ATTACHMENT2, Colour3 = GL_COLOR_ATTACHMENT3,
-    Colour4 = GL_COLOR_ATTACHMENT4, Colour5 = GL_COLOR_ATTACHMENT5,
-    Depth = GL_DEPTH_ATTACHMENT, Stencil = GL_STENCIL_ATTACHMENT,
-    DepthStencil = GL_DEPTH_STENCIL
+    Colour0 = 0x8CE0,
+    Colour1 = 0x8CE1,
+    Colour2 = 0x8CE2,
+    Colour3 = 0x8CE3,
+    Colour4 = 0x8CE4,
+    Colour5 = 0x8CE5,
+    Depth = 0x8D00,
+    Stencil = 0x8D20,
+    DepthStencil = 0x84F9
   };
 
   enum class FBOTex2DParam
   {
-    Texture2D = GL_TEXTURE_2D,
-    CubeMapPX = GL_TEXTURE_CUBE_MAP_POSITIVE_X,
-    CubeMapNX = GL_TEXTURE_CUBE_MAP_POSITIVE_X + 1,
-    CubeMapPY = GL_TEXTURE_CUBE_MAP_POSITIVE_X + 2,
-    CubeMapNY = GL_TEXTURE_CUBE_MAP_POSITIVE_X + 3,
-    CubeMapPZ = GL_TEXTURE_CUBE_MAP_POSITIVE_X + 4,
-    CubeMapNZ = GL_TEXTURE_CUBE_MAP_POSITIVE_X + 5
+    Texture2D = 0x0DE1,
+    CubeMapPX = 0x8515, // GL_TEXTURE_CUBE_MAP_POSITIVE_X
+    CubeMapNX = 0x8516, // GL_TEXTURE_CUBE_MAP_NEGATIVE_X
+    CubeMapPY = 0x8517, // GL_TEXTURE_CUBE_MAP_POSITIVE_Y
+    CubeMapNY = 0x8518, // GL_TEXTURE_CUBE_MAP_NEGATIVE_Y
+    CubeMapPZ = 0x8519, // GL_TEXTURE_CUBE_MAP_POSITIVE_Z
+    CubeMapNZ = 0x851A // GL_TEXTURE_CUBE_MAP_NEGATIVE_Z
   };
 
   // Framebuffer specifications. Use this struct template to generate a
@@ -90,14 +94,14 @@ namespace Strontium
     // A constructor to generate a framebuffer at a particular location or any
     // location. Default constructor sets the width and height to 0.
     FrameBuffer();
-    FrameBuffer(GLuint width, GLuint height);
+    FrameBuffer(uint width, uint height);
     ~FrameBuffer();
 
     // Bind/unbind the FBO or its attachments.
     void bind();
     void unbind();
     void bindTextureID(const FBOTargetParam &attachment);
-    void bindTextureID(const FBOTargetParam &attachment, GLuint bindPoint);
+    void bindTextureID(const FBOTargetParam &attachment, uint bindPoint);
 
     // Methods for texture/buffer generation and attachment.
     void attachTexture2D(const FBOSpecification &spec, const bool &removeTex = true);
@@ -112,10 +116,10 @@ namespace Strontium
 
     // Misc functions.
     void blitzToOther(FrameBuffer &target, const FBOTargetParam &type);
-    GLint readPixel(const FBOTargetParam &target, const glm::vec2 &mousePos);
+    int readPixel(const FBOTargetParam &target, const glm::vec2 &mousePos);
 
     // Update FBO properties.
-    void resize(GLuint width, GLuint height);
+    void resize(uint width, uint height);
     void setClearColour(const glm::vec4 &clearColour);
 
     // Update the framebuffer state.
@@ -125,21 +129,21 @@ namespace Strontium
 
     bool isValid();
     glm::vec2 getSize() { return glm::vec2(this->width, this->height); }
-    GLuint getAttachID(const FBOTargetParam &attachment) { return this->textureAttachments.at(attachment).second->getID(); }
+    uint getAttachID(const FBOTargetParam &attachment) { return this->textureAttachments.at(attachment).second->getID(); }
     Shared<Texture2D> getAttachment(const FBOTargetParam &attachment) { return this->textureAttachments.at(attachment).second; }
-    GLuint getRenderBufferID() { return this->depthBuffer != nullptr ? this->depthBuffer->getID() : 0; };
-    GLuint getID() { return this->bufferID; }
+    uint getRenderBufferID() { return this->depthBuffer != nullptr ? this->depthBuffer->getID() : 0; };
+    uint getID() { return this->bufferID; }
   protected:
-    GLuint bufferID;
+    uint bufferID;
 
     std::unordered_map<FBOTargetParam, std::pair<FBOSpecification, Shared<Texture2D>>> textureAttachments;
     Shared<RenderBuffer> depthBuffer;
 
-    GLuint width, height;
+    uint width, height;
 
     bool hasRenderBuffer;
 
-    GLbitfield clearFlags;
+    uint clearFlags;
 
     glm::vec4 clearColour;
   };

@@ -4,10 +4,11 @@
 #include "Core/Logs.h"
 #include "Core/Application.h"
 #include "Core/Window.h"
+#include "Core/KeyCodes.h"
 
 namespace Strontium
 {
-  EditorCamera::EditorCamera(GLfloat xCenter, GLfloat yCenter, EditorCameraType type)
+  EditorCamera::EditorCamera(float xCenter, float yCenter, EditorCameraType type)
     : position(glm::vec3 { 0.0f, 0.0f, 0.0f })
     , camFront(glm::vec3 { 0.0f, 0.0f, -1.0f })
     , camTop(glm::vec3 { 0.0f, 1.0f, 0.0f })
@@ -24,7 +25,7 @@ namespace Strontium
                              this->camTop);
   }
 
-  EditorCamera::EditorCamera(GLfloat xCenter, GLfloat yCenter, const glm::vec3 &initPosition,
+  EditorCamera::EditorCamera(float xCenter, float yCenter, const glm::vec3 &initPosition,
                              EditorCameraType type)
     : position(initPosition)
     , camFront(glm::vec3 { 0.0f, 0.0f, -1.0f })
@@ -43,8 +44,8 @@ namespace Strontium
   }
 
   void
-  EditorCamera::init(const GLfloat &fov, const GLfloat &aspect,
-                     const GLfloat &near, const GLfloat &far)
+  EditorCamera::init(const float &fov, const float &aspect,
+                     const float &near, const float &far)
   {
     this->proj = glm::perspective(glm::radians(fov), aspect, near, far);
     switch (this->currentType)
@@ -89,8 +90,8 @@ namespace Strontium
         //----------------------------------------------------------------------
         // Handles the mouse input component.
         //----------------------------------------------------------------------
-        GLfloat dx = mousePos.x - this->lastMouseX;
-        GLfloat dy = this->lastMouseY - mousePos.y;
+        float dx = mousePos.x - this->lastMouseX;
+        float dy = this->lastMouseY - mousePos.y;
 
         // Compute the yaw and pitch from mouse position.
         this->yaw   += (this->sensitivity * dx);
@@ -111,27 +112,27 @@ namespace Strontium
         //----------------------------------------------------------------------
         // Handles the keyboard input component.
         //----------------------------------------------------------------------
-        GLfloat cameraSpeed = this->scalarSpeed * dt;
+        float cameraSpeed = this->scalarSpeed * dt;
 
         // Move the camera position (Space Engineers styled camera).
-        if (appWindow->isKeyPressed(GLFW_KEY_W))
+        if (appWindow->isKeyPressed(SR_KEY_W))
           this->position += this->camFront * cameraSpeed;
 
-        if (appWindow->isKeyPressed(GLFW_KEY_S))
+        if (appWindow->isKeyPressed(SR_KEY_S))
           this->position -= this->camFront * cameraSpeed;
 
-        if (appWindow->isKeyPressed(GLFW_KEY_A))
+        if (appWindow->isKeyPressed(SR_KEY_A))
           this->position -= glm::normalize(glm::cross(this->camFront, this->camTop))
                             * cameraSpeed;
 
-        if (appWindow->isKeyPressed(GLFW_KEY_D))
+        if (appWindow->isKeyPressed(SR_KEY_D))
           this->position += glm::normalize(glm::cross(this->camFront, this->camTop))
                             * cameraSpeed;
 
-        if (appWindow->isKeyPressed(GLFW_KEY_SPACE))
+        if (appWindow->isKeyPressed(SR_KEY_SPACE))
           this->position += this->camTop * cameraSpeed;
 
-        if (appWindow->isKeyPressed(GLFW_KEY_LEFT_CONTROL))
+        if (appWindow->isKeyPressed(SR_KEY_LEFT_CONTROL))
           this->position -= this->camTop * cameraSpeed;
         break;
       }
@@ -149,7 +150,7 @@ namespace Strontium
   void
   EditorCamera::cameraZoom(glm::vec2 offsets)
   {
-    GLfloat cameraSpeed = 0.02 * (offsets.y) * this->scalarSpeed;
+    float cameraSpeed = 0.02 * (offsets.y) * this->scalarSpeed;
 
     this->position += this->camFront * cameraSpeed;
 
@@ -187,7 +188,7 @@ namespace Strontium
     switch (this->currentType)
     {
       case EditorCameraType::Stationary:
-        if (offsets.y != 0.0 && appWindow->isKeyPressed(GLFW_KEY_LEFT_ALT))
+        if (offsets.y != 0.0 && appWindow->isKeyPressed(SR_KEY_LEFT_ALT))
           this->cameraZoom(offsets);
         break;
       default:
@@ -209,7 +210,7 @@ namespace Strontium
 
     int keyCode = keyEvent.getKeyCode();
 
-    if (keyCode == GLFW_KEY_P && appWindow->isKeyPressed(GLFW_KEY_LEFT_ALT))
+    if (keyCode == SR_KEY_P && appWindow->isKeyPressed(SR_KEY_LEFT_ALT))
       this->swap();
   }
 
@@ -240,7 +241,7 @@ namespace Strontium
 
   // Update the projection matrix.
   void
-  EditorCamera::updateProj(GLfloat fov, GLfloat aspect, GLfloat near, GLfloat far)
+  EditorCamera::updateProj(float fov, float aspect, float near, float far)
   {
     this->proj = glm::perspective(glm::radians(fov), aspect, near, far);
 

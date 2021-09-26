@@ -1,5 +1,8 @@
 #include "Graphics/Compute.h"
 
+// OpenGL includes.
+#include "glad/glad.h"
+
 namespace Strontium
 {
   void
@@ -45,7 +48,7 @@ namespace Strontium
   void
 	ComputeShader::buildShader(int type, const char* filename)
 	{
-		GLuint shaderID;
+		uint shaderID;
 		char *source;
 		int result;
 		char *buffer;

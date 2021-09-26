@@ -4,9 +4,9 @@ namespace Strontium
 {
   struct Camera
   {
-    GLfloat near;
-    GLfloat far;
-    GLfloat fov;
+    float near;
+    float far;
+    float fov;
 
     glm::mat4 view;
     glm::mat4 projection;
@@ -31,7 +31,7 @@ namespace Strontium
   {
     glm::vec3 direction;
     glm::vec3 colour;
-    GLfloat intensity;
+    float intensity;
     bool castShadows;
     bool primaryLight;
 
@@ -48,9 +48,9 @@ namespace Strontium
   {
     glm::vec3 position;
     glm::vec3 colour;
-    GLfloat intensity;
-    GLfloat radius;
-    GLfloat falloff;
+    float intensity;
+    float radius;
+    float falloff;
     bool castShadows;
 
     PointLight()
@@ -68,10 +68,10 @@ namespace Strontium
     glm::vec3 position;
     glm::vec3 direction;
     glm::vec3 colour;
-    GLfloat intensity;
-    GLfloat innerCutoff;
-    GLfloat outerCutoff;
-    GLfloat radius;
+    float intensity;
+    float innerCutoff;
+    float outerCutoff;
+    float radius;
     bool castShadows;
 
     SpotLight()

@@ -3,6 +3,7 @@
 // Project includes.
 #include "Core/Application.h"
 #include "Core/Logs.h"
+#include "Core/KeyCodes.h"
 #include "GuiElements/Styles.h"
 #include "GuiElements/Panels.h"
 #include "Serialization/YamlSerialization.h"
@@ -50,7 +51,7 @@ namespace Strontium
     // Fetch the width and height of the window and create a floating point
     // framebuffer.
     glm::ivec2 wDims = Application::getInstance()->getWindow()->getSize();
-    this->drawBuffer = createShared<FrameBuffer>((GLuint) wDims.x, (GLuint) wDims.y);
+    this->drawBuffer = createShared<FrameBuffer>((uint) wDims.x, (uint) wDims.y);
 
     // Fetch a default floating point FBO spec and attach it. Also attach a single
     // float spec for entity IDs.
@@ -216,7 +217,7 @@ namespace Strontium
         this->currentScene->onUpdateEditor(dt);
 
         // Draw the scene.
-        Renderer3D::begin(this->editorSize.x, this->editorSize.y, (Camera) (*this->editorCam.get()), false);
+        Renderer3D::begin(this->editorSize.x, this->editorSize.y, (Camera) (*this->editorCam.get()));
         this->currentScene->onRenderEditor(this->getSelectedEntity());
         Renderer3D::end(this->drawBuffer);
 
@@ -237,7 +238,7 @@ namespace Strontium
         {
           primaryCamera = primaryCameraEntity.getComponent<CameraComponent>().entCamera;
 
-          GLfloat ratio = this->editorSize.x / this->editorSize.y;
+          float ratio = this->editorSize.x / this->editorSize.y;
           primaryCamera.projection = glm::perspective(primaryCamera.fov,
                                                       ratio, primaryCamera.near,
                                                       primaryCamera.far);
@@ -246,7 +247,7 @@ namespace Strontium
         else
           primaryCamera = (Camera) (*this->editorCam.get());
 
-        Renderer3D::begin(this->editorSize.x, this->editorSize.y, primaryCamera, false);
+        Renderer3D::begin(this->editorSize.x, this->editorSize.y, primaryCamera);
         this->currentScene->onRenderRuntime();
         Renderer3D::end(this->drawBuffer);
         break;
@@ -578,12 +579,12 @@ namespace Strontium
     int keyCode = keyEvent.getKeyCode();
 
     bool camStationary = this->editorCam->isStationary();
-    bool lControlHeld = appWindow->isKeyPressed(GLFW_KEY_LEFT_CONTROL);
-    bool lShiftHeld = appWindow->isKeyPressed(GLFW_KEY_LEFT_SHIFT);
+    bool lControlHeld = appWindow->isKeyPressed(SR_KEY_LEFT_CONTROL);
+    bool lShiftHeld = appWindow->isKeyPressed(SR_KEY_LEFT_SHIFT);
 
     switch (keyCode)
     {
-      case GLFW_KEY_N:
+      case SR_KEY_N:
       {
         if (lControlHeld && keyEvent.getRepeatCount() == 0 && camStationary)
         {
@@ -596,7 +597,7 @@ namespace Strontium
         }
         break;
       }
-      case GLFW_KEY_O:
+      case SR_KEY_O:
       {
         if (lControlHeld && keyEvent.getRepeatCount() == 0 && camStationary)
         {
@@ -607,7 +608,7 @@ namespace Strontium
         }
         break;
       }
-      case GLFW_KEY_S:
+      case SR_KEY_S:
       {
         if (lControlHeld && lShiftHeld && keyEvent.getRepeatCount() == 0 && camStationary)
         {
@@ -646,8 +647,8 @@ namespace Strontium
     int mouseCode = mouseEvent.getButton();
 
     bool camStationary = this->editorCam->isStationary();
-    bool lControlHeld = appWindow->isKeyPressed(GLFW_KEY_LEFT_CONTROL);
-    bool lShiftHeld = appWindow->isKeyPressed(GLFW_KEY_LEFT_SHIFT);
+    bool lControlHeld = appWindow->isKeyPressed(SR_KEY_LEFT_CONTROL);
+    bool lShiftHeld = appWindow->isKeyPressed(SR_KEY_LEFT_SHIFT);
 
     switch (mouseCode)
     {

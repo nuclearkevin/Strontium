@@ -7,6 +7,9 @@
 #include "Core/AssetManager.h"
 #include "GuiElements/Styles.h"
 
+// OpenGL includes.
+#include "glad/glad.h"
+
 // Image loading include.
 #include "stb/stb_image.h"
 #include "stb/stb_image_write.h"
@@ -209,9 +212,9 @@ namespace Strontium
       {
         float* dataFNew;
         dataFNew = new float[width * height * 4];
-        GLuint offset = 0;
+        uint offset = 0;
 
-        for (GLuint i = 0; i < (width * height * 4); i+=4)
+        for (uint i = 0; i < (width * height * 4); i+=4)
         {
           // Copy over the data from the image loading.
           dataFNew[i] = dataF[i - offset];
@@ -278,7 +281,7 @@ namespace Strontium
     glBindTexture(GL_TEXTURE_2D, this->textureID);
   }
 
-  Texture2D::Texture2D(const GLuint &width, const GLuint &height, const GLuint &n,
+  Texture2D::Texture2D(const uint &width, const uint &height, const uint &n,
                        const Texture2DParams &params)
     : width(width)
     , height(height)
@@ -316,7 +319,7 @@ namespace Strontium
   }
 
   void
-  Texture2D::loadData(const GLfloat* data)
+  Texture2D::loadData(const float* data)
   {
     glBindTexture(GL_TEXTURE_2D, this->textureID);
     glTexImage2D(GL_TEXTURE_2D, 0, static_cast<GLenum>(this->params.internal),
@@ -359,7 +362,7 @@ namespace Strontium
     {
       case 1:
       {
-        GLfloat clearElement = 0.0f;
+        float clearElement = 0.0f;
         glClearTexSubImage(this->textureID, 0, 0, 0, 0, this->width, this->height, 0,
                            static_cast<GLenum>(this->params.internal),
                            static_cast<GLenum>(this->params.dataType),
@@ -401,7 +404,7 @@ namespace Strontium
   }
 
   void
-  Texture2D::setSize(GLuint width, GLuint height, GLuint n)
+  Texture2D::setSize(uint width, uint height, uint n)
   {
     this->width = width;
     this->height = height;
@@ -433,7 +436,7 @@ namespace Strontium
   }
 
   void
-  Texture2D::bind(GLuint bindPoint)
+  Texture2D::bind(uint bindPoint)
   {
     glActiveTexture(GL_TEXTURE0 + bindPoint);
     glBindTexture(GL_TEXTURE_2D, this->textureID);
@@ -446,7 +449,7 @@ namespace Strontium
   }
 
   void
-  Texture2D::unbind(GLuint bindPoint)
+  Texture2D::unbind(uint bindPoint)
   {
     glActiveTexture(GL_TEXTURE0 + bindPoint);
     glBindTexture(GL_TEXTURE_2D, 0);
@@ -454,7 +457,7 @@ namespace Strontium
 
   // Bind the texture as an image unit.
   void
-  Texture2D::bindAsImage(GLuint bindPoint, GLuint miplevel, ImageAccessPolicy policy)
+  Texture2D::bindAsImage(uint bindPoint, uint miplevel, ImageAccessPolicy policy)
   {
     glBindImageTexture(bindPoint, this->textureID, miplevel, GL_FALSE, 0,
                        static_cast<GLenum>(policy),
@@ -470,11 +473,11 @@ namespace Strontium
     glBindTexture(GL_TEXTURE_CUBE_MAP, this->textureID);
   }
 
-  CubeMap::CubeMap(const GLuint &width, const GLuint &height, const GLuint &n,
+  CubeMap::CubeMap(const uint &width, const uint &height, const uint &n,
                    const TextureCubeMapParams &params)
     : params(params)
   {
-    for (GLuint i = 0; i < 6; i++)
+    for (uint i = 0; i < 6; i++)
     {
       this->width[i] = width;
       this->height[i] = height;
@@ -531,7 +534,7 @@ namespace Strontium
     {
       case 1:
       {
-        GLfloat clearElement = 0.0f;
+        float clearElement = 0.0f;
         glClearTexSubImage(this->textureID, 0, 0, 0, 0, this->width[0], this->height[0], 6,
                            static_cast<GLenum>(this->params.internal),
                            static_cast<GLenum>(this->params.dataType),
@@ -573,7 +576,7 @@ namespace Strontium
   }
 
   void
-  CubeMap::setSize(GLuint width, GLuint height, GLuint n)
+  CubeMap::setSize(uint width, uint height, uint n)
   {
     for (unsigned int i = 0; i < 6; i++)
     {
@@ -610,7 +613,7 @@ namespace Strontium
   }
 
   void
-  CubeMap::bind(GLuint bindPoint)
+  CubeMap::bind(uint bindPoint)
   {
     glActiveTexture(GL_TEXTURE0 + bindPoint);
     glBindTexture(GL_TEXTURE_CUBE_MAP, this->textureID);
@@ -623,7 +626,7 @@ namespace Strontium
   }
 
   void
-  CubeMap::unbind(GLuint bindPoint)
+  CubeMap::unbind(uint bindPoint)
   {
     glActiveTexture(GL_TEXTURE0 + bindPoint);
     glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
@@ -631,8 +634,8 @@ namespace Strontium
 
   // Bind the texture as an image unit.
   void
-  CubeMap::bindAsImage(GLuint bindPoint, GLuint miplevel, bool isLayered,
-                       GLuint layer, ImageAccessPolicy policy)
+  CubeMap::bindAsImage(uint bindPoint, uint miplevel, bool isLayered,
+                       uint layer, ImageAccessPolicy policy)
   {
     glBindImageTexture(bindPoint, this->textureID, miplevel,
                        static_cast<GLenum>(isLayered), layer,

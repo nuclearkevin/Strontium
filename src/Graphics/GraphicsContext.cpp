@@ -1,5 +1,9 @@
 #include "Graphics/GraphicsContext.h"
 
+// GLFW and OpenGL includes.
+#include "glad/glad.h"
+#include <GLFW/glfw3.h>
+
 namespace Strontium
 {
   // Generic constructor / destructor pair.
@@ -42,8 +46,8 @@ namespace Strontium
                         std::string(reinterpret_cast<const char*>(version));
 
     // Check the version of the OpenGL context. Requires 4.4 or greater.
-    GLuint major = (unsigned int) version[0] - 48;
-    GLuint minor = (unsigned int) version[2] - 48;
+    uint major = (unsigned int) version[0] - 48;
+    uint minor = (unsigned int) version[2] - 48;
     if (major < 4)
     {
       std::cout << "Unsupported OpenGL version, application requires OpenGL "
