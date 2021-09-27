@@ -88,29 +88,29 @@ namespace Strontium
     for (auto entity : ambLight)
     {
       auto [ambient, transform] = ambLight.get<AmbientComponent, TransformComponent>(entity);
-      if (ambient.ambient->getDrawingType() == MapType::DynamicSky)
+
+      EnvironmentMap* env = ambient.ambient;
+      if (env->getDrawingType() == MapType::DynamicSky)
       {
-        if (ambient.ambient->getDynamicSkyType() == DynamicSkyType::Preetham)
+        if (env->getDynamicSkyType() == DynamicSkyType::Preetham)
         {
-          DynamicSkyCommonParams& skyParams = ambient.ambient->getSkyModelParams(DynamicSkyType::Preetham);
-          PreethamSkyParams preethamParams = *(static_cast<PreethamSkyParams*>(&skyParams));
+          auto preethamSkyParams = env->getSkyParams<PreethamSkyParams>(DynamicSkyType::Preetham);
 
           glm::mat4 rotation = glm::transpose(glm::inverse((glm::mat4) transform));
-          preethamParams.sunPos = glm::vec3(rotation * glm::vec4(0.0, 1.0, 0.0, 0.0f));
-          preethamParams.sunPos.z *= -1.0f;
+          preethamSkyParams.sunPos = glm::vec3(rotation * glm::vec4(0.0, 1.0, 0.0, 0.0f));
+          preethamSkyParams.sunPos.z *= -1.0f;
 
-          ambient.ambient->setSkyModelParams(static_cast<DynamicSkyCommonParams*>(&preethamParams));
+          env->setSkyModelParams<PreethamSkyParams>(preethamSkyParams);
         }
-        else if (ambient.ambient->getDynamicSkyType() == DynamicSkyType::Hillaire)
+        else if (env->getDynamicSkyType() == DynamicSkyType::Hillaire)
         {
-          DynamicSkyCommonParams& skyParams = ambient.ambient->getSkyModelParams(DynamicSkyType::Hillaire);
-          HillaireSkyParams hillaireParams = *(static_cast<HillaireSkyParams*>(&skyParams));
+          auto hillaireSkyParams = env->getSkyParams<HillaireSkyParams>(DynamicSkyType::Hillaire);
 
           glm::mat4 rotation = glm::transpose(glm::inverse((glm::mat4) transform));
-          hillaireParams.sunPos = glm::vec3(rotation * glm::vec4(0.0, 1.0, 0.0, 0.0f));
-          hillaireParams.sunPos *= -1.0f;
+          hillaireSkyParams.sunPos = glm::vec3(rotation * glm::vec4(0.0, 1.0, 0.0, 0.0f));
+          hillaireSkyParams.sunPos *= -1.0f;
 
-          ambient.ambient->setSkyModelParams(static_cast<DynamicSkyCommonParams*>(&hillaireParams));
+          env->setSkyModelParams<HillaireSkyParams>(hillaireSkyParams);
         }
       }
     }
@@ -186,29 +186,29 @@ namespace Strontium
     for (auto entity : ambLight)
     {
       auto [ambient, transform] = ambLight.get<AmbientComponent, TransformComponent>(entity);
-      if (ambient.ambient->getDrawingType() == MapType::DynamicSky)
+
+      EnvironmentMap* env = ambient.ambient;
+      if (env->getDrawingType() == MapType::DynamicSky)
       {
-        if (ambient.ambient->getDynamicSkyType() == DynamicSkyType::Preetham)
+        if (env->getDynamicSkyType() == DynamicSkyType::Preetham)
         {
-          DynamicSkyCommonParams& skyParams = ambient.ambient->getSkyModelParams(DynamicSkyType::Preetham);
-          PreethamSkyParams preethamParams = *(static_cast<PreethamSkyParams*>(&skyParams));
+          auto preethamSkyParams = env->getSkyParams<PreethamSkyParams>(DynamicSkyType::Preetham);
 
           glm::mat4 rotation = glm::transpose(glm::inverse((glm::mat4) transform));
-          preethamParams.sunPos = glm::vec3(rotation * glm::vec4(0.0, 1.0, 0.0, 0.0f));
-          preethamParams.sunPos.z *= -1.0f;
+          preethamSkyParams.sunPos = glm::vec3(rotation * glm::vec4(0.0, 1.0, 0.0, 0.0f));
+          preethamSkyParams.sunPos.z *= -1.0f;
 
-          ambient.ambient->setSkyModelParams(static_cast<DynamicSkyCommonParams*>(&preethamParams));
+          env->setSkyModelParams<PreethamSkyParams>(preethamSkyParams);
         }
-        else if (ambient.ambient->getDynamicSkyType() == DynamicSkyType::Hillaire)
+        else if (env->getDynamicSkyType() == DynamicSkyType::Hillaire)
         {
-          DynamicSkyCommonParams& skyParams = ambient.ambient->getSkyModelParams(DynamicSkyType::Hillaire);
-          HillaireSkyParams hillaireParams = *(static_cast<HillaireSkyParams*>(&skyParams));
+          auto hillaireSkyParams = env->getSkyParams<HillaireSkyParams>(DynamicSkyType::Hillaire);
 
           glm::mat4 rotation = glm::transpose(glm::inverse((glm::mat4) transform));
-          hillaireParams.sunPos = glm::vec3(rotation * glm::vec4(0.0, 1.0, 0.0, 0.0f));
-          hillaireParams.sunPos *= -1.0f;
+          hillaireSkyParams.sunPos = glm::vec3(rotation * glm::vec4(0.0, 1.0, 0.0, 0.0f));
+          hillaireSkyParams.sunPos *= -1.0f;
 
-          ambient.ambient->setSkyModelParams(static_cast<DynamicSkyCommonParams*>(&hillaireParams));
+          env->setSkyModelParams<HillaireSkyParams>(hillaireSkyParams);
         }
       }
     }

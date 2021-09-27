@@ -152,7 +152,6 @@ namespace Strontium
 
     // Update the dynamic sky.
     void updateDynamicSky();
-    void updateHillaireLUTs();
 
     // Generate the diffuse irradiance map.
     void precomputeIrradiance(const uint &width = 512, const uint &height = 512, bool isHDR = true);
@@ -173,17 +172,40 @@ namespace Strontium
     float& getIntensity() { return this->intensity; }
     float& getRoughness() { return this->roughness; }
 
-    DynamicSkyCommonParams& getSkyModelParams(const DynamicSkyType &type) { return (*this->dynamicSkyParams.at(type)); }
-
     MapType getDrawingType() { return this->currentEnvironment; }
+    void setDrawingType(const MapType &type) { this->currentEnvironment = type; }
+
     DynamicSkyType getDynamicSkyType() { return this->currentDynamicSky; }
+    void setDynamicSkyType(const DynamicSkyType &type);
+
+    template <typename T>
+    T& getSkyParams(const DynamicSkyType &type)
+    {
+      static_assert(std::is_base_of<DynamicSkyCommonParams, T>::value, "Class must derive from DynamicSkyCommonParams.");
+
+      DynamicSkyCommonParams* retValue = this->dynamicSkyParams.at(type);
+      assert(("DynamicSkyCommonParams does not exist.", retValue));
+
+      return (*static_cast<T*>(retValue));
+    }
+
+    template <typename T>
+    void setSkyModelParams(T &params)
+    {
+      static_assert(std::is_base_of<DynamicSkyCommonParams, T>::value, "Class must derive from DynamicSkyCommonParams.");
+
+      auto storedParams = *(static_cast<T*>(this->dynamicSkyParams[params.type]));
+
+      if (storedParams != params)
+      {
+        memcpy(this->dynamicSkyParams[params.type], &params, sizeof(T));
+        this->updateDynamicSky();
+      }
+    }
+
     Model* getCubeMesh() { return &this->cube; }
     Shader* getCubeProg();
     std::string& getFilepath() { return this->filepath; }
-
-    void setDrawingType(const MapType &type) { this->currentEnvironment = type; }
-    void setSkyboxType(const DynamicSkyType &type);
-    void setSkyModelParams(DynamicSkyCommonParams* params);
   protected:
     Unique<Texture2D> erMap;
     CubeMap skybox;

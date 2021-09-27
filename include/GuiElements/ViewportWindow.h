@@ -42,6 +42,7 @@ namespace Strontium
     // Gizmo UI.
     int gizmoType;
     ImVec2 gizmoSelPos;
+    ImVec2 selectorSize;
     void manipulateEntity(Entity entity);
     void gizmoSelectDNDPayload(int selectedGizmo);
     void drawGizmoSelector(ImVec2 windowPos, ImVec2 windowSize);

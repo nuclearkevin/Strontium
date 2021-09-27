@@ -25,22 +25,12 @@ namespace Strontium
     , showPerf(true)
     , editorSize(ImVec2(0, 0))
     , sceneState(SceneState::Edit)
-  {
-    // Load in the icons.
-    Texture2D* tex;
-    tex = Texture2D::loadTexture2D("./assets/.icons/playButton.png", Texture2DParams(), false);
-    this->icons.insert({ "playButton", tex });
-    tex = Texture2D::loadTexture2D("./assets/.icons/stopButton.png", Texture2DParams(), false);
-    this->icons.insert({ "stopButton", tex });
-  }
+  { }
 
   EditorLayer::~EditorLayer()
   {
     for (auto& window : this->windows)
       delete window;
-
-    for (auto& pair : this->icons)
-      delete pair.second;
   }
 
   void
@@ -473,13 +463,11 @@ namespace Strontium
     const auto& buttonActive = colors[ImGuiCol_ButtonActive];
     ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(buttonActive.x, buttonActive.y, buttonActive.z, 0.5f));
 
-    auto icon = this->sceneState == SceneState::Edit ? this->icons["playButton"] : this->icons["stopButton"];
-
+    auto icon = this->sceneState == SceneState::Edit ? ICON_FA_PLAY : ICON_FA_STOP;
     ImGui::Begin("##buttonBar", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
     float size = ImGui::GetWindowHeight() - 4.0f;
     ImGui::SetCursorPosX((ImGui::GetWindowContentRegionMax().x * 0.5f) - (size * 0.5f));
-    if (ImGui::ImageButton((ImTextureID) (unsigned long) icon->getID(),
-                           ImVec2(size, size), ImVec2(0, 0), ImVec2(1, 1), 0))
+    if (ImGui::Button(icon, ImVec2(size, size)))
     {
       if (this->sceneState == SceneState::Edit)
         this->onScenePlay();

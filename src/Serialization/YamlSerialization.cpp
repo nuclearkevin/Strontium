@@ -385,31 +385,37 @@ namespace Strontium
         out << YAML::Key << "DynamicSkyParams";
         out << YAML::BeginMap;
 
-        auto& skyParams = component.ambient->getSkyModelParams(dynamicSkyType);
-        out << YAML::Key << "SunPosition" << YAML::Value << skyParams.sunPos;
-        out << YAML::Key << "SunSize" << YAML::Value << skyParams.sunSize;
-        out << YAML::Key << "SunIntensity" << YAML::Value << skyParams.sunIntensity;
-        out << YAML::Key << "SkyIntensity" << YAML::Value << skyParams.skyIntensity;
+        EnvironmentMap* env = component.ambient;
         switch (dynamicSkyType)
         {
           case DynamicSkyType::Preetham:
           {
-            auto& preethamParams = *(static_cast<PreethamSkyParams*>(&skyParams));
-            out << YAML::Key << "Turbidity" << YAML::Value << preethamParams.turbidity;
+            auto& preethamSkyParams = env->getSkyParams<PreethamSkyParams>(DynamicSkyType::Preetham);
+
+            out << YAML::Key << "SunPosition" << YAML::Value << preethamSkyParams.sunPos;
+            out << YAML::Key << "SunSize" << YAML::Value << preethamSkyParams.sunSize;
+            out << YAML::Key << "SunIntensity" << YAML::Value << preethamSkyParams.sunIntensity;
+            out << YAML::Key << "SkyIntensity" << YAML::Value << preethamSkyParams.skyIntensity;
+            out << YAML::Key << "Turbidity" << YAML::Value << preethamSkyParams.turbidity;
             break;
           }
 
           case DynamicSkyType::Hillaire:
           {
-            auto& hillaireParams = *(static_cast<HillaireSkyParams*>(&skyParams));
-            out << YAML::Key << "RayleighScatteringBase" << YAML::Value << hillaireParams.rayleighScatteringBase;
-            out << YAML::Key << "RayleighAbsorptionBase" << YAML::Value << hillaireParams.rayleighAbsorptionBase;
-            out << YAML::Key << "MieScatteringBase" << YAML::Value << hillaireParams.mieScatteringBase;
-            out << YAML::Key << "MieAbsorptionBase" << YAML::Value << hillaireParams.mieAbsorptionBase;
-            out << YAML::Key << "OzoneAbsorptionBase" << YAML::Value << hillaireParams.ozoneAbsorptionBase;
-            out << YAML::Key << "PlanetRadius" << YAML::Value << hillaireParams.planetRadius;
-            out << YAML::Key << "AtmosphereRadius" << YAML::Value << hillaireParams.atmosphereRadius;
-            out << YAML::Key << "ViewPosition" << YAML::Value << hillaireParams.viewPos;
+            auto& hillaireSkyParams = env->getSkyParams<HillaireSkyParams>(DynamicSkyType::Hillaire);
+
+            out << YAML::Key << "SunPosition" << YAML::Value << hillaireSkyParams.sunPos;
+            out << YAML::Key << "SunSize" << YAML::Value << hillaireSkyParams.sunSize;
+            out << YAML::Key << "SunIntensity" << YAML::Value << hillaireSkyParams.sunIntensity;
+            out << YAML::Key << "SkyIntensity" << YAML::Value << hillaireSkyParams.skyIntensity;
+            out << YAML::Key << "RayleighScatteringBase" << YAML::Value << hillaireSkyParams.rayleighScatteringBase;
+            out << YAML::Key << "RayleighAbsorptionBase" << YAML::Value << hillaireSkyParams.rayleighAbsorptionBase;
+            out << YAML::Key << "MieScatteringBase" << YAML::Value << hillaireSkyParams.mieScatteringBase;
+            out << YAML::Key << "MieAbsorptionBase" << YAML::Value << hillaireSkyParams.mieAbsorptionBase;
+            out << YAML::Key << "OzoneAbsorptionBase" << YAML::Value << hillaireSkyParams.ozoneAbsorptionBase;
+            out << YAML::Key << "PlanetRadius" << YAML::Value << hillaireSkyParams.planetRadius;
+            out << YAML::Key << "AtmosphereRadius" << YAML::Value << hillaireSkyParams.atmosphereRadius;
+            out << YAML::Key << "ViewPosition" << YAML::Value << hillaireSkyParams.viewPos;
             break;
           }
         }
@@ -784,44 +790,47 @@ namespace Strontium
         aComponent.ambient->setDrawingType(static_cast<MapType>(skyboxType));
 
         auto dynamicSkyType = static_cast<DynamicSkyType>(ambientComponent["DynamicSkyType"].as<uint>());
-        aComponent.ambient->setSkyboxType(dynamicSkyType);
+        aComponent.ambient->setDynamicSkyType(dynamicSkyType);
 
         if (ambientComponent["DynamicSkyParams"])
         {
           auto dynamicSkyParams = ambientComponent["DynamicSkyParams"];
 
-          auto skyParams = aComponent.ambient->getSkyModelParams(dynamicSkyType);
-          skyParams.sunPos = dynamicSkyParams["SunPosition"].as<glm::vec3>();
-          skyParams.sunSize = dynamicSkyParams["SunSize"].as<float>();
-          skyParams.sunIntensity = dynamicSkyParams["SunIntensity"].as<float>();
-          skyParams.skyIntensity = dynamicSkyParams["SkyIntensity"].as<float>();
-
+          EnvironmentMap* env = aComponent.ambient;
           switch (dynamicSkyType)
           {
             case DynamicSkyType::Preetham:
             {
-              auto& preethamParams = *(static_cast<PreethamSkyParams*>(&skyParams));
+              auto preethamSkyParams = env->getSkyParams<PreethamSkyParams>(DynamicSkyType::Preetham);
 
-              preethamParams.turbidity = dynamicSkyParams["Turbidity"].as<float>();
+              preethamSkyParams.sunPos = dynamicSkyParams["SunPosition"].as<glm::vec3>();
+              preethamSkyParams.sunSize = dynamicSkyParams["SunSize"].as<float>();
+              preethamSkyParams.sunIntensity = dynamicSkyParams["SunIntensity"].as<float>();
+              preethamSkyParams.skyIntensity = dynamicSkyParams["SkyIntensity"].as<float>();
+              preethamSkyParams.turbidity = dynamicSkyParams["Turbidity"].as<float>();
 
-              aComponent.ambient->setSkyModelParams(&preethamParams);
+              env->setSkyModelParams<PreethamSkyParams>(preethamSkyParams);
               break;
             }
 
             case DynamicSkyType::Hillaire:
             {
-              auto& hillaireParams = *(static_cast<HillaireSkyParams*>(&skyParams));
+              auto hillaireSkyParams = env->getSkyParams<HillaireSkyParams>(DynamicSkyType::Hillaire);
 
-              hillaireParams.rayleighScatteringBase = dynamicSkyParams["RayleighScatteringBase"].as<glm::vec3>();
-              hillaireParams.rayleighAbsorptionBase = dynamicSkyParams["RayleighAbsorptionBase"].as<float>();
-              hillaireParams.mieScatteringBase = dynamicSkyParams["MieScatteringBase"].as<float>();
-              hillaireParams.mieAbsorptionBase = dynamicSkyParams["MieAbsorptionBase"].as<float>();
-              hillaireParams.ozoneAbsorptionBase = dynamicSkyParams["OzoneAbsorptionBase"].as<glm::vec3>();
-              hillaireParams.planetRadius = dynamicSkyParams["PlanetRadius"].as<float>();
-              hillaireParams.atmosphereRadius = dynamicSkyParams["AtmosphereRadius"].as<float>();
-              hillaireParams.viewPos = dynamicSkyParams["ViewPosition"].as<glm::vec3>();
+              hillaireSkyParams.sunPos = dynamicSkyParams["SunPosition"].as<glm::vec3>();
+              hillaireSkyParams.sunSize = dynamicSkyParams["SunSize"].as<float>();
+              hillaireSkyParams.sunIntensity = dynamicSkyParams["SunIntensity"].as<float>();
+              hillaireSkyParams.skyIntensity = dynamicSkyParams["SkyIntensity"].as<float>();
+              hillaireSkyParams.rayleighScatteringBase = dynamicSkyParams["RayleighScatteringBase"].as<glm::vec3>();
+              hillaireSkyParams.rayleighAbsorptionBase = dynamicSkyParams["RayleighAbsorptionBase"].as<float>();
+              hillaireSkyParams.mieScatteringBase = dynamicSkyParams["MieScatteringBase"].as<float>();
+              hillaireSkyParams.mieAbsorptionBase = dynamicSkyParams["MieAbsorptionBase"].as<float>();
+              hillaireSkyParams.ozoneAbsorptionBase = dynamicSkyParams["OzoneAbsorptionBase"].as<glm::vec3>();
+              hillaireSkyParams.planetRadius = dynamicSkyParams["PlanetRadius"].as<float>();
+              hillaireSkyParams.atmosphereRadius = dynamicSkyParams["AtmosphereRadius"].as<float>();
+              hillaireSkyParams.viewPos = dynamicSkyParams["ViewPosition"].as<glm::vec3>();
 
-              aComponent.ambient->setSkyModelParams(&hillaireParams);
+              env->setSkyModelParams<HillaireSkyParams>(hillaireSkyParams);
               break;
             }
           }

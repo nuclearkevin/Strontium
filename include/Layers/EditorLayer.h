@@ -73,7 +73,5 @@ namespace Strontium
     bool showPerf;
     bool showSceneGraph;
     ImVec2 editorSize;
-
-    std::unordered_map<std::string, Texture2D*> icons;
   };
 }

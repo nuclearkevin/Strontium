@@ -873,8 +873,6 @@ namespace Strontium
       drawComponentProperties<AmbientComponent>("Ambient Light Component",
         this->selectedEntity, [this](auto& component)
       {
-        auto storage = Renderer3D::getStorage();
-
         if (ImGui::Button("Load New Environment"))
         {
           EventDispatcher* dispatcher = EventDispatcher::getInstance();
@@ -883,7 +881,9 @@ namespace Strontium
           this->fileTargets = FileLoadTargets::TargetEnvironment;
         }
 
-        auto drawingType = component.ambient->getDrawingType();
+        EnvironmentMap* env = component.ambient;
+
+        auto drawingType = env->getDrawingType();
         static uint mapTypes[] = { 0, 1, 2, 3 };
         static uint skyTypes[] = { 0, 1 };
 
@@ -895,7 +895,7 @@ namespace Strontium
             auto mapTypeString = EnvironmentMap::mapEnumToString(static_cast<MapType>(mapTypes[i]));
 
             if (ImGui::Selectable(mapTypeString.c_str(), isSelected))
-              component.ambient->setDrawingType(static_cast<MapType>(i));
+              env->setDrawingType(static_cast<MapType>(i));
             if (isSelected)
               ImGui::SetItemDefaultFocus();
           }
@@ -904,9 +904,9 @@ namespace Strontium
         ImGui::Separator();
         ImGui::Text("");
 
-        if (component.ambient->getDrawingType() == MapType::DynamicSky)
+        if (env->getDrawingType() == MapType::DynamicSky)
         {
-          auto dynamicSkyType = component.ambient->getDynamicSkyType();
+          auto dynamicSkyType = env->getDynamicSkyType();
 
           if (ImGui::BeginCombo("##dynamicSkyType", EnvironmentMap::skyEnumToString(dynamicSkyType).c_str()))
           {
@@ -916,17 +916,16 @@ namespace Strontium
               auto skyTypeString = EnvironmentMap::skyEnumToString(static_cast<DynamicSkyType>(skyTypes[i]));
 
               if (ImGui::Selectable(skyTypeString.c_str(), isSelected))
-                component.ambient->setSkyboxType(static_cast<DynamicSkyType>(i));
+                env->setDynamicSkyType(static_cast<DynamicSkyType>(i));
               if (isSelected)
                 ImGui::SetItemDefaultFocus();
             }
             ImGui::EndCombo();
           }
 
-          if (component.ambient->getDynamicSkyType() == DynamicSkyType::Preetham)
+          if (env->getDynamicSkyType() == DynamicSkyType::Preetham)
           {
-            DynamicSkyCommonParams& skyParams = component.ambient->getSkyModelParams(DynamicSkyType::Preetham);
-            PreethamSkyParams preethamParams = *(static_cast<PreethamSkyParams*>(&skyParams));
+            auto preethamParams = env->getSkyParams<PreethamSkyParams>(DynamicSkyType::Preetham);
 
             ImGui::Indent();
             if (ImGui::CollapsingHeader("Common Sky Parameters##PreethamAtmo"))
@@ -942,13 +941,12 @@ namespace Strontium
             }
             ImGui::Unindent();
 
-            component.ambient->setSkyModelParams(static_cast<DynamicSkyCommonParams*>(&preethamParams));
+            env->setSkyModelParams<PreethamSkyParams>(preethamParams);
           }
 
-          if (component.ambient->getDynamicSkyType() == DynamicSkyType::Hillaire)
+          if (env->getDynamicSkyType() == DynamicSkyType::Hillaire)
           {
-            DynamicSkyCommonParams& skyParams = component.ambient->getSkyModelParams(DynamicSkyType::Hillaire);
-            HillaireSkyParams hillaireParams = *(static_cast<HillaireSkyParams*>(&skyParams));
+            auto hillaireParams = env->getSkyParams<HillaireSkyParams>(DynamicSkyType::Hillaire);
 
             ImGui::Indent();
             if (ImGui::CollapsingHeader("Common Sky Parameters##PreethamAtmo"))
@@ -996,16 +994,16 @@ namespace Strontium
             }
             ImGui::Unindent();
 
-            component.ambient->setSkyModelParams(static_cast<DynamicSkyCommonParams*>(&hillaireParams));
+            env->setSkyModelParams<HillaireSkyParams>(hillaireParams);
           }
         }
 
-        if (component.ambient->getDrawingType() == MapType::Prefilter)
-          ImGui::SliderFloat("Roughness", &component.ambient->getRoughness(), 0.0f, 1.0f);
+        if (env->getDrawingType() == MapType::Prefilter)
+          ImGui::SliderFloat("Roughness", &env->getRoughness(), 0.0f, 1.0f);
 
         ImGui::Separator();
         ImGui::Text("");
-        Styles::drawFloatControl("Ambient Intensity", 0.5f, component.ambient->getIntensity(), 0.0f, 0.1f, 0.0f, 100.0f);
+        Styles::drawFloatControl("Ambient Intensity", 0.5f, env->getIntensity(), 0.0f, 0.1f, 0.0f, 100.0f);
       });
     }
 

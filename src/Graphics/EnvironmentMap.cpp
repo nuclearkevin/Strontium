@@ -101,7 +101,6 @@ namespace Strontium
     this->dynamicSkyParams.emplace(DynamicSkyType::Hillaire, new HillaireSkyParams());
 
     this->updateDynamicSky();
-    this->updateHillaireLUTs();
   }
 
   EnvironmentMap::~EnvironmentMap()
@@ -221,8 +220,7 @@ namespace Strontium
       {
         case DynamicSkyType::Preetham:
         {
-          auto& skyParams = this->getSkyModelParams(DynamicSkyType::Preetham);
-          auto& preethamSkyParams = *(static_cast<PreethamSkyParams*>(&skyParams));
+          auto& preethamSkyParams = this->getSkyParams<PreethamSkyParams>(DynamicSkyType::Preetham);
 
           params0.y = preethamSkyParams.sunPos.x;
           params0.z = preethamSkyParams.sunPos.y;
@@ -239,8 +237,7 @@ namespace Strontium
 
         case DynamicSkyType::Hillaire:
         {
-          auto& skyParams = this->getSkyModelParams(DynamicSkyType::Hillaire);
-          auto& hillaireSkyParams = *(static_cast<HillaireSkyParams*>(&skyParams));
+          auto& hillaireSkyParams = this->getSkyParams<HillaireSkyParams>(DynamicSkyType::Hillaire);
 
           this->skyboxParameters.x = 2;
 
@@ -287,17 +284,16 @@ namespace Strontium
     {
       case DynamicSkyType::Preetham:
       {
-        auto& skyParams = this->getSkyModelParams(DynamicSkyType::Preetham);
-        auto& preethamSkyParams = *(static_cast<PreethamSkyParams*>(&skyParams));
+        auto& preethamSkyParams = this->getSkyParams<PreethamSkyParams>(DynamicSkyType::Preetham);
 
-        auto preethamModel = glm::vec4(preethamSkyParams.turbidity, skyParams.sunSize,
-                                       skyParams.sunIntensity, 0.0f);
+        auto preethamModel = glm::vec4(preethamSkyParams.turbidity, preethamSkyParams.sunSize,
+                                       preethamSkyParams.sunIntensity, 0.0f);
 
         this->preethamParams.bindToPoint(1);
-        this->preethamParams.setData(0, sizeof(glm::vec3), &skyParams.sunPos.x);
+        this->preethamParams.setData(0, sizeof(glm::vec3), &preethamSkyParams.sunPos.x);
         this->preethamParams.setData(sizeof(glm::vec3), sizeof(float), &preethamSkyParams.turbidity);
-        this->preethamParams.setData(sizeof(glm::vec4), sizeof(float), &skyParams.sunIntensity);
-        this->preethamParams.setData(sizeof(glm::vec4) + sizeof(float), sizeof(float), &skyParams.sunSize);
+        this->preethamParams.setData(sizeof(glm::vec4), sizeof(float), &preethamSkyParams.sunIntensity);
+        this->preethamParams.setData(sizeof(glm::vec4) + sizeof(float), sizeof(float), &preethamSkyParams.sunSize);
 
         this->dynamicSkyLUT.bindAsImage(0, 0, ImageAccessPolicy::Write);
 
@@ -309,14 +305,14 @@ namespace Strontium
 
       case DynamicSkyType::Hillaire:
       {
+        // Updates the three LUTs associated with the Hillaire sky model.
         glm::vec4 params1 = glm::vec4(0.0f);
         glm::vec4 params2 = glm::vec4(0.0f);
         glm::vec4 params3 = glm::vec4(0.0f);
         glm::vec4 params4 = glm::vec4(0.0f);
         glm::vec4 params5 = glm::vec4(0.0f);
 
-        auto& skyParams = this->getSkyModelParams(DynamicSkyType::Hillaire);
-        auto& hillaireSkyParams = *(static_cast<HillaireSkyParams*>(&skyParams));
+        auto& hillaireSkyParams = this->getSkyParams<HillaireSkyParams>(DynamicSkyType::Hillaire);
 
         params1.x = hillaireSkyParams.rayleighScatteringBase.x;
         params1.y = hillaireSkyParams.rayleighScatteringBase.y;
@@ -347,73 +343,22 @@ namespace Strontium
         this->hillaireParams.setData(3 * sizeof(glm::vec4), sizeof(glm::vec4), &(params4.x));
         this->hillaireParams.setData(4 * sizeof(glm::vec4), sizeof(glm::vec4), &(params5.x));
 
+        this->transmittanceLUT.bindAsImage(0, 0, ImageAccessPolicy::Write);
+        this->transmittanceCompute.launchCompute(glm::ivec3(256 / 32, 64 / 32, 1));
+        ComputeShader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
+
+        this->transmittanceLUT.bind(2);
+        this->multiScatLUT.bindAsImage(0, 0, ImageAccessPolicy::Write);
+        this->multiScatCompute.launchCompute(glm::ivec3(32 / 32, 32 / 32, 1));
+        ComputeShader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
+
         this->transmittanceLUT.bind(2);
         this->multiScatLUT.bind(3);
         this->skyViewLUT.bindAsImage(0, 0, ImageAccessPolicy::Write);
         this->skyViewCompute.launchCompute(glm::ivec3(256 / 32, 128 / 32, 1));
         ComputeShader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
-
-        break;
       }
     }
-  }
-
-  void
-  EnvironmentMap::updateHillaireLUTs()
-  {
-    // Transmittance LUT updating.
-    glm::vec4 params1 = glm::vec4(0.0f);
-    glm::vec4 params2 = glm::vec4(0.0f);
-    glm::vec4 params3 = glm::vec4(0.0f);
-    glm::vec4 params4 = glm::vec4(0.0f);
-    glm::vec4 params5 = glm::vec4(0.0f);
-
-    auto& skyParams = this->getSkyModelParams(DynamicSkyType::Hillaire);
-    auto& hillaireSkyParams = *(static_cast<HillaireSkyParams*>(&skyParams));
-
-    params1.x = hillaireSkyParams.rayleighScatteringBase.x;
-    params1.y = hillaireSkyParams.rayleighScatteringBase.y;
-    params1.z = hillaireSkyParams.rayleighScatteringBase.z;
-    params1.w = hillaireSkyParams.rayleighAbsorptionBase;
-
-    params2.x = hillaireSkyParams.ozoneAbsorptionBase.x;
-    params2.y = hillaireSkyParams.ozoneAbsorptionBase.y;
-    params2.z = hillaireSkyParams.ozoneAbsorptionBase.z;
-    params2.w = hillaireSkyParams.mieScatteringBase;
-
-    params3.x = hillaireSkyParams.mieAbsorptionBase;
-    params3.y = hillaireSkyParams.planetRadius;
-    params3.z = hillaireSkyParams.atmosphereRadius;
-    params3.w = hillaireSkyParams.viewPos.x;
-
-    params4.x = -1.0f * hillaireSkyParams.sunPos.x;
-    params4.y = -1.0f * hillaireSkyParams.sunPos.y;
-    params4.z = -1.0f * hillaireSkyParams.sunPos.z;
-    params4.w = hillaireSkyParams.viewPos.y;
-
-    params5.x = hillaireSkyParams.viewPos.z;
-
-    this->hillaireParams.bindToPoint(1);
-    this->hillaireParams.setData(0, sizeof(glm::vec4), &(params1.x));
-    this->hillaireParams.setData(1 * sizeof(glm::vec4), sizeof(glm::vec4), &(params2.x));
-    this->hillaireParams.setData(2 * sizeof(glm::vec4), sizeof(glm::vec4), &(params3.x));
-    this->hillaireParams.setData(3 * sizeof(glm::vec4), sizeof(glm::vec4), &(params4.x));
-    this->hillaireParams.setData(4 * sizeof(glm::vec4), sizeof(glm::vec4), &(params5.x));
-
-    this->transmittanceLUT.bindAsImage(0, 0, ImageAccessPolicy::Write);
-    this->transmittanceCompute.launchCompute(glm::ivec3(256 / 32, 64 / 32, 1));
-    ComputeShader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
-
-    this->transmittanceLUT.bind(2);
-    this->multiScatLUT.bindAsImage(0, 0, ImageAccessPolicy::Write);
-    this->multiScatCompute.launchCompute(glm::ivec3(32 / 32, 32 / 32, 1));
-    ComputeShader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
-
-    this->transmittanceLUT.bind(2);
-    this->multiScatLUT.bind(3);
-    this->skyViewLUT.bindAsImage(0, 0, ImageAccessPolicy::Write);
-    this->skyViewCompute.launchCompute(glm::ivec3(256 / 32, 128 / 32, 1));
-    ComputeShader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
   }
 
   // Getters.
@@ -622,54 +567,7 @@ namespace Strontium
   }
 
   void
-  EnvironmentMap::setSkyModelParams(DynamicSkyCommonParams* params)
-  {
-    switch (params->type)
-    {
-      case DynamicSkyType::Preetham:
-      {
-        auto preethamParams = *(static_cast<PreethamSkyParams*>(params));
-        bool shouldUpdate = *(static_cast<PreethamSkyParams*>(this->dynamicSkyParams[params->type])) != preethamParams;
-
-        if (shouldUpdate)
-        {
-          // TODO: figure out how to do this with C++.
-          memcpy(this->dynamicSkyParams[params->type], &preethamParams, sizeof(PreethamSkyParams));
-          this->updateDynamicSky();
-        }
-        break;
-      }
-
-      case DynamicSkyType::Hillaire:
-      {
-        auto hillaireParams = *(static_cast<HillaireSkyParams*>(params));
-        auto& other = *(static_cast<HillaireSkyParams*>(this->dynamicSkyParams[params->type]));
-        bool shouldUpdate = other != hillaireParams;
-
-        bool updateLUTs = !(hillaireParams.rayleighScatteringBase == other.rayleighScatteringBase &&
-                            hillaireParams.rayleighAbsorptionBase == other.rayleighAbsorptionBase &&
-                            hillaireParams.mieScatteringBase == other.mieScatteringBase &&
-                            hillaireParams.mieAbsorptionBase == other.mieAbsorptionBase &&
-                            hillaireParams.ozoneAbsorptionBase == other.ozoneAbsorptionBase &&
-                            hillaireParams.planetRadius == other.planetRadius &&
-                            hillaireParams.atmosphereRadius == other.atmosphereRadius);
-
-        if (shouldUpdate)
-        {
-          // TODO: figure out how to do this with C++.
-          memcpy(this->dynamicSkyParams[params->type], &hillaireParams, sizeof(HillaireSkyParams));
-
-          if (updateLUTs)
-            this->updateHillaireLUTs();
-          else
-            this->updateDynamicSky();
-        }
-      }
-    }
-  }
-
-  void
-  EnvironmentMap::setSkyboxType(const DynamicSkyType &type)
+  EnvironmentMap::setDynamicSkyType(const DynamicSkyType &type)
   {
     this->currentDynamicSky = type;
     this->updateDynamicSky();

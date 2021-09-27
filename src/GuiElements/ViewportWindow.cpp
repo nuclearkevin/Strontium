@@ -21,6 +21,7 @@ namespace Strontium
     : GuiWindow(parentLayer)
     , gizmoType(-1)
     , gizmoSelPos(-1.0f, -1.0f)
+    , selectorSize(0.0f, 0.0f)
   { }
 
   void
@@ -240,11 +241,11 @@ namespace Strontium
       if (selectedGizmo == -1)
       {
         ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
-        ImGui::Button(ICON_FA_SQUARE);
+        ImGui::Button(ICON_FA_MOUSE_POINTER);
         ImGui::PopStyleVar();
       }
       else
-        ImGui::Button(ICON_FA_SQUARE);
+        ImGui::Button(ICON_FA_MOUSE_POINTER);
 
       ImGui::SameLine();
       if (selectedGizmo == ImGuizmo::TRANSLATE)
@@ -287,8 +288,8 @@ namespace Strontium
   void
   ViewportWindow::drawGizmoSelector(ImVec2 windowPos, ImVec2 windowSize)
   {
-    auto flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoBackground;
-    const ImVec2 selectorSize = ImVec2(219.0f, 18.0f);
+    auto flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoDocking
+               | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_AlwaysAutoResize;
 
     // Bounding box detection to make sure this thing doesn't leave the editor
     // viewport.
@@ -301,6 +302,7 @@ namespace Strontium
 
     ImGui::SetNextWindowPos(this->gizmoSelPos);
     ImGui::Begin("GizmoSelector", nullptr, flags);
+    this->selectorSize = ImGui::GetWindowSize();
 
     auto cursorPos = ImGui::GetCursorPos();
     ImGui::PushStyleVar(ImGuiStyleVar_Alpha, 0.0f);
@@ -315,12 +317,12 @@ namespace Strontium
     {
       ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
       ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
-      ImGui::Button(ICON_FA_SQUARE);
+      ImGui::Button(ICON_FA_MOUSE_POINTER);
       ImGui::PopItemFlag();
       ImGui::PopStyleVar();
     }
     else
-      if (ImGui::Button(ICON_FA_SQUARE))
+      if (ImGui::Button(ICON_FA_MOUSE_POINTER))
         this->gizmoType = -1;
     gizmoSelectDNDPayload(this->gizmoType);
 
