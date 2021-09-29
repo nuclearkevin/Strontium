@@ -1,5 +1,9 @@
 #type common
 #version 440
+/*
+ * A directional light shadow shader for dynamic meshes. Exponentially-warped
+ * variance shadowmaps. 
+ */
 
 #type vertex
 #define MAX_BONES_PER_MODEL 512

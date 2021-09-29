@@ -31,12 +31,20 @@ namespace Strontium
     Unknown
   };
 
+  enum class MemoryBarrierType
+  {
+    ShaderImageAccess = 0x00000020 // GL_SHADER_IMAGE_ACCESS_BARRIER_BIT
+  };
+
   // Shader abstraction which supports multiple shader stages.
   class Shader
   {
   public:
     // Convert enums to strings and other enums.
     static std::string shaderStageToString(const ShaderStage &stage);
+
+    // Compute shader memory barriers.
+    static void memoryBarrier(const MemoryBarrierType &type);
 
     Shader();
     Shader(const std::string &filepath);
@@ -47,6 +55,8 @@ namespace Strontium
 
     void bind();
     void unbind();
+
+    void launchCompute(uint globalX, uint globalY, uint globalZ);
 
     // Setters for shader uniforms.
     void addUniformMatrix(const char* uniformName, const glm::mat4 &matrix,

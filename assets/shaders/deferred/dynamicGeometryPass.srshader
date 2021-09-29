@@ -1,5 +1,9 @@
 #type common
 #version 440
+/*
+ * A dynamic mesh shader program for the geometry pass.
+ */
+
 // Camera specific uniforms.
 layout(std140, binding = 0) uniform CameraBlock
 {
@@ -27,10 +31,6 @@ layout(std140, binding = 3) uniform EditorBlock
 };
 
 #type vertex
-/*
- * A vertex shader for a skinned geometry pass in a deferred renderer.
- */
-
 #define MAX_BONES_PER_MODEL 512
 
 layout (location = 0) in vec4 vPosition;
@@ -79,10 +79,6 @@ void main()
 }
 
 #type fragment
-/*
- * A fragment shader for the geometry pass in deferred rendering.
- */
-
 layout (location = 4) out vec4 gPosition;
 layout (location = 3) out vec4 gNormal;
 layout (location = 2) out vec4 gAlbedo;

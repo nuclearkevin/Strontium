@@ -1,5 +1,8 @@
 #type common
 #version 440
+/*
+ * A grid post-processing shader program for the Strontium editor.
+ */
 
 // The post processing properties.
 layout(std140, binding = 1) uniform PostProcessBlock

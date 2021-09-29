@@ -1,5 +1,5 @@
+#type compute
 #version 440
-
 /*
  * A quick and dirty colour-based bilateral blur. Based off of the Shadertoy
  * implementation here: https://www.shadertoy.com/view/4dfGDH

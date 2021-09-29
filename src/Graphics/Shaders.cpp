@@ -23,6 +23,12 @@ namespace Strontium
     }
   }
 
+  void
+  Shader::memoryBarrier(const MemoryBarrierType &type)
+  {
+    glMemoryBarrier(static_cast<GLenum>(type));
+  }
+
   Shader::Shader()
   {
     this->progID = glCreateProgram();
@@ -182,14 +188,20 @@ namespace Strontium
     glUseProgram(0);
   }
 
+  void
+  Shader::launchCompute(uint globalX, uint globalY, uint globalZ)
+  {
+    assert(("Shader does not have a compute stage. ", this->shaderSources.count(ShaderStage::Compute)));
+    glUseProgram(this->progID);
+    glDispatchCompute(globalX, globalY, globalZ);
+  }
+
   uint
   Shader::compileStage(const ShaderStage &stage, const std::string &stageSource)
   {
     Logger* logs = Logger::getInstance();
 
     char* source = (char*) stageSource.c_str();
-		if (source == 0)
-			return 0;
 
     // Compile the source.
     uint shaderID = glCreateShader(static_cast<GLenum>(stage));

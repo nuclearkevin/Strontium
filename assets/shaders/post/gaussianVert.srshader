@@ -1,5 +1,10 @@
 #type common
 #version 440
+/*
+ * Shader program for a 9-tap Gaussian blur in the vertical direction.
+ * TODO: Combine both the horizontal and vertical blur together and use a
+ * uniform to swap between them
+ */
 
 #type vertex
 layout (location = 0) in vec2 vPosition;

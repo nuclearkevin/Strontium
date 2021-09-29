@@ -1,7 +1,7 @@
+#type compute
 #version 440
-
 /*
- * A volumetric directional light compute shader. Computes sunbeams at half
+ * A volumetric directional light compute shader. Computes godrays at half
  * resolution with some dithering.
 */
 

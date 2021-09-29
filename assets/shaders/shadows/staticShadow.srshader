@@ -1,5 +1,9 @@
 #type common
 #version 440
+/*
+ * A directional light shadow shader for static meshes. Exponentially-warped
+ * variance shadowmaps.
+ */
 
 #type vertex
 layout (location = 0) in vec4 vPosition;

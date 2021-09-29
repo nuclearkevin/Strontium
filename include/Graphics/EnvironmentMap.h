@@ -8,7 +8,6 @@
 #include "Core/ApplicationBase.h"
 #include "Graphics/Model.h"
 #include "Graphics/Shaders.h"
-#include "Graphics/Compute.h"
 #include "Graphics/Textures.h"
 
 namespace Strontium
@@ -218,15 +217,15 @@ namespace Strontium
     Texture2D multiScatLUT;
     Texture2D skyViewLUT;
 
-    ComputeShader equiToCubeCompute;
-    ComputeShader diffIrradCompute;
-    ComputeShader specIrradCompute;
-    ComputeShader brdfCompute;
+    Shader equiToCubeCompute;
+    Shader diffIrradCompute;
+    Shader specIrradCompute;
+    Shader brdfCompute;
 
-    ComputeShader preethamLUTCompute;
-    ComputeShader transmittanceCompute;
-    ComputeShader multiScatCompute;
-    ComputeShader skyViewCompute;
+    Shader preethamLUTCompute;
+    Shader transmittanceCompute;
+    Shader multiScatCompute;
+    Shader skyViewCompute;
 
     UniformBuffer skyboxParamBuffer;
     ShaderStorageBuffer preethamParams;

@@ -1,5 +1,9 @@
 #type common
 #version 440
+/*
+ * A static mesh shader program for the geometry pass.
+ */
+
 // Camera specific uniforms.
 layout(std140, binding = 0) uniform CameraBlock
 {
@@ -28,10 +32,6 @@ layout(std140, binding = 3) uniform EditorBlock
 };
 
 #type vertex
-/*
-* A vertex shader for the geometry pass in deferred rendering.
-*/
-
 layout (location = 0) in vec4 vPosition;
 layout (location = 1) in vec3 vNormal;
 layout (location = 2) in vec2 vTexCoord;
@@ -63,10 +63,6 @@ void main()
 }
 
 #type fragment
-/*
- * A fragment shader for the geometry pass in deferred rendering.
- */
-
 layout (location = 4) out vec4 gPosition;
 layout (location = 3) out vec4 gNormal;
 layout (location = 2) out vec4 gAlbedo;

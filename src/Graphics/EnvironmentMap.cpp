@@ -37,14 +37,14 @@ namespace Strontium
     , preethamParams(2 * sizeof(glm::vec4), BufferType::Dynamic)
     , hillaireParams(5 * sizeof(glm::vec4), BufferType::Dynamic)
     , iblParams(sizeof(glm::vec4), BufferType::Dynamic)
-    , equiToCubeCompute("./assets/shaders/compute/equiConversion.cs")
-    , diffIrradCompute("./assets/shaders/compute/diffuseConv.cs")
-    , specIrradCompute("./assets/shaders/compute/specPrefilter.cs")
-    , brdfCompute("./assets/shaders/compute/integrateBRDF.cs")
-    , preethamLUTCompute("./assets/shaders/compute/preethamLUT.cs")
-    , transmittanceCompute("./assets/shaders/compute/transCompute.cs")
-    , multiScatCompute("./assets/shaders/compute/multiscatCompute.cs")
-    , skyViewCompute("./assets/shaders/compute/skyviewCompute.cs")
+    , equiToCubeCompute("./assets/shaders/compute/ibl/equiConversion.srshader")
+    , diffIrradCompute("./assets/shaders/compute/ibl/diffuseConv.srshader")
+    , specIrradCompute("./assets/shaders/compute/ibl/specPrefilter.srshader")
+    , brdfCompute("./assets/shaders/compute/ibl/integrateBRDF.srshader")
+    , preethamLUTCompute("./assets/shaders/compute/sky/preethamLUT.srshader")
+    , transmittanceCompute("./assets/shaders/compute/sky/transCompute.srshader")
+    , multiScatCompute("./assets/shaders/compute/sky/multiscatCompute.srshader")
+    , skyViewCompute("./assets/shaders/compute/sky/skyviewCompute.srshader")
     , dynamicSkyShader("./assets/shaders/forward/skybox.srshader")
     , currentEnvironment(MapType::Skybox)
     , currentDynamicSky(DynamicSkyType::Preetham)
@@ -297,8 +297,8 @@ namespace Strontium
 
         this->dynamicSkyLUT.bindAsImage(0, 0, ImageAccessPolicy::Write);
 
-        this->preethamLUTCompute.launchCompute(glm::ivec3(1024 / 32, 512 / 32, 1));
-        ComputeShader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
+        this->preethamLUTCompute.launchCompute(1024 / 32, 512 / 32, 1);
+        Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
 
         break;
       }
@@ -344,19 +344,19 @@ namespace Strontium
         this->hillaireParams.setData(4 * sizeof(glm::vec4), sizeof(glm::vec4), &(params5.x));
 
         this->transmittanceLUT.bindAsImage(0, 0, ImageAccessPolicy::Write);
-        this->transmittanceCompute.launchCompute(glm::ivec3(256 / 32, 64 / 32, 1));
-        ComputeShader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
+        this->transmittanceCompute.launchCompute(256 / 32, 64 / 32, 1);
+        Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
 
         this->transmittanceLUT.bind(2);
         this->multiScatLUT.bindAsImage(0, 0, ImageAccessPolicy::Write);
-        this->multiScatCompute.launchCompute(glm::ivec3(32 / 32, 32 / 32, 1));
-        ComputeShader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
+        this->multiScatCompute.launchCompute(32 / 32, 32 / 32, 1);
+        Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
 
         this->transmittanceLUT.bind(2);
         this->multiScatLUT.bind(3);
         this->skyViewLUT.bindAsImage(0, 0, ImageAccessPolicy::Write);
-        this->skyViewCompute.launchCompute(glm::ivec3(256 / 32, 128 / 32, 1));
-        ComputeShader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
+        this->skyViewCompute.launchCompute(256 / 32, 128 / 32, 1);
+        Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
       }
     }
   }
@@ -417,7 +417,7 @@ namespace Strontium
     this->skybox.bindAsImage(1, 0, true, 0, ImageAccessPolicy::ReadWrite);
 
     // Launch the compute shader.
-    this->equiToCubeCompute.launchCompute(glm::ivec3(width / 32, height / 32, 6));
+    this->equiToCubeCompute.launchCompute(width / 32, height / 32, 6);
 
     this->skybox.generateMips();
 
@@ -457,7 +457,7 @@ namespace Strontium
     this->irradiance.bindAsImage(1, 0, true, 0, ImageAccessPolicy::Write);
 
     // Launch the compute shader.
-    this->diffIrradCompute.launchCompute(glm::ivec3(width / 32, height / 32, 6));
+    this->diffIrradCompute.launchCompute(width / 32, height / 32, 6);
 
     auto end = std::chrono::steady_clock::now();
     std::chrono::duration<double> elapsed = end - start;
@@ -515,7 +515,7 @@ namespace Strontium
       this->iblParams.setData(0, sizeof(glm::vec4), &paramsToUpload.x);
 
       // Launch the compute.
-      this->specIrradCompute.launchCompute(glm::ivec3(mipWidth / 32, mipHeight / 32, 6));
+      this->specIrradCompute.launchCompute(mipWidth / 32, mipHeight / 32, 6);
     }
 
     auto end = std::chrono::steady_clock::now();
@@ -550,7 +550,7 @@ namespace Strontium
     this->brdfIntLUT.bindAsImage(3, 0, ImageAccessPolicy::Write);
 
     // Launch the compute shader.
-    this->brdfCompute.launchCompute(glm::ivec3(32 / 32, 32 / 32, 1));
+    this->brdfCompute.launchCompute(32 / 32, 32 / 32, 1);
 
     auto end = std::chrono::steady_clock::now();
     std::chrono::duration<double> elapsed = end - start;

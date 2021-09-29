@@ -1,3 +1,4 @@
+#type compute
 #version 440
 /*
  * A compute shader to compute the prefilter component of the split-sum

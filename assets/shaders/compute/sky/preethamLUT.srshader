@@ -1,7 +1,7 @@
+#type compute
 #version 440
-
 /*
- * A compute shader to compute a look up texture for the Preetham skybox.
+ * A compute shader to generate a look up texture for the Preetham skybox.
  * Adapted from https://www.shadertoy.com/view/llSSDR.
 */
 

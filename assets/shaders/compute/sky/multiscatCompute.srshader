@@ -1,8 +1,8 @@
+#type compute
 #version 440
-
 /*
- * Computes the multi-scattering approximation lookup texture as described in
- * [Hillaire2020].
+ * Compute shader to generate the multi-scattering approximation lookup texture
+ * as described in [Hillaire2020].
  * https://sebh.github.io/publications/egsr2020.pdf
  *
  * Based off of a shadertoy implementation by Andrew Helmer:

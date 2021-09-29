@@ -1,5 +1,5 @@
+#type compute
 #version 440
-
 /*
  * A bloom prefiltering compute shader.
 */

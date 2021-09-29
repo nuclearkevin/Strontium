@@ -1,5 +1,8 @@
 #type common
 #version 440
+/*
+ * PBR point light shader program.
+*/
 
 #type vertex
 layout (location = 0) in vec2 vPosition;
@@ -10,11 +13,6 @@ void main()
 }
 
 #type fragment
-/*
-* Lighting fragment shader for a deferred PBR pipeline. Computes the point light
-* component.
-*/
-
 #define PI 3.141592654
 #define THRESHHOLD 0.00005
 #define MIN_RADIANCE 0.00390625

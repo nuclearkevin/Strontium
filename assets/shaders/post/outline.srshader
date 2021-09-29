@@ -1,5 +1,8 @@
 #type common
 #version 440
+/*
+ * An outline post-processing shader for the Strontium editor.
+ */
 
 #type vertex
 layout (location = 0) in vec2 vPosition;
@@ -10,10 +13,6 @@ void main()
 }
 
 #type fragment
-/*
- * An outline post-processing shader for the Strontium editor.
- */
-
 layout(binding = 0) uniform sampler2D entity;
 
 // The post processing properties.

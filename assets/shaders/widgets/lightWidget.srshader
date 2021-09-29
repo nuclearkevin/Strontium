@@ -1,10 +1,11 @@
 #type common
 #version 440
+/*
+ * Shader for the directional light widget in the Strontium editor.
+ * TODO: Move away from pushed uniforms and use UBOs.
+ */
 
 #type vertex
-/*
- *  Default model vertex shader.
- */
 layout (location = 0) in vec4 vPosition;
 layout (location = 1) in vec3 vNormal;
 layout (location = 2) in vec3 vColour;
@@ -42,10 +43,6 @@ void main()
 }
 
 #type fragment
-/*
-*  Shader for the directional light widget.
-*/
-
 #define PI 3.141592654
 #define THRESHHOLD 0.00005
 

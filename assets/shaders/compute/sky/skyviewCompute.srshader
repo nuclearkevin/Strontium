@@ -1,7 +1,7 @@
+#type compute
 #version 440
-
 /*
- * Computes the sky-view lookup texture as described in
+ * Compute shader to generate the sky-view lookup texture as described in
  * [Hillaire2020].
  * https://sebh.github.io/publications/egsr2020.pdf
  *

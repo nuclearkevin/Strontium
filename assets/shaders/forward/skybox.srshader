@@ -1,5 +1,10 @@
 #type common
 #version 440
+/*
+ * The skybox shader. Works with an HDR skybox, IBL convolutions of the skybox,
+ * and several dynamic skies.
+ */
+
 // Camera specific uniforms.
 layout(std140, binding = 0) uniform CameraBlock
 {
@@ -17,9 +22,6 @@ layout(std140, binding = 1) uniform SkyboxBlock
 };
 
 #type vertex
-/*
- * A generic forward pass skybox shader.
-*/
 layout(location = 0) in vec4 vPosition;
 
 out VERT_OUT
@@ -36,11 +38,6 @@ void main()
 }
 
 #type fragment
-/*
- * A generic forward pass IBL skybox shader. Shares a buffer block with the
- * Preetham skybox shader.
-*/
-
 #define MAX_MIP 4.0
 
 #define TWO_PI 6.283185308

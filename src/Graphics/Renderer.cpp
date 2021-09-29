@@ -807,15 +807,15 @@ namespace Strontium
                                                       &(state->mieAbsDensity.x));
 
             storage->halfResBuffer1.bindAsImage(0, 0, ImageAccessPolicy::Write);
-            int iWidth = (int) glm::ceil(storage->downsampleLightshaft.width / 32.0f);
-            int iHeight = (int) glm::ceil(storage->downsampleLightshaft.height / 32.0f);
-            storage->halfLightshaft.launchCompute(glm::ivec3(iWidth, iHeight, 1));
-            ComputeShader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
+            uint iWidth = (uint) glm::ceil(storage->downsampleLightshaft.width / 32.0f);
+            uint iHeight = (uint) glm::ceil(storage->downsampleLightshaft.height / 32.0f);
+            storage->halfGodrays.launchCompute(iWidth, iHeight, 1);
+            Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
 
             storage->halfResBuffer1.bindAsImage(0, 0, ImageAccessPolicy::Read);
             storage->downsampleLightshaft.bindAsImage(1, 0, ImageAccessPolicy::Write);
-            storage->bilatBlur.launchCompute(glm::ivec3(iWidth, iHeight, 1));
-            ComputeShader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
+            storage->bilatBlur.launchCompute(iWidth, iHeight, 1);
+            Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
           }
 
           // Launch the primary shadowed directional light pass.
@@ -908,8 +908,8 @@ namespace Strontium
         glm::ivec3 invoke = glm::ivec3(glm::ceil(((float) storage->downscaleBloomTex[0].width) / 32.0f),
                                        glm::ceil(((float) storage->downscaleBloomTex[0].height) / 32.0f),
                                        1);
-        storage->bloomPrefilter.launchCompute(invoke);
-        ComputeShader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
+        storage->bloomPrefilter.launchCompute(invoke.x, invoke.y, invoke.z);
+        Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
 
         // Continuously downsample the bloom texture to make an image pyramid.
         for (unsigned int i = 1; i < MAX_NUM_BLOOM_MIPS; i++)
@@ -919,8 +919,8 @@ namespace Strontium
           invoke = glm::ivec3(glm::ceil(((float) storage->downscaleBloomTex[i].width) / 32.0f),
                               glm::ceil(((float) storage->downscaleBloomTex[i].height) / 32.0f),
                               1);
-          storage->bloomDownsample.launchCompute(invoke);
-          ComputeShader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
+          storage->bloomDownsample.launchCompute(invoke.x, invoke.y, invoke.z);
+          Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
         }
 
         // Blur each of the mips.
@@ -931,8 +931,8 @@ namespace Strontium
           invoke = glm::ivec3(glm::ceil(((float) storage->bufferBloomTex[i].width) / 32.0f),
                               glm::ceil(((float) storage->bufferBloomTex[i].height) / 32.0f),
                               1);
-          storage->bloomUpsample.launchCompute(invoke);
-          ComputeShader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
+          storage->bloomUpsample.launchCompute(invoke.x, invoke.y, invoke.z);
+          Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
         }
 
         // Copy and blur the last mip of the downsampling pyramid into the last
@@ -942,8 +942,8 @@ namespace Strontium
         invoke = glm::ivec3(glm::ceil(((float) storage->bufferBloomTex[MAX_NUM_BLOOM_MIPS - 1].width) / 32.0f),
                             glm::ceil(((float) storage->bufferBloomTex[MAX_NUM_BLOOM_MIPS - 1].height) / 32.0f),
                             1);
-        storage->bloomUpsample.launchCompute(invoke);
-        ComputeShader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
+        storage->bloomUpsample.launchCompute(invoke.x, invoke.y, invoke.z);
+        Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
 
         // Blend the previous mips together with a blur on the previous mip.
         for (unsigned int i = MAX_NUM_BLOOM_MIPS - 1; i > 0; i--)
@@ -954,8 +954,8 @@ namespace Strontium
           invoke = glm::ivec3(glm::ceil(((float) storage->upscaleBloomTex[i - 1].width) / 32.0f),
                               glm::ceil(((float) storage->upscaleBloomTex[i - 1].height) / 32.0f),
                               1);
-          storage->bloomUpsampleBlend.launchCompute(invoke);
-          ComputeShader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
+          storage->bloomUpsampleBlend.launchCompute(invoke.x, invoke.y, invoke.z);
+          Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
         }
       }
 

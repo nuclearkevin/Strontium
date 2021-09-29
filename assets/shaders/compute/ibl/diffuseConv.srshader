@@ -1,44 +1,62 @@
+#type compute
 #version 440
 /*
- * A compute shader to convert an equirectangular map to a cubemap. Many thanks
- * to http://alinloghin.com/articles/compute_ibl.html, some of the code here was
- * adapted from their excellent article.
+ * A compute shader to compute the diffuse lighting integral through
+ * convolution.
+ * Many thanks to http://alinloghin.com/articles/compute_ibl.html, some of the
+ * code here was adapted from their excellent article.
 */
 
-#define invAtan vec2(0.1591, 0.3183)
+#define PI 3.141592654
 
 layout(local_size_x = 32, local_size_y = 32) in;
 
-// The input equirectangular map.
-layout(rgba16f, binding = 0) uniform readonly image2D equirectangularMap;
+// The environment map to convolute.
+layout(rgba16f, binding = 0) uniform readonly imageCube environmentMap;
 
-// The output environment map after conversion.
-layout(rgba16f, binding = 1) writeonly uniform imageCube environmentMap;
+// The output irradiance map.
+layout(rgba16f, binding = 1) writeonly uniform imageCube irradianceMap;
 
-// Function for converting between cubemap image coordiantes and world coordiantes.
+// Function for converting between image coordiantes and world coordiantes.
 vec3 cubeToWorld(ivec3 cubeCoord, vec2 cubeSize);
 // Function for converting between tangent coordinates and image coordiantes.
 ivec3 texToCube(vec3 texCoord, vec2 cubeSize);
-// Function for converting from 2D texture coordinates to 2D image coordinates.
-ivec2 texToImage2D(vec2 texCoord, vec2 imageSize);
-// Function for sampling a spherical map.
-vec2 sampleSphericalMap(vec3 v);
 
 void main()
 {
-  // Fetch the world position of the cubemap.
-  vec2 equiSize = vec2(imageSize(equirectangularMap));
-  vec2 enviSize = vec2(imageSize(environmentMap).xy);
-  vec3 worldPos = cubeToWorld(ivec3(gl_GlobalInvocationID), enviSize);
+  vec2 cubemapSize = vec2(imageSize(irradianceMap).xy);
+  vec3 worldPos = cubeToWorld(ivec3(gl_GlobalInvocationID), cubemapSize);
 
-  // Convert the cubemap coords to equirectangular coords.
-  vec2 uv = sampleSphericalMap(normalize(worldPos));
-  // Convert the UV coordinates to image coordinates.
-  ivec2 imgCoords = texToImage2D(uv, equiSize);
+  // The normal is the same as the worldspace position.
+  vec3 normal = normalize(worldPos);
 
-  // Fetch the colour and store it in the cubemap.
-  vec3 colour = imageLoad(equirectangularMap, imgCoords).rgb;
-  imageStore(environmentMap, ivec3(gl_GlobalInvocationID), vec4(colour, 1.0));
+  // Other hemispherical directions required for the integral.
+  vec3 up     = vec3(0.0, 1.0, 0.0);
+  vec3 right  = cross(up, normal);
+  up          = cross(normal, right);
+
+  float sampleDelta = 0.025;
+  float nrSamples = 0.0;
+  vec3 irradiance = vec3(0.0);
+
+  for (float phi = 0.0; phi < 2.0 * PI; phi += sampleDelta)
+  {
+    for (float theta = 0.0; theta < 0.5 * PI; theta += sampleDelta)
+    {
+      // Spherical to cartesian (in tangent space).
+      vec3 tangentSample = vec3(sin(theta) * cos(phi), sin(theta) * sin(phi), cos(theta));
+      // Tangent space to world.
+      vec3 sampleVec = tangentSample.x * right + tangentSample.y * up + tangentSample.z * normal;
+      ivec3 sampleCoord = texToCube(sampleVec, cubemapSize);
+
+      irradiance += imageLoad(environmentMap, sampleCoord).rgb * cos(theta) * sin(theta);
+      nrSamples++;
+    }
+  }
+
+  irradiance = PI * irradiance * (1.0 / float(nrSamples));
+
+  imageStore(irradianceMap, ivec3(gl_GlobalInvocationID), vec4(irradiance, 1.0));
 }
 
 // I need to figure out how to make these branchless one of these days...
@@ -91,18 +109,4 @@ ivec3 texToCube(vec3 texCoord, vec2 cubeSize)
   uvCoord = clamp(uvCoord, vec2(0.0), cubeSize - vec2(1.0));
 
   return ivec3(ivec2(uvCoord), int(cubeFace));
-}
-
-ivec2 texToImage2D(vec2 texCoord, vec2 imageSize)
-{
-  vec2 result = texCoord * imageSize;
-  return ivec2(result);
-}
-
-vec2 sampleSphericalMap(vec3 v)
-{
-  vec2 uv = vec2(atan(v.z, v.x), asin(v.y));
-  uv *= invAtan;
-  uv += 0.5;
-  return uv;
 }

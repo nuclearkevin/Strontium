@@ -1,5 +1,8 @@
 #type common
 #version 440
+/*
+ * The post-processing megashader program.
+*/
 
 #type vertex
 layout (location = 0) in vec2 vPosition;
@@ -10,10 +13,6 @@ void main()
 }
 
 #type fragment
-/*
- * The post-processing megashader.
-*/
-
 #define FXAA_SPAN_MAX 8.0
 #define FXAA_REDUCE_MUL 0.125
 #define FXAA_REDUCE_MIN 0.0078125 // 1.0 / 180.0

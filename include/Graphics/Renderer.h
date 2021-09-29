@@ -13,7 +13,6 @@
 #include "Graphics/RendererCommands.h"
 #include "Graphics/VertexArray.h"
 #include "Graphics/Shaders.h"
-#include "Graphics/Compute.h"
 #include "Graphics/FrameBuffer.h"
 #include "Graphics/GeometryBuffer.h"
 
@@ -78,18 +77,18 @@ namespace Strontium
       Texture2D downscaleBloomTex[MAX_NUM_BLOOM_MIPS];
       Texture2D bufferBloomTex[MAX_NUM_BLOOM_MIPS - 1];
       Texture2D upscaleBloomTex[MAX_NUM_BLOOM_MIPS];
-      ComputeShader bloomPrefilter;
-      ComputeShader bloomDownsample;
-      ComputeShader bloomUpsample;
-      ComputeShader bloomUpsampleBlend;
+      Shader bloomPrefilter;
+      Shader bloomDownsample;
+      Shader bloomUpsample;
+      Shader bloomUpsampleBlend;
       ShaderStorageBuffer bloomSettingsBuffer;
 
       // Required parameters for volumetric light shafts.
       Texture2D downsampleLightshaft;
       Texture2D halfResBuffer1;
       ShaderStorageBuffer lightShaftSettingsBuffer;
-      ComputeShader halfLightshaft;
-      ComputeShader bilatBlur;
+      Shader halfGodrays;
+      Shader bilatBlur;
 
       // Items for the geometry pass.
       std::vector<std::tuple<Model*, ModelMaterial*, glm::mat4, uint, bool>> staticRenderQueue;
@@ -126,13 +125,13 @@ namespace Strontium
         , postProcessSettings(2 * sizeof(glm::mat4) + 2 * sizeof(glm::vec4)
                               + sizeof(glm::ivec4), BufferType::Dynamic)
         , boneBuffer(MAX_BONES_PER_MODEL * sizeof(glm::mat4), BufferType::Dynamic)
-        , bloomPrefilter("./assets/shaders/compute/bloomPrefilter.cs")
-        , bloomDownsample("./assets/shaders/compute/bloomDownsample.cs")
-        , bloomUpsample("./assets/shaders/compute/bloomUpsample.cs")
-        , bloomUpsampleBlend("./assets/shaders/compute/bloomUpsampleBlend.cs")
+        , bloomPrefilter("./assets/shaders/compute/bloom/bloomPrefilter.srshader")
+        , bloomDownsample("./assets/shaders/compute/bloom/bloomDownsample.srshader")
+        , bloomUpsample("./assets/shaders/compute/bloom/bloomUpsample.srshader")
+        , bloomUpsampleBlend("./assets/shaders/compute/bloom/bloomUpsampleBlend.srshader")
         , lightShaftSettingsBuffer(2 * sizeof(glm::vec4), BufferType::Dynamic)
-        , halfLightshaft("./assets/shaders/compute/volumetricDirLight.cs")
-        , bilatBlur("./assets/shaders/compute/bilatBlur.cs")
+        , halfGodrays("./assets/shaders/compute/volumetricDirLight.srshader")
+        , bilatBlur("./assets/shaders/compute/bilatBlur.srshader")
         , bloomSettingsBuffer(sizeof(glm::vec4) + sizeof(float), BufferType::Dynamic)
       {
         currentEnvironment = createUnique<EnvironmentMap>();
