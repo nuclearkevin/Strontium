@@ -1,5 +1,15 @@
+#type common
 #version 440
 
+#type vertex
+layout (location = 0) in vec2 vPosition;
+
+void main()
+{
+  gl_Position = vec4(vPosition.x, vPosition.y, 0.0, 1.0);
+}
+
+#type fragment
 layout(binding = 0) uniform sampler2D inputTex;
 
 layout(location = 0) out vec4 fragColour;
@@ -14,8 +24,8 @@ void main()
 
   for (uint i = 1; i < 5; i++)
   {
-    result += texture(inputTex, fTexCoords + vec2(texelSize.x * i, 0)).rgba * weights[i];
-    result += texture(inputTex, fTexCoords - vec2(texelSize.x * i, 0)).rgba * weights[i];
+    result += texture(inputTex, fTexCoords + vec2(0, texelSize.y * i)).rgba * weights[i];
+    result += texture(inputTex, fTexCoords - vec2(0, texelSize.y * i)).rgba * weights[i];
   }
 
   fragColour = result;

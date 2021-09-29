@@ -1,4 +1,18 @@
+#type common
 #version 440
+
+#type vertex
+layout (location = 0) in vec2 vPosition;
+
+void main()
+{
+  gl_Position = vec4(vPosition.x, vPosition.y, 0.0, 1.0);
+}
+
+#type fragment
+/*
+ * An outline post-processing shader for the Strontium editor.
+ */
 
 layout(binding = 0) uniform sampler2D entity;
 

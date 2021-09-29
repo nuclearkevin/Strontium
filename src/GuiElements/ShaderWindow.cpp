@@ -64,7 +64,8 @@ namespace Strontium
 
         // Display the shader information string.
         ImGui::Text("Shader information:");
-        ImGui::Text(this->selectedShader->getInfoString().c_str());
+        // TODO: Shader reflection.
+        //ImGui::Text(this->selectedShader->getInfoString().c_str());
         ImGui::Unindent();
 
         ImGui::TreePop();

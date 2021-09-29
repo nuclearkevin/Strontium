@@ -141,7 +141,7 @@ void main()
 
   fog *= volumetricIntensity;
   fog = max(fog, vec3(0.0));
-  imageStore(volumetric, invoke, vec4(fog, 1.0));
+  imageStore(volumetric, invoke, vec4(fog, totalTransmittance));
 }
 
 float sampleDither(ivec2 coords)

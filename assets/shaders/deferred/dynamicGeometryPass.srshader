@@ -1,0 +1,120 @@
+#type common
+#version 440
+// Camera specific uniforms.
+layout(std140, binding = 0) uniform CameraBlock
+{
+  mat4 u_viewMatrix;
+  mat4 u_projMatrix;
+  vec3 u_camPosition;
+};
+
+// The material properties.
+layout(std140, binding = 1) uniform MaterialBlock
+{
+  vec4 u_MRAE; // Metallic (r), roughness (g), AO (b) and emission (a);
+	vec4 u_albedoF0; // Albedo (r, g, b) and F0 (a);
+};
+
+layout(std140, binding = 2) uniform ModelBlock
+{
+  mat4 u_modelMatrix;
+};
+
+// Editor block.
+layout(std140, binding = 3) uniform EditorBlock
+{
+	vec4 maskColourID; // Mask colour (r, g, b) and the entity ID (a).
+};
+
+#type vertex
+/*
+ * A vertex shader for a skinned geometry pass in a deferred renderer.
+ */
+
+#define MAX_BONES_PER_MODEL 512
+
+layout (location = 0) in vec4 vPosition;
+layout (location = 1) in vec3 vNormal;
+layout (location = 2) in vec2 vTexCoord;
+layout (location = 3) in vec3 vTangent;
+layout (location = 4) in vec3 vBitangent;
+layout (location = 5) in vec4 vBoneWeight;
+layout (location = 6) in ivec4 vBoneID;
+
+layout(std140, binding = 4) buffer BoneBlock
+{
+  mat4 u_boneMatrices[MAX_BONES_PER_MODEL];
+};
+
+// Vertex properties for shading.
+out VERT_OUT
+{
+  vec3 fNormal;
+  vec3 fPosition;
+  vec2 fTexCoords;
+  mat3 fTBN;
+} vertOut;
+
+void main()
+{
+  // Skinning calculations.
+  mat4 skinMatrix = u_boneMatrices[vBoneID.x] * vBoneWeight.x;
+  skinMatrix += u_boneMatrices[vBoneID.y] * vBoneWeight.y;
+  skinMatrix += u_boneMatrices[vBoneID.z] * vBoneWeight.z;
+  skinMatrix += u_boneMatrices[vBoneID.w] * vBoneWeight.w;
+
+  mat4 worldSpaceMatrix = u_modelMatrix * skinMatrix;
+
+  // Tangent to world matrix calculation.
+  vec3 T = normalize(vec3(worldSpaceMatrix * vec4(vTangent, 0.0)));
+  vec3 N = normalize(vec3(worldSpaceMatrix * vec4(vNormal, 0.0)));
+  T = normalize(T - dot(T, N) * N);
+  vec3 B = cross(N, T);
+
+  gl_Position = u_projMatrix * u_viewMatrix * worldSpaceMatrix * vPosition;
+  vertOut.fPosition = (worldSpaceMatrix * vPosition).xyz;
+  vertOut.fNormal = N;
+  vertOut.fTexCoords = vTexCoord;
+  vertOut.fTBN = mat3(T, B, N);
+}
+
+#type fragment
+/*
+ * A fragment shader for the geometry pass in deferred rendering.
+ */
+
+layout (location = 4) out vec4 gPosition;
+layout (location = 3) out vec4 gNormal;
+layout (location = 2) out vec4 gAlbedo;
+layout (location = 1) out vec4 gMatProp;
+layout (location = 0) out vec4 gIDMaskColour;
+
+in VERT_OUT
+{
+	vec3 fNormal;
+	vec3 fPosition;
+  vec2 fTexCoords;
+	mat3 fTBN;
+} fragIn;
+
+uniform sampler2D albedoMap;
+uniform sampler2D normalMap;
+uniform sampler2D roughnessMap;
+uniform sampler2D metallicMap;
+uniform sampler2D aOcclusionMap;
+uniform sampler2D specF0Map;
+
+void main()
+{
+  gPosition = vec4(fragIn.fPosition, 1.0);
+  gNormal = vec4(fragIn.fTBN * (texture(normalMap, fragIn.fTexCoords).xyz * 2.0 - 1.0), 1.0);
+  gAlbedo = vec4(pow(texture(albedoMap, fragIn.fTexCoords).rgb * u_albedoF0.rgb, vec3(2.2)), 1.0);
+	gAlbedo.a = texture(specF0Map, fragIn.fTexCoords).r * u_albedoF0.a;
+
+  gMatProp.r = texture(metallicMap, fragIn.fTexCoords).r * u_MRAE.r;
+  gMatProp.g = texture(roughnessMap, fragIn.fTexCoords).r * u_MRAE.g;
+  gMatProp.b = texture(aOcclusionMap, fragIn.fTexCoords).r * u_MRAE.b;
+  gMatProp.a = u_MRAE.a;
+
+	gIDMaskColour = maskColourID;
+}

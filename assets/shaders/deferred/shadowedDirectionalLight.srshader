@@ -1,4 +1,15 @@
+#type common
 #version 440
+
+#type vertex
+layout (location = 0) in vec2 vPosition;
+
+void main()
+{
+  gl_Position = vec4(vPosition.x, vPosition.y, 0.0, 1.0);
+}
+
+#type fragment
 /*
 * Lighting fragment shader for a deferred PBR pipeline. Computes the directional
 * component.
@@ -116,7 +127,10 @@ void main()
 
   // Add on screen-space godrays.
   if (u_postProcessingPasses.w != 0)
-    radiance += texture(godrayTex, fTexCoords).rgb;
+  {
+    vec4 godrayTrans = texture(godrayTex, fTexCoords).rgba;
+    radiance += godrayTrans.rgb;
+  }
 
   radiance = max(radiance, vec3(0.0));
 

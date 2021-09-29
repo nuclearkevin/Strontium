@@ -1,5 +1,41 @@
+#type common
 #version 440
+// Camera specific uniforms.
+layout(std140, binding = 0) uniform CameraBlock
+{
+  mat4 u_viewMatrix;
+  mat4 u_projMatrix;
+  vec3 u_camPosition;
+};
+// Skybox specific uniforms
+layout(std140, binding = 1) uniform SkyboxBlock
+{
+  vec4 u_lodDirection; // IBL lod (x), sun direction (y, z, w).
+  vec4 u_sunIntensitySizeGRadiusARadius; // Sun intensity (x), size (y), ground radius (z) and atmosphere radius (w).
+  vec4 u_viewPosSkyIntensity; // View position (x, y, z) and sky intensity (w).
+  ivec4 u_skyboxParams2; // The skybox to use (x). y, z and w are unused.
+};
 
+#type vertex
+/*
+ * A generic forward pass skybox shader.
+*/
+layout(location = 0) in vec4 vPosition;
+
+out VERT_OUT
+{
+  vec3 fTexCoords;
+} vertOut;
+
+void main()
+{
+  vertOut.fTexCoords = vPosition.xyz;
+
+  mat4 newView = mat4(mat3(u_viewMatrix));
+  gl_Position = (u_projMatrix * newView * vPosition).xyww;
+}
+
+#type fragment
 /*
  * A generic forward pass IBL skybox shader. Shares a buffer block with the
  * Preetham skybox shader.
@@ -14,14 +50,6 @@
 layout(binding = 0) uniform samplerCube skybox;
 layout(binding = 1) uniform sampler2D dynamicSkyLUT;
 layout(binding = 2) uniform sampler2D transmittanceLUT;
-
-layout(std140, binding = 1) uniform SkyboxBlock
-{
-  vec4 u_lodDirection; // IBL lod (x), sun direction (y, z, w).
-  vec4 u_sunIntensitySizeGRadiusARadius; // Sun intensity (x), size (y), ground radius (z) and atmosphere radius (w).
-  vec4 u_viewPosSkyIntensity; // View position (x, y, z) and sky intensity (w).
-  ivec4 u_skyboxParams2; // The skybox to use (x). y, z and w are unused.
-};
 
 in VERT_OUT
 {

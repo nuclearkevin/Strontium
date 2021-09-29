@@ -71,6 +71,7 @@ namespace Strontium
   void
   Material::reflect()
   {
+    /*
     auto& shaderUniforms = this->program->getUniforms();
     for (auto& pair : shaderUniforms)
     {
@@ -88,6 +89,8 @@ namespace Strontium
         case UniformType::SamplerCube: this->samplerCubes.emplace_back(pair.first, "None"); break;
       }
     }
+    */
+    // TODO: Reflection.
   }
 
   void

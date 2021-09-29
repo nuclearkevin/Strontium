@@ -1,5 +1,3 @@
-// This file contains some shader code developed by Dr. Mark Green at OTU. It
-// has been heavily modified to support OpenGL abstraction.
 #include "Graphics/Shaders.h"
 
 // Project includes.
@@ -10,428 +8,285 @@
 
 namespace Strontium
 {
-	// Constructor and destructor.
-	Shader::Shader()
-	{
-		this->progID = glCreateProgram();
-		this->vertID = glCreateShader(GL_VERTEX_SHADER);
-		this->fragID = glCreateShader(GL_FRAGMENT_SHADER);
-	}
+  std::string
+  Shader::shaderStageToString(const ShaderStage &stage)
+  {
+    switch (stage)
+    {
+      case ShaderStage::Vertex: return "Vertex";
+      case ShaderStage::TessControl: return "Tesselation Control";
+      case ShaderStage::TessEval: return "Tesselation Evaluation";
+      case ShaderStage::Geometry: return "Geometry";
+      case ShaderStage::Fragment: return "Fragment";
+      case ShaderStage::Compute: return "Compute";
+      default: return "Unknown Stage";
+    }
+  }
 
-	Shader::Shader(const std::string &vertPath, const std::string &fragPath)
-		: vertPath(vertPath)
-		, fragPath(fragPath)
-	{
-		// Build the shader from source.
-		this->buildShader(GL_VERTEX_SHADER, vertPath.c_str());
-		this->buildShader(GL_FRAGMENT_SHADER, fragPath.c_str());
-		this->buildProgram(this->vertID, this->fragID, 0);
-		glUseProgram(this->progID);
+  Shader::Shader()
+  {
+    this->progID = glCreateProgram();
+  }
 
-		// Reflect the shader and gather a list of uniforms.
-		this->shaderInfoString = this->dumpProgram();
+  Shader::Shader(const std::string &filepath)
+  {
+    this->progID = glCreateProgram();
 
-		char name[256];
-		GLsizei length;
-		int size;
-		GLenum type;
-		int uniforms;
+    // Load the shader source code from disk into the map.
+    this->loadFile(filepath);
 
-		// Generates a list of uniforms based on their name and type.
-		glGetProgramiv(this->progID, GL_ACTIVE_UNIFORMS, &uniforms);
-		for (unsigned i = 0; i < uniforms; i++)
-		{
-			glGetActiveUniform(this->progID, i, 256, &length, &size, &type, name);
-			this->uniforms.push_back({ name, enumToUniform(type) });
-		}
-	}
+    // Compile each source saved in the map.
+    std::vector<uint> shaderBindaries;
+    for (auto&& [stage, source] : this->shaderSources)
+      shaderBindaries.emplace_back(this->compileStage(stage, source));
 
-	Shader::~Shader()
-	{
-		glDeleteProgram(this->progID);
-		glDeleteShader(this->vertID);
-		glDeleteShader(this->fragID);
-	}
+    // Link the individual shader programs, deletes after linking is completed.
+    this->linkProgram(shaderBindaries);
+  }
 
-	void
-	Shader::rebuild()
-	{
-		// Delete the old shader.
-		glDeleteProgram(this->progID);
-		glDeleteShader(this->vertID);
-		glDeleteShader(this->fragID);
+  Shader::~Shader()
+  {
+    glDeleteProgram(this->progID);
+  }
 
-		// Build the shader from source.
-		this->buildShader(GL_VERTEX_SHADER, this->vertPath.c_str());
-		this->buildShader(GL_FRAGMENT_SHADER, this->fragPath.c_str());
-		this->buildProgram(this->vertID, this->fragID, 0);
-		glUseProgram(this->progID);
+  void
+  Shader::rebuild()
+  {
+    this->shaderSources.clear();
 
-		// Reflect the shader and gather a list of uniforms.
-		this->shaderInfoString = this->dumpProgram();
+    // Load the shader source code from disk into the map.
+    this->loadFile(this->shaderPath);
 
-		char name[256];
-		GLsizei length;
-		int size;
-		GLenum type;
-		int uniforms;
+    // Compile each source saved in the map.
+    std::vector<uint> shaderBindaries;
+    for (auto&& [stage, source] : this->shaderSources)
+      shaderBindaries.emplace_back(this->compileStage(stage, source));
 
-		// Generates a list of uniforms based on their name and type.
-		this->uniforms.clear();
-		glGetProgramiv(this->progID, GL_ACTIVE_UNIFORMS, &uniforms);
-		for (unsigned i = 0; i < uniforms; i++)
-		{
-			glGetActiveUniform(this->progID, i, 256, &length, &size, &type, name);
-			this->uniforms.push_back({ name, enumToUniform(type) });
-		}
-	}
+    // Link the individual shader programs, deletes after linking is completed.
+    this->linkProgram(shaderBindaries);
+  }
 
-	void
-	Shader::rebuildFromString()
-	{
-		this->buildShaderSource(GL_VERTEX_SHADER, this->vertSource);
-		this->buildShaderSource(GL_FRAGMENT_SHADER, this->fragSource);
-		this->buildProgram(this->vertID, this->fragID, 0);
-		glUseProgram(this->progID);
+  void
+  Shader::loadFile(const std::string &filepath)
+  {
+    Logger* logs = Logger::getInstance();
 
-		// Reflect the shader and gather a list of uniforms.
-		this->shaderInfoString = this->dumpProgram();
+    // Common shader parameters. Declare with: #type common
+    std::string commonBlock = "";
 
-		char name[256];
-		GLsizei length;
-		int size;
-		GLenum type;
-		int uniforms;
+    // Garbage needed for parsing the shader file.
+    std::string line;
+    std::string currentBlock = "";
+    bool readingCommon = false;
+    ShaderStage currentStage = ShaderStage::Unknown;
 
-		// Generates a list of uniforms based on their name and type.
-		this->uniforms.clear();
-		glGetProgramiv(this->progID, GL_ACTIVE_UNIFORMS, &uniforms);
-		for (unsigned i = 0; i < uniforms; i++)
-		{
-			glGetActiveUniform(this->progID, i, 256, &length, &size, &type, name);
-			this->uniforms.push_back({ name, enumToUniform(type) });
-		}
-	}
+    std::unordered_map<ShaderStage, std::string> commonlessSource;
 
-	void
-	Shader::rebuildFromString(const std::string &vertSource,
-														const std::string &fragSource)
-	{
-		this->buildShaderSource(GL_VERTEX_SHADER, vertSource);
-		this->buildShaderSource(GL_FRAGMENT_SHADER, fragSource);
-		this->buildProgram(this->vertID, this->fragID, 0);
-		glUseProgram(this->progID);
+    std::ifstream sourceFile(filepath);
+    if (sourceFile.is_open())
+    {
+      this->shaderPath = filepath;
 
-		// Reflect the shader and gather a list of uniforms.
-		this->shaderInfoString = this->dumpProgram();
+      while (std::getline(sourceFile, line))
+      {
+        // Detect shader stage.
+        if (line.substr(0, 6) == "#type ")
+        {
+          // Save the buffer string to a map. This doesn't have the common block
+          // added in.
+          if (currentStage != ShaderStage::Unknown && !readingCommon)
+          {
+            commonlessSource.emplace(currentStage, currentBlock);
+            currentBlock.clear();
+          }
 
-		char name[256];
-		GLsizei length;
-		int size;
-		GLenum type;
-		int uniforms;
+          if (line.find("vertex") != std::string::npos)
+          {
+            currentStage = ShaderStage::Vertex;
+            readingCommon = false;
+          }
+          else if (line.find("tess_control") != std::string::npos)
+          {
+            currentStage = ShaderStage::TessControl;
+            readingCommon = false;
+          }
+          else if (line.find("tess_eval") != std::string::npos)
+          {
+            currentStage = ShaderStage::TessEval;
+            readingCommon = false;
+          }
+          else if (line.find("geometry") != std::string::npos)
+          {
+            currentStage = ShaderStage::Geometry;
+            readingCommon = false;
+          }
+          else if (line.find("fragment") != std::string::npos)
+          {
+            currentStage = ShaderStage::Fragment;
+            readingCommon = false;
+          }
+          else if (line.find("compute") != std::string::npos)
+          {
+            currentStage = ShaderStage::Compute;
+            readingCommon = false;
+          }
+          else if (line.find("common") != std::string::npos)
+          {
+            currentStage = ShaderStage::Unknown;
+            readingCommon = true;
+          }
+          else
+          {
+            // Log the shader parse log.
+            std::string message = "Unknown shader stage " + filepath + ".";
+            logs->logMessage({ message, true, true });
+            currentStage = ShaderStage::Unknown;
+            readingCommon = false;
+          }
+        }
+        else
+        {
+          // Append the line to the source code.
+          if (readingCommon)
+            commonBlock += line + "\n";
 
-		// Generates a list of uniforms based on their name and type.
-		this->uniforms.clear();
-		glGetProgramiv(this->progID, GL_ACTIVE_UNIFORMS, &uniforms);
-		for (unsigned i = 0; i < uniforms; i++)
-		{
-			glGetActiveUniform(this->progID, i, 256, &length, &size, &type, name);
-			this->uniforms.push_back({ name, enumToUniform(type) });
-		}
-	}
+          if (currentStage != ShaderStage::Unknown)
+            currentBlock += line + "\n";
+        }
+      }
 
-	// Build and validate a shader program. TODO: Move away from C to C++.
-	void
-	Shader::buildShader(int type, const char* filename)
-	{
-		Logger* logs = Logger::getInstance();
+      // Add in the final block.
+      if (currentStage != ShaderStage::Unknown)
+        commonlessSource.emplace(currentStage, currentBlock);
 
-		uint shaderID;
-		char *source;
-		int result;
-		char *buffer;
+      // Save the resulting sources with the common clock appended at the beginning.
+      for (auto&& [stage, source] : commonlessSource)
+        this->shaderSources.emplace(stage, commonBlock + source);
+    }
+    else
+    {
+      std::string message = "Failed to open shader file at " + filepath + ".";
+      logs->logMessage({ message, true, true });
+    }
+  }
 
-		shaderID = glCreateShader(type);
-		source = readShaderFile(filename);
+  void
+  Shader::bind()
+  {
+    glUseProgram(this->progID);
+  }
+
+  void
+  Shader::unbind()
+  {
+    glUseProgram(0);
+  }
+
+  uint
+  Shader::compileStage(const ShaderStage &stage, const std::string &stageSource)
+  {
+    Logger* logs = Logger::getInstance();
+
+    char* source = (char*) stageSource.c_str();
 		if (source == 0)
-			return;
+			return 0;
 
-		glShaderSource(shaderID, 1, (const  GLchar**) &source, 0);
-		glCompileShader(shaderID);
-		glGetShaderiv(shaderID, GL_COMPILE_STATUS, &result);
-		if (result != GL_TRUE)
-		{
-			glGetShaderiv(shaderID, GL_INFO_LOG_LENGTH, &result);
-			buffer = new char[result];
-			glGetShaderInfoLog(shaderID, result, 0, buffer);
-			logs->logMessage(LogMessage(std::string("Shader compiler error at: ")
-																	+ std::string(filename) + std::string("\n")
-																	+ std::string(buffer), true, true));
-			delete buffer;
-		}
+    // Compile the source.
+    uint shaderID = glCreateShader(static_cast<GLenum>(stage));
+    glShaderSource(shaderID, 1, (const  GLchar**) &source, nullptr);
+    glCompileShader(shaderID);
 
-		switch (type)
-		{
-			case GL_VERTEX_SHADER:
-				this->vertID = shaderID;
-				this->vertSource = std::string(source);
-				break;
-			case GL_FRAGMENT_SHADER:
-				this->fragID = shaderID;
-				this->fragSource = std::string(source);
-				break;
-			default:
-				logs->logMessage(LogMessage("Shader type unknown!", true, true));
-				break;
-		}
-	}
+    // Check to see if the compilation succeeded.
+    int result;
+    char* buffer;
+    glGetShaderiv(shaderID, GL_COMPILE_STATUS, &result);
+    if (result != GL_TRUE)
+    {
+      glGetShaderiv(shaderID, GL_INFO_LOG_LENGTH, &result);
+      buffer = new char[result];
+      glGetShaderInfoLog(shaderID, result, 0, buffer);
 
-	// Builds a shader from the provided source.
-	void
-	Shader::buildShaderSource(int type, const std::string &strSource)
-	{
-		Logger* logs = Logger::getInstance();
+      std::string message = "Shader compiler error at: "
+													+ shaderStageToString(stage) + "\n"
+													+ std::string(buffer);
+      logs->logMessage({ message, true, true });
 
-		uint shaderID;
-		int result;
-		char* buffer;
+      delete buffer;
+    }
 
-		shaderID = glCreateShader(type);
-		char* source = (char*) strSource.c_str();
-		if (source == 0)
-			return;
+    return shaderID;
+  }
 
-		glShaderSource(shaderID, 1, (const  GLchar**) &source, 0);
-		glCompileShader(shaderID);
-		glGetShaderiv(shaderID, GL_COMPILE_STATUS, &result);
-		if (result != GL_TRUE)
-		{
-			glGetShaderiv(shaderID, GL_INFO_LOG_LENGTH, &result);
-			buffer = new char[result];
-			glGetShaderInfoLog(shaderID, result, 0, buffer);
-			logs->logMessage(LogMessage(std::string("Shader compiler error: ")
-																	+ std::string(buffer), true, true));
-			delete buffer;
-		}
+  void
+  Shader::linkProgram(const std::vector<uint> &binaries)
+  {
+    Logger* logs = Logger::getInstance();
 
-		switch (type)
-		{
-			case GL_VERTEX_SHADER:
-				this->vertID = shaderID;
-				this->vertSource = std::string(source);
-				break;
-			case GL_FRAGMENT_SHADER:
-				this->fragID = shaderID;
-				this->fragSource = std::string(source);
-				break;
-			default:
-				logs->logMessage(LogMessage("Shader type unknown!", true, true));
-				break;
-		}
-	}
+    // Attach separate shader binaries.
+    for (auto& shaderID : binaries)
+      glAttachShader(this->progID, shaderID);
 
-	// Link the shader program together. TODO: Move away from C to C++.
-	void
-	Shader::buildProgram(uint first, ...)
-	{
-		int result;
-		char *buffer;
-		va_list argptr;
-		int shader;
-		int vs = 0;
-		int fs = 0;
-		int type;
+    // Link the shader program.
+    glLinkProgram(this->progID);
 
-		this->progID = glCreateProgram();
-		if (first != 0)
-		{
-			glAttachShader(this->progID, first);
-			glGetShaderiv(first, GL_SHADER_TYPE, &type);
-			if (type == GL_VERTEX_SHADER)
-				vs++;
-			if (type == GL_FRAGMENT_SHADER)
-				fs++;
-		}
-
-		va_start(argptr,first);
-		while ((shader = va_arg(argptr,int)) != 0)
-		{
-			glAttachShader(this->progID, shader);
-			glGetShaderiv(shader, GL_SHADER_TYPE, &type);
-			if (type == GL_VERTEX_SHADER)
-				vs++;
-			if (type == GL_FRAGMENT_SHADER)
-				fs++;
-		}
-
-		if (vs == 0)
-			printf("no vertex shader\n");
-		if (fs == 0)
-			printf("no fragment shader\n");
-
-		glLinkProgram(this->progID);
+    // Check to see if the link succeeded.
+    int result;
+    char* buffer;
 		glGetProgramiv(this->progID, GL_LINK_STATUS, &result);
-
-		if (result != GL_TRUE)
+    if (result != GL_TRUE)
 		{
-			printf("program link error\n");
-			glGetProgramiv(this->progID, GL_INFO_LOG_LENGTH, &result);
-			buffer = new char[result];
+      glGetProgramiv(this->progID, GL_INFO_LOG_LENGTH, &result);
+      buffer = new char[result];
 			glGetProgramInfoLog(this->progID, result, 0, buffer);
-			printf("%s\n",buffer);
-			delete buffer;
-		}
-	}
 
-	// Saves the vertex and fragment shader source code to the files they were
-	// loaded from.
-	void
-	Shader::saveSourceToFiles()
-	{
-		Logger* logs = Logger::getInstance();
+      std::string message = "Shader link error:\n"
+													+ std::string(buffer);
+      logs->logMessage({ message, true, true });
 
-		if (this->vertPath == "" || this->fragPath == "")
-		{
-			logs->logMessage(LogMessage("Could not save shader file, missing one or "
-																	"more path(s)!", true, true));
-			return;
-		}
-		bool successful = true;
+      delete buffer;
+    }
 
-		// Save the vertex source first.
-		std::ofstream vertFile(this->vertPath, std::ios::out | std::ios::trunc);
+    // Delete the shader binaries now, no longer needed as they are linked in a
+    // program.
+    for (auto& shaderID : binaries)
+      glDeleteShader(shaderID);
+  }
 
-		if (vertFile.is_open())
-		{
-			vertFile << this->vertSource;
-			vertFile.close();
-		}
-		else
-		{
-			logs->logMessage(LogMessage("Failed to save the vertex source.",
-																	true, true));
-			successful = false;
-		}
-
-		// Save the fragment source second.
-		std::ofstream fragFile(this->fragPath, std::ios::out | std::ios::trunc);
-
-		if (fragFile.is_open())
-		{
-			fragFile << this->fragSource;
-			fragFile.close();
-		}
-		else
-		{
-			logs->logMessage(LogMessage("Failed to save the fragment source.",
-																	true, true));
-			successful = false;
-		}
-
-		if (successful)
-			logs->logMessage(LogMessage("Successfully saved the shader.",
-																	true, true));
-	}
-
-	// Saves the vertex and fragment shader source code to a new text file.
-	void
-	Shader::saveSourceToFiles(const std::string &vertPath,
-														const std::string &fragPath)
-	{
-		Logger* logs = Logger::getInstance();
-
-		if (vertPath == "" || fragPath == "")
-		{
-			logs->logMessage(LogMessage("Could not save shader file, missing one or "
-																	"more paths!", true, true));
-			return;
-		}
-		bool successful = true;
-
-		// Save the vertex source first.
-		std::ofstream vertFile(vertPath, std::ios::out | std::ios::trunc);
-
-		if (vertFile.is_open())
-		{
-			vertFile << this->vertSource;
-			vertFile.close();
-		}
-		else
-		{
-			logs->logMessage(LogMessage("Failed to save vertex source.",
-																	true, true));
-			successful = false;
-		}
-
-		// Save the fragment source second.
-		std::ofstream fragFile(fragPath, std::ios::out | std::ios::trunc);
-
-		if (fragFile.is_open())
-		{
-			fragFile << this->fragSource;
-			fragFile.close();
-		}
-		else
-		{
-			logs->logMessage(LogMessage("Failed to save fragment source.",
-																	true, true));
-			successful = false;
-		}
-
-		if (successful)
-			logs->logMessage(LogMessage("Successfully saved the shader files.",
-																	true, true));
-	}
-
-	void
-	Shader::bind()
-	{
-		glUseProgram(this->progID);
-	}
-
-	void
-	Shader::unbind()
-	{
-		glUseProgram(0);
-	}
-
-	// Setters for uniform matrices.
+  // Push uniform data.
 	void
 	Shader::addUniformMatrix(const char* uniformName, const glm::mat4 &matrix,
-													 bool transpose)
+													  bool transpose)
 	{
 		GLboolean glTranspose = static_cast<GLboolean>(transpose);
-		this->bind();
+		glUseProgram(this->progID);
 		uint uniLoc = glGetUniformLocation(this->progID, uniformName);
 		glUniformMatrix4fv(uniLoc, 1, glTranspose, glm::value_ptr(matrix));
 	}
 
 	void
 	Shader::addUniformMatrix(const char* uniformName, const glm::mat3 &matrix,
-													 bool transpose)
+													  bool transpose)
 	{
 		GLboolean glTranspose = static_cast<GLboolean>(transpose);
-		this->bind();
+		glUseProgram(this->progID);
 		uint uniLoc = glGetUniformLocation(this->progID, uniformName);
 		glUniformMatrix3fv(uniLoc, 1, glTranspose, glm::value_ptr(matrix));
 	}
 
 	void
 	Shader::addUniformMatrix(const char* uniformName, const glm::mat2 &matrix,
-													 bool transpose)
+													  bool transpose)
 	{
 		GLboolean glTranspose = static_cast<GLboolean>(transpose);
-		this->bind();
+		glUseProgram(this->progID);
 		uint uniLoc = glGetUniformLocation(this->progID, uniformName);
 		glUniformMatrix2fv(uniLoc, 1, glTranspose, glm::value_ptr(matrix));
 	}
 
-	// Setter for uniform vectors.
 	void
 	Shader::addUniformVector(const char* uniformName, const glm::vec4 &vector)
 	{
-		this->bind();
+		glUseProgram(this->progID);
 		uint uniLoc = glGetUniformLocation(this->progID, uniformName);
 		glUniform4f(uniLoc, vector[0], vector[1], vector[2], vector[3]);
 	}
@@ -439,7 +294,7 @@ namespace Strontium
 	void
 	Shader::addUniformVector(const char* uniformName, const glm::vec3 &vector)
 	{
-		this->bind();
+		glUseProgram(this->progID);
 		uint uniLoc = glGetUniformLocation(this->progID, uniformName);
 		glUniform3f(uniLoc, vector[0], vector[1], vector[2]);
 	}
@@ -447,16 +302,15 @@ namespace Strontium
 	void
 	Shader::addUniformVector(const char* uniformName, const glm::vec2 &vector)
 	{
-		this->bind();
+		glUseProgram(this->progID);
 		uint uniLoc = glGetUniformLocation(this->progID, uniformName);
 		glUniform2f(uniLoc, vector[0], vector[1]);
 	}
 
-	// Setters for singleton uniform data.
 	void
 	Shader::addUniformFloat(const char* uniformName, float value)
 	{
-		this->bind();
+		glUseProgram(this->progID);
 		uint uniLoc = glGetUniformLocation(this->progID, uniformName);
 		glUniform1f(uniLoc, value);
 	}
@@ -464,7 +318,7 @@ namespace Strontium
 	void
 	Shader::addUniformInt(const char* uniformName, int value)
 	{
-		this->bind();
+		glUseProgram(this->progID);
 		uint uniLoc = glGetUniformLocation(this->progID, uniformName);
 		glUniform1i(uniLoc, value);
 	}
@@ -472,195 +326,16 @@ namespace Strontium
 	void
 	Shader::addUniformUInt(const char* uniformName, uint value)
 	{
-		this->bind();
+		glUseProgram(this->progID);
 		uint uniLoc = glGetUniformLocation(this->progID, uniformName);
 		glUniform1ui(uniLoc, value);
 	}
 
-	// Set a texture sampler.
 	void
 	Shader::addUniformSampler(const char* uniformName, uint texID)
 	{
-		this->bind();
+		glUseProgram(this->progID);
 		uint uniLoc = glGetUniformLocation(this->progID, uniformName);
 		glUniform1i(uniLoc, texID);
-	}
-
-	int
-	Shader::getSamplerLocation(const char* uniformName)
-	{
-		return glGetUniformLocation(this->progID, uniformName);
-	}
-
-	// Vertex attribute setters.
-	void
-	Shader::addAtribute(const char* attribName, AttribType type,
-											bool normalized, unsigned size, unsigned stride)
-	{
-		GLboolean glNormalized = static_cast<GLboolean>(normalized);
-		this->bind();
-		uint attribPos = glGetAttribLocation(this->progID, attribName);
-		switch (type)
-    {
-      case AttribType::Vec4:
-      {
-        glVertexAttribPointer(attribPos, 4, GL_FLOAT, glNormalized, size, (void*) (unsigned long) stride);
-        break;
-      }
-      case AttribType::Vec3:
-      {
-        glVertexAttribPointer(attribPos, 3, GL_FLOAT, glNormalized, size, (void*) (unsigned long) stride);
-        break;
-      }
-      case AttribType::Vec2:
-      {
-        glVertexAttribPointer(attribPos, 2, GL_FLOAT, glNormalized, size, (void*) (unsigned long) stride);
-        break;
-      }
-      case AttribType::IVec4:
-      {
-        glVertexAttribIPointer(attribPos, 4, GL_INT, size, (void*) (unsigned long) stride);
-        break;
-      }
-      case AttribType::IVec3:
-      {
-        glVertexAttribIPointer(attribPos, 3, GL_INT, size, (void*) (unsigned long) stride);
-        break;
-      }
-      case AttribType::IVec2:
-      {
-        glVertexAttribIPointer(attribPos, 2, GL_INT, size, (void*) (unsigned long) stride);
-        break;
-      }
-    }
-
-		glEnableVertexAttribArray(attribPos);
-	}
-
-	// Debug method to dump the shader program.
-	std::string
-	Shader::dumpProgram()
-	{
-		char name[256];
-		GLsizei length;
-		int size;
-		GLenum type;
-		int uniforms, attributes, shaders;
-
-		std::string output = "";
-
-		if (!glIsProgram(this->progID))
-		{
-			output += "Not a valid shader program!";
-			return output;
-		}
-
-		glGetProgramiv(this->progID, GL_ATTACHED_SHADERS, &shaders);
-		output += "Number of attached shaders: ";
-		output += std::to_string(shaders);
-		output += "\n";
-
-		glGetProgramiv(this->progID, GL_ACTIVE_UNIFORMS, &uniforms);
-		output += "Number of active uniforms: ";
-		output += std::to_string(uniforms);
-		output += "\n";
-
-		for (unsigned i = 0; i < uniforms; i++)
-		{
-			glGetActiveUniform(this->progID, i, 256, &length, &size, &type, name);
-			output += "    Name: ";
-			output += name;
-			output += " (";
-			output += enumToString(type);
-			output += ")";
-			output += "\n";
-		}
-
-		glGetProgramiv(this->progID, GL_ACTIVE_ATTRIBUTES, &attributes);
-		output += "Number of active attributes: ";
-		output += std::to_string(attributes);
-		output += "\n";
-
-		for (unsigned i = 0; i < attributes; i++)
-		{
-			glGetActiveAttrib(this->progID, i, 256, &length, &size, &type, name);
-			output += "    Name: ";
-			output += name;
-			output += " (";
-			output += enumToString(type);
-			output += ")";
-			output += "\n";
-		}
-
-		return output;
-	}
-
-	// Convert an enum to a string to make shader validation and material
-	// properties easier to do. TODO: Add more uniforms and attributes.
-	std::string
-	Shader::enumToString(uint sEnum)
-	{
-		switch (sEnum)
-		{
-			case GL_FLOAT: return "float";
-			case GL_FLOAT_VEC2: return "vec2";
-			case GL_FLOAT_VEC3: return "vec3";
-			case GL_FLOAT_VEC4: return "vec4";
-			case GL_FLOAT_MAT3: return "mat3";
-			case GL_FLOAT_MAT4: return "mat4";
-			case GL_SAMPLER_1D: return "sampler1D";
-			case GL_SAMPLER_2D: return "sampler2D";
-			case GL_SAMPLER_3D: return "sampler3D";
-			case GL_SAMPLER_CUBE: return "samplerCube";
-
-			default: return "????";
-		}
-	}
-
-	UniformType
-	Shader::enumToUniform(uint sEnum)
-	{
-		switch (sEnum)
-		{
-			case GL_FLOAT: return UniformType::Float;
-			case GL_FLOAT_VEC2: return UniformType::Vec2;
-			case GL_FLOAT_VEC3: return UniformType::Vec3;
-			case GL_FLOAT_VEC4: return UniformType::Vec4;
-			case GL_FLOAT_MAT3: return UniformType::Mat3;
-			case GL_FLOAT_MAT4: return UniformType::Mat4;
-			case GL_SAMPLER_1D: return UniformType::Sampler1D;
-			case GL_SAMPLER_2D: return UniformType::Sampler2D;
-			case GL_SAMPLER_3D: return UniformType::Sampler3D;
-			case GL_SAMPLER_CUBE: return UniformType::SamplerCube;
-
-			default: return UniformType::Unknown;
-		}
-	}
-
-  // Read in the shader source code. TODO: Move away from C to C++.
-	char*
-	Shader::readShaderFile(const char* filename)
-	{
-		FILE* fid;
-		char *buffer;
-		int len;
-		int n;
-
-		fid = fopen(filename,"r");
-		if (fid == NULL)
-		{
-			printf("can't open shader file: %s\n", filename);
-			return(0);
-		}
-
-		fseek(fid, 0, SEEK_END);
-		len = ftell(fid);
-		rewind(fid);
-
-		buffer = new char[len+1];
-		n = fread(buffer, sizeof(char), len, fid);
-		buffer[n] = 0;
-
-		return buffer;
 	}
 }

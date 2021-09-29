@@ -1,5 +1,25 @@
+#type common
 #version 440
 
+#type vertex
+layout (location = 0) in vec4 vPosition;
+
+layout(std140, binding = 2) uniform ModelBlock
+{
+  mat4 u_modelMatrix;
+};
+
+layout(std140, binding = 6) uniform LightSpaceBlock
+{
+  mat4 u_lightViewProj;
+};
+
+void main()
+{
+  gl_Position = u_lightViewProj * u_modelMatrix * vPosition;
+}
+
+#type fragment
 #define WARP 44.0
 
 layout(location = 0) out vec4 fragColour;
@@ -20,6 +40,6 @@ void main()
   float negdFdx = -1.0 * WARP * negMom1 * dzdx;
   float negdFdy = -1.0 * WARP * negMom1 * dzdy;
   float negMom2 = negMom1 * negMom1 + (0.25 * (negdFdx * negdFdx + negdFdy * negdFdy));
-  
+
   fragColour = vec4(posMom1, posMom2, negMom1, negMom2);
 }

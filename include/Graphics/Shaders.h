@@ -1,14 +1,20 @@
-// This file contains some shader code developed by Dr. Mark Green at OTU. It
-// has been heavily modified to support OpenGL abstraction.
-
-// Include guard.
 #pragma once
 
-// Macro include file.
 #include "StrontiumPCH.h"
 
 namespace Strontium
 {
+  enum class ShaderStage
+  {
+    Vertex = 0x8B31, // GL_VERTEX_SHADER
+    TessControl = 0x8E88, // GL_TESS_CONTROL_SHADER
+    TessEval = 0x8E87, // GL_TESS_EVALUATION_SHADER
+    Geometry = 0x8DD9, // GL_GEOMETRY_SHADER
+    Fragment = 0x8B30, // GL_FRAGMENT_SHADER
+    Compute = 0x91B9, // GL_COMPUTE_SHADER
+    Unknown
+  };
+
   enum class AttribType { Vec4, Vec3, Vec2, IVec4, IVec3, IVec2 };
   enum class UniformType
   {
@@ -25,35 +31,20 @@ namespace Strontium
     Unknown
   };
 
+  // Shader abstraction which supports multiple shader stages.
   class Shader
   {
   public:
-    // Constructor and destructor.
+    // Convert enums to strings and other enums.
+    static std::string shaderStageToString(const ShaderStage &stage);
+
     Shader();
-    Shader(const std::string &vertPath, const std::string &fragPath);
+    Shader(const std::string &filepath);
     ~Shader();
 
-    // Shader parser/compiler function.
-    void buildShader(int type, const char* filename);
-    void buildShaderSource(int type, const std::string &strSource);
-
-    // Program linker function.
-    void buildProgram(uint first, ...);
-
-    // Rebuild the shader. Includes source parsing, compiling and linking.
+    // Reload the shader from its source on disk.
     void rebuild();
 
-    // Rebuilds from the shader sources as strings.
-    void rebuildFromString();
-    void rebuildFromString(const std::string &vertSource, const std::string &fragSource);
-
-    // Saves the vertex and fragment shader source code to the files they were
-    // loaded from.
-    void saveSourceToFiles();
-    // Saves the vertex and fragment shader source code to a new text file.
-    void saveSourceToFiles(const std::string &vertPath, const std::string &fragPath);
-
-    // Bind/unbind the shader.
     void bind();
     void unbind();
 
@@ -72,45 +63,15 @@ namespace Strontium
     void addUniformUInt(const char* uniformName, uint value);
 
     void addUniformSampler(const char* uniformName, uint texID);
-    int getSamplerLocation(const char* uniformName);
 
-    // Setters for vertex attributes.
-    void addAtribute(const char* attribName, AttribType type,
-                     bool transpose, unsigned size, unsigned stride);
-
-    // Shader dumb method, returns a string with all of the shader properties.
-    std::string dumpProgram();
-
-    // Getters.
-    uint getShaderID() { return this->progID; }
-    std::string& getInfoString() { return this->shaderInfoString; }
-    std::string& getVertSource() { return this->vertSource; }
-    std::string& getFragSource() { return this->fragSource; }
-    std::vector<std::pair<std::string, UniformType>>& getUniforms() { return this->uniforms; }
-    std::vector<std::string>& getUniformNames() { return this->uniformNames; }
-
-    // Set the shader source for dynamic rebuilding.
-    void setVertSource(const std::string &source) { this->vertSource = source; }
-    void setFragSource(const std::string &source) { this->fragPath = source; }
-
-    // Convert GLenums to strings.
-    static std::string enumToString(uint sEnum);
-    static UniformType enumToUniform(uint sEnum);
-  protected:
-    uint progID;
-    uint vertID;
-    uint fragID;
-
-    std::string vertPath;
-    std::string fragPath;
-
-    std::string vertSource;
-    std::string fragSource;
-
-    std::string shaderInfoString;
-    std::vector<std::pair<std::string, UniformType>> uniforms;
-    std::vector<std::string> uniformNames;
   private:
-      char *readShaderFile(const char* filename);
+    void loadFile(const std::string &filepath);
+    uint compileStage(const ShaderStage &stage, const std::string &stageSource);
+    void linkProgram(const std::vector<uint> &binaries);
+
+    uint progID;
+
+    std::unordered_map<ShaderStage, std::string> shaderSources;
+    std::string shaderPath;
   };
 }

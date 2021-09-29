@@ -45,7 +45,7 @@ namespace Strontium
     , transmittanceCompute("./assets/shaders/compute/transCompute.cs")
     , multiScatCompute("./assets/shaders/compute/multiscatCompute.cs")
     , skyViewCompute("./assets/shaders/compute/skyviewCompute.cs")
-    , dynamicSkyShader("./assets/shaders/forward/pbrSkybox.vs", "./assets/shaders/forward/pbrSkybox.fs")
+    , dynamicSkyShader("./assets/shaders/forward/skybox.srshader")
     , currentEnvironment(MapType::Skybox)
     , currentDynamicSky(DynamicSkyType::Preetham)
     , intensity(1.0f)

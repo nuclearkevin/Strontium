@@ -607,8 +607,8 @@ namespace Strontium
       }
 
       // Actual shadow pass.
-      Shader* horizontalShadowBlur = shaderCache->getAsset("post_hor_gaussian_blur");
-      Shader* verticalShadowBlur = shaderCache->getAsset("post_ver_gaussian_blur");
+      Shader* horizontalShadowBlur = shaderCache->getAsset("gaussian_hori");
+      Shader* verticalShadowBlur = shaderCache->getAsset("gaussian_vert");
 
       storage->transformBuffer.bindToPoint(2);
 
@@ -989,7 +989,7 @@ namespace Strontium
       storage->gBuffer.bindAttachment(FBOTargetParam::Colour4, 1);
       storage->upscaleBloomTex[0].bind(2);
 
-      draw(&storage->fsq, shaderCache->getAsset("post_hdr"));
+      draw(&storage->fsq, shaderCache->getAsset("post_processing"));
 
       RendererCommands::enable(RendererFunction::Blending);
       RendererCommands::blendEquation(BlendEquation::Additive);
@@ -1002,7 +1002,7 @@ namespace Strontium
       if (state->drawGrid)
       {
         storage->gBuffer.bindAttachment(FBOTargetParam::Depth, 0);
-        draw(&storage->fsq, shaderCache->getAsset("post_grid"));
+        draw(&storage->fsq, shaderCache->getAsset("grid"));
       }
 
       //------------------------------------------------------------------------
@@ -1012,7 +1012,7 @@ namespace Strontium
       if (storage->drawEdge)
       {
         storage->gBuffer.bindAttachment(FBOTargetParam::Colour4, 0);
-        draw(&storage->fsq, shaderCache->getAsset("post_entity_outline"));
+        draw(&storage->fsq, shaderCache->getAsset("outline"));
       }
       RendererCommands::enable(RendererFunction::DepthTest);
       RendererCommands::disable(RendererFunction::Blending);

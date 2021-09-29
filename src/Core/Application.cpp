@@ -43,56 +43,43 @@ namespace Strontium
 
     // Load the shaders into a cache.
     this->shaderCache->attachAsset("static_shadow_shader",
-      new Shader("./assets/shaders/shadows/staticDirectionalShadow.vs",
-                 "./assets/shaders/shadows/directionalShadow.fs"));
+      new Shader("./assets/shaders/shadows/staticShadow.srshader"));
 
     this->shaderCache->attachAsset("dynamic_shadow_shader",
-      new Shader("./assets/shaders/shadows/dynamicDirectionalShadow.vs",
-                 "./assets/shaders/shadows/directionalShadow.fs"));
+      new Shader("./assets/shaders/shadows/dynamicShadowShader.srshader"));
 
     this->shaderCache->attachAsset("geometry_pass_shader",
-      new Shader("./assets/shaders/deferred/staticGeometryPass.vs",
-                 "./assets/shaders/deferred/geometryPass.fs"));
+      new Shader("./assets/shaders/deferred/staticGeometryPass.srshader"));
 
     this->shaderCache->attachAsset("dynamic_geometry_pass",
-      new Shader("./assets/shaders/deferred/dynamicGeometryPass.vs",
-                 "./assets/shaders/deferred/geometryPass.fs"));
+      new Shader("./assets/shaders/deferred/dynamicGeometryPass.srshader"));
 
     this->shaderCache->attachAsset("deferred_ambient",
-      new Shader("./assets/shaders/deferred/lightingPass.vs",
-                 "./assets/shaders/deferred/ambientLightingPass.fs"));
+      new Shader("./assets/shaders/deferred/ambientLight.srshader"));
 
     this->shaderCache->attachAsset("deferred_directional_shadowed",
-      new Shader("./assets/shaders/deferred/lightingPass.vs",
-                 "./assets/shaders/deferred/directionalLightPassShadowed.fs"));
+      new Shader("./assets/shaders/deferred/shadowedDirectionalLight.srshader"));
 
     this->shaderCache->attachAsset("deferred_directional",
-      new Shader("./assets/shaders/deferred/lightingPass.vs",
-                 "./assets/shaders/deferred/directionalLightPass.fs"));
+      new Shader("./assets/shaders/deferred/directionalLight.srshader"));
 
     this->shaderCache->attachAsset("deferred_point",
-      new Shader("./assets/shaders/deferred/lightingPass.vs",
-                 "./assets/shaders/deferred/pointLightPass.fs"));
+      new Shader("./assets/shaders/deferred/pointLight.srshader"));
 
-    this->shaderCache->attachAsset("post_hdr",
-      new Shader("./assets/shaders/post/postProcessingPass.vs",
-                 "./assets/shaders/post/hdrPostPass.fs"));
+    this->shaderCache->attachAsset("post_processing",
+      new Shader("./assets/shaders/post/postProcessing.srshader"));
 
-    this->shaderCache->attachAsset("post_entity_outline",
-      new Shader("./assets/shaders/post/postProcessingPass.vs",
-                 "./assets/shaders/post/outlinePostPass.fs"));
+    this->shaderCache->attachAsset("outline",
+      new Shader("./assets/shaders/post/outline.srshader"));
 
-    this->shaderCache->attachAsset("post_hor_gaussian_blur",
-      new Shader("./assets/shaders/post/postProcessingPass.vs",
-                 "./assets/shaders/shadows/horShadowBlur.fs"));
+    this->shaderCache->attachAsset("grid",
+      new Shader("./assets/shaders/post/grid.srshader"));
 
-    this->shaderCache->attachAsset("post_ver_gaussian_blur",
-      new Shader("./assets/shaders/post/postProcessingPass.vs",
-                 "./assets/shaders/shadows/verShadowBlur.fs"));
+    this->shaderCache->attachAsset("gaussian_hori",
+      new Shader("./assets/shaders/post/gaussianHori.srshader"));
 
-    this->shaderCache->attachAsset("post_grid",
-      new Shader("./assets/shaders/post/postGrid.vs",
-                 "./assets/shaders/post/postGrid.fs"));
+    this->shaderCache->attachAsset("gaussian_vert",
+      new Shader("./assets/shaders/post/gaussianVert.srshader"));
 
     // Load the default assets.
     // Default texture (an ugly purple) and the default material properties

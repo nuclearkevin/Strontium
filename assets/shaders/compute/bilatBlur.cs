@@ -26,7 +26,7 @@ float normpdf(float x, float sigma)
 	return 0.39894 * exp(-0.5 * x * x / (sigma * sigma)) / sigma;
 }
 
-float normpdf3(vec3 v, float sigma)
+float normpdf4(vec4 v, float sigma)
 {
 	return 0.39894 * exp(-0.5 * dot(v,v) / (sigma * sigma)) / sigma;
 }
@@ -35,12 +35,12 @@ void main()
 {
   ivec2 invoke = ivec2(gl_GlobalInvocationID.xy);
 
-  vec3 c = imageLoad(inImage, invoke + ivec2(0, 0)).rgb;
+  vec4 c = imageLoad(inImage, invoke + ivec2(0, 0)).rgba;
 
   const int kSize = (MSIZE - 1) / 2;
-  vec3 result = vec3(0.0);
+  vec4 result = vec4(0.0);
 
-  vec3 cc;
+  vec4 cc;
   float factor;
   float bZ = 1.0 / normpdf(0.0, BSIGMA);
   float Z = 0.0;
@@ -48,12 +48,12 @@ void main()
   {
     for (int j = -kSize; j <= kSize; ++j)
     {
-      cc = imageLoad(inImage, invoke + ivec2(i, j)).rgb;
-      factor = normpdf3(cc - c, BSIGMA) * bZ * kernel[kSize + j] * kernel[kSize + i];
+      cc = imageLoad(inImage, invoke + ivec2(i, j)).rgba;
+      factor = normpdf4(cc - c, BSIGMA) * bZ * kernel[kSize + j] * kernel[kSize + i];
       Z += factor;
       result += factor * cc;
     }
   }
 
-  imageStore(outImage, invoke, vec4(result / Z, 1.0));
+  imageStore(outImage, invoke, vec4(result / Z));
 }

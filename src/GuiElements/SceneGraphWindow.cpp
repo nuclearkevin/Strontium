@@ -148,7 +148,7 @@ namespace Strontium
     , selectedString("")
     , fileTargets(FileLoadTargets::TargetNone)
     , saveTargets(FileSaveTargets::TargetNone)
-    , dirWidgetShader("./assets/shaders/mesh.vs", "./assets/shaders/widgets/dirWidget.fs")
+    , dirWidgetShader("./assets/shaders/widgets/lightWidget.srshader")
     , widgetWidth(0.0f)
     , selectedSubmesh(nullptr)
   {
