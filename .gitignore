@@ -2,7 +2,6 @@
 *.cap
 *.pyc
 *.csv
-*.txt
 *.obj
 *.png
 *.mtl
