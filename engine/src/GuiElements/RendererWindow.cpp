@@ -41,6 +41,9 @@ namespace Strontium
     ImGui::Checkbox("Frustum Cull", &state->frustumCull);
     ImGui::Checkbox("Enable FXAA", &state->enableFXAA);
 
+    // TODO: Soft shadow quality settings (Hard shadows, Low, medium, high, ultra). 
+    // Low is a simple box blur, medium->ultra are gaussian with different number 
+    // of taps.Hard shadows are regular shadow maps with zero prefiltering.
     if (ImGui::CollapsingHeader("Shadows"))
     {
       static int cascadeIndex = 0;

@@ -207,6 +207,7 @@ namespace Strontium
         this->currentScene->onUpdateEditor(dt);
 
         // Draw the scene.
+        this->drawBuffer->clear();
         Renderer3D::begin(this->editorSize.x, this->editorSize.y, (Camera) (*this->editorCam.get()));
         this->currentScene->onRenderEditor(this->getSelectedEntity());
         Renderer3D::end(this->drawBuffer);

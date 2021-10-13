@@ -161,6 +161,13 @@ namespace Strontium
         storage->height = height;
       }
 
+      // Clear the shadow pass FBOs.
+      for (unsigned int i = 0; i < NUM_CASCADES; i++)
+        storage->shadowBuffer[i].clear();
+
+      // Clear the lighting pass FBO.
+      storage->lightingPass.clear();
+
       // Reset the stats each frame.
       stats->drawCalls = 0;
       stats->numVertices = 0;
@@ -429,6 +436,9 @@ namespace Strontium
     //--------------------------------------------------------------------------
     // Deferred shadow mapping pass. Cascaded shadows for a "primary light".
     //--------------------------------------------------------------------------
+    // TODO: Soft shadow quality settings (hard shadows, Low, medium, high, ultra). 
+    // Low is a simple box blur, medium->ultra are gaussian with different number 
+    // of taps. Hard shadows are regular shadow maps with zero prefiltering.
     void
     shadowPass()
     {
@@ -594,14 +604,13 @@ namespace Strontium
 
       storage->transformBuffer.bindToPoint(2);
 
-      for (unsigned int i = 0; i < NUM_CASCADES; i++)
+      if (storage->hasCascades)
       {
-        storage->shadowBuffer[i].clear();
-        storage->shadowBuffer[i].bind();
-        storage->shadowBuffer[i].setViewport();
-
-        if (storage->hasCascades)
+        for (unsigned int i = 0; i < NUM_CASCADES; i++)
         {
+          storage->shadowBuffer[i].bind();
+          storage->shadowBuffer[i].setViewport();
+
           storage->cascadeShadowPassBuffer.bindToPoint(6);
           storage->cascadeShadowPassBuffer.setData(0, sizeof(glm::mat4), glm::value_ptr(storage->cascades[i]));
 
@@ -609,18 +618,18 @@ namespace Strontium
           Shader* program = shaderCache->getAsset("static_shadow_shader");
           for (auto& pair : storage->staticShadowQueue)
           {
-            storage->transformBuffer.setData(0, sizeof(glm::mat4), glm::value_ptr(pair.second));
+              storage->transformBuffer.setData(0, sizeof(glm::mat4), glm::value_ptr(pair.second));
 
-            for (auto& submesh : pair.first->getSubmeshes())
-            {
-              if (submesh.hasVAO())
-                Renderer3D::draw(submesh.getVAO(), program);
-              else
+              for (auto& submesh : pair.first->getSubmeshes())
               {
-                submesh.generateVAO();
-                Renderer3D::draw(submesh.getVAO(), program);
+                  if (submesh.hasVAO())
+                      Renderer3D::draw(submesh.getVAO(), program);
+                  else
+                  {
+                      submesh.generateVAO();
+                      Renderer3D::draw(submesh.getVAO(), program);
+                  }
               }
-            }
           }
 
           // Dynamic shadow pass.
@@ -632,48 +641,48 @@ namespace Strontium
 
             auto& bones = animation->getFinalBoneTransforms();
             storage->boneBuffer.setData(0, bones.size() * sizeof(glm::mat4),
-                                        bones.data());
+                bones.data());
 
             for (auto& submesh : data->getSubmeshes())
             {
               if (submesh.hasVAO())
-                Renderer3D::draw(submesh.getVAO(), program);
+                  Renderer3D::draw(submesh.getVAO(), program);
               else
               {
-                submesh.generateVAO();
-                Renderer3D::draw(submesh.getVAO(), program);
+                  submesh.generateVAO();
+                  Renderer3D::draw(submesh.getVAO(), program);
               }
             }
           }
         }
-        storage->shadowBuffer[i].unbind();
 
         // Apply a 2-pass 9 tap Gaussian blur to the shadow map.
-        // First pass (horizontal) is FBO attachment -> temp FBO.
         RendererCommands::disableDepthMask();
         RendererCommands::disable(RendererFunction::DepthTest);
-        storage->shadowEffectsBuffer.clear();
-        storage->shadowEffectsBuffer.bind();
-        storage->shadowEffectsBuffer.setViewport();
+        for (unsigned int i = 0; i < NUM_CASCADES; i++)
+        {
+          // First pass (horizontal) is FBO attachment -> temp FBO.
+          storage->shadowEffectsBuffer.bind();
+          storage->shadowEffectsBuffer.setViewport();
 
-        storage->shadowBuffer[i].bindTextureID(FBOTargetParam::Colour0, 0);
-        draw(&storage->fsq, horizontalShadowBlur);
+          storage->shadowBuffer[i].bindTextureID(FBOTargetParam::Colour0, 0);
+          draw(&storage->fsq, horizontalShadowBlur);
 
-        storage->shadowEffectsBuffer.unbind();
+          storage->shadowEffectsBuffer.unbind();
 
-        // Second pass (vertical) is temp FBO -> FBO attachment.
-        storage->shadowBuffer[i].clear();
-        storage->shadowBuffer[i].bind();
-        storage->shadowBuffer[i].setViewport();
+          // Second pass (vertical) is temp FBO -> FBO attachment.
+          storage->shadowBuffer[i].bind();
+          storage->shadowBuffer[i].setViewport();
 
-        storage->shadowEffectsBuffer.bindTextureID(FBOTargetParam::Colour0, 0);
-        draw(&storage->fsq, verticalShadowBlur);
+          storage->shadowEffectsBuffer.bindTextureID(FBOTargetParam::Colour0, 0);
+          draw(&storage->fsq, verticalShadowBlur);
 
-        storage->shadowBuffer[i].unbind();
-
+          storage->shadowBuffer[i].unbind();
+        }
         RendererCommands::enable(RendererFunction::DepthTest);
         RendererCommands::enableDepthMask();
       }
+
       storage->staticShadowQueue.clear();
       storage->dynamicShadowQueue.clear();
 
@@ -694,7 +703,6 @@ namespace Strontium
       auto shaderCache = AssetManager<Shader>::getManager();
 
       RendererCommands::disable(RendererFunction::DepthTest);
-      storage->lightingPass.clear();
       storage->lightingPass.bind();
       storage->lightingPass.setViewport();
 
@@ -772,15 +780,15 @@ namespace Strontium
 
         if (light.castShadows && light.primaryLight)
         {
+           state->postProcessSettings.w = (uint)(storage->hasCascades && state->enableSkyshafts);
+           storage->downsampleLightshaft.bind(2);
+           storage->postProcessSettings.bindToPoint(1);
+           storage->postProcessSettings.setData(0, sizeof(glm::mat4), glm::value_ptr(storage->sceneCam.invViewProj));
+           storage->postProcessSettings.setData(2 * sizeof(glm::mat4) + 2 * sizeof(glm::vec4), sizeof(glm::ivec4), &state->postProcessSettings.x);
+
           // Launch the godray compute shaders.
           if (state->enableSkyshafts)
           {
-            state->postProcessSettings.w = (uint) (storage->hasCascades && state->enableSkyshafts);
-            storage->downsampleLightshaft.bind(2);
-            storage->postProcessSettings.bindToPoint(1);
-            storage->postProcessSettings.setData(0, sizeof(glm::mat4), glm::value_ptr(storage->sceneCam.invViewProj));
-            storage->postProcessSettings.setData(2 * sizeof(glm::mat4) + 2 * sizeof(glm::vec4), sizeof(glm::ivec4), &state->postProcessSettings.x);
-
             storage->gBuffer.bindAttachment(FBOTargetParam::Depth, 1);
             storage->lightShaftSettingsBuffer.bindToPoint(0);
             storage->lightShaftSettingsBuffer.setData(0, sizeof(glm::vec4),
@@ -942,7 +950,6 @@ namespace Strontium
       }
 
       // Prep the front buffer.
-      frontBuffer->clear();
       frontBuffer->bind();
       frontBuffer->setViewport();
 
