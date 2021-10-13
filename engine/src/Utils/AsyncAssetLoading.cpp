@@ -375,8 +375,12 @@ namespace Strontium
         return;
       }
 
+#ifdef WIN32
+      std::string name = filepath.substr(filepath.find_last_of('\\') + 1);
+#else 
       std::string name = filepath.substr(filepath.find_last_of('/') + 1);
-
+#endif
+      
       // Fetch the thread pool and event dispatcher.
       auto workerGroup = ThreadPool::getInstance(2);
 
@@ -388,7 +392,7 @@ namespace Strontium
         ImageData2D outImage;
         outImage.isHDR = (filepath.substr(filepath.find_last_of("."), 4) == ".hdr");
         outImage.params = params;
-        outImage.name = name;
+        outImage.name = name.substr(name.find_last_of("/") + 1, name.size() - 1);
         outImage.filepath = filepath;
 
         // Load the image.

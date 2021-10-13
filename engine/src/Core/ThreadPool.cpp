@@ -49,6 +49,8 @@ namespace Strontium
       if (worker.joinable())
         worker.join();
     }
+
+    std::unique_lock<std::mutex> taskLock(this->taskMutex);
   }
 
   ThreadPool*

@@ -396,8 +396,13 @@ namespace Strontium
   void
   ViewportWindow::loadDNDAsset(const std::string &filepath, Shared<Scene> activeScene)
   {
-    std::string filename = filepath.substr(filepath.find_last_of('/') + 1);
+#ifdef WIN32
+    std::string filename = filepath.substr(filepath.find_last_of('\\') + 1);
     std::string filetype = filename.substr(filename.find_last_of('.'));
+#else
+    std::string filename = filepath.substr(filepath.find_last_of('\\') + 1);
+    std::string filetype = filename.substr(filename.find_last_of('.'));
+#endif
 
     // If its a supported model file, load it as a new entity in the scene.
     if (filetype == ".obj" || filetype == ".FBX" || filetype == ".fbx"

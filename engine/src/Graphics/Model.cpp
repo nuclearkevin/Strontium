@@ -59,8 +59,12 @@ namespace Strontium
 
     this->filepath = filepath;
 
+#ifdef WIN32
+    std::string directory = filepath.substr(0, filepath.find_last_of('\\'));
+#else
     std::string directory = filepath.substr(0, filepath.find_last_of('/'));
-
+#endif
+    
     // Load the model data.
     this->globalInverseTransform = glm::inverse(Utilities::mat4ToGLM(scene->mRootNode->mTransformation));
     this->rootNode = SceneNode(scene->mRootNode->mName.C_Str(), Utilities::mat4ToGLM(scene->mRootNode->mTransformation));
