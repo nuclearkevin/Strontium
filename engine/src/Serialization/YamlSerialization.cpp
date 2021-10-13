@@ -783,6 +783,9 @@ namespace Strontium
         storage->currentEnvironment->unloadEnvironment();
 
         auto& aComponent = newEntity.addComponent<AmbientComponent>(iblImagePath);
+        storage->currentEnvironment->equiToCubeMap(true, state->skyboxWidth, state->skyboxWidth);
+        storage->currentEnvironment->precomputeIrradiance(state->irradianceWidth, state->irradianceWidth, true);
+        storage->currentEnvironment->precomputeSpecular(state->prefilterWidth, state->prefilterWidth, true);
         aComponent.ambient->getRoughness() = ambientComponent["IBLRough"].as<float>();
         aComponent.ambient->getIntensity() = ambientComponent["Intensity"].as<float>();
 

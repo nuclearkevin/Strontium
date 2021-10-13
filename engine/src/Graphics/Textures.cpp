@@ -1,11 +1,10 @@
 #include "Graphics/Textures.h"
 
-
 // Project includes.
 #include "Core/Logs.h"
 #include "Core/Events.h"
 #include "Core/AssetManager.h"
-#include "GuiElements/Styles.h"
+#include "Utils/Utilities.h"
 
 // OpenGL includes.
 #include "glad/glad.h"
@@ -29,27 +28,27 @@ namespace Strontium
     Texture2D* outTex;
     if (cache)
     {
-      if (!textureCache->hasAsset("Monocolour texture: " + Styles::colourToHex(colour)))
+      if (!textureCache->hasAsset("Monocolour texture: " + Utilities::colourToHex(colour)))
       {
         outTex = new Texture2D(1, 1, 4, params);
         textureCache->attachAsset("Monocolour texture: "
-                                  + Styles::colourToHex(colour), outTex);
+                                  + Utilities::colourToHex(colour), outTex);
 
         logs->logMessage(LogMessage("Generated monocolour texture: " +
-                                    Styles::colourToHex(colour) + ".",
+                                    Utilities::colourToHex(colour) + ".",
                                     true, true));
       }
       else
       {
-        outName = "Monocolour texture: " + Styles::colourToHex(colour);
+        outName = "Monocolour texture: " + Utilities::colourToHex(colour);
         return textureCache->getAsset("Monocolour texture: "
-                                      + Styles::colourToHex(colour));
+                                      + Utilities::colourToHex(colour));
       }
     }
     else
       outTex = new Texture2D(1, 1, 4, params);
 
-    outName = "Monocolour texture: " + Styles::colourToHex(colour);
+    outName = "Monocolour texture: " + Utilities::colourToHex(colour);
 
     outTex->bind();
 
@@ -74,20 +73,20 @@ namespace Strontium
     Texture2D* outTex;
     if (cache)
     {
-      if (!textureCache->hasAsset("Monocolour texture: " + Styles::colourToHex(colour)))
+      if (!textureCache->hasAsset("Monocolour texture: " + Utilities::colourToHex(colour)))
       {
         outTex = new Texture2D(1, 1, 4, params);
         textureCache->attachAsset("Monocolour texture: "
-                                  + Styles::colourToHex(colour), outTex);
+                                  + Utilities::colourToHex(colour), outTex);
 
         logs->logMessage(LogMessage("Generated monocolour texture: " +
-                                    Styles::colourToHex(colour) + ".",
+                                    Utilities::colourToHex(colour) + ".",
                                     true, true));
       }
       else
       {
         return textureCache->getAsset("Monocolour texture: "
-                                      + Styles::colourToHex(colour));
+                                      + Utilities::colourToHex(colour));
       }
     }
     else

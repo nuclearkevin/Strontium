@@ -45,6 +45,8 @@ namespace Strontium
 
     float getTime();
 
+    void setIcon(uint width, uint height, unsigned char* pixels);
+
     // Get the GLFW window pointer.
     GLFWwindow* getWindowPtr() { return this->glfwWindowRef; }
     // Get the window size.

@@ -297,13 +297,15 @@ namespace Strontium
 
           case FileLoadTargets::TargetEnvironment:
           {
-            auto& ambient = this->selectedEntity.getComponent<AmbientComponent>();
+            auto environment = this->selectedEntity.getComponent<AmbientComponent>().ambient;
+            auto state = Renderer3D::getState();
 
-            ambient.ambient->unloadEnvironment();
-            ambient.ambient->loadEquirectangularMap(path);
-            ambient.ambient->equiToCubeMap(true, 2048, 2048);
-            ambient.ambient->precomputeIrradiance(512, 512, true);
-            ambient.ambient->precomputeSpecular(2048, 2048, true);
+            environment->unloadEnvironment();
+            environment->loadEquirectangularMap(path);
+            environment->equiToCubeMap(true, state->skyboxWidth, state->skyboxWidth);
+            environment->equiToCubeMap(true, state->skyboxWidth, state->skyboxWidth);
+            environment->precomputeIrradiance(state->irradianceWidth, state->irradianceWidth, true);
+            environment->precomputeSpecular(state->prefilterWidth, state->prefilterWidth, true);
 
             this->fileTargets = FileLoadTargets::TargetNone;
             break;

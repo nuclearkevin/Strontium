@@ -196,8 +196,6 @@ namespace Strontium
 
       ambient->loadEquirectangularMap(iblImagePath);
       ambient->equiToCubeMap(true, state->skyboxWidth, state->skyboxWidth);
-      ambient->precomputeIrradiance(state->irradianceWidth, state->irradianceWidth, true);
-      ambient->precomputeSpecular(state->prefilterWidth, state->prefilterWidth, true);
     }
   };
 

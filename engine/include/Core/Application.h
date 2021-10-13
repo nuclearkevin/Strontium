@@ -35,7 +35,7 @@ namespace Strontium
     Shared<Window> getWindow() { return this->appWindow; }
     bool isRunning() { return this->running; }
 
-  private:
+  protected:
     // The application instance.
     static Application* appInstance;
 

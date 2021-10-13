@@ -3,7 +3,7 @@
 // Project includes.
 #include "Core/Application.h"
 #include "Core/KeyCodes.h"
-#include "Layers/EditorLayer.h"
+#include "EditorLayer.h"
 #include "Scenes/Components.h"
 #include "GuiElements/Styles.h"
 #include "Serialization/YamlSerialization.h"
@@ -422,7 +422,12 @@ namespace Strontium
       auto ambient = activeScene->createEntity("New Ambient Component");
 
       storage->currentEnvironment->unloadEnvironment();
-      ambient.addComponent<AmbientComponent>(filepath);
+      auto environment = ambient.addComponent<AmbientComponent>(filepath).ambient;
+      auto state = Renderer3D::getState();
+
+      environment->equiToCubeMap(true, state->skyboxWidth, state->skyboxWidth);
+      environment->precomputeIrradiance(state->irradianceWidth, state->irradianceWidth, true);
+      environment->precomputeSpecular(state->prefilterWidth, state->prefilterWidth, true);
     }
 
     // Load a SciRender scene file. TODO: Update this with a file load event.

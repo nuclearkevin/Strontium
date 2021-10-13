@@ -1,6 +1,6 @@
 #pragma once
 
-#include <vector>
+#include "StrontiumPCH.h"
 
 namespace Strontium
 {
@@ -31,5 +31,7 @@ namespace Strontium
 
       return loc;
     }
+
+    std::string colourToHex(const glm::vec4& colour);
   }
 }

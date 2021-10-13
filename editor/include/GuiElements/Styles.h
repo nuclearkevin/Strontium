@@ -8,7 +8,7 @@
 #include "imgui/imgui_internal.h"
 
 // Font awesome includes.
-#include "GuiElements/IconsFontAwesome4.h"
+#include "imgui/IconsFontAwesome4.h"
 
 namespace Strontium
 {
@@ -38,7 +38,6 @@ namespace Strontium
 
     ImVec4 colourFromHex(const std::string &hex);
     std::string colourToHex(const ImVec4 &colour);
-    std::string colourToHex(const glm::vec4 &colour);
   }
 }
 

@@ -1,4 +1,4 @@
-#include "Layers/EditorLayer.h"
+#include "EditorLayer.h"
 
 // Project includes.
 #include "Core/Application.h"
@@ -308,7 +308,7 @@ namespace Strontium
 
           this->currentScene = createShared<Scene>();
        	}
-        if (ImGui::MenuItem(ICON_FA_FOLDER_OPEN_O" pen...", "Ctrl+O"))
+        if (ImGui::MenuItem(ICON_FA_FOLDER_OPEN_O" Open...", "Ctrl+O"))
        	{
           EventDispatcher* dispatcher = EventDispatcher::getInstance();
           dispatcher->queueEvent(new OpenDialogueEvent(DialogueEventType::FileOpen,

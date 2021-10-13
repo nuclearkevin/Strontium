@@ -146,30 +146,33 @@ namespace Strontium
       float deltaTime = currentTime - this->lastTime;
       this->lastTime = currentTime;
 
+      // Handle application events
+      this->dispatchEvents();
+
       // Make sure the window isn't minimized to avoid losing performance.
       if (!this->isMinimized)
       {
-        // Loop over each layer and call its update function.
-        for (auto layer : this->layerStack)
-          layer->onUpdate(deltaTime);
+          // Loop over each layer and call its update function.
+          for (auto layer : this->layerStack)
+              layer->onUpdate(deltaTime);
 
-        // Setup ImGui for drawing, than loop over each layer and draw its GUI
-        // elements.
-        this->imLayer->beginImGui();
-        for (auto layer : this->layerStack)
-          layer->onImGuiRender();
+          // Setup ImGui for drawing, than loop over each layer and draw its GUI
+          // elements.
+          this->imLayer->beginImGui();
+          for (auto layer : this->layerStack)
+              layer->onImGuiRender();
 
-        this->imLayer->endImGui();
+          this->imLayer->endImGui();
 
-        // Handle application events
-        this->dispatchEvents();
+          // Update the window.
+          this->appWindow->onUpdate();
 
-        // Update the window.
-        this->appWindow->onUpdate();
-
-        // Clear the back buffer.
-        RendererCommands::clear(true, false, false);
+          // Clear the back buffer.
+          RendererCommands::clear(true, false, false);
       }
+
+      if (this->isMinimized)
+        this->appWindow->onUpdate();
 
       // Must be called at the end of every frame to create textures with loaded
       // images.
@@ -217,8 +220,12 @@ namespace Strontium
     glm::ivec2 windowSize = getWindow()->getSize();
 
     if (windowSize.x == 0 || windowSize.y == 0)
+    {
       this->isMinimized = true;
+    }
     else
+    {
       this->isMinimized = false;
+    }
   }
 }

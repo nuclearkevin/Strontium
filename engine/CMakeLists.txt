@@ -29,7 +29,7 @@ set(LIB_LINKS
     yamlcpp
 )
 
-add_executable(Strontium ${SOURCE_FILES})
+add_library(Strontium ${SOURCE_FILES})
 target_include_directories(Strontium PRIVATE ${INCLUDE_DIRS})
 target_link_libraries(Strontium PUBLIC ${LIB_LINKS})
 

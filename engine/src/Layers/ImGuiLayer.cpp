@@ -8,7 +8,7 @@
 #include "imgui/imgui_impl_glfw.h"
 #include "imgui/imgui_impl_opengl3.h"
 
-#include "GuiElements/IconsFontAwesome4.h"
+#include "imgui/IconsFontAwesome4.h"
 
 namespace Strontium
 {

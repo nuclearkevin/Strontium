@@ -219,7 +219,7 @@ namespace Strontium
   Window::onUpdate()
   {
     glfwPollEvents();
-		this->glContext->swapBuffers();
+    this->glContext->swapBuffers();
   }
 
   // Set the window to have VSync or not.
@@ -258,6 +258,16 @@ namespace Strontium
   Window::getTime()
   {
     return glfwGetTime();
+  }
+
+  void 
+  Window::setIcon(uint width, uint height, unsigned char* pixels)
+  {
+    GLFWimage icon;
+    icon.width = static_cast<int>(width);
+    icon.height = static_cast<int>(height);
+    icon.pixels = pixels;
+    glfwSetWindowIcon(this->glfwWindowRef, 1, &icon);
   }
 
   // Manually poll input.

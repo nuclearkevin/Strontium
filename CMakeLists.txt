@@ -18,3 +18,4 @@ set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MTd")
 
 add_subdirectory(engine/vendor)
 add_subdirectory(engine)
+add_subdirectory(editor)
