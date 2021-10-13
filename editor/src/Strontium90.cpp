@@ -2,6 +2,7 @@
 #include "Core/EntryPoint.h"
 #include "EditorLayer.h"
 
+// For loading in the task bar icon.
 #include "stb/stb_image.h"
 
 namespace Strontium
