@@ -50,27 +50,22 @@ This project started while I was taking a class on intermediate computer graphic
   - DX11 support with live API switching.
 
 ## Building
-Strontium builds using GNU make. GLFW and Assimp require CMake, while GLFW also requires the `xorg-dev` package. Ensure you have these dependencies installed before building Strontium. The steps below are currently outdated as this project is moving towards a more formal buildsystem using CMake.
+Strontium builds using CMake, so ensure that you have CMake installed before you attempt to build the project. As Strontium is fully platform agnostic, both Windows and Linux builds are supported (although the Linux buildsystem is a WIP).
+Start by recursively cloning the repo using git:
 ```bash
-# Clone the project and initialize submodules.
-git clone https://github.com/ksawatzky777/SciRender.git --recursive
-# Build glfw.
-cd SciRender/vendor/glfw
-cmake .
-make
-# Build Assimp.
-cd ../assimp
-cmake CMakeLists.txt
-cmake --build .
-# Build SciRender
-cd ../..
-make
+git clone https://github.com/ksawatzky777/Strontium.git --recursive
 ```
-Finally, you can run the application with the following bash command:
+Then, create a build directory in the repo source
 ```bash
-./Application
+cd Strontium
+mkdir build
 ```
-Currently only Ubuntu builds are supported, although care has been taken to ensure that this project is as platform agnostic as possible. Windows builds will be supported in the future as this project matures.
+Afterwards, you can run CMake from the build directory and specify that source directory is in Strontium:
+```bash
+cd build
+cmake ../
+```
+If you're on Windows, you can open the StrontiumEngine.sln solution file. Set the startup project to StrontiumEditor and build with Visual Studios.
 
 ## Credits
 A massive thanks goes out to [Yan Chernikov](https://github.com/TheCherno) and his several Youtube series on
