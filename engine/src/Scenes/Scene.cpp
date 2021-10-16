@@ -112,6 +112,9 @@ namespace Strontium
 
           env->setSkyModelParams<HillaireSkyParams>(hillaireSkyParams);
         }
+
+        env->precomputeIrradiance();
+        env->precomputeSpecular();
       }
     }
 

@@ -201,114 +201,117 @@ namespace Strontium
       int prefilterWidth = state->prefilterWidth;
       int prefilterSamples = state->prefilterSamples;
 
-      if (ImGui::Button("Recompute Environment Map"))
+      if (ambient->getDrawingType() != MapType::DynamicSky)
       {
-        ambient->unloadComputedMaps();
-        ambient->equiToCubeMap(true, state->skyboxWidth, state->skyboxWidth);
-        ambient->precomputeIrradiance(state->irradianceWidth, state->irradianceWidth, true);
-        ambient->precomputeSpecular(state->prefilterWidth, state->prefilterWidth, true);
-      }
+          if (ImGui::Button("Recompute Environment Map"))
+          {
+              ambient->unloadComputedMaps();
+              ambient->equiToCubeMap(true, state->skyboxWidth, state->skyboxWidth);
+              ambient->precomputeIrradiance(state->irradianceWidth, state->irradianceWidth, true);
+              ambient->precomputeSpecular(state->prefilterWidth, state->prefilterWidth, true);
+          }
 
-      if (ImGui::InputInt("Skybox Size", &skyboxWidth))
-      {
-        skyboxWidth = skyboxWidth > 2048 ? 2048 : skyboxWidth;
-        skyboxWidth = skyboxWidth < 512 ? 512 : skyboxWidth;
+          if (ImGui::InputInt("Skybox Size", &skyboxWidth))
+          {
+              skyboxWidth = skyboxWidth > 2048 ? 2048 : skyboxWidth;
+              skyboxWidth = skyboxWidth < 512 ? 512 : skyboxWidth;
 
-        // Compute the next or previous power of 2 and set the int to that.
-        if (skyboxWidth - (int) state->skyboxWidth < 0)
-        {
-          skyboxWidth = std::pow(2, std::floor(std::log2(skyboxWidth)));
-        }
-        else if (skyboxWidth - (int) state->skyboxWidth > 0)
-        {
-          skyboxWidth = std::pow(2, std::floor(std::log2(skyboxWidth)) + 1);
-        }
+              // Compute the next or previous power of 2 and set the int to that.
+              if (skyboxWidth - (int)state->skyboxWidth < 0)
+              {
+                  skyboxWidth = std::pow(2, std::floor(std::log2(skyboxWidth)));
+              }
+              else if (skyboxWidth - (int)state->skyboxWidth > 0)
+              {
+                  skyboxWidth = std::pow(2, std::floor(std::log2(skyboxWidth)) + 1);
+              }
 
-        skyboxWidth = std::pow(2, std::floor(std::log2(skyboxWidth)));
-        state->skyboxWidth = skyboxWidth;
-      }
+              skyboxWidth = std::pow(2, std::floor(std::log2(skyboxWidth)));
+              state->skyboxWidth = skyboxWidth;
+          }
 
-      if (ImGui::InputInt("Irradiance Map Quality", &irradianceWidth))
-      {
-        irradianceWidth = irradianceWidth > 512 ? 512 : irradianceWidth;
-        irradianceWidth = irradianceWidth < 64 ? 64 : irradianceWidth;
+          if (ImGui::InputInt("Irradiance Map Quality", &irradianceWidth))
+          {
+              irradianceWidth = irradianceWidth > 512 ? 512 : irradianceWidth;
+              irradianceWidth = irradianceWidth < 64 ? 64 : irradianceWidth;
 
-        // Compute the next or previous power of 2 and set the int to that.
-        if (irradianceWidth - (int) state->irradianceWidth < 0)
-        {
-          irradianceWidth = std::pow(2, std::floor(std::log2(irradianceWidth)));
-        }
-        else if (irradianceWidth - (int) state->irradianceWidth > 0)
-        {
-          irradianceWidth = std::pow(2, std::floor(std::log2(irradianceWidth)) + 1);
-        }
+              // Compute the next or previous power of 2 and set the int to that.
+              if (irradianceWidth - (int)state->irradianceWidth < 0)
+              {
+                  irradianceWidth = std::pow(2, std::floor(std::log2(irradianceWidth)));
+              }
+              else if (irradianceWidth - (int)state->irradianceWidth > 0)
+              {
+                  irradianceWidth = std::pow(2, std::floor(std::log2(irradianceWidth)) + 1);
+              }
 
-        irradianceWidth = std::pow(2, std::floor(std::log2(irradianceWidth)));
-        state->irradianceWidth = irradianceWidth;
-      }
+              irradianceWidth = std::pow(2, std::floor(std::log2(irradianceWidth)));
+              state->irradianceWidth = irradianceWidth;
+          }
 
-      if (ImGui::InputInt("IBL Prefilter Quality", &prefilterWidth))
-      {
-        prefilterWidth = prefilterWidth > 2048 ? 2048 : prefilterWidth;
-        prefilterWidth = prefilterWidth < 512 ? 512 : prefilterWidth;
+          if (ImGui::InputInt("IBL Prefilter Quality", &prefilterWidth))
+          {
+              prefilterWidth = prefilterWidth > 2048 ? 2048 : prefilterWidth;
+              prefilterWidth = prefilterWidth < 512 ? 512 : prefilterWidth;
 
-        // Compute the next or previous power of 2 and set the int to that.
-        if (prefilterWidth - (int) state->prefilterWidth < 0)
-        {
-          prefilterWidth = std::pow(2, std::floor(std::log2(prefilterWidth)));
-        }
-        else if (prefilterWidth - (int) state->prefilterWidth > 0)
-        {
-          prefilterWidth = std::pow(2, std::floor(std::log2(prefilterWidth)) + 1);
-        }
+              // Compute the next or previous power of 2 and set the int to that.
+              if (prefilterWidth - (int)state->prefilterWidth < 0)
+              {
+                  prefilterWidth = std::pow(2, std::floor(std::log2(prefilterWidth)));
+              }
+              else if (prefilterWidth - (int)state->prefilterWidth > 0)
+              {
+                  prefilterWidth = std::pow(2, std::floor(std::log2(prefilterWidth)) + 1);
+              }
 
-        prefilterWidth = std::pow(2, std::floor(std::log2(prefilterWidth)));
-        state->prefilterWidth = prefilterWidth;
-      }
+              prefilterWidth = std::pow(2, std::floor(std::log2(prefilterWidth)));
+              state->prefilterWidth = prefilterWidth;
+          }
 
-      if (ImGui::InputInt("IBL Prefilter Samples", &prefilterSamples))
-      {
-        prefilterSamples = prefilterSamples > 2048 ? 2048 : prefilterSamples;
-        prefilterSamples = prefilterSamples < 512 ? 512 : prefilterSamples;
+          if (ImGui::InputInt("IBL Prefilter Samples", &prefilterSamples))
+          {
+              prefilterSamples = prefilterSamples > 2048 ? 2048 : prefilterSamples;
+              prefilterSamples = prefilterSamples < 512 ? 512 : prefilterSamples;
 
-        // Compute the next or previous power of 2 and set the int to that.
-        if (prefilterSamples - (int) state->prefilterSamples < 0)
-        {
-          prefilterSamples = std::pow(2, std::floor(std::log2(prefilterSamples)));
-        }
-        else if (prefilterSamples - (int) state->prefilterSamples > 0)
-        {
-          prefilterSamples = std::pow(2, std::floor(std::log2(prefilterSamples)) + 1);
-        }
+              // Compute the next or previous power of 2 and set the int to that.
+              if (prefilterSamples - (int)state->prefilterSamples < 0)
+              {
+                  prefilterSamples = std::pow(2, std::floor(std::log2(prefilterSamples)));
+              }
+              else if (prefilterSamples - (int)state->prefilterSamples > 0)
+              {
+                  prefilterSamples = std::pow(2, std::floor(std::log2(prefilterSamples)) + 1);
+              }
 
-        prefilterSamples = std::pow(2, std::floor(std::log2(prefilterSamples)));
-        state->prefilterSamples = prefilterSamples;
+              prefilterSamples = std::pow(2, std::floor(std::log2(prefilterSamples)));
+              state->prefilterSamples = prefilterSamples;
+          }
       }
 
       if (ambient->getDrawingType() == MapType::DynamicSky)
       {
-        if (ambient->getDynamicSkyType() == DynamicSkyType::Preetham)
-        {
-          ImGui::Text("");
-          ImGui::Separator();
-          ImGui::Text("Preetham LUT");
-          ImGui::Image((ImTextureID) (unsigned long) ambient->getTexID(MapType::DynamicSky),
-                       ImVec2(256.0f, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
-        }
-        if (ambient->getDynamicSkyType() == DynamicSkyType::Hillaire)
-        {
-          ImGui::Text("");
-          ImGui::Separator();
-          ImGui::Text("Transmittance and Multi-Scatter LUTs");
-          ImGui::Image((ImTextureID) (unsigned long) ambient->getTransmittanceLUTID(),
-                       ImVec2(256.0f, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
-          ImGui::SameLine();
-          ImGui::Image((ImTextureID) (unsigned long) ambient->getMultiScatteringLUTID(),
-                       ImVec2(128.0f, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
-          ImGui::Text("Skyview LUT");
-          ImGui::Image((ImTextureID) (unsigned long) ambient->getSkyViewLUTID(),
-                       ImVec2(256.0f, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
-        }
+          if (ambient->getDynamicSkyType() == DynamicSkyType::Preetham)
+          {
+              ImGui::Text("");
+              ImGui::Separator();
+              ImGui::Text("Preetham LUT");
+              ImGui::Image((ImTextureID)(unsigned long)ambient->getTexID(MapType::DynamicSky),
+                  ImVec2(256.0f, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
+          }
+          if (ambient->getDynamicSkyType() == DynamicSkyType::Hillaire)
+          {
+              ImGui::Text("");
+              ImGui::Separator();
+              ImGui::Text("Transmittance and Multi-Scatter LUTs");
+              ImGui::Image((ImTextureID)(unsigned long)ambient->getTransmittanceLUTID(),
+                  ImVec2(256.0f, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
+              ImGui::SameLine();
+              ImGui::Image((ImTextureID)(unsigned long)ambient->getMultiScatteringLUTID(),
+                  ImVec2(128.0f, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
+              ImGui::Text("Skyview LUT");
+              ImGui::Image((ImTextureID)(unsigned long)ambient->getTexID(MapType::DynamicSky),
+                  ImVec2(256.0f, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
+          }
       }
     }
 

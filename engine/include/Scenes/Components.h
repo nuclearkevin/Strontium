@@ -194,8 +194,11 @@ namespace Strontium
       ambient = Renderer3D::getStorage()->currentEnvironment.get();
       auto state = Renderer3D::getState();
 
-      ambient->loadEquirectangularMap(iblImagePath);
-      ambient->equiToCubeMap(true, state->skyboxWidth, state->skyboxWidth);
+      if (iblImagePath != "")
+      {
+        ambient->loadEquirectangularMap(iblImagePath);
+        ambient->equiToCubeMap(true, state->skyboxWidth, state->skyboxWidth);
+      }
     }
   };
 

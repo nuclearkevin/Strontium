@@ -4,6 +4,7 @@
 #include "Core/Logs.h"
 #include "Core/AssetManager.h"
 #include "Graphics/Buffers.h"
+#include "Graphics/Renderer.h"
 
 namespace Strontium
 {
@@ -36,10 +37,12 @@ namespace Strontium
     , skyboxParamBuffer(3 * sizeof(glm::vec4) + sizeof(glm::ivec4), BufferType::Dynamic)
     , preethamParams(2 * sizeof(glm::vec4), BufferType::Dynamic)
     , hillaireParams(5 * sizeof(glm::vec4), BufferType::Dynamic)
-    , iblParams(sizeof(glm::vec4), BufferType::Dynamic)
+    , iblParams(sizeof(glm::vec4) + sizeof(glm::ivec4), BufferType::Dynamic)
     , equiToCubeCompute("./assets/shaders/compute/ibl/equiConversion.srshader")
     , diffIrradCompute("./assets/shaders/compute/ibl/diffuseConv.srshader")
+    , skyDiffCompute("./assets/shaders/compute/ibl/diffSkyIBL.srshader")
     , specIrradCompute("./assets/shaders/compute/ibl/specPrefilter.srshader")
+    , skySpecCompute("./assets/shaders/compute/ibl/specSkyIBL.srshader")
     , brdfCompute("./assets/shaders/compute/ibl/integrateBRDF.srshader")
     , preethamLUTCompute("./assets/shaders/compute/sky/preethamLUT.srshader")
     , transmittanceCompute("./assets/shaders/compute/sky/transCompute.srshader")
@@ -52,6 +55,7 @@ namespace Strontium
     , roughness(0.0f)
     , skyboxParameters(0)
     , filepath("")
+    , staticIBL(true)
   {
     // Load in the cube mesh and pre-integrate the BRDF LUT.
     this->cube.loadModel("./assets/.internal/cube.fbx");
@@ -60,7 +64,35 @@ namespace Strontium
       if (!submesh.hasVAO())
         submesh.generateVAO();
     }
-    this->computeBRDFLUT();
+    
+    // Compute the BRDF LUT.
+    {
+        Logger* logs = Logger::getInstance();
+        auto start = std::chrono::steady_clock::now();
+
+        Texture2DParams params = Texture2DParams();
+        params.sWrap = TextureWrapParams::ClampEdges;
+        params.tWrap = TextureWrapParams::ClampEdges;
+        params.internal = TextureInternalFormats::RG16f;
+        params.dataType = TextureDataType::Floats;
+
+        this->brdfIntLUT.setSize(32, 32, 2);
+        this->brdfIntLUT.setParams(params);
+        this->brdfIntLUT.initNullTexture();
+
+        // Bind the integration map for writing to by the compute shader.
+        this->brdfIntLUT.bindAsImage(3, 0, ImageAccessPolicy::Write);
+
+        // Launch the compute shader.
+        this->brdfCompute.launchCompute(32 / 32, 32 / 32, 1);
+
+        auto end = std::chrono::steady_clock::now();
+        std::chrono::duration<double> elapsed = end - start;
+
+        logs->logMessage(LogMessage("Generated BRDF lookup texture (elapsed time: "
+            + std::to_string(elapsed.count()) + " s).", true,
+            true));
+    }
 
     // The dynamic sky model LUT.
     Texture2DParams params = Texture2DParams();
@@ -69,11 +101,6 @@ namespace Strontium
     params.internal = TextureInternalFormats::RGBA16f;
     params.format = TextureFormats::RGBA;
     params.dataType = TextureDataType::Floats;
-    this->dynamicSkyLUT.width = 1024;
-    this->dynamicSkyLUT.height = 512;
-    this->dynamicSkyLUT.n = 4;
-    this->dynamicSkyLUT.setParams(params);
-    this->dynamicSkyLUT.initNullTexture();
 
     // The transmittance LUT.
     this->transmittanceLUT.width = 256;
@@ -170,12 +197,6 @@ namespace Strontium
   }
 
   void
-  EnvironmentMap::unbind()
-  {
-
-  }
-
-  void
   EnvironmentMap::bind(const MapType &type, uint bindPoint)
   {
     switch (type)
@@ -231,7 +252,7 @@ namespace Strontium
 
           params2.w = preethamSkyParams.skyIntensity;
 
-          this->dynamicSkyLUT.bind(1);
+          this->skyViewLUT.bind(1);
           break;
         }
 
@@ -295,9 +316,9 @@ namespace Strontium
         this->preethamParams.setData(sizeof(glm::vec4), sizeof(float), &preethamSkyParams.sunIntensity);
         this->preethamParams.setData(sizeof(glm::vec4) + sizeof(float), sizeof(float), &preethamSkyParams.sunSize);
 
-        this->dynamicSkyLUT.bindAsImage(0, 0, ImageAccessPolicy::Write);
+        this->skyViewLUT.bindAsImage(0, 0, ImageAccessPolicy::Write);
 
-        this->preethamLUTCompute.launchCompute(1024 / 32, 512 / 32, 1);
+        this->preethamLUTCompute.launchCompute(256 / 32, 128 / 32, 1);
         Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
 
         break;
@@ -361,6 +382,40 @@ namespace Strontium
     }
   }
 
+  void 
+  EnvironmentMap::setDynamicSkyIBL()
+  {
+    this->staticIBL = false;
+
+    // Clear and resize the cubemap.
+    TextureCubeMapParams params = TextureCubeMapParams();
+
+    params.internal = TextureInternalFormats::RGBA16f;
+    params.dataType = TextureDataType::Floats;
+
+    this->irradiance.setSize(32, 32, 4);
+    this->irradiance.setParams(params);
+    this->irradiance.initNullTexture();
+
+    this->specPrefilter.setSize(64, 64, 4);
+    this->specPrefilter.setParams(params);
+    this->specPrefilter.initNullTexture();
+    this->specPrefilter.generateMips();
+  }
+
+  void 
+  EnvironmentMap::setStaticIBL()
+  {
+    this->staticIBL = true;
+
+    auto state = Renderer3D::getState();
+
+    this->unloadComputedMaps();
+    this->equiToCubeMap(true, state->skyboxWidth, state->skyboxWidth);
+    this->precomputeIrradiance(state->irradianceWidth, state->irradianceWidth, true);
+    this->precomputeSpecular(state->prefilterWidth, state->prefilterWidth, true);
+  }
+
   // Getters.
   uint
   EnvironmentMap::getTexID(const MapType &type)
@@ -374,7 +429,7 @@ namespace Strontium
       case MapType::Prefilter:
         return this->specPrefilter.getID();
       case MapType::DynamicSky:
-        return this->dynamicSkyLUT.getID();
+        return this->skyViewLUT.getID();
     }
 
     return 0;
@@ -394,39 +449,42 @@ namespace Strontium
   EnvironmentMap::equiToCubeMap(const bool &isHDR, const uint &width,
                                 const uint &height)
   {
-    Logger* logs = Logger::getInstance();
-
-    auto start = std::chrono::steady_clock::now();
-
-    // The resulting cubemap from the conversion process.
-    TextureCubeMapParams params = TextureCubeMapParams();
-    params.minFilter = TextureMinFilterParams::LinearMipMapLinear;
-    if (isHDR)
+    if (this->erMap)
     {
-      params.internal = TextureInternalFormats::RGBA16f;
-      params.dataType = TextureDataType::Floats;
+      Logger* logs = Logger::getInstance();
+
+      auto start = std::chrono::steady_clock::now();
+
+      // The resulting cubemap from the conversion process.
+      TextureCubeMapParams params = TextureCubeMapParams();
+      params.minFilter = TextureMinFilterParams::LinearMipMapLinear;
+      if (isHDR)
+      {
+        params.internal = TextureInternalFormats::RGBA16f;
+        params.dataType = TextureDataType::Floats;
+      }
+      this->skybox.setSize(width, height, 4);
+      this->skybox.setParams(params);
+      this->skybox.initNullTexture();
+
+      // Bind the equirectangular map for reading by the compute shader.
+      this->erMap->bindAsImage(0, 0, ImageAccessPolicy::Read);
+
+      // Bind the irradiance map for writing to by the compute shader.
+      this->skybox.bindAsImage(1, 0, true, 0, ImageAccessPolicy::ReadWrite);
+
+      // Launch the compute shader.
+      this->equiToCubeCompute.launchCompute(width / 32, height / 32, 6);
+
+      this->skybox.generateMips();
+
+      auto end = std::chrono::steady_clock::now();
+      std::chrono::duration<double> elapsed = end - start;
+
+      logs->logMessage(LogMessage("Converted the equirectangular map to a cubemap"
+                                  " (elapsed time: " + std::to_string(elapsed.count())
+                                  + " s).", true, true));
     }
-    this->skybox.setSize(width, height, 4);
-    this->skybox.setParams(params);
-    this->skybox.initNullTexture();
-
-    // Bind the equirectangular map for reading by the compute shader.
-    this->erMap->bindAsImage(0, 0, ImageAccessPolicy::Read);
-
-    // Bind the irradiance map for writing to by the compute shader.
-    this->skybox.bindAsImage(1, 0, true, 0, ImageAccessPolicy::ReadWrite);
-
-    // Launch the compute shader.
-    this->equiToCubeCompute.launchCompute(width / 32, height / 32, 6);
-
-    this->skybox.generateMips();
-
-    auto end = std::chrono::steady_clock::now();
-    std::chrono::duration<double> elapsed = end - start;
-
-    logs->logMessage(LogMessage("Converted the equirectangular map to a cubemap"
-                                " (elapsed time: " + std::to_string(elapsed.count())
-                                + " s).", true, true));
   }
 
   // Generate the diffuse irradiance map.
@@ -434,37 +492,57 @@ namespace Strontium
   EnvironmentMap::precomputeIrradiance(const uint &width, const uint &height,
                                        bool isHDR)
   {
-    Logger* logs = Logger::getInstance();
-
-    auto start = std::chrono::steady_clock::now();
-
-    // The resulting cubemap from the convolution process.
-    TextureCubeMapParams params = TextureCubeMapParams();
-    if (isHDR)
+    if (this->staticIBL)
     {
-      params.internal = TextureInternalFormats::RGBA16f;
-      params.dataType = TextureDataType::Floats;
+      // The resulting cubemap from the convolution process.
+      TextureCubeMapParams params = TextureCubeMapParams();
+      if (isHDR)
+      {
+          params.internal = TextureInternalFormats::RGBA16f;
+          params.dataType = TextureDataType::Floats;
+      }
+
+      this->irradiance.setSize(width, height, 4);
+      this->irradiance.setParams(params);
+      this->irradiance.initNullTexture();
+
+      if (this->erMap)
+      {
+        Logger* logs = Logger::getInstance();
+        
+        auto start = std::chrono::steady_clock::now();
+        
+        // Bind the skybox for reading by the compute shader.
+        this->skybox.bindAsImage(0, 0, true, 0, ImageAccessPolicy::Read);
+        
+        // Bind the irradiance map for writing to by the compute shader.
+        this->irradiance.bindAsImage(1, 0, true, 0, ImageAccessPolicy::Write);
+        
+        // Launch the compute shader.
+        this->diffIrradCompute.launchCompute(width / 32, height / 32, 6);
+        
+        auto end = std::chrono::steady_clock::now();
+        std::chrono::duration<double> elapsed = end - start;
+        
+        logs->logMessage(LogMessage("Convoluted environment map (elapsed time: "
+            + std::to_string(elapsed.count()) + " s).", true,
+            true));
+      }
     }
+    else
+    {
+      // Bind the sky view LUT for reading by the compute shader.
+      this->skyViewLUT.bind(0);
 
-    this->irradiance.setSize(width, height, 4);
-    this->irradiance.setParams(params);
-    this->irradiance.initNullTexture();
+      // Bind the parameters for the LUT.
+      this->skyboxParamBuffer.bindToPoint(2);
 
-    // Bind the skybox for reading by the compute shader.
-    this->skybox.bindAsImage(0, 0, true, 0, ImageAccessPolicy::Read);
+      // Bind the irradiance map for writing to by the compute shader.
+      this->irradiance.bindAsImage(1, 0, true, 0, ImageAccessPolicy::Write);
 
-    // Bind the irradiance map for writing to by the compute shader.
-    this->irradiance.bindAsImage(1, 0, true, 0, ImageAccessPolicy::Write);
-
-    // Launch the compute shader.
-    this->diffIrradCompute.launchCompute(width / 32, height / 32, 6);
-
-    auto end = std::chrono::steady_clock::now();
-    std::chrono::duration<double> elapsed = end - start;
-
-    logs->logMessage(LogMessage("Convoluted environment map (elapsed time: "
-                                + std::to_string(elapsed.count()) + " s).", true,
-                                true));
+      // Launch the compute shader.
+      this->skyDiffCompute.launchCompute(32 / 32, 32 / 32, 6);
+    }
   }
 
   // Generate the specular map components. Computes the pre-filtered environment
@@ -473,91 +551,98 @@ namespace Strontium
   EnvironmentMap::precomputeSpecular(const uint &width, const uint &height,
                                      bool isHDR)
   {
-    Logger* logs = Logger::getInstance();
-
-    //--------------------------------------------------------------------------
-    // The pre-filtered environment map component.
-    //--------------------------------------------------------------------------
-    auto start = std::chrono::steady_clock::now();
-
-    // The resulting cubemap from the environment pre-filter.
-    TextureCubeMapParams params = TextureCubeMapParams();
-    params.minFilter = TextureMinFilterParams::LinearMipMapLinear;
-    if (isHDR)
+    if (this->staticIBL)
     {
-      params.internal = TextureInternalFormats::RGBA16f;
-      params.dataType = TextureDataType::Floats;
+      // The resulting cubemap from the environment pre-filter.
+      TextureCubeMapParams params = TextureCubeMapParams();
+      params.minFilter = TextureMinFilterParams::LinearMipMapLinear;
+      if (isHDR)
+      {
+          params.internal = TextureInternalFormats::RGBA16f;
+          params.dataType = TextureDataType::Floats;
+      }
+
+      this->specPrefilter.setSize(width, height, 4);
+      this->specPrefilter.setParams(params);
+      this->specPrefilter.initNullTexture();
+      this->specPrefilter.generateMips();
+
+      if (this->erMap)
+      {
+        Logger* logs = Logger::getInstance();
+        auto state = Renderer3D::getState();
+        
+        //--------------------------------------------------------------------------
+        // The pre-filtered environment map component.
+        //--------------------------------------------------------------------------
+        auto start = std::chrono::steady_clock::now();
+        
+        this->iblParams.bindToPoint(2);
+        glm::vec4 params0 = glm::vec4(0.0f);
+        glm::ivec4 params1 = glm::ivec4(0);
+        
+        // Bind the enviroment map which is to be prefiltered.
+        this->skybox.bind(0);
+        
+        // Perform the pre-filter for each roughness level.
+        for (uint i = 0; i < 5; i++)
+        {
+          // Compute the current mip levels.
+          uint mipWidth  = (uint) ((float) width * std::pow(0.5f, i));
+          uint mipHeight = (uint) ((float) height * std::pow(0.5f, i));
+        
+          // Bind the irradiance map for writing to by the compute shader.
+          this->specPrefilter.bindAsImage(1, i, true, 0, ImageAccessPolicy::Write);
+        
+          // Roughness.
+          params0.x = ((float) i) / ((float) (5 - 1));
+          params1.x = static_cast<int>(state->prefilterSamples);
+          this->iblParams.setData(0, sizeof(glm::vec4), &params0.x);
+          this->iblParams.setData(sizeof(glm::vec4), sizeof(glm::ivec4), &params1.x);
+        
+          // Launch the compute.
+          this->specIrradCompute.launchCompute(mipWidth / 32, mipHeight / 32, 6);
+        }
+        
+        auto end = std::chrono::steady_clock::now();
+        std::chrono::duration<double> elapsed = end - start;
+        
+        logs->logMessage(LogMessage("Pre-filtered environment map (elapsed time: "
+                                    + std::to_string(elapsed.count()) + " s).", true,
+                                    true));
+      }
     }
-
-    this->specPrefilter.setSize(width, height, 4);
-    this->specPrefilter.setParams(params);
-    this->specPrefilter.initNullTexture();
-    this->specPrefilter.generateMips();
-
-    this->iblParams.bindToPoint(2);
-    glm::vec4 paramsToUpload = glm::vec4(0.0f);
-
-    // Bind the enviroment map which is to be prefiltered.
-    this->skybox.bind(0);
-
-    // Perform the pre-filter for each roughness level.
-    for (uint i = 0; i < 5; i++)
+    else
     {
-      // Compute the current mip levels.
-      uint mipWidth  = (uint) ((float) width * std::pow(0.5f, i));
-      uint mipHeight = (uint) ((float) height * std::pow(0.5f, i));
+      this->iblParams.bindToPoint(2);
+      glm::vec4 params0 = glm::vec4(0.0f);
+      glm::ivec4 params1 = glm::ivec4(0);
 
-      // Bind the irradiance map for writing to by the compute shader.
-      this->specPrefilter.bindAsImage(1, i, true, 0, ImageAccessPolicy::Write);
+      // Bind the enviroment map which is to be prefiltered.
+      this->skyViewLUT.bind(0);
+      // Bind the parameters for the LUT.
+      this->skyboxParamBuffer.bindToPoint(3);
 
-      // Roughness.
-      paramsToUpload.x = ((float) i) / ((float) (5 - 1));
-      this->iblParams.setData(0, sizeof(glm::vec4), &paramsToUpload.x);
+      // Perform the pre-filter for each roughness level.
+      for (uint i = 0; i < 5; i++)
+      {
+        // Compute the current mip levels.
+        uint mipWidth = (uint)((float)64.0f * std::pow(0.5f, i));
+        uint mipHeight = (uint)((float)64.0f * std::pow(0.5f, i));
 
-      // Launch the compute.
-      this->specIrradCompute.launchCompute(mipWidth / 32, mipHeight / 32, 6);
+        // Bind the irradiance map for writing to by the compute shader.
+        this->specPrefilter.bindAsImage(1, i, true, 0, ImageAccessPolicy::Write);
+
+        // Roughness.
+        params0.x = ((float)i) / ((float)(5 - 1));
+        params1.x = static_cast<int>(512);
+        this->iblParams.setData(0, sizeof(glm::vec4), &params0.x);
+        this->iblParams.setData(sizeof(glm::vec4), sizeof(glm::ivec4), &params1.x);
+
+        // Launch the compute.
+        this->skySpecCompute.launchCompute(mipWidth / 32, mipHeight / 32, 6);
+      }
     }
-
-    auto end = std::chrono::steady_clock::now();
-    std::chrono::duration<double> elapsed = end - start;
-
-    logs->logMessage(LogMessage("Pre-filtered environment map (elapsed time: "
-                                + std::to_string(elapsed.count()) + " s).", true,
-                                true));
-  }
-
-  void
-  EnvironmentMap::computeBRDFLUT()
-  {
-    Logger* logs = Logger::getInstance();
-
-    //--------------------------------------------------------------------------
-    // The BRDF integration map component.
-    //--------------------------------------------------------------------------
-    auto start = std::chrono::steady_clock::now();
-
-    Texture2DParams params = Texture2DParams();
-    params.sWrap = TextureWrapParams::ClampEdges;
-    params.tWrap = TextureWrapParams::ClampEdges;
-    params.internal = TextureInternalFormats::RG16f;
-    params.dataType = TextureDataType::Floats;
-
-    this->brdfIntLUT.setSize(32, 32, 2);
-    this->brdfIntLUT.setParams(params);
-    this->brdfIntLUT.initNullTexture();
-
-    // Bind the integration map for writing to by the compute shader.
-    this->brdfIntLUT.bindAsImage(3, 0, ImageAccessPolicy::Write);
-
-    // Launch the compute shader.
-    this->brdfCompute.launchCompute(32 / 32, 32 / 32, 1);
-
-    auto end = std::chrono::steady_clock::now();
-    std::chrono::duration<double> elapsed = end - start;
-
-    logs->logMessage(LogMessage("Generated BRDF lookup texture (elapsed time: "
-                                + std::to_string(elapsed.count()) + " s).", true,
-                                true));
   }
 
   Shader*

@@ -900,7 +900,14 @@ namespace Strontium
             auto mapTypeString = EnvironmentMap::mapEnumToString(static_cast<MapType>(mapTypes[i]));
 
             if (ImGui::Selectable(mapTypeString.c_str(), isSelected))
-              env->setDrawingType(static_cast<MapType>(i));
+            {
+              auto drawingType = static_cast<MapType>(i);
+              env->setDrawingType(drawingType);
+              if (drawingType == MapType::DynamicSky)
+                env->setDynamicSkyIBL();
+              else
+                env->setStaticIBL();
+            }
             if (isSelected)
               ImGui::SetItemDefaultFocus();
           }

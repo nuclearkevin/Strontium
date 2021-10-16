@@ -783,14 +783,18 @@ namespace Strontium
         storage->currentEnvironment->unloadEnvironment();
 
         auto& aComponent = newEntity.addComponent<AmbientComponent>(iblImagePath);
-        storage->currentEnvironment->equiToCubeMap(true, state->skyboxWidth, state->skyboxWidth);
-        storage->currentEnvironment->precomputeIrradiance(state->irradianceWidth, state->irradianceWidth, true);
-        storage->currentEnvironment->precomputeSpecular(state->prefilterWidth, state->prefilterWidth, true);
+        if (iblImagePath != "")
+        {
+          storage->currentEnvironment->equiToCubeMap(true, state->skyboxWidth, state->skyboxWidth);
+          storage->currentEnvironment->precomputeIrradiance(state->irradianceWidth, state->irradianceWidth, true);
+          storage->currentEnvironment->precomputeSpecular(state->prefilterWidth, state->prefilterWidth, true);
+        }
         aComponent.ambient->getRoughness() = ambientComponent["IBLRough"].as<float>();
         aComponent.ambient->getIntensity() = ambientComponent["Intensity"].as<float>();
 
         uint skyboxType = ambientComponent["SkyboxType"].as<uint>();
-        aComponent.ambient->setDrawingType(static_cast<MapType>(skyboxType));
+        auto drawingType = static_cast<MapType>(skyboxType);
+        aComponent.ambient->setDrawingType(drawingType);
 
         auto dynamicSkyType = static_cast<DynamicSkyType>(ambientComponent["DynamicSkyType"].as<uint>());
         aComponent.ambient->setDynamicSkyType(dynamicSkyType);
@@ -838,6 +842,9 @@ namespace Strontium
             }
           }
         }
+
+        if (drawingType == MapType::DynamicSky)
+            aComponent.ambient->setDynamicSkyIBL();
       }
 
       return newEntity;

@@ -137,12 +137,13 @@ namespace Strontium
     void unloadEnvironment();
     // Unload the non-equirectangular map textures.
     void unloadComputedMaps();
+    // Generate the diffuse irradiance cubemap.
+    void precomputeIrradiance(const uint& width = 512, const uint& height = 512, bool isHDR = true);
+    // Generate the specular prefilter cubemap.
+    void precomputeSpecular(const uint& width = 512, const uint& height = 512, bool isHDR = true);
 
-    // Bind/unbind a specific cubemap.
+    // Bind a specific map.
     void bind(const MapType &type);
-    void unbind();
-
-    // Binds one of the environment map PBR textures to a point.
     void bind(const MapType &type, uint bindPoint);
     void bindBRDFLUT(uint bindPoint);
 
@@ -152,21 +153,18 @@ namespace Strontium
     // Update the dynamic sky.
     void updateDynamicSky();
 
-    // Generate the diffuse irradiance map.
-    void precomputeIrradiance(const uint &width = 512, const uint &height = 512, bool isHDR = true);
-
-    // Generate the specular map components (pre-filter and BRDF integration map).
-    void precomputeSpecular(const uint &width = 512, const uint &height = 512, bool isHDR = true);
-
-    // Compute the BRDF integration LUT separately.
-    void computeBRDFLUT();
+    // Set the environment map to constantly update the diffuse irradiance
+    // and specular prefilter cubemaps. Forces the resolution of the diffuse 
+    // cubemap to 32x32 and the specular cubemap to 64x64.
+    void setDynamicSkyIBL();
+    void setStaticIBL();
+    void updateDynamicIBL();
 
     // Getters.
     uint getTexID(const MapType &type);
     uint getBRDFLUTID() { return this->brdfIntLUT.getID(); }
     uint getTransmittanceLUTID() { return this->transmittanceLUT.getID(); }
     uint getMultiScatteringLUTID() { return this->multiScatLUT.getID(); }
-    uint getSkyViewLUTID() { return this->skyViewLUT.getID(); }
 
     float& getIntensity() { return this->intensity; }
     float& getRoughness() { return this->roughness; }
@@ -212,14 +210,15 @@ namespace Strontium
     CubeMap specPrefilter;
     Texture2D brdfIntLUT;
 
-    Texture2D dynamicSkyLUT;
     Texture2D transmittanceLUT;
     Texture2D multiScatLUT;
     Texture2D skyViewLUT;
 
     Shader equiToCubeCompute;
     Shader diffIrradCompute;
+    Shader skyDiffCompute;
     Shader specIrradCompute;
+    Shader skySpecCompute;
     Shader brdfCompute;
 
     Shader preethamLUTCompute;
@@ -239,6 +238,7 @@ namespace Strontium
     std::string filepath;
     MapType currentEnvironment;
     DynamicSkyType currentDynamicSky;
+    bool staticIBL;
 
     // Parameters for drawing the skybox.
     float intensity;

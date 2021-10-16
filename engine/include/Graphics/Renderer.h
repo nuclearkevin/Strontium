@@ -192,7 +192,7 @@ namespace Strontium
         , skyboxWidth(512)
         , irradianceWidth(128)
         , prefilterWidth(512)
-        , prefilterSamples(1024)
+        , prefilterSamples(512)
         , cascadeLambda(0.5f)
         , cascadeSize(2048)
         , bleedReduction(0.2f)
