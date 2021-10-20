@@ -79,11 +79,11 @@ void main()
 }
 
 #type fragment
-layout (location = 4) out vec4 gPosition;
-layout (location = 3) out vec4 gNormal;
+layout (location = 0) out vec4 gPosition;
+layout (location = 1) out vec4 gNormal;
 layout (location = 2) out vec4 gAlbedo;
-layout (location = 1) out vec4 gMatProp;
-layout (location = 0) out vec4 gIDMaskColour;
+layout (location = 3) out vec4 gMatProp;
+layout (location = 4) out vec4 gIDMaskColour;
 
 in VERT_OUT
 {

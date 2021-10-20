@@ -1,8 +1,11 @@
 #type common
 #version 440
 /*
- * PBR point light shader program.
-*/
+ * PBR shader program for a non-occluded point light. Follows the Filament
+ * material system (somewhat).
+ * https://google.github.io/filament/Filament.md.html#materialsystem/standardmodel
+ * This is a stop-gap until tiled deferred rendering is implemented.
+ */
 
 #type vertex
 layout (location = 0) in vec2 vPosition;
@@ -14,9 +17,6 @@ void main()
 
 #type fragment
 #define PI 3.141592654
-#define THRESHHOLD 0.00005
-#define MIN_RADIANCE 0.00390625
-#define INVERSE_MIN_RADIANCE 256.0
 
 // Camera specific uniforms.
 layout(std140, binding = 0) uniform CameraBlock
@@ -43,17 +43,11 @@ layout(binding = 6) uniform sampler2D gMatProp;
 // Output colour variable.
 layout(location = 0) out vec4 fragColour;
 
-//------------------------------------------------------------------------------
-// PBR helper functions.
-//------------------------------------------------------------------------------
-// Trowbridge-Reitz distribution function.
-float TRDistribution(vec3 N, vec3 H, float alpha);
-// Smith-Schlick-Beckmann geometry function.
-float SSBGeometry(vec3 N, vec3 L, vec3 V, float roughness);
-// Schlick approximation to the Fresnel factor.
-vec3 SFresnel(float cosTheta, vec3 F0);
-// Schlick approximation to the Fresnel factor, with roughness!
-vec3 SFresnelR(float cosTheta, vec3 F0, float roughness);
+// PBR BRDF.
+vec3 filamentBRDF(vec3 l, vec3 v, vec3 n, float roughness, vec3 f0, vec3 f90, vec3 diffuseAlbedo);
+
+// Compute the light attenuation factor.
+float computeAttenuation(vec3 posToLight, float invLightRadius);
 
 void main()
 {
@@ -64,83 +58,106 @@ void main()
   vec3 albedo = texture(gAlbedo, fTexCoords).rgb;
   float metallic = texture(gMatProp, fTexCoords).r;
   float roughness = texture(gMatProp, fTexCoords).g;
+  float f0 = texture(gAlbedo, fTexCoords).a;
 
-  vec3 F0 = mix(vec3(texture(gAlbedo, fTexCoords).a), albedo, metallic);
+  // Remap material properties.
+  vec3 diffuseAlbedo = (1.0 - metallic) * albedo;
+  vec3 mappedF0 = vec3(f0) * (1.0 - metallic) + albedo * metallic;
 
+  // Dirty, setting f90 to 1.0.
+  vec3 f90 = vec3(1.0);
+
+  // Light properties.
   vec3 view = normalize(u_camPosition - position);
-  vec3 light = normalize(u_lPosition.xyz - position);
-  float dist = length(u_lPosition.xyz - position);
+  vec3 posToLight = u_lPosition.xyz - position;
+  vec3 light = normalize(posToLight);
   vec3 halfWay = normalize(view + light);
+  float nDotL = clamp(dot(normal, light), 0.0, 1.0);
 
-  float maxRadiance = u_lColourIntensity.a * max(u_lColourIntensity.r, max(u_lColourIntensity.b, u_lColourIntensity.g));
-  float radius = u_screenSizeRadiusFalloff.z;
-  float linearFalloff = u_screenSizeRadiusFalloff.w;
-  float quadFalloff = (256.0 * maxRadiance - linearFalloff * radius - 1.0) / (radius * radius);
-  float attenuation = 1.0 / (1.0 + linearFalloff * dist + quadFalloff * dist * dist);
+  float lightRadius = u_screenSizeRadiusFalloff.z;
+  float attenuation = computeAttenuation(posToLight, 1.0 / lightRadius);
+  vec3 lightColour = u_lColourIntensity.xyz;
+  float lightIntensity = u_lColourIntensity.w;
 
-  float NDF = TRDistribution(normal, halfWay, roughness);
-  float G = SSBGeometry(normal, view, light, roughness);
-  vec3 F = SFresnel(max(dot(halfWay, view), THRESHHOLD), F0);
-
-  vec3 kD = (vec3(1.0) - F) * (1.0 - metallic);
-
-  vec3 num = NDF * G * F;
-  float den = 4.0 * max(dot(normal, view), THRESHHOLD) * max(dot(normal, light), THRESHHOLD);
-  vec3 spec = num / max(den, THRESHHOLD);
-
-  vec3 radiance = (kD * albedo / PI + spec) * u_lColourIntensity.rgb * attenuation
-                  * u_lColourIntensity.a * max(dot(normal, light), THRESHHOLD);
+  // Compute the radiance contribution.
+  vec3 radiance = filamentBRDF(light, view, normal, roughness, mappedF0, f90, diffuseAlbedo);
+  radiance *= (lightIntensity * lightColour * nDotL * attenuation);
 
   radiance = max(radiance, vec3(0.0));
-
   fragColour = vec4(radiance, 1.0);
 }
 
-// Trowbridge-Reitz distribution function.
-float TRDistribution(vec3 N, vec3 H, float roughness)
+// Compute the light attenuation factor.
+float computeAttenuation(vec3 posToLight, float invLightRadius)
 {
-  float alpha = roughness * roughness;
-  float a2 = alpha * alpha;
-  float NdotH = max(dot(N, H), THRESHHOLD);
-  float NdotH2 = NdotH * NdotH;
-
-  float nom = a2;
-  float denom = (NdotH2 * (a2 - 1.0) + 1.0);
-  denom = PI * denom * denom;
-
-  return nom / denom;
+  float distSquared = dot(posToLight, posToLight);
+  float factor = distSquared * invLightRadius * invLightRadius;
+  float smoothFactor = max(1.0 - factor * factor, 0.0);
+  return (smoothFactor * smoothFactor) / max(distSquared, 1e-4);
 }
 
-// Schlick-Beckmann geometry function.
-float Geometry(float NdotV, float roughness)
+//------------------------------------------------------------------------------
+// Filament PBR.
+//------------------------------------------------------------------------------
+// Normal distribution function.
+float nGGX(float nDotH, float actualRoughness)
 {
-  float r = (roughness + 1.0);
-  float k = (roughness * roughness) / 8.0;
-
-  float nom   = NdotV;
-  float denom = NdotV * (1.0 - k) + k;
-
-  return nom / denom;
+  float a = nDotH * actualRoughness;
+  float k = actualRoughness / (1.0 - nDotH * nDotH + a * a);
+  return k * k * (1.0 / PI);
 }
 
-// Smith's modified geometry function.
-float SSBGeometry(vec3 N, vec3 L, vec3 V, float roughness)
+// Fast visibility term. Incorrect as it approximates the two square roots.
+float vGGXFast(float nDotV, float nDotL, float actualRoughness)
 {
-  float NdotV = max(dot(N, V), THRESHHOLD);
-  float NdotL = max(dot(N, L), THRESHHOLD);
-  float g2 = Geometry(NdotV, roughness);
-  float g1 = Geometry(NdotL, roughness);
-
-  return g1 * g2;
+  float a = actualRoughness;
+  float vVGGX = nDotL * (nDotV * (1.0 - a) + a);
+  float lVGGX = nDotV * (nDotL * (1.0 - a) + a);
+  return 0.5 / (vVGGX + lVGGX);
 }
 
-// Schlick approximation to the Fresnel factor.
-vec3 SFresnel(float cosTheta, vec3 F0)
+// Schlick approximation for the Fresnel factor.
+vec3 sFresnel(float vDotH, vec3 f0, vec3 f90)
 {
-  return F0 + (1.0 - F0) * pow(max(1.0 - cosTheta, THRESHHOLD), 5.0);
+  return f0 + (f90 - f0) * pow(1.0 - vDotH, 5.0);
 }
 
-vec3 SFresnelR(float cosTheta, vec3 F0, float roughness)
+// Cook-Torrance specular for the specular component of the BRDF.
+vec3 fsCookTorrance(float nDotH, float lDotH, float nDotV, float nDotL,
+                    float vDotH, float actualRoughness, vec3 f0, vec3 f90)
 {
-  return F0 + (max(vec3(1.0 - roughness), F0) - F0) * pow(max(1.0 - cosTheta, THRESHHOLD), 5.0);
+  float D = nGGX(nDotH, actualRoughness);
+  vec3 F = sFresnel(vDotH, f0, f90);
+  float V = vGGXFast(nDotV, nDotL, actualRoughness);
+  return D * F * V;
+}
+
+// Burley diffuse for the diffuse component of the BRDF.
+vec3 fdBurley(float nDotV, float nDotL, float lDotH, float actualRoughness, vec3 diffuseAlbedo)
+{
+  vec3 f90 = vec3(0.5 + 2.0 * actualRoughness * lDotH * lDotH);
+  vec3 lightScat = sFresnel(nDotL, vec3(1.0), f90);
+  vec3 viewScat = sFresnel(nDotV, vec3(1.0), f90);
+  return lightScat * viewScat * (1.0 / PI) * diffuseAlbedo;
+}
+
+// The final combined BRDF.
+// TODO: Fix conservation of energy between the diffuse and specular lobes.
+// TODO: Compensate for energy loss by accounting for multi-scattering events.
+vec3 filamentBRDF(vec3 l, vec3 v, vec3 n, float roughness, vec3 f0, vec3 f90, vec3 diffuseAlbedo)
+{
+  vec3 h = normalize(v + l);
+
+  float nDotV = abs(dot(n, v)) + 1e-5;
+  float nDotL = clamp(dot(n, l), 0.0, 1.0);
+  float nDotH = clamp(dot(n, h), 0.0, 1.0);
+  float lDotH = clamp(dot(l, h), 0.0, 1.0);
+  float vDotH = clamp(dot(v, h), 0.0, 1.0);
+
+  float clampedRoughness = max(roughness, 0.045);
+  float actualRoughness = clampedRoughness * clampedRoughness;
+
+  vec3 fs = fsCookTorrance(nDotH, lDotH, nDotV, nDotL, vDotH, actualRoughness, f0, f90);
+  vec3 fd = fdBurley(nDotV, nDotL, lDotH, actualRoughness, diffuseAlbedo);
+  return fd + fs;
 }

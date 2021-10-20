@@ -32,8 +32,8 @@ layout(binding = 1) uniform sampler2D entityIDs;
 layout(binding = 2) uniform sampler2D bloomColour;
 
 // Output colour variable.
-layout(location = 1) out vec4 fragColour;
-layout(location = 0) out float fragID;
+layout(location = 0) out vec4 fragColour;
+layout(location = 1) out float fragID;
 
 // Helper functions.
 float rgbToLuminance(vec3 rgbColour);

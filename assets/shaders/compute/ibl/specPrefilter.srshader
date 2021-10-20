@@ -9,9 +9,6 @@
 
 #define PI 3.141592654
 
-// Total number of Monte Carlo integration samples.
-#define SAMPLE_COUNT 1024u
-
 layout(local_size_x = 32, local_size_y = 32) in;
 
 // The environment map to prefilter.
@@ -24,6 +21,7 @@ layout(rgba16f, binding = 1) writeonly uniform imageCube prefilterMap;
 layout(std140, binding = 2) buffer paramBuff
 {
   vec4 u_iblParams; // Roughness (x). y, z and w are unused.
+  ivec4 u_iblParams1; // Number of samples (x). y, z and w are unused.
 };
 
 // Function for converting between image coordiantes and world coordiantes.
@@ -39,6 +37,7 @@ vec3 SSBImportance(vec2 Xi, vec3 N, float roughness);
 
 void main()
 {
+  const uint SAMPLE_COUNT = uint(u_iblParams1);
   vec2 enviSize = vec2(textureSize(environmentMap, 0).xy);
   vec2 mipSize = vec2(imageSize(prefilterMap).xy);
   ivec3 cubeCoord = ivec3(gl_GlobalInvocationID);

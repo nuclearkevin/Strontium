@@ -2,7 +2,6 @@
 *.cap
 *.pyc
 *.csv
-*.txt
 *.obj
 *.png
 *.mtl
@@ -43,6 +42,7 @@ Application
 
 # Remove annoying IDE directories
 /.idea/*
+/build/*
 
 # Allow some directories (fonts, icons, etc.).
 !**/media/*
