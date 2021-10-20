@@ -35,7 +35,7 @@ namespace Strontium
 
     this->vArray->addAttribute(0, AttribType::Vec4, false, sizeof(Vertex), 0);
   	this->vArray->addAttribute(1, AttribType::Vec3, false, sizeof(Vertex), offsetof(Vertex, normal));
-    this->vArray->addAttribute(2, AttribType::Vec3, false, sizeof(Vertex), offsetof(Vertex, uv));
+    this->vArray->addAttribute(2, AttribType::Vec2, false, sizeof(Vertex), offsetof(Vertex, uv));
     this->vArray->addAttribute(3, AttribType::Vec3, false, sizeof(Vertex), offsetof(Vertex, tangent));
     this->vArray->addAttribute(4, AttribType::Vec3, false, sizeof(Vertex), offsetof(Vertex, bitangent));
 
