@@ -236,8 +236,12 @@ namespace Strontium
           primaryCamera.invViewProj = glm::inverse(primaryCamera.projection * primaryCamera.view);
         }
         else
-          primaryCamera = (Camera) (*this->editorCam.get());
+        {
+          primaryCamera = (Camera)(*this->editorCam.get());
+          this->editorCam->onUpdate(dt);
+        }
 
+        this->drawBuffer->clear();
         Renderer3D::begin(this->editorSize.x, this->editorSize.y, primaryCamera);
         this->currentScene->onRenderRuntime();
         Renderer3D::end(this->drawBuffer);

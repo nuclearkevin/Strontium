@@ -78,6 +78,25 @@ namespace Strontium
   Scene::onUpdateRuntime(float dt)
   {
     this->updateAnimations(dt);
+
+    auto ambLight = this->sceneECS.group<AmbientComponent>(entt::get<TransformComponent>);
+    for (auto entity : ambLight)
+    {
+      auto [ambient, transform] = ambLight.get<AmbientComponent, TransformComponent>(entity);
+
+      if (ambient.animate)
+      {
+        transform.rotation.z += glm::radians(ambient.animationSpeed) * dt;
+        if (transform.rotation.z > glm::radians(360.0f))
+        {
+          transform.rotation.z = 0.0f;
+        }
+        if (transform.rotation.z < glm::radians(-360.0f))
+        {
+          transform.rotation.z = 0.0f;
+        }
+      }
+    }
   }
 
   void
@@ -197,7 +216,7 @@ namespace Strontium
         {
           auto preethamSkyParams = env->getSkyParams<PreethamSkyParams>(DynamicSkyType::Preetham);
 
-          glm::mat4 rotation = glm::transpose(glm::inverse((glm::mat4) transform));
+          glm::mat4 rotation = glm::transpose(glm::inverse((glm::mat4)transform));
           preethamSkyParams.sunPos = glm::vec3(rotation * glm::vec4(0.0, 1.0, 0.0, 0.0f));
           preethamSkyParams.sunPos.z *= -1.0f;
 
@@ -207,12 +226,15 @@ namespace Strontium
         {
           auto hillaireSkyParams = env->getSkyParams<HillaireSkyParams>(DynamicSkyType::Hillaire);
 
-          glm::mat4 rotation = glm::transpose(glm::inverse((glm::mat4) transform));
+          glm::mat4 rotation = glm::transpose(glm::inverse((glm::mat4)transform));
           hillaireSkyParams.sunPos = glm::vec3(rotation * glm::vec4(0.0, 1.0, 0.0, 0.0f));
           hillaireSkyParams.sunPos *= -1.0f;
 
           env->setSkyModelParams<HillaireSkyParams>(hillaireSkyParams);
         }
+
+        env->precomputeIrradiance();
+        env->precomputeSpecular();
       }
     }
 
@@ -314,9 +336,7 @@ namespace Strontium
       if (entity.hasComponent<TransformComponent>())
       {
         auto& localTransform = entity.getComponent<TransformComponent>();
-        auto& localTranslation = localTransform.translation;
-        auto scalelessTransform = glm::translate(glm::mat4(1.0f), localTranslation);
-        return scalelessTransform * computeGlobalTransform(parent);
+        return computeGlobalTransform(parent) * (glm::mat4) localTransform;
       }
       else
         return computeGlobalTransform(parent);
@@ -326,9 +346,7 @@ namespace Strontium
       if (entity.hasComponent<TransformComponent>())
       {
         auto& localTransform = entity.getComponent<TransformComponent>();
-        auto& localTranslation = localTransform.translation;
-        auto scalelessTransform = glm::translate(glm::mat4(1.0f), localTranslation);
-        return scalelessTransform;
+        return (glm::mat4) localTransform;
       }
       else
         return glm::mat4(1.0f);

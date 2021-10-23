@@ -6,77 +6,41 @@ namespace Strontium
   buildBoundingBox(const glm::vec3 &min, const glm::vec3 &max)
   {
     BoundingBox outBox;
-    glm::vec3 bb[8] =
-    {
-      // Min z corners.
-      { max.x, max.y, min.z },
-      { min.x, max.y, min.z },
-      { max.x, min.y, min.z },
-      { min.x, min.y, min.z },
 
-      // Max z corners.
-      { max.x, max.y, max.z },
-      { min.x, max.y, max.z },
-      { max.x, min.y, max.z },
-      { min.x, min.y, max.z }
-    };
+    outBox.center = (min + max) / 2.0f;
+    outBox.extents = glm::vec3(max.x - outBox.center.x, max.y - outBox.center.y,
+                               max.z - outBox.center.z);
 
-    for (unsigned i = 0; i < 8; i++)
-      outBox.corners[i] = bb[i];
+    return outBox;
+  }
 
-    outBox.min = min;
-    outBox.max = max;
+  BoundingBox 
+  buildBoundingBox(const glm::vec3& min, const glm::vec3& max, const glm::mat4& modelMatrix)
+  {
+    BoundingBox outBox;
+    
+    auto localCenter = (min + max) / 2.0f;
+    auto localExtents = glm::vec3(max.x - localCenter.x, max.y - localCenter.y,
+                                  max.z - localCenter.z);
 
-    // Compute the planes which make up the bounding box.
-    glm::vec3 edge1, edge2;
-    Plane back;
-    edge2 = outBox.corners[3] - outBox.corners[2];
-    edge1 = outBox.corners[0] - outBox.corners[2];
-    back.normal = glm::normalize(glm::cross(edge2, edge1));
-    back.d = glm::dot(outBox.corners[0], back.normal);
-    back.point = outBox.corners[0];
+    const glm::vec3 right = modelMatrix[0] * localExtents.x;
+    const glm::vec3 up = modelMatrix[1] * localExtents.y;
+    const glm::vec3 forward = -modelMatrix[2] * localExtents.z;
 
-    Plane front;
-    edge2 = outBox.corners[5] - outBox.corners[4];
-    edge1 = outBox.corners[6] - outBox.corners[4];
-    front.normal = glm::normalize(glm::cross(edge2, edge1));
-    front.d = glm::dot(outBox.corners[4], front.normal);
-    front.point = outBox.corners[4];
+    const float newIi = std::abs(glm::dot(glm::vec3{ 1.f, 0.f, 0.f }, right)) +
+                        std::abs(glm::dot(glm::vec3{ 1.f, 0.f, 0.f }, up)) +
+                        std::abs(glm::dot(glm::vec3{ 1.f, 0.f, 0.f }, forward));
 
-    Plane left;
-    edge2 = outBox.corners[5] - outBox.corners[7];
-    edge1 = outBox.corners[3] - outBox.corners[7];
-    left.normal = glm::normalize(glm::cross(edge2, edge1));
-    left.d = glm::dot(outBox.corners[1], left.normal);
-    left.point = outBox.corners[1];
+    const float newIj = std::abs(glm::dot(glm::vec3{ 0.f, 1.f, 0.f }, right)) +
+                        std::abs(glm::dot(glm::vec3{ 0.f, 1.f, 0.f }, up)) +
+                        std::abs(glm::dot(glm::vec3{ 0.f, 1.f, 0.f }, forward));
 
-    Plane right;
-    edge2 = outBox.corners[2] - outBox.corners[6];
-    edge1 = outBox.corners[4] - outBox.corners[6];
-    right.normal = glm::normalize(glm::cross(edge2, edge1));
-    right.d = glm::dot(outBox.corners[0], right.normal);
-    right.point = outBox.corners[0];
+    const float newIk = std::abs(glm::dot(glm::vec3{ 0.f, 0.f, 1.f }, right)) +
+                        std::abs(glm::dot(glm::vec3{ 0.f, 0.f, 1.f }, up)) +
+                        std::abs(glm::dot(glm::vec3{ 0.f, 0.f, 1.f }, forward));
 
-    Plane bottom;
-    edge2 = outBox.corners[7] - outBox.corners[6];
-    edge1 = outBox.corners[2] - outBox.corners[6];
-    bottom.normal = glm::normalize(glm::cross(edge2, edge1));
-    bottom.d = glm::dot(outBox.corners[2], bottom.normal);
-    bottom.point = outBox.corners[2];
-
-    Plane top;
-    edge2 = outBox.corners[5] - outBox.corners[1];
-    edge1 = outBox.corners[0] - outBox.corners[1];
-    top.normal = glm::normalize(glm::cross(edge2, edge1));
-    top.d = glm::dot(outBox.corners[0], top.normal);
-    top.point = outBox.corners[0];
-
-    outBox.sides[0] = back;
-    outBox.sides[1] = front;
-    outBox.sides[2] = left;
-    outBox.sides[3] = right;
-    outBox.sides[4] = bottom;
-    outBox.sides[5] = top;
+    outBox.center = modelMatrix * glm::vec4(localCenter, 1.0f);
+    outBox.extents = glm::vec3(newIi, newIj, newIk);
 
     return outBox;
   }
@@ -257,6 +221,15 @@ namespace Strontium
     return plane.normal.x * point.x + plane.normal.y * point.y + plane.normal.z * point.z - plane.d;
   }
 
+  bool 
+  boundingBoxOnPlane(const Plane& plane, const BoundingBox& box)
+  {
+    const float r = box.extents.x * std::abs(plane.normal.x) +
+                    box.extents.y * std::abs(plane.normal.y) +
+                    box.extents.z * std::abs(plane.normal.z);
+    return -r <= signedPlaneDistance(plane, box.center);
+  }
+
   bool
   sphereInFrustum(const Frustum &frustum, const glm::vec3 center, float radius)
   {
@@ -278,37 +251,24 @@ namespace Strontium
 
     // First test to see if the corners of the box are in the frustum.
     unsigned int planeTest = 0;
-    for (unsigned int i = 0; i < 8; i++)
-    {
-      for (unsigned int j = 0; j < 6; j++)
-      {
-        float distance = signedPlaneDistance(frustum.sides[j], bb.corners[i]);
-        if (distance >= 0.0f)
-          planeTest++;
-      }
+    bool inFrustum = true;
+    for (uint i = 0; i < 6; i++)
+      inFrustum = inFrustum && boundingBoxOnPlane(frustum.sides[i], bb);
 
-      if (planeTest == 6)
-        return true;
-      planeTest = 0;
-    }
+    return inFrustum;
+  }
 
-    // Next, test to see if the corners of the frustum are in the box.
-    planeTest = 0;
-    for (unsigned i = 0; i < 8; i++)
-    {
-      for (unsigned j = 0; j < 6; j++)
-      {
-        float distance = signedPlaneDistance(bb.sides[j], frustum.corners[i]);
-        if (distance >= 0.0f)
-          planeTest++;
-      }
+  bool boundingBoxInFrustum(const Frustum& frustum, const glm::vec3 min, const glm::vec3 max,
+                            const glm::mat4& transform)
+  {
+    auto bb = buildBoundingBox(min, max, transform);
 
-      if (planeTest == 6)
-        return true;
-      planeTest = 0;
-    }
+    // First test to see if the corners of the box are in the frustum.
+    unsigned int planeTest = 0;
+    bool inFrustum = true;
+    for (uint i = 0; i < 6; i++)
+        inFrustum = inFrustum && boundingBoxOnPlane(frustum.sides[i], bb);
 
-    // Reject if both fail. No volume intersections.
-    return false;
+    return inFrustum;
   }
 }

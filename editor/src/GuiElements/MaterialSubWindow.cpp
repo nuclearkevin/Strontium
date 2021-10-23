@@ -23,7 +23,11 @@ namespace Strontium
       if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH"))
       {
         std::string filepath = (char*) payload->Data;
+#ifdef WIN32
+        std::string filename = filepath.substr(filepath.find_last_of('\\') + 1);
+#else
         std::string filename = filepath.substr(filepath.find_last_of('/') + 1);
+#endif 
         std::string filetype = filename.substr(filename.find_last_of('.'));
 
         if (filetype == ".jpg" || filetype == ".tga" || filetype == ".png")

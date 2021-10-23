@@ -182,14 +182,22 @@ namespace Strontium
   {
     EnvironmentMap* ambient;
 
+    // Parameters for animating the skybox.
+    bool animate;
+    float animationSpeed; // Degrees.
+
     AmbientComponent(const AmbientComponent&) = default;
 
     AmbientComponent()
+      : animate(false)
+      , animationSpeed(0.01f)
     {
       ambient = Renderer3D::getStorage()->currentEnvironment.get();
     }
 
     AmbientComponent(const std::string &iblImagePath)
+      : animate(false)
+      , animationSpeed(0.01f)
     {
       ambient = Renderer3D::getStorage()->currentEnvironment.get();
       auto state = Renderer3D::getState();

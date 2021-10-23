@@ -8,6 +8,7 @@
 *.jpg
 *.jpeg
 *.tga
+*.dds
 *.hdr
 *.fbx
 *.FBX
@@ -23,9 +24,8 @@
 *.sfab
 *.smtl
 
-# Ignore the ignore of important model files and hdr environments.
-!cube.obj
-!pink_sunrise_4k.hdr
+# Ignore asset directories
+/assets/models/*
 
 # Object files
 *.d

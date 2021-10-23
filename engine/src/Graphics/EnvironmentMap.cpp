@@ -623,13 +623,11 @@ namespace Strontium
       // Bind the parameters for the LUT.
       this->skyboxParamBuffer.bindToPoint(3);
 
+      uint dims[5] = { 2, 1, 1, 1, 1 };
+
       // Perform the pre-filter for each roughness level.
       for (uint i = 0; i < 5; i++)
       {
-        // Compute the current mip levels.
-        uint mipWidth = (uint)((float)64.0f * std::pow(0.5f, i));
-        uint mipHeight = (uint)((float)64.0f * std::pow(0.5f, i));
-
         // Bind the irradiance map for writing to by the compute shader.
         this->specPrefilter.bindAsImage(1, i, true, 0, ImageAccessPolicy::Write);
 
@@ -640,7 +638,7 @@ namespace Strontium
         this->iblParams.setData(sizeof(glm::vec4), sizeof(glm::ivec4), &params1.x);
 
         // Launch the compute.
-        this->skySpecCompute.launchCompute(mipWidth / 32, mipHeight / 32, 6);
+        this->skySpecCompute.launchCompute(dims[i], dims[i], 6);
       }
     }
   }

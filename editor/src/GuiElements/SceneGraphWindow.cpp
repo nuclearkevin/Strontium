@@ -914,12 +914,21 @@ namespace Strontium
           ImGui::EndCombo();
         }
         ImGui::Separator();
-        ImGui::Text("");
 
         if (env->getDrawingType() == MapType::DynamicSky)
         {
           auto dynamicSkyType = env->getDynamicSkyType();
 
+          if (this->selectedEntity.hasComponent<TransformComponent>())
+          {
+            ImGui::Checkbox("Aniamte Dynamic Sky", &component.animate);
+            if (component.animate)
+            {
+              ImGui::DragFloat("Animation Speed", &component.animationSpeed, 0.001f);
+            }
+          }
+
+          ImGui::Text("");
           if (ImGui::BeginCombo("##dynamicSkyType", EnvironmentMap::skyEnumToString(dynamicSkyType).c_str()))
           {
             for (uint i = 0; i < IM_ARRAYSIZE(skyTypes); i++)

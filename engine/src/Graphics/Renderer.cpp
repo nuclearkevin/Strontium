@@ -231,12 +231,11 @@ namespace Strontium
            float id, bool drawSelectionMask)
     {
       // Cull the model early.
-      glm::vec3 min = glm::vec3(model * glm::vec4(data->getMinPos(), 1.0f));
-      glm::vec3 max = glm::vec3(model * glm::vec4(data->getMaxPos(), 1.0f));
+      glm::vec3 min = data->getMinPos();
+      glm::vec3 max = data->getMaxPos();
       glm::vec3 center = (min + max) / 2.0f;
-      float radius = glm::length(min + center);
 
-      if (boundingBoxInFrustum(storage->camFrustum, min, max) && state->frustumCull)
+      if (boundingBoxInFrustum(storage->camFrustum, min, max, model) && state->frustumCull)
         storage->staticRenderQueue.emplace_back(data, &materials, model, id,
                                                 drawSelectionMask);
       else if (!state->frustumCull)
@@ -250,12 +249,10 @@ namespace Strontium
                 const glm::mat4 &model, float id, bool drawSelectionMask)
     {
       // Cull the model early.
-      glm::vec3 min = glm::vec3(model * glm::vec4(data->getMinPos(), 1.0f));
-      glm::vec3 max = glm::vec3(model * glm::vec4(data->getMaxPos(), 1.0f));
-      glm::vec3 center = (min + max) / 2.0f;
-      float radius = glm::length(min + center);
+      glm::vec3 min = data->getMinPos();
+      glm::vec3 max = data->getMaxPos();
 
-      if (boundingBoxInFrustum(storage->camFrustum, min, max) && state->frustumCull)
+      if (boundingBoxInFrustum(storage->camFrustum, min, max, model) && state->frustumCull)
         storage->dynamicRenderQueue.emplace_back(data, animation, &materials,
                                                  model, id, drawSelectionMask);
       else if (!state->frustumCull)
@@ -328,10 +325,10 @@ namespace Strontium
         for (auto& submesh : data->getSubmeshes())
         {
           // Cull the submesh if it isn't in the frustum.
-          glm::vec3 min = glm::vec3(transform * glm::vec4(submesh.getMinPos(), 1.0f));
-          glm::vec3 max = glm::vec3(transform * glm::vec4(submesh.getMaxPos(), 1.0f));
+          glm::vec3 min = submesh.getMinPos();
+          glm::vec3 max = submesh.getMaxPos();
 
-          if (!boundingBoxInFrustum(storage->camFrustum, min, max) && state->frustumCull)
+          if (!boundingBoxInFrustum(storage->camFrustum, min, max, transform) && state->frustumCull)
             continue;
 
           Material* material = materials->getMaterial(submesh.getName());
@@ -383,10 +380,10 @@ namespace Strontium
         for (auto& submesh : data->getSubmeshes())
         {
           // Cull the submesh if it isn't in the frustum.
-          glm::vec3 min = glm::vec3(transform * glm::vec4(submesh.getMinPos(), 1.0f));
-          glm::vec3 max = glm::vec3(transform * glm::vec4(submesh.getMaxPos(), 1.0f));
+          glm::vec3 min = submesh.getMinPos();
+          glm::vec3 max = submesh.getMaxPos();
 
-          if (!boundingBoxInFrustum(storage->camFrustum, min, max) && state->frustumCull)
+          if (!boundingBoxInFrustum(storage->camFrustum, min, max, transform) && state->frustumCull)
             continue;
 
           Material* material = materials->getMaterial(submesh.getName());
@@ -450,16 +447,16 @@ namespace Strontium
       //------------------------------------------------------------------------
       // Directional light shadow cascade calculations:
       //------------------------------------------------------------------------
-      // https://developer.nvidia.com/gpugems/gpugems3/part-ii-light-and-shadows
-      // /chapter-10-parallel-split-shadow-maps-programmable-gpus
+      // https://developer.nvidia.com/gpugems/gpugems3/part-ii-light-and-shadows/chapter-10-parallel-split-shadow-maps-programmable-gpus
       //------------------------------------------------------------------------
-      // https://docs.microsoft.com/en-us/windows/win32/dxtecharts/
-      // cascaded-shadow-maps
+      // https://docs.microsoft.com/en-us/windows/win32/dxtecharts/cascaded-shadow-maps
       //------------------------------------------------------------------------
       const float near = storage->sceneCam.near;
       const float far = storage->sceneCam.far;
 
       glm::mat4 camInvVP = storage->sceneCam.invViewProj;
+
+      Frustum lightCullingFrustums[NUM_CASCADES];
 
       float cascadeSplits[NUM_CASCADES];
       for (unsigned int i = 0; i < NUM_CASCADES; i++)
@@ -591,6 +588,7 @@ namespace Strontium
           cascadeProjMatrix[i] = texelSpaceOrtho;
 
           storage->cascades[i] = cascadeProjMatrix[i] * cascadeViewMatrix[i];
+          lightCullingFrustums[i] = buildCameraFrustum(storage->cascades[i], -lightDir);
 
           previousCascadeDistance = cascadeSplits[i];
 
@@ -616,12 +614,19 @@ namespace Strontium
 
           // Static shadow pass.
           Shader* program = shaderCache->getAsset("static_shadow_shader");
-          for (auto& pair : storage->staticShadowQueue)
+          for (auto& [model, transform] : storage->staticShadowQueue)
           {
-              storage->transformBuffer.setData(0, sizeof(glm::mat4), glm::value_ptr(pair.second));
+              storage->transformBuffer.setData(0, sizeof(glm::mat4), glm::value_ptr(transform));
 
-              for (auto& submesh : pair.first->getSubmeshes())
+              for (auto& submesh : model->getSubmeshes())
               {
+                  // Cull the submesh if it isn't in the frustum.
+                  glm::vec3 min = submesh.getMinPos();
+                  glm::vec3 max = submesh.getMaxPos();
+
+                  if (!boundingBoxInFrustum(lightCullingFrustums[i], min, max, transform) && state->frustumCull)
+                      continue;
+
                   if (submesh.hasVAO())
                       Renderer3D::draw(submesh.getVAO(), program);
                   else
@@ -645,6 +650,13 @@ namespace Strontium
 
             for (auto& submesh : data->getSubmeshes())
             {
+              // Cull the submesh if it isn't in the frustum.
+              glm::vec3 min = submesh.getMinPos();
+              glm::vec3 max = submesh.getMaxPos();
+
+              if (!boundingBoxInFrustum(lightCullingFrustums[i], min, max, transform) && state->frustumCull)
+                  continue;
+
               if (submesh.hasVAO())
                   Renderer3D::draw(submesh.getVAO(), program);
               else

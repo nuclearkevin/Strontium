@@ -7,7 +7,8 @@
 
 #define PI 3.141592654
 
-#define NUM_STEPS 25
+#define NUM_STEPS 50
+#define G_SCATTERING 0.5
 
 #define NUM_CASCADES 4
 #define WARP 44.0
@@ -159,13 +160,9 @@ float sampleDither(ivec2 coords)
 
 float getMiePhase(float cosTheta)
 {
-  const float g = 0.8;
-  const float scale = 3.0 / (8.0 * PI);
-
-  float num = (1.0 - g * g) * (1.0 + cosTheta * cosTheta);
-  float denom = (2.0 + g * g) * pow((1.0 + g * g - 2.0 * g * cosTheta), 1.5);
-
-  return scale * num / denom;
+  float result = 1.0 - G_SCATTERING * G_SCATTERING;
+  result /= (4.0 * PI * pow(1.0 + G_SCATTERING * G_SCATTERING - (2.0 * G_SCATTERING) * cosTheta, 1.5));
+  return result;
 }
 
 vec2 warpDepth(float depth)

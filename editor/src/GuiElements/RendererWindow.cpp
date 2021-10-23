@@ -124,7 +124,7 @@ namespace Strontium
 
       if (showLightTexture)
       {
-        ImGui::Text("Sunshaft Texture");
+        ImGui::Text("Volumetric Light Texture");
         ImGui::Image((ImTextureID) (unsigned long) storage->downsampleLightshaft.getID(),
                      ImVec2(128.0f * ratio, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
       }
@@ -143,8 +143,11 @@ namespace Strontium
       ImGui::DragFloat("Knee", &state->bloomKnee, 0.01f, 0.0f, 1.0f);
       ImGui::DragFloat("Radius", &state->bloomRadius, 0.01f, 0.0f, 10.0f);
       ImGui::DragFloat("Intensity", &state->bloomIntensity, 0.01f, 0.0f, 10.0f);
-      ImGui::Indent();
-      if (ImGui::CollapsingHeader("Debug View##bloom"))
+
+      static bool showBloomTextures = false;
+      ImGui::Checkbox("Show Bloom Image Pyramid", &showBloomTextures);
+
+      if (showBloomTextures)
       {
         ImGui::Text("Downsample Image Pyramid (%d, %d)",
                     storage->downscaleBloomTex[downMipView].width,
@@ -167,7 +170,6 @@ namespace Strontium
         ImGui::Image((ImTextureID) (unsigned long) storage->bufferBloomTex[bufferMipView].getID(),
                      ImVec2(128.0f * ratio, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
       }
-      ImGui::Unindent();
     }
 
     if (ImGui::CollapsingHeader("Tone Mapping"))

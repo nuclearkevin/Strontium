@@ -158,7 +158,6 @@ namespace Strontium
     // cubemap to 32x32 and the specular cubemap to 64x64.
     void setDynamicSkyIBL();
     void setStaticIBL();
-    void updateDynamicIBL();
 
     // Getters.
     uint getTexID(const MapType &type);
@@ -243,7 +242,6 @@ namespace Strontium
     // Parameters for drawing the skybox.
     float intensity;
     float roughness;
-
     glm::ivec4 skyboxParameters;
 
     Model    cube;
