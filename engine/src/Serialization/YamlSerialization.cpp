@@ -569,7 +569,7 @@ namespace Strontium
           {
             auto uName = uFloat["UniformName"];
             if (uName)
-              outMat->getFloat(uName.as<std::string>()) = uFloat["UniformValue"].as<float>();
+              outMat->set(uFloat["UniformValue"].as<float>(), uName.as<std::string>());
           }
         }
 
@@ -580,7 +580,7 @@ namespace Strontium
           {
             auto uName = uVec2["UniformName"];
             if (uName)
-              outMat->getVec2(uName.as<std::string>()) = uVec2["UniformValue"].as<glm::vec2>();
+              outMat->set(uVec2["UniformValue"].as<glm::vec2>(), uName.as<std::string>());
           }
         }
 
@@ -591,7 +591,7 @@ namespace Strontium
           {
             auto uName = uVec3["UniformName"];
             if (uName)
-              outMat->getVec3(uName.as<std::string>()) = uVec3["UniformValue"].as<glm::vec3>();
+              outMat->set(uVec3["UniformValue"].as<glm::vec3>(), uName.as<std::string>());
           }
         }
 

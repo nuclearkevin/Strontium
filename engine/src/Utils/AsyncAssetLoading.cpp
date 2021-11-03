@@ -78,7 +78,7 @@ namespace Strontium
                 std::string texName;
                 if (submeshTexturePaths.albedoTexturePath != "")
                 {
-                  submeshMaterial->getVec3("uAlbedo") = glm::vec3(1.0f);
+                  submeshMaterial->set(glm::vec3(1.0f), "uAlbedo");
                   texName = submeshTexturePaths.albedoTexturePath.substr(submeshTexturePaths.albedoTexturePath.find_last_of('/') + 1);
                   submeshMaterial->attachSampler2D("albedoMap", texName);
 
@@ -93,7 +93,7 @@ namespace Strontium
 
                 if (submeshTexturePaths.roughnessTexturePath != "")
                 {
-                  submeshMaterial->getFloat("uRoughness") = 1.0f;
+                  submeshMaterial->set(1.0f, "uRoughness");
                   texName = submeshTexturePaths.roughnessTexturePath.substr(submeshTexturePaths.roughnessTexturePath.find_last_of('/') + 1);
                   submeshMaterial->attachSampler2D("roughnessMap", texName);
 
@@ -108,7 +108,7 @@ namespace Strontium
 
                 if (submeshTexturePaths.metallicTexturePath != "")
                 {
-                  submeshMaterial->getFloat("uMetallic") = 1.0f;
+                  submeshMaterial->set(1.0f, "uMetallic");
                   texName = submeshTexturePaths.metallicTexturePath.substr(submeshTexturePaths.metallicTexturePath.find_last_of('/') + 1);
                   submeshMaterial->attachSampler2D("metallicMap", texName);
 
@@ -123,7 +123,7 @@ namespace Strontium
 
                 if (submeshTexturePaths.aoTexturePath != "")
                 {
-                  submeshMaterial->getFloat("uAO") = 1.0f;
+                  submeshMaterial->set(1.0f, "uAO");
                   texName = submeshTexturePaths.aoTexturePath.substr(submeshTexturePaths.aoTexturePath.find_last_of('/') + 1);
                   submeshMaterial->attachSampler2D("aOcclusionMap", texName);
 
@@ -138,7 +138,7 @@ namespace Strontium
 
                 if (submeshTexturePaths.specularTexturePath != "")
                 {
-                  submeshMaterial->getFloat("uF0") = 1.0f;
+                  submeshMaterial->set(0.04f, "uF0");
                   texName = submeshTexturePaths.specularTexturePath.substr(submeshTexturePaths.specularTexturePath.find_last_of('/') + 1);
                   submeshMaterial->attachSampler2D("specF0Map", texName);
 
@@ -392,7 +392,14 @@ namespace Strontium
         ImageData2D outImage;
         outImage.isHDR = (filepath.substr(filepath.find_last_of("."), 4) == ".hdr");
         outImage.params = params;
-        outImage.name = name.substr(name.find_last_of("/") + 1, name.size() - 1);
+#ifdef WIN32
+        std::string filename = filepath.substr(filepath.find_last_of('/') + 1);
+        filename = filename.substr(filepath.find_last_of('\\') + 1);
+#else
+        std::string filename = filepath.substr(filepath.find_last_of('/') + 1);
+        filename = filename.substr(filepath.find_last_of('\\') + 1);
+#endif 
+        outImage.name = filename;
         outImage.filepath = filepath;
 
         // Load the image.

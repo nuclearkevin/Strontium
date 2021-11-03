@@ -24,9 +24,11 @@ namespace Strontium
       {
         std::string filepath = (char*) payload->Data;
 #ifdef WIN32
-        std::string filename = filepath.substr(filepath.find_last_of('\\') + 1);
+        std::string filename = filepath.substr(filepath.find_last_of('/') + 1);
+        filename = filename.substr(filepath.find_last_of('\\') + 1);
 #else
         std::string filename = filepath.substr(filepath.find_last_of('/') + 1);
+        filename = filename.substr(filepath.find_last_of('\\') + 1);
 #endif 
         std::string filetype = filename.substr(filename.find_last_of('.'));
 
@@ -173,12 +175,12 @@ namespace Strontium
       ImGui::InputText("##MaterialPath", pathBuffer, sizeof(pathBuffer), ImGuiInputTextFlags_ReadOnly);
     }
 
-    auto& uAlbedo = material->getVec3("uAlbedo");
-    auto& uMetallic = material->getFloat("uMetallic");
-    auto& uRoughness = material->getFloat("uRoughness");
-    auto& uAO = material->getFloat("uAO");
-    auto& uEmiss = material->getFloat("uEmiss");
-    auto& uF0 = material->getFloat("uF0");
+    auto uAlbedo = material->getvec3("uAlbedo");
+    auto uMetallic = material->getfloat("uMetallic");
+    auto uRoughness = material->getfloat("uRoughness");
+    auto uAO = material->getfloat("uAO");
+    auto uEmiss = material->getfloat("uEmiss");
+    auto uF0 = material->getfloat("uF0");
 
     // Draw all the associated texture maps for the entity.
     ImGui::Text("Albedo Map");
@@ -204,6 +206,13 @@ namespace Strontium
     materialMapSliderFloat("Roughness Map", "roughnessMap", material, uRoughness, selectedSampler);
     materialMapSliderFloat("Ambient Occlusion Map", "aOcclusionMap", material, uAO, selectedSampler);
     materialMapSliderFloat("Specular F0 Map", "specF0Map", material, uF0, selectedSampler);
+
+    material->set(uAlbedo, "uAlbedo");
+    material->set(uMetallic, "uMetallic");
+    material->set(uRoughness, "uRoughness");
+    material->set(uAO, "uAO");
+    material->set(uEmiss, "uEmiss");
+    material->set(uF0, "uF0");
 
     ImGui::Text("Normal Map");
     ImGui::PushID("Normal Button");

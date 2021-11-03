@@ -26,6 +26,8 @@ namespace Strontium
     Material(MaterialType type = MaterialType::PBR, const std::string &filepath = "");
     ~Material();
 
+    void updateUniformBuffer();
+
     // Prepare for drawing.
     void configure();
     void configureDynamic(Shader* override);
@@ -41,53 +43,114 @@ namespace Strontium
     void attachSamplerCubemap(const std::string &samplerName, const Strontium::AssetHandle &handle);
 
     // TODO: Implement 1D and 3D texture fetching.
-    //Texture1D* getSampler1D(const std::string &samplerName);
     Texture2D* getSampler2D(const std::string &samplerName);
     Strontium::AssetHandle& getSampler2DHandle(const std::string &samplerName);
-    //Texture3D* getSampler1D(const std::string &samplerName);
-    //CubeMap* getSamplerCubemap(const std::string &samplerName);
 
     // Get the filepath.
     std::string& getFilepath() { return this->filepath; }
 
     // Get the shader and pipeline type.
     MaterialType& getType() { return this->type; }
-    bool& getPipeline() { return this->pipeline; }
 
     // Get the shader program.
     Shader* getShader() { return this->program; }
 
     // Get the shader data.
-    float& getFloat(const std::string &name)
+    float getfloat(const std::string &name)
     {
       auto loc = Utilities::pairGet<std::string, float>(this->floats, name);
       return loc->second;
     };
-    glm::vec2& getVec2(const std::string &name)
+
+    glm::vec2 getvec2(const std::string &name)
     {
       auto loc = Utilities::pairGet<std::string, glm::vec2>(this->vec2s, name);
       return loc->second;
     };
-    glm::vec3& getVec3(const std::string &name)
+
+    glm::vec3 getvec3(const std::string &name)
     {
       auto loc = Utilities::pairGet<std::string, glm::vec3>(this->vec3s, name);
       return loc->second;
     };
-    glm::vec4& getVec4(const std::string &name)
+
+    glm::vec4 getvec4(const std::string &name)
     {
       auto loc = Utilities::pairGet<std::string, glm::vec4>(this->vec4s, name);
       return loc->second;
     };
-    glm::mat3& getMat3(const std::string &name)
+
+    glm::mat3 getmat3(const std::string &name)
     {
       auto loc = Utilities::pairGet<std::string, glm::mat3>(this->mat3s, name);
       return loc->second;
     };
-    glm::mat4& getMat4(const std::string &name)
+
+    glm::mat4 getmat4(const std::string &name)
     {
       auto loc = Utilities::pairGet<std::string, glm::mat4>(this->mat4s, name);
       return loc->second;
     };
+
+    void set(float newFloat, const std::string& name)
+    {
+      auto loc = Utilities::pairGet<std::string, float>(this->floats, name);
+      if (loc->second != newFloat)
+      {
+          loc->second = newFloat;
+          this->updateUniformBuffer();
+      }
+    }
+
+    void set(const glm::vec2 &newVec2, const std::string& name)
+    {
+        auto loc = Utilities::pairGet<std::string, glm::vec2>(this->vec2s, name);
+        if (loc->second != newVec2)
+        {
+            loc->second = newVec2;
+            this->updateUniformBuffer();
+        }
+    }
+
+    void set(const glm::vec3& newVec3, const std::string& name)
+    {
+        auto loc = Utilities::pairGet<std::string, glm::vec3>(this->vec3s, name);
+        if (loc->second != newVec3)
+        {
+            loc->second = newVec3;
+            this->updateUniformBuffer();
+        }
+    }
+
+    void set(const glm::vec4& newVec4, const std::string& name)
+    {
+        auto loc = Utilities::pairGet<std::string, glm::vec4>(this->vec4s, name);
+        if (loc->second != newVec4)
+        {
+            loc->second = newVec4;
+            this->updateUniformBuffer();
+        }
+    }
+
+    void set(const glm::mat3& newMat3, const std::string& name)
+    {
+        auto loc = Utilities::pairGet<std::string, glm::mat3>(this->mat3s, name);
+        if (loc->second != newMat3)
+        {
+            loc->second = newMat3;
+            this->updateUniformBuffer();
+        }
+    }
+
+    void set(const glm::mat4& newMat4, const std::string& name)
+    {
+        auto loc = Utilities::pairGet<std::string, glm::mat4>(this->mat4s, name);
+        if (loc->second != newMat4)
+        {
+            loc->second = newMat4;
+            this->updateUniformBuffer();
+        }
+    }
 
     // Operator overloading makes this nice and easy.
     operator Shader*() { return this->program; }
