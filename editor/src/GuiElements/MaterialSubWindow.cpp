@@ -204,7 +204,7 @@ namespace Strontium
     materialMapSliderFloat("Metallic Map", "metallicMap", material, uMetallic, selectedSampler);
     materialMapSliderFloat("Roughness Map", "roughnessMap", material, uRoughness, selectedSampler);
     materialMapSliderFloat("Ambient Occlusion Map", "aOcclusionMap", material, uAO, selectedSampler);
-    materialMapSliderFloat("Specular F0 Map", "specF0Map", material, uF0, selectedSampler);
+    materialMapSliderFloat("Specular F0 Map", "specF0Map", material, uF0, selectedSampler, 0.0f, 0.17f);
 
     material->set(uAlbedo, "uAlbedo");
     material->set(uMetallic, "uMetallic");

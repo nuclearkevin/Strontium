@@ -1,8 +1,7 @@
 #type compute
 #version 440
 /*
- * A compute shader to precompute the frustums and AABBs used in tiled
- * deferred rendering.
+ * A compute shader to cull lights.
  */
 
 #define GROUP_SIZE 32

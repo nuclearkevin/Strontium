@@ -63,7 +63,8 @@ layout(binding = 7) uniform sampler2D cascadeMaps[NUM_CASCADES]; // TODO: Textur
 layout(location = 0) out vec4 fragColour;
 
 // PBR BRDF.
-vec3 filamentBRDF(vec3 l, vec3 v, vec3 n, float roughness, vec3 f0, vec3 f90, vec3 diffuseAlbedo);
+vec3 filamentBRDF(vec3 l, vec3 v, vec3 n, float roughness, float metallic,
+                  vec3 dielectricF0, vec3 metallicF0, vec3 f90, vec3 diffuseAlbedo);
 // Shadow calculations.
 float calcShadow(uint cascadeIndex, vec3 position, vec3 normal, vec3 lightDir);
 
@@ -76,11 +77,10 @@ void main()
   vec3 albedo = texture(gAlbedo, fTexCoords).rgb;
   float metallic = texture(gMatProp, fTexCoords).r;
   float roughness = texture(gMatProp, fTexCoords).g;
-  float f0 = texture(gAlbedo, fTexCoords).a;
+  vec3 dielectricF0 = clamp(texture(gAlbedo, fTexCoords).a, 0.0, 0.17).rrr;
 
   // Remap material properties.
-  vec3 diffuseAlbedo = (1.0 - metallic) * albedo;
-  vec3 mappedF0 = vec3(f0) * (1.0 - metallic) + albedo * metallic;
+  vec3 metallicF0 = albedo * metallic;
 
   // Dirty, setting f90 to 1.0.
   vec3 f90 = vec3(1.0);
@@ -105,8 +105,8 @@ void main()
   }
 
   // Compute the radiance contribution.
-  vec3 radiance = filamentBRDF(light, view, normal, roughness, mappedF0, f90,
-                               diffuseAlbedo);
+  vec3 radiance = filamentBRDF(light, view, normal, roughness, metallic,
+                               dielectricF0, metallicF0, f90, albedo);
   radiance *= (lightIntensity * nDotL * lightColour * shadowFactor);
 
   // Add on screen-space godrays.
@@ -134,13 +134,14 @@ float vGGXFast(float nDotV, float nDotL, float actualRoughness)
   float a = actualRoughness;
   float vVGGX = nDotL * (nDotV * (1.0 - a) + a);
   float lVGGX = nDotV * (nDotL * (1.0 - a) + a);
-  return 0.5 / (vVGGX + lVGGX);
+  return 0.5 / max(vVGGX + lVGGX, 1e-5);
 }
 
 // Schlick approximation for the Fresnel factor.
 vec3 sFresnel(float vDotH, vec3 f0, vec3 f90)
 {
-  return f0 + (f90 - f0) * pow(1.0 - vDotH, 5.0);
+  float p = 1.0 - vDotH;
+  return f0 + (f90 - f0) * p * p * p * p * p;
 }
 
 // Cook-Torrance specular for the specular component of the BRDF.
@@ -162,25 +163,66 @@ vec3 fdBurley(float nDotV, float nDotL, float lDotH, float actualRoughness, vec3
   return lightScat * viewScat * (1.0 / PI) * diffuseAlbedo;
 }
 
+// Lambertian diffuse for the diffuse component of the BRDF.
+vec3 fdLambert(vec3 diffuseAlbedo)
+{
+  return diffuseAlbedo / PI;
+}
+
+// Lambertian diffuse for the diffuse component of the BRDF. Corrected to guarantee
+// energy is conserved.
+vec3 fdLambertCorrected(vec3 f0, vec3 f90, float vDotH, float lDotH,
+                        vec3 diffuseAlbedo)
+{
+  // Making the assumption that the external medium is air (IOR of 1).
+  vec3 iorExtern = vec3(1.0);
+  // Calculating the IOR of the medium using f0.
+  vec3 iorIntern = (vec3(1.0) - sqrt(f0)) / (vec3(1.0) + sqrt(f0));
+  // Ratio of the IORs.
+  vec3 iorRatio = iorExtern / iorIntern;
+
+  // Compute the incoming and outgoing Fresnel factors.
+  vec3 fIncoming = sFresnel(lDotH, f0, f90);
+  vec3 fOutgoing = sFresnel(vDotH, f0, f90);
+
+  // Compute the fraction of light which doesn't get reflected back into the
+  // medium for TIR.
+  vec3 rExtern = PI * (20.0 * f0 + 1.0) / 21.0;
+  // Use rExtern to compute the fraction of light which gets reflected back into
+  // the medium for TIR.
+  vec3 rIntern = vec3(1.0) - (iorRatio * iorRatio * (vec3(1.0) - rExtern));
+
+  // The TIR contribution.
+  vec3 tirDiffuse = vec3(1.0) - (rIntern * diffuseAlbedo);
+
+  // The final diffuse BRDF.
+  return (iorRatio * iorRatio) * diffuseAlbedo * (vec3(1.0) - fIncoming) * (vec3(1.0) - fOutgoing) / (PI * tirDiffuse);
+}
+
 // The final combined BRDF.
-// TODO: Fix conservation of energy between the diffuse and specular lobes.
 // TODO: Compensate for energy loss by accounting for multi-scattering events.
-vec3 filamentBRDF(vec3 l, vec3 v, vec3 n, float roughness, vec3 f0, vec3 f90, vec3 diffuseAlbedo)
+vec3 filamentBRDF(vec3 l, vec3 v, vec3 n, float roughness, float metallic,
+                  vec3 dielectricF0, vec3 metallicF0, vec3 f90,
+                  vec3 diffuseAlbedo)
 {
   vec3 h = normalize(v + l);
 
-  float nDotV = abs(dot(n, v)) + 1e-5;
-  float nDotL = clamp(dot(n, l), 0.0, 1.0);
-  float nDotH = clamp(dot(n, h), 0.0, 1.0);
-  float lDotH = clamp(dot(l, h), 0.0, 1.0);
-  float vDotH = clamp(dot(v, h), 0.0, 1.0);
+  float nDotV = max(abs(dot(n, v)), 1e-5);
+  float nDotL = clamp(dot(n, l), 1e-5, 1.0);
+  float nDotH = clamp(dot(n, h), 1e-5, 1.0);
+  float lDotH = clamp(dot(l, h), 1e-5, 1.0);
+  float vDotH = clamp(dot(v, h), 1e-5, 1.0);
 
   float clampedRoughness = max(roughness, 0.045);
   float actualRoughness = clampedRoughness * clampedRoughness;
 
-  vec3 fs = fsCookTorrance(nDotH, lDotH, nDotV, nDotL, vDotH, actualRoughness, f0, f90);
-  vec3 fd = fdBurley(nDotV, nDotL, lDotH, actualRoughness, diffuseAlbedo);
-  return fd + fs;
+  vec3 fs = fsCookTorrance(nDotH, lDotH, nDotV, nDotL, vDotH, actualRoughness, dielectricF0, f90);
+  vec3 fd = fdLambertCorrected(dielectricF0, f90, vDotH, lDotH, diffuseAlbedo);
+  vec3 dielectricBRDF = fs + fd;
+
+  vec3 metallicBRDF = fsCookTorrance(nDotH, lDotH, nDotV, nDotL, vDotH, actualRoughness, metallicF0, f90);
+
+  return mix(dielectricBRDF, metallicBRDF, metallic);
 }
 
 //------------------------------------------------------------------------------
