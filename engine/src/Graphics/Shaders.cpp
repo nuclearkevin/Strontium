@@ -2,9 +2,13 @@
 
 // Project includes.
 #include "Core/Logs.h"
+#include "Serialization/YamlSerialization.h"
 
 // OpenGL includes.
 #include "glad/glad.h"
+
+// YAML includes.
+#include "yaml-cpp/yaml.h"
 
 namespace Strontium
 {
@@ -350,4 +354,53 @@ namespace Strontium
 		uint uniLoc = glGetUniformLocation(this->progID, uniformName);
 		glUniform1i(uniLoc, texID);
 	}
+
+    namespace ShaderCache
+    {
+      std::unordered_map<std::string, Shader> shaderCache;
+
+      void 
+      init(const std::string& filepath)
+      {
+        Logger* logs = Logger::getInstance();
+        shaderCache = std::unordered_map<std::string, Shader>();
+
+        YAML::Node data = YAML::LoadFile(filepath);
+        if (!data["ShaderCache"])
+        {
+          assert("Shader cache not found");
+        }
+        else
+        {
+          auto shaderList = data["ShaderCache"];
+          for (auto shader : shaderList)
+          {
+            if (shader["Handle"] && shader["Filepath"])
+            {
+              std::string handle = shader["Handle"].as<std::string>();
+              std::string path = shader["Filepath"].as<std::string>();
+              logs->logMessage({ "Compiling " + handle, true, true});
+              shaderCache.emplace(handle, path);
+            }
+          }
+        } 
+      }
+
+      Shader*
+      getShader(const std::string& shaderHandle)
+      {
+        return &(shaderCache.at(shaderHandle));
+      }
+
+      std::unordered_map<std::string, Shader>::iterator 
+      begin()
+      {
+        return shaderCache.begin();
+      }
+      std::unordered_map<std::string, Shader>::iterator 
+      end()
+      {
+        return shaderCache.end();
+      }
+    }
 }

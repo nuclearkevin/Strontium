@@ -11,6 +11,9 @@
 #include "imgui/imgui.h"
 #include "imgui/imgui_internal.h"
 
+// STL includes.
+#include <filesystem>
+
 namespace Strontium
 {
   // UI helper functions.
@@ -23,14 +26,10 @@ namespace Strontium
       if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH"))
       {
         std::string filepath = (char*) payload->Data;
-#ifdef WIN32
-        std::string filename = filepath.substr(filepath.find_last_of('/') + 1);
-        filename = filename.substr(filepath.find_last_of('\\') + 1);
-#else
-        std::string filename = filepath.substr(filepath.find_last_of('/') + 1);
-        filename = filename.substr(filepath.find_last_of('\\') + 1);
-#endif 
-        std::string filetype = filename.substr(filename.find_last_of('.'));
+        std::filesystem::path fsPath(filepath);
+
+        std::string filename = fsPath.filename().string();
+        std::string filetype = fsPath.extension().string();
 
         if (filetype == ".jpg" || filetype == ".tga" || filetype == ".png")
         {

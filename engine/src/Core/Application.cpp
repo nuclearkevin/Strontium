@@ -35,51 +35,13 @@ namespace Strontium
     // Initialize the thread pool.
     workerGroup = Unique<ThreadPool>(ThreadPool::getInstance(4));
 
+    // Init the shader cache.
+    ShaderCache::init("./assets/shaders/shaderManifest.yaml");
+
     // Initialize the asset managers.
-    this->shaderCache.reset(AssetManager<Shader>::getManager());
     this->modelAssets.reset(AssetManager<Model>::getManager());
     this->texture2DAssets.reset(AssetManager<Texture2D>::getManager());
     this->materialAssets.reset(AssetManager<Material>::getManager());
-
-    // Load the shaders into a cache.
-    this->shaderCache->attachAsset("static_shadow_shader",
-      new Shader("./assets/shaders/shadows/staticShadow.srshader"));
-
-    this->shaderCache->attachAsset("dynamic_shadow_shader",
-      new Shader("./assets/shaders/shadows/dynamicShadowShader.srshader"));
-
-    this->shaderCache->attachAsset("geometry_pass_shader",
-      new Shader("./assets/shaders/deferred/staticGeometryPass.srshader"));
-
-    this->shaderCache->attachAsset("dynamic_geometry_pass",
-      new Shader("./assets/shaders/deferred/dynamicGeometryPass.srshader"));
-
-    this->shaderCache->attachAsset("deferred_ambient",
-      new Shader("./assets/shaders/deferred/ambientLight.srshader"));
-
-    this->shaderCache->attachAsset("deferred_directional_shadowed",
-      new Shader("./assets/shaders/deferred/shadowedDirectionalLight.srshader"));
-
-    this->shaderCache->attachAsset("deferred_directional",
-      new Shader("./assets/shaders/deferred/directionalLight.srshader"));
-
-    this->shaderCache->attachAsset("deferred_point",
-      new Shader("./assets/shaders/deferred/pointLight.srshader"));
-
-    this->shaderCache->attachAsset("post_processing",
-      new Shader("./assets/shaders/post/postProcessing.srshader"));
-
-    this->shaderCache->attachAsset("outline",
-      new Shader("./assets/shaders/post/outline.srshader"));
-
-    this->shaderCache->attachAsset("grid",
-      new Shader("./assets/shaders/post/grid.srshader"));
-
-    this->shaderCache->attachAsset("gaussian_hori",
-      new Shader("./assets/shaders/post/gaussianHori.srshader"));
-
-    this->shaderCache->attachAsset("gaussian_vert",
-      new Shader("./assets/shaders/post/gaussianVert.srshader"));
 
     // Load the default assets.
     // Default texture (an ugly purple) and the default material properties

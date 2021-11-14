@@ -25,12 +25,12 @@ namespace Strontium
   ShaderWindow::onImGuiRender(bool &isOpen, Shared<Scene> activeScene)
   {
     Logger* logs = Logger::getInstance();
-    auto shaderCache = AssetManager<Shader>::getManager();
 
     ImGui::Begin("Shader Programs", &isOpen);
-    for (auto& name : shaderCache->getStorage())
+    for (auto pair = ShaderCache::begin(); pair != ShaderCache::end(); ++pair)
     {
-      Shader* shader = shaderCache->getAsset(name);
+      Shader* shader = &pair->second;
+      std::string name = pair->first;
 
       ImGuiTreeNodeFlags flags = ((this->selectedShader == shader) ? ImGuiTreeNodeFlags_Selected : 0);
 

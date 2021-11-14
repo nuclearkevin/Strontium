@@ -1,0 +1,47 @@
+#type compute
+#version 440
+/*
+ * A compute shader to precompute the frustums and AABBs used in tiled
+ * deferred rendering.
+ */
+
+#define GROUP_SIZE 32
+
+layout(local_size_x = GROUP_SIZE, local_size_y = GROUP_SIZE) in;
+
+struct TileData
+{
+  // World space frustum normals, signed distance is packed in the w component.
+  vec4 frustumPlanes[6];
+  // World space tile AABB, only xyz are used.
+  vec4 aabbCenter;
+  vec4 aabbExtents;
+};
+
+struct PointLight
+{
+  vec4 u_lPositionRadius; // Position (x, y, z), radius (w).
+  vec4 u_lColourIntensity; // Colour (x, y, z) and intensity (w).
+};
+
+layout(std140, binding = 0) uniform CameraBlock
+{
+  mat4 u_viewMatrix;
+  mat4 u_projMatrix;
+  vec3 u_camPosition;
+};
+
+layout(std140, binding = 1) readonly buffer AABBandFrustum
+{
+  TileData frustumsAABBs[];
+};
+
+layout(std140, binding = 2) readonly buffer PointLights
+{
+  PointLight pLights[];
+};
+
+void main()
+{
+
+}

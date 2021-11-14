@@ -24,8 +24,6 @@ namespace Strontium
     void
     init(const uint width, const uint height)
     {
-      auto shaderCache = AssetManager<Shader>::getManager();
-
       // Initialize OpenGL parameters.
       RendererCommands::enable(RendererFunction::DepthTest);
       RendererCommands::enable(RendererFunction::CubeMapSeamless);
@@ -65,7 +63,7 @@ namespace Strontium
         powOf2 *= 2.0f;
       }
 
-      // Init the texture for the volumetric light shafts. Use same params as bloom.
+      // Init the texture for the screen-space godrays. Use same params as bloom.
       storage->downsampleLightshaft.setSize(width / 2, height / 2, 4);
       storage->downsampleLightshaft.setParams(bloomParams);
       storage->downsampleLightshaft.initNullTexture();
@@ -221,7 +219,7 @@ namespace Strontium
 
       storage->camBuffer.bindToPoint(0);
       for (auto& submesh : storage->currentEnvironment->getCubeMesh()->getSubmeshes())
-        Renderer3D::draw(submesh.getVAO(), storage->currentEnvironment->getCubeProg());
+        Renderer3D::draw(submesh.getVAO(), ShaderCache::getShader("skybox"));
 
       RendererCommands::depthFunction(DepthFunctions::Less);
     }
@@ -277,7 +275,7 @@ namespace Strontium
     submit(PointLight light, const glm::mat4 &model)
     {
       PointLight temp = light;
-      temp.position = glm::vec3(model * glm::vec4(light.position, 1.0f));
+      temp.positionRadius = glm::vec4(glm::vec3(model * glm::vec4(glm::vec3(temp.positionRadius), 1.0f)), temp.positionRadius.w);
 
       storage->pointQueue.push_back(temp);
       stats->numPointLights++;
@@ -302,9 +300,6 @@ namespace Strontium
     {
       auto start = std::chrono::steady_clock::now();
 
-      // Get the shader cache.
-      auto shaderCache = AssetManager<Shader>::getManager();
-
       // Upload camera uniforms to the camera uniform buffer.
       storage->camBuffer.bindToPoint(0);
       storage->camBuffer.setData(0, sizeof(glm::mat4), glm::value_ptr(storage->sceneCam.view));
@@ -318,7 +313,7 @@ namespace Strontium
       storage->editorBuffer.bindToPoint(3);
 
       // Static geometry pass.
-      Shader* program = shaderCache->getAsset("geometry_pass_shader");
+      Shader* program = ShaderCache::getShader("geometry_pass_shader");
       for (auto& drawable : storage->staticRenderQueue)
       {
         auto& [data, materials, transform, id, drawSelectionMask] = drawable;
@@ -367,7 +362,7 @@ namespace Strontium
       }
 
       // Dynamic geometry pass.
-      program = shaderCache->getAsset("dynamic_geometry_pass");
+      program = ShaderCache::getShader("dynamic_geometry_pass");
       storage->boneBuffer.bindToPoint(4);
       for (auto& drawable : storage->dynamicRenderQueue)
       {
@@ -433,16 +428,13 @@ namespace Strontium
     //--------------------------------------------------------------------------
     // Deferred shadow mapping pass. Cascaded shadows for a "primary light".
     //--------------------------------------------------------------------------
-    // TODO: Soft shadow quality settings (hard shadows, Low, medium, high, ultra). 
-    // Low is a simple box blur, medium->ultra are gaussian with different number 
+    // TODO: Soft shadow quality settings (hard shadows, Low, medium, high, ultra).
+    // Low is a simple box blur, medium->ultra are gaussian with different number
     // of taps. Hard shadows are regular shadow maps with zero prefiltering.
     void
     shadowPass()
     {
       auto start = std::chrono::steady_clock::now();
-
-      // Get the shader cache.
-      auto shaderCache = AssetManager<Shader>::getManager();
 
       //------------------------------------------------------------------------
       // Directional light shadow cascade calculations:
@@ -597,8 +589,8 @@ namespace Strontium
       }
 
       // Actual shadow pass.
-      Shader* horizontalShadowBlur = shaderCache->getAsset("gaussian_hori");
-      Shader* verticalShadowBlur = shaderCache->getAsset("gaussian_vert");
+      Shader* horizontalShadowBlur = ShaderCache::getShader("gaussian_hori");
+      Shader* verticalShadowBlur = ShaderCache::getShader("gaussian_vert");
 
       storage->transformBuffer.bindToPoint(2);
 
@@ -613,7 +605,7 @@ namespace Strontium
           storage->cascadeShadowPassBuffer.setData(0, sizeof(glm::mat4), glm::value_ptr(storage->cascades[i]));
 
           // Static shadow pass.
-          Shader* program = shaderCache->getAsset("static_shadow_shader");
+          Shader* program = ShaderCache::getShader("static_shadow_shader");
           for (auto& [model, transform] : storage->staticShadowQueue)
           {
               storage->transformBuffer.setData(0, sizeof(glm::mat4), glm::value_ptr(transform));
@@ -638,7 +630,7 @@ namespace Strontium
           }
 
           // Dynamic shadow pass.
-          program = shaderCache->getAsset("dynamic_shadow_shader");
+          program = ShaderCache::getShader("dynamic_shadow_shader");
           for (auto& drawable : storage->dynamicShadowQueue)
           {
             auto& [data, animation, transform] = drawable;
@@ -711,9 +703,6 @@ namespace Strontium
     {
       auto start = std::chrono::steady_clock::now();
 
-      // Get the shader cache.
-      auto shaderCache = AssetManager<Shader>::getManager();
-
       RendererCommands::disable(RendererFunction::DepthTest);
       storage->lightingPass.bind();
       storage->lightingPass.setViewport();
@@ -721,7 +710,7 @@ namespace Strontium
       //------------------------------------------------------------------------
       // Ambient lighting subpass.
       //------------------------------------------------------------------------
-      Shader* ambientShader = shaderCache->getAsset("deferred_ambient");
+      Shader* ambientShader = ShaderCache::getShader("deferred_ambient");
       // Environment maps.
       storage->currentEnvironment->bind(MapType::Irradiance, 0);
       storage->currentEnvironment->bind(MapType::Prefilter, 1);
@@ -745,8 +734,8 @@ namespace Strontium
       //------------------------------------------------------------------------
       // Directional lighting subpass.
       //------------------------------------------------------------------------
-      Shader* directionalLightShadowed = shaderCache->getAsset("deferred_directional_shadowed");
-      Shader* directionalLight = shaderCache->getAsset("deferred_directional");
+      Shader* directionalLightShadowed = ShaderCache::getShader("deferred_directional_shadowed");
+      Shader* directionalLight = ShaderCache::getShader("deferred_directional");
       RendererCommands::enable(RendererFunction::Blending);
       RendererCommands::blendEquation(BlendEquation::Additive);
       RendererCommands::blendFunction(BlendFunction::One, BlendFunction::One);
@@ -811,12 +800,12 @@ namespace Strontium
             storage->halfResBuffer1.bindAsImage(0, 0, ImageAccessPolicy::Write);
             uint iWidth = (uint) glm::ceil(storage->downsampleLightshaft.width / 32.0f);
             uint iHeight = (uint) glm::ceil(storage->downsampleLightshaft.height / 32.0f);
-            storage->halfGodrays.launchCompute(iWidth, iHeight, 1);
+            ShaderCache::getShader("screen_space_godrays")->launchCompute(iWidth, iHeight, 1);
             Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
 
             storage->halfResBuffer1.bindAsImage(0, 0, ImageAccessPolicy::Read);
             storage->downsampleLightshaft.bindAsImage(1, 0, ImageAccessPolicy::Write);
-            storage->bilatBlur.launchCompute(iWidth, iHeight, 1);
+            ShaderCache::getShader("bilateral_blur")->launchCompute(iWidth, iHeight, 1);
             Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
           }
 
@@ -832,29 +821,11 @@ namespace Strontium
       //------------------------------------------------------------------------
       // Point lighting subpass.
       //------------------------------------------------------------------------
-      Shader* pointLight = shaderCache->getAsset("deferred_point");
+      Shader* pointLight = ShaderCache::getShader("deferred_point");
       storage->pointPassBuffer.bindToPoint(5);
       for (auto& light : storage->pointQueue)
       {
-        auto pointColourIntensity = glm::vec4(0.0f);
-        pointColourIntensity.x = light.colour.x;
-        pointColourIntensity.y = light.colour.y;
-        pointColourIntensity.z = light.colour.z;
-        pointColourIntensity.w = light.intensity;
-        storage->pointPassBuffer.setData(0, sizeof(glm::vec4), &pointColourIntensity.x);
-
-        auto pointPos = glm::vec4(0.0f);
-        pointPos.x = light.position.x;
-        pointPos.y = light.position.y;
-        pointPos.z = light.position.z;
-        storage->pointPassBuffer.setData(sizeof(glm::vec4), sizeof(glm::vec4), &pointPos.x);
-
-        auto screenSizeRadiusFalloff = glm::vec4(0.0f);
-        screenSizeRadiusFalloff.x = screenSize.x;
-        screenSizeRadiusFalloff.y = screenSize.y;
-        screenSizeRadiusFalloff.z = light.radius;
-        screenSizeRadiusFalloff.w = light.falloff;
-        storage->pointPassBuffer.setData(2 * sizeof(glm::vec4), sizeof(glm::vec4), &screenSizeRadiusFalloff.x);
+        storage->pointPassBuffer.setData(0, sizeof(PointLight), &light);
 
         draw(&storage->fsq, pointLight);
       }
@@ -889,14 +860,16 @@ namespace Strontium
     {
       auto start = std::chrono::steady_clock::now();
 
-      // Get the shader cache.
-      auto shaderCache = AssetManager<Shader>::getManager();
-
       //------------------------------------------------------------------------
       // Bloom pass.
       //------------------------------------------------------------------------
       if (state->enableBloom)
       {
+        // Bloom shaders.
+        auto downsample = ShaderCache::getShader("bloom_downsample");
+        auto upsample = ShaderCache::getShader("bloom_upsample");
+        auto upsampleBlend = ShaderCache::getShader("bloom_upsample_blend");
+
         // Prefilter + downsample using the lighting buffer as the source.
         storage->bloomSettingsBuffer.bindToPoint(3);
         auto bloomSettings = glm::vec4(state->bloomThreshold, state->bloomThreshold - state->bloomKnee,
@@ -910,7 +883,7 @@ namespace Strontium
         glm::ivec3 invoke = glm::ivec3(glm::ceil(((float) storage->downscaleBloomTex[0].width) / 32.0f),
                                        glm::ceil(((float) storage->downscaleBloomTex[0].height) / 32.0f),
                                        1);
-        storage->bloomPrefilter.launchCompute(invoke.x, invoke.y, invoke.z);
+        ShaderCache::getShader("bloom_prefilter")->launchCompute(invoke.x, invoke.y, invoke.z);
         Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
 
         // Continuously downsample the bloom texture to make an image pyramid.
@@ -921,7 +894,7 @@ namespace Strontium
           invoke = glm::ivec3(glm::ceil(((float) storage->downscaleBloomTex[i].width) / 32.0f),
                               glm::ceil(((float) storage->downscaleBloomTex[i].height) / 32.0f),
                               1);
-          storage->bloomDownsample.launchCompute(invoke.x, invoke.y, invoke.z);
+          downsample->launchCompute(invoke.x, invoke.y, invoke.z);
           Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
         }
 
@@ -933,7 +906,7 @@ namespace Strontium
           invoke = glm::ivec3(glm::ceil(((float) storage->bufferBloomTex[i].width) / 32.0f),
                               glm::ceil(((float) storage->bufferBloomTex[i].height) / 32.0f),
                               1);
-          storage->bloomUpsample.launchCompute(invoke.x, invoke.y, invoke.z);
+          upsample->launchCompute(invoke.x, invoke.y, invoke.z);
           Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
         }
 
@@ -944,7 +917,7 @@ namespace Strontium
         invoke = glm::ivec3(glm::ceil(((float) storage->bufferBloomTex[MAX_NUM_BLOOM_MIPS - 1].width) / 32.0f),
                             glm::ceil(((float) storage->bufferBloomTex[MAX_NUM_BLOOM_MIPS - 1].height) / 32.0f),
                             1);
-        storage->bloomUpsample.launchCompute(invoke.x, invoke.y, invoke.z);
+        upsample->launchCompute(invoke.x, invoke.y, invoke.z);
         Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
 
         // Blend the previous mips together with a blur on the previous mip.
@@ -956,7 +929,7 @@ namespace Strontium
           invoke = glm::ivec3(glm::ceil(((float) storage->upscaleBloomTex[i - 1].width) / 32.0f),
                               glm::ceil(((float) storage->upscaleBloomTex[i - 1].height) / 32.0f),
                               1);
-          storage->bloomUpsampleBlend.launchCompute(invoke.x, invoke.y, invoke.z);
+          upsampleBlend->launchCompute(invoke.x, invoke.y, invoke.z);
           Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
         }
       }
@@ -990,7 +963,7 @@ namespace Strontium
       storage->gBuffer.bindAttachment(FBOTargetParam::Colour4, 1);
       storage->upscaleBloomTex[0].bind(2);
 
-      draw(&storage->fsq, shaderCache->getAsset("post_processing"));
+      draw(&storage->fsq, ShaderCache::getShader("post_processing"));
 
       RendererCommands::enable(RendererFunction::Blending);
       RendererCommands::blendEquation(BlendEquation::Additive);
@@ -1003,7 +976,7 @@ namespace Strontium
       if (state->drawGrid)
       {
         storage->gBuffer.bindAttachment(FBOTargetParam::Depth, 0);
-        draw(&storage->fsq, shaderCache->getAsset("grid"));
+        draw(&storage->fsq, ShaderCache::getShader("grid"));
       }
 
       //------------------------------------------------------------------------
@@ -1013,7 +986,7 @@ namespace Strontium
       if (storage->drawEdge)
       {
         storage->gBuffer.bindAttachment(FBOTargetParam::Colour4, 0);
-        draw(&storage->fsq, shaderCache->getAsset("outline"));
+        draw(&storage->fsq, ShaderCache::getShader("outline"));
       }
       RendererCommands::enable(RendererFunction::DepthTest);
       RendererCommands::disable(RendererFunction::Blending);

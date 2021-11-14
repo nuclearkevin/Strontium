@@ -16,6 +16,8 @@ namespace Strontium
   // Define an asset handle to distinguish when an internal handle is used or not.
   typedef std::string AssetHandle;
 
+  class Shader;
+
   // A class to handle asset creation, destruction and file loading.
   template <class T>
   class AssetManager

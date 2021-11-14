@@ -92,4 +92,12 @@ namespace Strontium
     std::unordered_map<ShaderStage, std::string> shaderSources;
     std::string shaderPath;
   };
+
+  namespace ShaderCache
+  {
+    void init(const std::string &filepath);
+    Shader* getShader(const std::string& shaderHandle);
+    std::unordered_map<std::string, Shader>::iterator begin();
+    std::unordered_map<std::string, Shader>::iterator end();
+  }
 }

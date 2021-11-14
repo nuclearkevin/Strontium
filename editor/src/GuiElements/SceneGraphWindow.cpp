@@ -846,11 +846,10 @@ namespace Strontium
         this->selectedEntity, [this](auto& component)
       {
         ImGui::PushID("PointLight");
-        ImGui::Checkbox("Cast Shadows", &component.light.castShadows);
-        ImGui::ColorEdit3("Colour", &component.light.colour.r);
-        Styles::drawFloatControl("Radius", 0.0f, component.light.radius, 0.0f, 0.1f, 0.0f, 100.0f);
-        Styles::drawFloatControl("Falloff", 0.0f, component.light.falloff, 0.0f, 0.01f, 0.0f, 1.0f);
-        Styles::drawFloatControl("Intensity", 0.0f, component.light.intensity,
+        ImGui::Checkbox("Cast Shadows", &component.castShadows);
+        ImGui::ColorEdit3("Colour", &component.light.colourIntensity.r);
+        Styles::drawFloatControl("Radius", 0.0f, component.light.positionRadius.w, 0.0f, 0.1f, 0.0f, 100.0f);
+        Styles::drawFloatControl("Intensity", 0.0f, component.light.colourIntensity.w,
                                  0.0f, 0.01f, 0.0f, 100.0f);
         ImGui::PopID();
       });

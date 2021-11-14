@@ -10,6 +10,8 @@
 
 namespace Strontium
 {
+  class Shader;
+
   namespace YAMLSerialization
   {
     void serializeScene(Shared<Scene> scene, const std::string &filepath,

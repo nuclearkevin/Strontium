@@ -200,7 +200,6 @@ namespace Strontium
     }
 
     Model* getCubeMesh() { return &this->cube; }
-    Shader* getCubeProg();
     std::string& getFilepath() { return this->filepath; }
   protected:
     Unique<Texture2D> erMap;
@@ -213,24 +212,10 @@ namespace Strontium
     Texture2D multiScatLUT;
     Texture2D skyViewLUT;
 
-    Shader equiToCubeCompute;
-    Shader diffIrradCompute;
-    Shader skyDiffCompute;
-    Shader specIrradCompute;
-    Shader skySpecCompute;
-    Shader brdfCompute;
-
-    Shader preethamLUTCompute;
-    Shader transmittanceCompute;
-    Shader multiScatCompute;
-    Shader skyViewCompute;
-
     UniformBuffer skyboxParamBuffer;
     ShaderStorageBuffer preethamParams;
     ShaderStorageBuffer hillaireParams;
     ShaderStorageBuffer iblParams;
-
-    Shader dynamicSkyShader;
 
     std::unordered_map<DynamicSkyType, DynamicSkyCommonParams*> dynamicSkyParams;
 

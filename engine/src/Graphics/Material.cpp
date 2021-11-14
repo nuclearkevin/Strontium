@@ -12,12 +12,11 @@ namespace Strontium
     , pipeline(false)
     , materialData(2 * sizeof(glm::vec4), BufferType::Dynamic)
   {
-    auto shaderCache = AssetManager<Shader>::getManager();
     switch (type)
     {
       case MaterialType::PBR:
       {
-        this->program = shaderCache->getAsset("geometry_pass_shader");
+        this->program = ShaderCache::getShader("geometry_pass_shader");
 
         std::string texHandle;
         Texture2D::createMonoColour(glm::vec4(1.0f), texHandle);

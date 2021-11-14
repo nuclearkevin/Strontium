@@ -46,20 +46,12 @@ namespace Strontium
 
   struct PointLight
   {
-    glm::vec3 position;
-    glm::vec3 colour;
-    float intensity;
-    float radius;
-    float falloff;
-    bool castShadows;
+    glm::vec4 positionRadius;
+    glm::vec4 colourIntensity;
 
     PointLight()
-      : position(glm::vec3(0.0f))
-      , colour(glm::vec3(1.0f))
-      , intensity(0.0f)
-      , radius(0.0f)
-      , falloff(0.0f)
-      , castShadows(false)
+      : positionRadius(glm::vec4(0.0f))
+      , colourIntensity(1.0f, 1.0f, 1.0f, 0.0f)
     { }
   };
 

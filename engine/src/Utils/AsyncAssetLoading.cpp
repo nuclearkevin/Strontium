@@ -13,6 +13,7 @@
 
 // STL includes.
 #include <mutex>
+#include <filesystem>
 
 namespace Strontium
 {
@@ -375,39 +376,31 @@ namespace Strontium
         return;
       }
 
-#ifdef WIN32
-      std::string name = filepath.substr(filepath.find_last_of('\\') + 1);
-#else 
-      std::string name = filepath.substr(filepath.find_last_of('/') + 1);
-#endif
+      std::filesystem::path fsPath(filepath);
       
       // Fetch the thread pool and event dispatcher.
       auto workerGroup = ThreadPool::getInstance(2);
 
-      auto loaderImpl = [](const std::string &filepath, const std::string &name, const Texture2DParams &params)
+      auto loaderImpl = [](const std::filesystem::path& path, const Texture2DParams &params)
       {
         auto eventDispatcher = EventDispatcher::getInstance();
-        eventDispatcher->queueEvent(new GuiEvent(GuiEventType::StartSpinnerEvent, filepath));
+        eventDispatcher->queueEvent(new GuiEvent(GuiEventType::StartSpinnerEvent, path.string()));
 
         ImageData2D outImage;
-        outImage.isHDR = (filepath.substr(filepath.find_last_of("."), 4) == ".hdr");
+        outImage.isHDR = (path.extension().string() == ".hdr");
         outImage.params = params;
-#ifdef WIN32
-        std::string filename = filepath.substr(filepath.find_last_of('/') + 1);
-        filename = filename.substr(filepath.find_last_of('\\') + 1);
-#else
-        std::string filename = filepath.substr(filepath.find_last_of('/') + 1);
-        filename = filename.substr(filepath.find_last_of('\\') + 1);
-#endif 
+
+        std::string filename = path.filename().string();
+
         outImage.name = filename;
-        outImage.filepath = filepath;
+        outImage.filepath = path.string();
 
         // Load the image.
         stbi_set_flip_vertically_on_load(true);
         if (outImage.isHDR)
-          outImage.data = stbi_loadf(filepath.c_str(), &outImage.width, &outImage.height, &outImage.n, 0);
+          outImage.data = stbi_loadf(outImage.filepath.c_str(), &outImage.width, &outImage.height, &outImage.n, 0);
         else
-          outImage.data = stbi_load(filepath.c_str(), &outImage.width, &outImage.height, &outImage.n, 0);
+          outImage.data = stbi_load(outImage.filepath.c_str(), &outImage.width, &outImage.height, &outImage.n, 0);
 
         if (!outImage.data)
         {
@@ -421,7 +414,7 @@ namespace Strontium
         eventDispatcher->queueEvent(new GuiEvent(GuiEventType::EndSpinnerEvent, ""));
       };
 
-      workerGroup->push(loaderImpl, filepath, name, params);
+      workerGroup->push(loaderImpl, fsPath, params);
     }
   }
 }

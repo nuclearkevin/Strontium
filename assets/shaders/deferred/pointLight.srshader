@@ -26,12 +26,11 @@ layout(std140, binding = 0) uniform CameraBlock
   vec3 u_camPosition;
 };
 
-// Directional light uniforms.
+// Point light uniforms.
 layout(std140, binding = 5) uniform PointBlock
 {
-  vec4 u_lColourIntensity;
-  vec4 u_lPosition;
-  vec4 u_screenSizeRadiusFalloff;
+  vec4 u_lPositionRadius; // Position (x, y, z), radius (w).
+  vec4 u_lColourIntensity; // Colour (x, y, z) and intensity (w).
 };
 
 // Uniforms for the geometry buffer.
@@ -51,7 +50,7 @@ float computeAttenuation(vec3 posToLight, float invLightRadius);
 
 void main()
 {
-  vec2 fTexCoords = gl_FragCoord.xy / u_screenSizeRadiusFalloff.xy;
+  vec2 fTexCoords = gl_FragCoord.xy / textureSize(gPosition, 0).xy;
 
   vec3 position = texture(gPosition, fTexCoords).xyz;
   vec3 normal = normalize(texture(gNormal, fTexCoords).xyz);
@@ -69,12 +68,12 @@ void main()
 
   // Light properties.
   vec3 view = normalize(u_camPosition - position);
-  vec3 posToLight = u_lPosition.xyz - position;
+  vec3 posToLight = u_lPositionRadius.xyz - position;
   vec3 light = normalize(posToLight);
   vec3 halfWay = normalize(view + light);
   float nDotL = clamp(dot(normal, light), 0.0, 1.0);
 
-  float lightRadius = u_screenSizeRadiusFalloff.z;
+  float lightRadius = u_lPositionRadius.w;
   float attenuation = computeAttenuation(posToLight, 1.0 / lightRadius);
   vec3 lightColour = u_lColourIntensity.xyz;
   float lightIntensity = u_lColourIntensity.w;

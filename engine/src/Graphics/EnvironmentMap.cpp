@@ -38,17 +38,6 @@ namespace Strontium
     , preethamParams(2 * sizeof(glm::vec4), BufferType::Dynamic)
     , hillaireParams(5 * sizeof(glm::vec4), BufferType::Dynamic)
     , iblParams(sizeof(glm::vec4) + sizeof(glm::ivec4), BufferType::Dynamic)
-    , equiToCubeCompute("./assets/shaders/compute/ibl/equiConversion.srshader")
-    , diffIrradCompute("./assets/shaders/compute/ibl/diffuseConv.srshader")
-    , skyDiffCompute("./assets/shaders/compute/ibl/diffSkyIBL.srshader")
-    , specIrradCompute("./assets/shaders/compute/ibl/specPrefilter.srshader")
-    , skySpecCompute("./assets/shaders/compute/ibl/specSkyIBL.srshader")
-    , brdfCompute("./assets/shaders/compute/ibl/integrateBRDF.srshader")
-    , preethamLUTCompute("./assets/shaders/compute/sky/preethamLUT.srshader")
-    , transmittanceCompute("./assets/shaders/compute/sky/transCompute.srshader")
-    , multiScatCompute("./assets/shaders/compute/sky/multiscatCompute.srshader")
-    , skyViewCompute("./assets/shaders/compute/sky/skyviewCompute.srshader")
-    , dynamicSkyShader("./assets/shaders/forward/skybox.srshader")
     , currentEnvironment(MapType::Skybox)
     , currentDynamicSky(DynamicSkyType::Preetham)
     , intensity(1.0f)
@@ -84,7 +73,7 @@ namespace Strontium
         this->brdfIntLUT.bindAsImage(3, 0, ImageAccessPolicy::Write);
 
         // Launch the compute shader.
-        this->brdfCompute.launchCompute(32 / 32, 32 / 32, 1);
+        ShaderCache::getShader("split_sums_brdf")->launchCompute(32 / 32, 32 / 32, 1);
 
         auto end = std::chrono::steady_clock::now();
         std::chrono::duration<double> elapsed = end - start;
@@ -318,7 +307,7 @@ namespace Strontium
 
         this->skyViewLUT.bindAsImage(0, 0, ImageAccessPolicy::Write);
 
-        this->preethamLUTCompute.launchCompute(256 / 32, 128 / 32, 1);
+        ShaderCache::getShader("preetham_lut")->launchCompute(256 / 32, 128 / 32, 1);
         Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
 
         break;
@@ -365,18 +354,18 @@ namespace Strontium
         this->hillaireParams.setData(4 * sizeof(glm::vec4), sizeof(glm::vec4), &(params5.x));
 
         this->transmittanceLUT.bindAsImage(0, 0, ImageAccessPolicy::Write);
-        this->transmittanceCompute.launchCompute(256 / 32, 64 / 32, 1);
+        ShaderCache::getShader("hillaire_transmittance")->launchCompute(256 / 32, 64 / 32, 1);
         Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
 
         this->transmittanceLUT.bind(2);
         this->multiScatLUT.bindAsImage(0, 0, ImageAccessPolicy::Write);
-        this->multiScatCompute.launchCompute(32 / 32, 32 / 32, 1);
+        ShaderCache::getShader("hillaire_multiscat")->launchCompute(32 / 32, 32 / 32, 1);
         Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
 
         this->transmittanceLUT.bind(2);
         this->multiScatLUT.bind(3);
         this->skyViewLUT.bindAsImage(0, 0, ImageAccessPolicy::Write);
-        this->skyViewCompute.launchCompute(256 / 32, 128 / 32, 1);
+        ShaderCache::getShader("hillaire_skyview")->launchCompute(256 / 32, 128 / 32, 1);
         Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
       }
     }
@@ -470,11 +459,11 @@ namespace Strontium
       // Bind the equirectangular map for reading by the compute shader.
       this->erMap->bindAsImage(0, 0, ImageAccessPolicy::Read);
 
-      // Bind the irradiance map for writing to by the compute shader.
+      // Bind the skybox for writing to by the compute shader.
       this->skybox.bindAsImage(1, 0, true, 0, ImageAccessPolicy::ReadWrite);
 
       // Launch the compute shader.
-      this->equiToCubeCompute.launchCompute(width / 32, height / 32, 6);
+      ShaderCache::getShader("equirectangular_to_cube")->launchCompute(width / 32, height / 32, 6);
 
       this->skybox.generateMips();
 
@@ -519,7 +508,7 @@ namespace Strontium
         this->irradiance.bindAsImage(1, 0, true, 0, ImageAccessPolicy::Write);
         
         // Launch the compute shader.
-        this->diffIrradCompute.launchCompute(width / 32, height / 32, 6);
+        ShaderCache::getShader("cube_diffuse")->launchCompute(width / 32, height / 32, 6);
         
         auto end = std::chrono::steady_clock::now();
         std::chrono::duration<double> elapsed = end - start;
@@ -541,7 +530,7 @@ namespace Strontium
       this->irradiance.bindAsImage(1, 0, true, 0, ImageAccessPolicy::Write);
 
       // Launch the compute shader.
-      this->skyDiffCompute.launchCompute(32 / 32, 32 / 32, 6);
+      ShaderCache::getShader("sky_lut_diffuse")->launchCompute(32 / 32, 32 / 32, 6);
     }
   }
 
@@ -585,6 +574,7 @@ namespace Strontium
         this->skybox.bind(0);
         
         // Perform the pre-filter for each roughness level.
+        auto cubeSpecular = ShaderCache::getShader("cube_specular");
         for (uint i = 0; i < 5; i++)
         {
           // Compute the current mip levels.
@@ -601,7 +591,7 @@ namespace Strontium
           this->iblParams.setData(sizeof(glm::vec4), sizeof(glm::ivec4), &params1.x);
         
           // Launch the compute.
-          this->specIrradCompute.launchCompute(mipWidth / 32, mipHeight / 32, 6);
+          cubeSpecular->launchCompute(mipWidth / 32, mipHeight / 32, 6);
         }
         
         auto end = std::chrono::steady_clock::now();
@@ -626,6 +616,7 @@ namespace Strontium
       uint dims[5] = { 2, 1, 1, 1, 1 };
 
       // Perform the pre-filter for each roughness level.
+      auto skySpecular = ShaderCache::getShader("sky_lut_specular");
       for (uint i = 0; i < 5; i++)
       {
         // Bind the irradiance map for writing to by the compute shader.
@@ -638,15 +629,9 @@ namespace Strontium
         this->iblParams.setData(sizeof(glm::vec4), sizeof(glm::ivec4), &params1.x);
 
         // Launch the compute.
-        this->skySpecCompute.launchCompute(dims[i], dims[i], 6);
+        skySpecular->launchCompute(dims[i], dims[i], 6);
       }
     }
-  }
-
-  Shader*
-  EnvironmentMap::getCubeProg()
-  {
-    return &this->dynamicSkyShader;
   }
 
   void

@@ -1,0 +1,95 @@
+ShaderCache:
+    #
+    # Culling
+  - Handle: tiled_frustums_aabbs
+    Filepath: ./assets/shaders/compute/culling/tiledFrustAABB.srshader
+  - Handle: tiled_light_culling
+    Filepath: ./assets/shaders/compute/culling/tiledLightCulling.srshader
+    #
+    #
+    # Shadows
+    #
+  - Handle: static_shadow_shader
+    Filepath: ./assets/shaders/shadows/staticShadow.srshader
+  - Handle: dynamic_shadow_shader
+    Filepath: ./assets/shaders/shadows/dynamicShadowShader.srshader
+    #
+    # Geometrey pass
+    #
+  - Handle: geometry_pass_shader
+    Filepath: ./assets/shaders/deferred/staticGeometryPass.srshader
+  - Handle: dynamic_geometry_pass
+    Filepath: ./assets/shaders/deferred/dynamicGeometryPass.srshader
+    #
+    # Sky
+    #
+  - Handle: preetham_lut
+    Filepath: ./assets/shaders/compute/sky/preethamLUT.srshader
+  - Handle: hillaire_transmittance
+    Filepath: ./assets/shaders/compute/sky/transCompute.srshader
+  - Handle: hillaire_multiscat
+    Filepath: ./assets/shaders/compute/sky/multiscatCompute.srshader
+  - Handle: hillaire_skyview
+    Filepath: ./assets/shaders/compute/sky/skyviewCompute.srshader
+  - Handle: skybox
+    Filepath: ./assets/shaders/forward/skybox.srshader
+    #
+    # IBL
+    #
+  - Handle: equirectangular_to_cube
+    Filepath: ./assets/shaders/compute/ibl/equiConversion.srshader
+  - Handle: cube_diffuse
+    Filepath: ./assets/shaders/compute/ibl/diffuseConv.srshader
+  - Handle: sky_lut_diffuse
+    Filepath: ./assets/shaders/compute/ibl/diffSkyIBL.srshader
+  - Handle: cube_specular
+    Filepath: ./assets/shaders/compute/ibl/specPrefilter.srshader
+  - Handle: sky_lut_specular
+    Filepath: ./assets/shaders/compute/ibl/specSkyIBL.srshader
+  - Handle: split_sums_brdf
+    Filepath: ./assets/shaders/compute/ibl/integrateBRDF.srshader
+    #
+    # Lighting
+    #
+  - Handle: deferred_ambient
+    Filepath: ./assets/shaders/deferred/ambientLight.srshader
+  - Handle: deferred_directional_shadowed
+    Filepath: ./assets/shaders/deferred/shadowedDirectionalLight.srshader
+  - Handle: deferred_directional
+    Filepath: ./assets/shaders/deferred/directionalLight.srshader
+  - Handle: deferred_point
+    Filepath: ./assets/shaders/deferred/pointLight.srshader
+    #
+    # Screen-space godrays
+    #
+  - Handle: screen_space_godrays
+    Filepath: ./assets/shaders/compute/volumetricDirLight.srshader
+    #
+    # Bloom
+    #
+  - Handle: bloom_prefilter
+    Filepath: ./assets/shaders/compute/bloom/bloomPrefilter.srshader
+  - Handle: bloom_downsample
+    Filepath: ./assets/shaders/compute/bloom/bloomDownsample.srshader
+  - Handle: bloom_upsample
+    Filepath: ./assets/shaders/compute/bloom/bloomUpsample.srshader
+  - Handle: bloom_upsample_blend
+    Filepath: ./assets/shaders/compute/bloom/bloomUpsampleBlend.srshader
+    #
+    # Post processing
+    #
+  - Handle: post_processing
+    Filepath: ./assets/shaders/post/postProcessing.srshader
+  - Handle: outline
+    Filepath: ./assets/shaders/post/outline.srshader
+  - Handle: grid
+    Filepath: ./assets/shaders/post/grid.srshader
+    #
+    # Utility
+    #
+  - Handle: gaussian_hori
+    Filepath: ./assets/shaders/post/gaussianHori.srshader
+  - Handle: gaussian_vert
+    Filepath: ./assets/shaders/post/gaussianVert.srshader
+  - Handle: bilateral_blur
+    Filepath: ./assets/shaders/compute/bilatBlur.srshader

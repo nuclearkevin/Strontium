@@ -63,7 +63,6 @@ namespace Strontium
     Unique<AssetManager<Model>> modelAssets;
     Unique<AssetManager<Material>> materialAssets;
     Unique<AssetManager<Texture2D>> texture2DAssets;
-    Unique<AssetManager<Shader>> shaderCache;
   private:
     // The main function.
     friend int ::main(int argc, char** argv);

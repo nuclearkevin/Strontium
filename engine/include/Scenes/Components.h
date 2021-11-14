@@ -231,11 +231,13 @@ namespace Strontium
   struct PointLightComponent
   {
     PointLight light;
+    bool castShadows;
 
     PointLightComponent(const PointLightComponent&) = default;
 
     PointLightComponent()
       : light()
+      , castShadows(false)
     { }
 
     operator PointLight()

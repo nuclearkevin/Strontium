@@ -335,12 +335,11 @@ namespace Strontium
         out << YAML::BeginMap;
 
         auto& component = entity.getComponent<PointLightComponent>();
-        out << YAML::Key << "Position" << YAML::Value << component.light.position;
-        out << YAML::Key << "Colour" << YAML::Value << component.light.colour;
-        out << YAML::Key << "Intensity" << YAML::Value << component.light.intensity;
-        out << YAML::Key << "Radius" << YAML::Value << component.light.radius;
-        out << YAML::Key << "Falloff" << YAML::Value << component.light.falloff;
-        out << YAML::Key << "CastShadows" << YAML::Value << component.light.castShadows;
+        out << YAML::Key << "Position" << YAML::Value << glm::vec3(component.light.positionRadius);
+        out << YAML::Key << "Colour" << YAML::Value << glm::vec3(component.light.colourIntensity);
+        out << YAML::Key << "Intensity" << YAML::Value << component.light.colourIntensity.w;
+        out << YAML::Key << "Radius" << YAML::Value << component.light.positionRadius.w;
+        out << YAML::Key << "CastShadows" << YAML::Value << component.castShadows;
 
         out << YAML::EndMap;
       }
@@ -747,12 +746,11 @@ namespace Strontium
       if (pointComponent)
       {
         auto& pComponent = newEntity.addComponent<PointLightComponent>();
-        pComponent.light.position = pointComponent["Position"].as<glm::vec3>();
-        pComponent.light.colour = pointComponent["Colour"].as<glm::vec3>();
-        pComponent.light.intensity = pointComponent["Intensity"].as<float>();
-        pComponent.light.radius = pointComponent["Radius"].as<float>();
-        pComponent.light.falloff = pointComponent["Falloff"].as<float>();
-        pComponent.light.castShadows = pointComponent["CastShadows"].as<bool>();
+        pComponent.light.positionRadius = glm::vec4(pointComponent["Position"].as<glm::vec3>(), 0.0f);
+        pComponent.light.colourIntensity = glm::vec4(pointComponent["Colour"].as<glm::vec3>(), 0.0f);
+        pComponent.light.colourIntensity.w = pointComponent["Intensity"].as<float>();
+        pComponent.light.positionRadius.w = pointComponent["Radius"].as<float>();
+        pComponent.castShadows = pointComponent["CastShadows"].as<bool>();
       }
 
       auto spotComponent = entity["SpotLightComponent"];
