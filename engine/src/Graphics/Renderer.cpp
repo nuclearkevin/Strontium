@@ -36,9 +36,6 @@ namespace Strontium
       storage->width = width;
       storage->height = height;
 
-      storage->fsq.addIndexBuffer(storage->fsqIndices, 6, BufferType::Dynamic);
-      storage->fsq.addAttribute(0, AttribType::Vec2, false, 2 * sizeof(float), 0);
-
       // Prepare bloom settings.
       Texture2DParams bloomParams = Texture2DParams();
       bloomParams.sWrap = TextureWrapParams::ClampEdges;
@@ -57,7 +54,13 @@ namespace Strontium
         storage->upscaleBloomTex[i].setParams(bloomParams);
         storage->upscaleBloomTex[i].initNullTexture();
 
-        storage->bufferBloomTex[i].setSize((uint) ((float) width) / powOf2, (uint) ((float) height) / powOf2, 4);
+        powOf2 *= 2.0f;
+      }
+
+      powOf2 = 1.0f;
+      for (unsigned int i = 0; i < MAX_NUM_BLOOM_MIPS - 1; i++)
+      {
+        storage->bufferBloomTex[i].setSize((uint)((float)width) / powOf2, (uint)((float)height) / powOf2, 4);
         storage->bufferBloomTex[i].setParams(bloomParams);
         storage->bufferBloomTex[i].initNullTexture();
         powOf2 *= 2.0f;
@@ -203,7 +206,7 @@ namespace Strontium
       data->bind();
       program->bind();
 
-      RendererCommands::drawPrimatives(PrimativeType::Triangle, data->numToRender());
+      RendererCommands::drawElements(PrimativeType::Triangle, data->numToRender());
 
       data->unbind();
       program->unbind();
@@ -218,8 +221,9 @@ namespace Strontium
       storage->currentEnvironment->configure();
 
       storage->camBuffer.bindToPoint(0);
-      for (auto& submesh : storage->currentEnvironment->getCubeMesh()->getSubmeshes())
-        Renderer3D::draw(submesh.getVAO(), ShaderCache::getShader("skybox"));
+      storage->blankVAO.bind();
+      ShaderCache::getShader("skybox")->bind();
+      RendererCommands::drawArrays(PrimativeType::Triangle, 0, 36);
 
       RendererCommands::depthFunction(DepthFunctions::Less);
     }
@@ -660,31 +664,38 @@ namespace Strontium
           }
         }
 
-        // Apply a 2-pass 9 tap Gaussian blur to the shadow map.
-        RendererCommands::disableDepthMask();
-        RendererCommands::disable(RendererFunction::DepthTest);
-        for (unsigned int i = 0; i < NUM_CASCADES; i++)
+        if (state->directionalSettings.x == 1)
         {
-          // First pass (horizontal) is FBO attachment -> temp FBO.
-          storage->shadowEffectsBuffer.bind();
-          storage->shadowEffectsBuffer.setViewport();
+          // Apply a 2-pass 9 tap Gaussian blur to the shadow map.
+          RendererCommands::disableDepthMask();
+          RendererCommands::disable(RendererFunction::DepthTest);
+          for (unsigned int i = 0; i < NUM_CASCADES; i++)
+          {
+            // First pass (horizontal) is FBO attachment -> temp FBO.
+            storage->shadowEffectsBuffer.bind();
+            storage->shadowEffectsBuffer.setViewport();
 
-          storage->shadowBuffer[i].bindTextureID(FBOTargetParam::Colour0, 0);
-          draw(&storage->fsq, horizontalShadowBlur);
+            storage->shadowBuffer[i].bindTextureID(FBOTargetParam::Colour0, 0);
+            storage->blankVAO.bind();
+            horizontalShadowBlur->bind();
+            RendererCommands::drawArrays(PrimativeType::Triangle, 0, 3);
 
-          storage->shadowEffectsBuffer.unbind();
+            storage->shadowEffectsBuffer.unbind();
 
-          // Second pass (vertical) is temp FBO -> FBO attachment.
-          storage->shadowBuffer[i].bind();
-          storage->shadowBuffer[i].setViewport();
+            // Second pass (vertical) is temp FBO -> FBO attachment.
+            storage->shadowBuffer[i].bind();
+            storage->shadowBuffer[i].setViewport();
 
-          storage->shadowEffectsBuffer.bindTextureID(FBOTargetParam::Colour0, 0);
-          draw(&storage->fsq, verticalShadowBlur);
+            storage->shadowEffectsBuffer.bindTextureID(FBOTargetParam::Colour0, 0);
+            storage->blankVAO.bind();
+            verticalShadowBlur->bind();
+            RendererCommands::drawArrays(PrimativeType::Triangle, 0, 3);
 
-          storage->shadowBuffer[i].unbind();
+            storage->shadowBuffer[i].unbind();
+          }
+          RendererCommands::enable(RendererFunction::DepthTest);
+          RendererCommands::enableDepthMask();
         }
-        RendererCommands::enable(RendererFunction::DepthTest);
-        RendererCommands::enableDepthMask();
       }
 
       storage->staticShadowQueue.clear();
@@ -729,7 +740,9 @@ namespace Strontium
       storage->ambientPassBuffer.bindToPoint(4);
       storage->ambientPassBuffer.setData(0, sizeof(glm::vec3), &sizeIntensity.x);
 
-      draw(&storage->fsq, ambientShader);
+      storage->blankVAO.bind();
+      ambientShader->bind();
+      RendererCommands::drawArrays(PrimativeType::Triangle, 0, 3);
 
       //------------------------------------------------------------------------
       // Directional lighting subpass.
@@ -741,7 +754,7 @@ namespace Strontium
       RendererCommands::blendFunction(BlendFunction::One, BlendFunction::One);
 
       storage->directionalPassBuffer.bindToPoint(5);
-      storage->directionalPassBuffer.setData(2 * sizeof(glm::vec4), sizeof(glm::vec2), &screenSize.x);
+      storage->directionalPassBuffer.setData(2 * sizeof(glm::vec4), sizeof(glm::ivec4), &(state->directionalSettings.x));
 
       // Set the shadow map uniforms.
       if (storage->hasCascades)
@@ -755,8 +768,10 @@ namespace Strontium
                                                 + i * sizeof(glm::vec4), sizeof(float),
                                                 &storage->cascadeSplits[i]);
 
-
-          storage->shadowBuffer[i].bindTextureID(FBOTargetParam::Colour0, i + 7);
+          if (state->directionalSettings.x == 1)
+            storage->shadowBuffer[i].bindTextureID(FBOTargetParam::Colour0, i + 7);
+          else if (state->directionalSettings.x == 0)
+              storage->shadowBuffer[i].bindTextureID(FBOTargetParam::Depth, i + 7);
         }
         storage->cascadeShadowBuffer.setData(NUM_CASCADES * sizeof(glm::mat4)
                                               + NUM_CASCADES * sizeof(glm::vec4),
@@ -795,7 +810,7 @@ namespace Strontium
             storage->lightShaftSettingsBuffer.setData(0, sizeof(glm::vec4),
                                                       &(state->mieScatIntensity.x));
             storage->lightShaftSettingsBuffer.setData(sizeof(glm::vec4), sizeof(glm::vec4),
-                                                      &(state->mieAbsDensity.x));
+                                                      &(state->mieAbsDensity.x));   
 
             storage->halfResBuffer1.bindAsImage(0, 0, ImageAccessPolicy::Write);
             uint iWidth = (uint) glm::ceil(storage->downsampleLightshaft.width / 32.0f);
@@ -810,10 +825,16 @@ namespace Strontium
           }
 
           // Launch the primary shadowed directional light pass.
-          draw(&storage->fsq, directionalLightShadowed);
+          storage->blankVAO.bind();
+          directionalLightShadowed->bind();
+          RendererCommands::drawArrays(PrimativeType::Triangle, 0, 3);
         }
         else
-          draw(&storage->fsq, directionalLight);
+        {
+          storage->blankVAO.bind();
+          directionalLight->bind();
+          RendererCommands::drawArrays(PrimativeType::Triangle, 0, 3);
+        }
       }
 
       storage->directionalQueue.clear();
@@ -827,7 +848,9 @@ namespace Strontium
       {
         storage->pointPassBuffer.setData(0, sizeof(PointLight), &light);
 
-        draw(&storage->fsq, pointLight);
+        storage->blankVAO.bind();
+        pointLight->bind();
+        RendererCommands::drawArrays(PrimativeType::Triangle, 0, 3);
       }
       storage->pointQueue.clear();
 
@@ -914,8 +937,8 @@ namespace Strontium
         // mip of the upsampling pyramid.
         storage->downscaleBloomTex[MAX_NUM_BLOOM_MIPS - 1].bindAsImage(0, 0, ImageAccessPolicy::Read);
         storage->upscaleBloomTex[MAX_NUM_BLOOM_MIPS - 1].bindAsImage(1, 0, ImageAccessPolicy::Write);
-        invoke = glm::ivec3(glm::ceil(((float) storage->bufferBloomTex[MAX_NUM_BLOOM_MIPS - 1].width) / 32.0f),
-                            glm::ceil(((float) storage->bufferBloomTex[MAX_NUM_BLOOM_MIPS - 1].height) / 32.0f),
+        invoke = glm::ivec3(glm::ceil(((float) storage->bufferBloomTex[MAX_NUM_BLOOM_MIPS - 2].width) / 32.0f),
+                            glm::ceil(((float) storage->bufferBloomTex[MAX_NUM_BLOOM_MIPS - 2].height) / 32.0f),
                             1);
         upsample->launchCompute(invoke.x, invoke.y, invoke.z);
         Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
@@ -963,7 +986,9 @@ namespace Strontium
       storage->gBuffer.bindAttachment(FBOTargetParam::Colour4, 1);
       storage->upscaleBloomTex[0].bind(2);
 
-      draw(&storage->fsq, ShaderCache::getShader("post_processing"));
+      storage->blankVAO.bind();
+      ShaderCache::getShader("post_processing")->bind();
+      RendererCommands::drawArrays(PrimativeType::Triangle, 0, 3);
 
       RendererCommands::enable(RendererFunction::Blending);
       RendererCommands::blendEquation(BlendEquation::Additive);
@@ -976,7 +1001,9 @@ namespace Strontium
       if (state->drawGrid)
       {
         storage->gBuffer.bindAttachment(FBOTargetParam::Depth, 0);
-        draw(&storage->fsq, ShaderCache::getShader("grid"));
+        storage->blankVAO.bind();
+        ShaderCache::getShader("grid")->bind();
+        RendererCommands::drawArrays(PrimativeType::Triangle, 0, 3);
       }
 
       //------------------------------------------------------------------------
@@ -986,7 +1013,9 @@ namespace Strontium
       if (storage->drawEdge)
       {
         storage->gBuffer.bindAttachment(FBOTargetParam::Colour4, 0);
-        draw(&storage->fsq, ShaderCache::getShader("outline"));
+        storage->blankVAO.bind();
+        ShaderCache::getShader("outline")->bind();
+        RendererCommands::drawArrays(PrimativeType::Triangle, 0, 3);
       }
       RendererCommands::enable(RendererFunction::DepthTest);
       RendererCommands::disable(RendererFunction::Blending);

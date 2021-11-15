@@ -52,6 +52,7 @@ namespace Strontium
                const bool &clearStencil = true);
     void setViewport(const glm::ivec2 topRight, const glm::ivec2 bottomLeft = glm::ivec2(0));
 
-    void drawPrimatives(PrimativeType primative, uint count, const void* indices = nullptr);
+    void drawElements(PrimativeType primative, uint count, const void* indices = nullptr);
+    void drawArrays(PrimativeType primative, uint start, uint count);
   };
 }

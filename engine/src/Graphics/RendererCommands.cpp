@@ -74,9 +74,15 @@ namespace Strontium
   }
 
   void
-  RendererCommands::drawPrimatives(PrimativeType primative, uint count,
+  RendererCommands::drawElements(PrimativeType primative, uint count,
                                    const void* indices)
   {
     glDrawElements(static_cast<GLenum>(primative), count, GL_UNSIGNED_INT, indices);
+  }
+
+  void 
+  RendererCommands::drawArrays(PrimativeType primative, uint start, uint count)
+  {
+    glDrawArrays(static_cast<GLenum>(primative), start, count);
   }
 }

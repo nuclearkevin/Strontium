@@ -50,10 +50,8 @@ namespace Strontium
       // Various properties for rendering.
       bool drawEdge;
 
-      // Geometric primatives for applying lights and effects.
-      const float fsqVerts[8] = { -1.0f, -1.0f, 1.0f, -1.0f, 1.0f, 1.0f, -1.0f, 1.0f };
-      uint fsqIndices[6] = { 0, 1, 2, 2, 3, 0 };
-      VertexArray fsq;
+      // Blank VAO for launching bufferless rendering.
+      VertexArray blankVAO;
 
       // The required framebuffers.
       GeometryBuffer gBuffer;
@@ -108,12 +106,12 @@ namespace Strontium
       std::vector<SpotLight> spotQueue;
 
       RendererStorage()
-        : fsq(fsqVerts, 8 * sizeof(float), BufferType::Dynamic)
+        : blankVAO()
         , camBuffer(2 * sizeof(glm::mat4) + sizeof(glm::vec3), BufferType::Dynamic)
         , transformBuffer(sizeof(glm::mat4), BufferType::Dynamic)
         , editorBuffer(sizeof(glm::vec4), BufferType::Dynamic)
         , ambientPassBuffer(sizeof(glm::vec4), BufferType::Dynamic)
-        , directionalPassBuffer(2 * sizeof(glm::vec4) + sizeof(glm::vec2), BufferType::Dynamic)
+        , directionalPassBuffer(2 * sizeof(glm::vec4) + sizeof(glm::ivec4), BufferType::Dynamic)
         , pointPassBuffer(sizeof(PointLight), BufferType::Dynamic)
         , cascadeShadowPassBuffer(sizeof(glm::mat4), BufferType::Dynamic)
         , cascadeShadowBuffer(NUM_CASCADES * sizeof(glm::mat4)
@@ -149,6 +147,7 @@ namespace Strontium
       float cascadeLambda;
       uint cascadeSize;
       float bleedReduction;
+      glm::ivec4 directionalSettings;
 
       // Volumetric light settings.
       bool enableSkyshafts;
@@ -184,6 +183,7 @@ namespace Strontium
         , cascadeLambda(0.5f)
         , cascadeSize(2048)
         , bleedReduction(0.2f)
+        , directionalSettings(0)
         , enableSkyshafts(false)
         , mieScatIntensity(4.0f, 4.0f, 4.0f, 1.0f)
         , mieAbsDensity(4.4f, 4.4f, 4.4f, 1.0f)

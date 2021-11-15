@@ -45,15 +45,7 @@ namespace Strontium
     , skyboxParameters(0)
     , filepath("")
     , staticIBL(true)
-  {
-    // Load in the cube mesh and pre-integrate the BRDF LUT.
-    this->cube.loadModel("./assets/.internal/cube.fbx");
-    for (auto& submesh : this->cube.getSubmeshes())
-    {
-      if (!submesh.hasVAO())
-        submesh.generateVAO();
-    }
-    
+  { 
     // Compute the BRDF LUT.
     {
         Logger* logs = Logger::getInstance();

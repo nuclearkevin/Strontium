@@ -7,11 +7,11 @@
  */
 
 #type vertex
-layout (location = 0) in vec2 vPosition;
-
 void main()
 {
-  gl_Position = vec4(vPosition.x, vPosition.y, 0.0, 1.0);
+  vec2 position = vec2(gl_VertexID % 2, gl_VertexID / 2) * 4.0 - 1;
+
+  gl_Position = vec4(position, 0.0, 1.0);
 }
 
 #type fragment
