@@ -15,8 +15,6 @@ layout(std140, binding = 1) uniform PostProcessBlock
 };
 
 #type vertex
-layout (location = 0) in vec2 vPosition;
-
 // Vertex properties for shading.
 out VERT_OUT
 {
@@ -28,9 +26,11 @@ vec3 unProject(vec3 position, mat4 invVP);
 
 void main()
 {
-  vertOut.fNearPoint = unProject(vec3(vPosition.x, vPosition.y, 0.0), u_invViewProj);
-  vertOut.fFarPoint = unProject(vec3(vPosition.x, vPosition.y, 1.0), u_invViewProj);
-  gl_Position = vec4(vPosition, 0.0, 1.0);
+  vec2 position = vec2(gl_VertexID % 2, gl_VertexID / 2) * 4.0 - 1;
+
+  vertOut.fNearPoint = unProject(vec3(position, 0.0), u_invViewProj);
+  vertOut.fFarPoint = unProject(vec3(position, 1.0), u_invViewProj);
+  gl_Position = vec4(position, 0.0, 1.0);
 }
 
 vec3 unProject(vec3 position, mat4 invVP)

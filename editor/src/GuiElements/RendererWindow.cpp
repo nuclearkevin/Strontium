@@ -46,9 +46,7 @@ namespace Strontium
     // of taps.Hard shadows are regular shadow maps with zero prefiltering.
     if (ImGui::CollapsingHeader("Shadows"))
     {
-      static int cascadeIndex = 0;
-      ImGui::SliderInt("Cascade Index", &cascadeIndex, 0, NUM_CASCADES - 1);
-
+      ImGui::SliderInt("Shadow Quality", &state->directionalSettings.x, 0, 1);
       ImGui::DragFloat("Cascade Lambda", &state->cascadeLambda, 0.01f, 0.5f, 1.0f);
       ImGui::DragFloat("Bleed Reduction", &state->bleedReduction, 0.01f, 0.0f, 0.9f);
 
@@ -82,6 +80,8 @@ namespace Strontium
 
       if (showMaps)
       {
+        static int cascadeIndex = 0;
+        ImGui::SliderInt("Cascade Index", &cascadeIndex, 0, NUM_CASCADES - 1);
         ImGui::Text("Depth");
         ImGui::Image((ImTextureID) (unsigned long) storage->shadowBuffer[(unsigned int) cascadeIndex].getAttachID(FBOTargetParam::Depth),
                      ImVec2(128.0f, 128.0f), ImVec2(0, 1), ImVec2(1, 0));

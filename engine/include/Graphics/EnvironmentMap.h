@@ -199,7 +199,6 @@ namespace Strontium
       }
     }
 
-    Model* getCubeMesh() { return &this->cube; }
     std::string& getFilepath() { return this->filepath; }
   protected:
     Unique<Texture2D> erMap;
@@ -228,7 +227,5 @@ namespace Strontium
     float intensity;
     float roughness;
     glm::ivec4 skyboxParameters;
-
-    Model    cube;
   };
 }

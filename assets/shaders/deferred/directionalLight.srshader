@@ -7,11 +7,11 @@
  */
 
 #type vertex
-layout (location = 0) in vec2 vPosition;
-
 void main()
 {
-  gl_Position = vec4(vPosition.x, vPosition.y, 0.0, 1.0);
+  vec2 position = vec2(gl_VertexID % 2, gl_VertexID / 2) * 4.0 - 1;
+
+  gl_Position = vec4(position, 0.0, 1.0);
 }
 
 #type fragment
@@ -30,7 +30,7 @@ layout(std140, binding = 5) uniform DirectionalBlock
 {
   vec4 u_lColourIntensity;
   vec4 u_lDirection;
-  vec2 u_screenSize;
+  ivec4 u_directionalSettings;
 };
 
 // Uniforms for the geometry buffer.
@@ -48,7 +48,7 @@ vec3 filamentBRDF(vec3 l, vec3 v, vec3 n, float roughness, float metallic,
 
 void main()
 {
-  vec2 fTexCoords = gl_FragCoord.xy / u_screenSize;
+  vec2 fTexCoords = gl_FragCoord.xy / textureSize(gPosition, 0).xy;
 
   vec3 position = texture(gPosition, fTexCoords).xyz;
   vec3 normal = normalize(texture(gNormal, fTexCoords).xyz);
