@@ -34,7 +34,7 @@ namespace Strontium
         this->floats.emplace_back("uRoughness", 0.5f);
         this->floats.emplace_back("uAO", 1.0f);
         this->floats.emplace_back("uEmiss", 0.0f);
-        this->floats.emplace_back("uF0", 0.04f);
+        this->floats.emplace_back("uReflectance", 0.04f);
 
         this->materialData.bindToPoint(1);
 
@@ -52,7 +52,7 @@ namespace Strontium
         albedoF0.x = albedo.x;
         albedoF0.y = albedo.y;
         albedoF0.z = albedo.z;
-        albedoF0.w = this->getfloat("uF0");
+        albedoF0.w = this->getfloat("uReflectance");
         this->materialData.setData(sizeof(glm::vec4), sizeof(glm::vec4), &albedoF0.x);
         break;
       }
@@ -84,7 +84,7 @@ namespace Strontium
       albedoF0.x = albedo.x;
       albedoF0.y = albedo.y;
       albedoF0.z = albedo.z;
-      albedoF0.w = this->getfloat("uF0");
+      albedoF0.w = this->getfloat("uReflectance");
       this->materialData.setData(sizeof(glm::vec4), sizeof(glm::vec4), &albedoF0.x);
   }
 

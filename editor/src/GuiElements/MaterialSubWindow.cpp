@@ -179,7 +179,7 @@ namespace Strontium
     auto uRoughness = material->getfloat("uRoughness");
     auto uAO = material->getfloat("uAO");
     auto uEmiss = material->getfloat("uEmiss");
-    auto uF0 = material->getfloat("uF0");
+    auto reflectance = material->getfloat("uReflectance");
 
     // Draw all the associated texture maps for the entity.
     ImGui::Text("Albedo Map");
@@ -204,14 +204,15 @@ namespace Strontium
     materialMapSliderFloat("Metallic Map", "metallicMap", material, uMetallic, selectedSampler);
     materialMapSliderFloat("Roughness Map", "roughnessMap", material, uRoughness, selectedSampler);
     materialMapSliderFloat("Ambient Occlusion Map", "aOcclusionMap", material, uAO, selectedSampler);
-    materialMapSliderFloat("Specular F0 Map", "specF0Map", material, uF0, selectedSampler, 0.0f, 0.17f);
+    materialMapSliderFloat("Reflectance Map", "specF0Map", material, reflectance, selectedSampler, 0.0f, 1.0f);
 
     material->set(uAlbedo, "uAlbedo");
     material->set(uMetallic, "uMetallic");
     material->set(uRoughness, "uRoughness");
     material->set(uAO, "uAO");
     material->set(uEmiss, "uEmiss");
-    material->set(uF0, "uF0");
+
+    material->set(reflectance, "uReflectance");
 
     ImGui::Text("Normal Map");
     ImGui::PushID("Normal Button");
