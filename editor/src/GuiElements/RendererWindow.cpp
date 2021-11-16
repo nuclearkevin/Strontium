@@ -92,7 +92,7 @@ namespace Strontium
 
       ImGui::Text("");
 
-      if (state->directionalSettings.x == 2)
+      if (state->directionalSettings.x == 1)
       {
         if (ImGui::DragFloat("Filter Radius", &(state->shadowParams.z), 0.01f))
         {

@@ -57,7 +57,7 @@ void main()
     if (NdotL > 0.0)
     {
       float G = SSBGeometry(N, V, L, roughness);
-      float G_Vis = (G * VdotH) / (NdotH * NdotV);
+      float G_Vis = (G * VdotH) / max(NdotH * NdotV, 1e-4);
       float Fc = pow(1.0 - VdotH, 5.0);
 
       A += (1.0 - Fc) * G_Vis;
@@ -80,7 +80,7 @@ float SBGeometry(float NdotV, float roughness)
   float nom   = NdotV;
   float denom = NdotV * (1.0 - k) + k;
 
-  return nom / denom;
+  return nom / max(denom, 1e-4);
 }
 
 // Smith-Schlick-Beckmann geometry function.
