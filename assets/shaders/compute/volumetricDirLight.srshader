@@ -50,10 +50,10 @@ layout(std140, binding = 7) uniform CascadedShadowBlock
 {
   mat4 u_lightVP[NUM_CASCADES];
   float u_cascadeSplits[NUM_CASCADES];
-  float u_lightBleedReduction;
+  vec4 u_shadowParams; // Light bleed reduction (x), light size for PCSS (y), minimum PCF radius (z) and the bias multiplier (w).
 };
 
-layout(std140, binding = 0) buffer LightShaftParams
+layout(std140, binding = 0) buffer GodrayParams
 {
   vec4 u_mieScatIntensity; // Mie scattering coefficients (x, y, z), light shaft intensity (w).
   vec4 u_mieAbsDensity; // Mie scattering coefficients (x, y, z), density (w).
@@ -177,7 +177,7 @@ float computeChebyshevBound(float moment1, float moment2, float depth)
   float variance2 = moment2 - moment1 * moment1;
   float diff = depth - moment1;
   float diff2 = diff * diff;
-  float pMax = clamp((variance2 / (variance2 + diff2) - u_lightBleedReduction) / (1.0 - u_lightBleedReduction), 0.0, 1.0);
+  float pMax = clamp((variance2 / (variance2 + diff2) - u_shadowParams.x) / (1.0 - u_shadowParams.x), 0.0, 1.0);
 
   return moment1 < depth ? pMax : 1.0;
 }

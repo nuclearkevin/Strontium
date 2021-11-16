@@ -16,8 +16,12 @@ void main()
 
 #type fragment
 #define PI 3.141592654
+
 #define NUM_CASCADES 4
 #define WARP 44.0
+
+#define PCF_SAMPLES 16
+#define PCSS_SAMPLES 16
 
 // Camera specific uniforms.
 layout(std140, binding = 0) uniform CameraBlock
@@ -48,7 +52,7 @@ layout(std140, binding = 7) uniform CascadedShadowBlock
 {
   mat4 u_lightVP[NUM_CASCADES];
   float u_cascadeSplits[NUM_CASCADES];
-  float u_lightBleedReduction;
+  vec4 u_shadowParams; // Light bleed reduction (x), light size for PCSS (y), minimum PCF radius (z) and the bias multiplier (w).
 };
 
 // Uniforms for the geometry buffer.
@@ -228,7 +232,7 @@ vec3 filamentBRDF(vec3 l, vec3 v, vec3 n, float roughness, float metallic,
 }
 
 //------------------------------------------------------------------------------
-// Shadow calculations using cascaded exponentially warped variance shadow maps.
+// Shadow calculations for exponentially warped variance shadow maps.
 //------------------------------------------------------------------------------
 // Warp the depth.
 vec2 warpDepth(float depth)
@@ -244,22 +248,113 @@ float computeChebyshevBound(float moment1, float moment2, float depth)
   float variance2 = moment2 - moment1 * moment1;
   float diff = depth - moment1;
   float diff2 = diff * diff;
-  float pMax = clamp((variance2 / (variance2 + diff2) - u_lightBleedReduction) / (1.0 - u_lightBleedReduction), 0.0, 1.0);
+  float pMax = clamp((variance2 / (variance2 + diff2) - u_shadowParams.x) / (1.0 - u_shadowParams.x), 0.0, 1.0);
 
   return moment1 < depth ? pMax : 1.0;
 }
 
-// Calculate the occlusion factor.
+//------------------------------------------------------------------------------
+// Shadow calculations for PCF shadow maps.
+//------------------------------------------------------------------------------
+float offsetLookup(sampler2D map, vec2 loc, vec2 offset, float depth)
+{
+  vec2 texel = 1.0 / textureSize(map, 0).xy;
+  return float(texture(map, vec2(loc.xy + offset * texel)).r >= depth);
+}
+
+//------------------------------------------------------------------------------
+// Shadow calculations for PCSS shadow maps.
+//------------------------------------------------------------------------------
+float calculateSearchWidth(float receiverDepth, float lightSize)
+{
+  return lightSize * receiverDepth;
+}
+
+float calcBlockerDistance(sampler2D map, vec3 projCoords, float bias, float lightSize)
+{
+  vec2 texel = 1.0 / textureSize(map, 0).xy;
+  float blockerDistances = 0.0;
+  float numBlockerDistances = 0.0;
+  float receiverDepth = projCoords.z;
+
+  float searchWidth = calculateSearchWidth(receiverDepth, lightSize);
+  vec2 offset = (-searchWidth / 2.0).xx;
+  float delta = searchWidth / float(PCSS_SAMPLES - 1);
+  for (uint i = 0; i < PCSS_SAMPLES; i++)
+  {
+    for (uint j = 0; j < PCSS_SAMPLES; j++)
+    {
+      float blockerDepth = texture(map, projCoords.xy + offset * texel).r;
+      if (blockerDepth < projCoords.z - bias)
+      {
+        numBlockerDistances += 1.0;
+        blockerDistances += blockerDepth;
+      }
+
+      offset.y += delta;
+    }
+
+    offset.y = -searchWidth / 2.0;
+    offset.x += delta;
+  }
+
+  if (numBlockerDistances > 0.0)
+    return blockerDistances / numBlockerDistances;
+  else
+    return -1.0;
+}
+
+float calcPCFKernelSize(sampler2D map, vec3 projCoords, float bias, float lightSize)
+{
+  float receiverDepth = projCoords.z;
+  float blockerDepth = calcBlockerDistance(map, projCoords, bias, lightSize);
+
+  float kernelSize = 1.0;
+  if (blockerDepth > 0.0)
+  {
+    float penumbraWidth = lightSize * (receiverDepth - blockerDepth) / blockerDepth;
+    kernelSize = penumbraWidth / receiverDepth;
+  }
+
+  return kernelSize;
+}
+
+//------------------------------------------------------------------------------
+// Compute the actual occlusion factor.
+//------------------------------------------------------------------------------
 float calcShadow(uint cascadeIndex, vec3 position, vec3 normal, vec3 lightDir, int quality)
 {
+  float bias = max(u_shadowParams.w * 10.0 * (1.0 - dot(normal, lightDir)), u_shadowParams.w);
   vec4 lightClipPos = u_lightVP[cascadeIndex] * vec4(position, 1.0);
   vec3 projCoords = lightClipPos.xyz / lightClipPos.w;
   projCoords = 0.5 * projCoords + 0.5;
 
   float shadowFactor = 1.0;
-  if (quality == 1)
+  // PCSS (contact hardening shadows), ultra quality.
+  if (quality == 3)
   {
-    // High quality shadows.
+    float radius = calcPCFKernelSize(cascadeMaps[cascadeIndex], projCoords, bias, u_shadowParams.y);
+    radius = max(radius, u_shadowParams.z);
+    vec2 offset = (-radius / 2.0).xx;
+    float delta = radius / float(PCF_SAMPLES - 1);
+    for (uint i = 0; i < PCF_SAMPLES; i++)
+    {
+      for (uint j = 0; j < PCF_SAMPLES; j++)
+      {
+        shadowFactor += offsetLookup(cascadeMaps[cascadeIndex], projCoords.xy,
+                                     offset, projCoords.z - bias);
+        offset.y += delta;
+      }
+
+      offset.y = -radius / 2.0;
+      offset.x += delta;
+    }
+
+    shadowFactor /= float(PCF_SAMPLES * PCF_SAMPLES);
+  }
+  // EVSM shadows, best quality with no contact hardening.
+  else if (quality == 2)
+  {
     vec4 moments = texture(cascadeMaps[cascadeIndex], projCoords.xy).rgba;
     vec2 warpedDepth = warpDepth(projCoords.z);
 
@@ -267,12 +362,31 @@ float calcShadow(uint cascadeIndex, vec3 position, vec3 normal, vec3 lightDir, i
     float shadowFactor2 = computeChebyshevBound(moments.b, moments.a, warpedDepth.g);
     shadowFactor = min(shadowFactor1, shadowFactor2);
   }
+  // PCF shadows, medium quality.
+  else if (quality == 1)
+  {
+    vec2 offset = (-u_shadowParams.z / 2.0).xx;
+    float delta = u_shadowParams.z / (float(PCF_SAMPLES - 1));
+    for (uint i = 0; i < PCF_SAMPLES; i++)
+    {
+      for (uint j = 0; j < PCF_SAMPLES; j++)
+      {
+        shadowFactor += offsetLookup(cascadeMaps[cascadeIndex], projCoords.xy,
+                                     offset, projCoords.z - bias);
+        offset.y += delta;
+      }
+
+      offset.y = -u_shadowParams.z / 2.0;
+      offset.x += delta;
+    }
+
+    shadowFactor /= float(PCF_SAMPLES * PCF_SAMPLES);
+  }
+  // Hard shadows, low quality.
   else if (quality == 0)
   {
-    // Hard shadows.
-    float bias = max(0.05 * (1.0 - dot(normal, lightDir)), 0.005);
-    float shadowDepth = texture(cascadeMaps[cascadeIndex], projCoords.xy).r;
-    shadowFactor = projCoords.z - bias >= shadowDepth ? 0.0 : 1.0;
+    shadowFactor = offsetLookup(cascadeMaps[cascadeIndex], projCoords.xy, 0.0.xx,
+                                projCoords.z - bias);
   }
 
   return shadowFactor;

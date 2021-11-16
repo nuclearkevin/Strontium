@@ -115,7 +115,7 @@ namespace Strontium
         , pointPassBuffer(sizeof(PointLight), BufferType::Dynamic)
         , cascadeShadowPassBuffer(sizeof(glm::mat4), BufferType::Dynamic)
         , cascadeShadowBuffer(NUM_CASCADES * sizeof(glm::mat4)
-                              + NUM_CASCADES * sizeof(glm::vec4) * sizeof(float),
+                              + NUM_CASCADES * sizeof(glm::vec4) + sizeof(glm::vec4),
                               BufferType::Dynamic)
         , postProcessSettings(2 * sizeof(glm::mat4) + 2 * sizeof(glm::vec4)
                               + sizeof(glm::ivec4), BufferType::Dynamic)
@@ -146,7 +146,7 @@ namespace Strontium
       // Cascaded shadow settings.
       float cascadeLambda;
       uint cascadeSize;
-      float bleedReduction;
+      glm::vec4 shadowParams;
       glm::ivec4 directionalSettings;
 
       // Volumetric light settings.
@@ -182,7 +182,7 @@ namespace Strontium
         , prefilterSamples(512)
         , cascadeLambda(0.5f)
         , cascadeSize(2048)
-        , bleedReduction(0.2f)
+        , shadowParams(0.2f, 20.0f, 3.0f, 0.0005f)
         , directionalSettings(0)
         , enableSkyshafts(false)
         , mieScatIntensity(4.0f, 4.0f, 4.0f, 1.0f)
@@ -194,7 +194,7 @@ namespace Strontium
         , bloomIntensity(1.0f)
         , bloomRadius(1.0f)
         , enableFXAA(false)
-        , postProcessSettings(0) // Tone mapping operator (x), compositing bloom (y), FXAA (z). w is unused.
+        , postProcessSettings(0)
         , drawGrid(true)
       { }
     };

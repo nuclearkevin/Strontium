@@ -664,7 +664,7 @@ namespace Strontium
           }
         }
 
-        if (state->directionalSettings.x == 1)
+        if (state->directionalSettings.x == 2)
         {
           // Apply a 2-pass 9 tap Gaussian blur to the shadow map.
           RendererCommands::disableDepthMask();
@@ -767,16 +767,15 @@ namespace Strontium
           storage->cascadeShadowBuffer.setData(NUM_CASCADES * sizeof(glm::mat4)
                                                 + i * sizeof(glm::vec4), sizeof(float),
                                                 &storage->cascadeSplits[i]);
-
-          if (state->directionalSettings.x == 1)
+          if (state->directionalSettings.x == 2)
             storage->shadowBuffer[i].bindTextureID(FBOTargetParam::Colour0, i + 7);
-          else if (state->directionalSettings.x == 0)
+          else
               storage->shadowBuffer[i].bindTextureID(FBOTargetParam::Depth, i + 7);
         }
         storage->cascadeShadowBuffer.setData(NUM_CASCADES * sizeof(glm::mat4)
                                               + NUM_CASCADES * sizeof(glm::vec4),
-                                              sizeof(float),
-                                              &state->bleedReduction);
+                                              sizeof(glm::vec4),
+                                              &(state->shadowParams.x));
       }
 
       for (auto& light : storage->directionalQueue)

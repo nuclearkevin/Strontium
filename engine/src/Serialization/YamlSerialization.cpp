@@ -461,9 +461,13 @@ namespace Strontium
 
       out << YAML::Key << "ShadowSettings";
       out << YAML::BeginMap;
+      out << YAML::Key << "ShadowQuality" << YAML::Value << state->directionalSettings.x;
       out << YAML::Key << "CascadeLambda" << YAML::Value << state->cascadeLambda;
       out << YAML::Key << "CascadeSize" << YAML::Value << state->cascadeSize;
-      out << YAML::Key << "CascadeLightBleed" << YAML::Value << state->bleedReduction;
+      out << YAML::Key << "CascadeLightBleed" << YAML::Value << state->shadowParams.x;
+      out << YAML::Key << "LightSize" << YAML::Value << state->shadowParams.y;
+      out << YAML::Key << "PCFRadius" << YAML::Value << state->shadowParams.z;
+      out << YAML::Key << "DepthBias" << YAML::Value << state->shadowParams.w;
       out << YAML::EndMap;
 
       out << YAML::Key << "VolumetricLightSettings";
@@ -877,9 +881,13 @@ namespace Strontium
         auto shadowSettings = rendererSettings["ShadowSettings"];
         if (shadowSettings)
         {
+          state->directionalSettings.x = shadowSettings["ShadowQuality"].as<int>();
           state->cascadeLambda = shadowSettings["CascadeLambda"].as<float>();
           state->cascadeSize = shadowSettings["CascadeSize"].as<uint>();
-          state->bleedReduction = shadowSettings["CascadeLightBleed"].as<float>();
+          state->shadowParams.x = shadowSettings["CascadeLightBleed"].as<float>();
+          state->shadowParams.y = shadowSettings["LightSize"].as<float>();
+          state->shadowParams.z = shadowSettings["PCFRadius"].as<float>();
+          state->shadowParams.w = shadowSettings["DepthBias"].as<float>();
         }
 
         auto volumetricSettings = rendererSettings["VolumetricLightSettings"];

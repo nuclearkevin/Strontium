@@ -46,9 +46,24 @@ namespace Strontium
     // of taps.Hard shadows are regular shadow maps with zero prefiltering.
     if (ImGui::CollapsingHeader("Shadows"))
     {
-      ImGui::SliderInt("Shadow Quality", &state->directionalSettings.x, 0, 1);
+      const char* shadowQualities[] = { "Hard Shadows", "Medium Quality (PCF)", "High Quality (EVSM)", "Ultra Quality (PCSS)" };
+
+      if (ImGui::BeginCombo("##dirSettings", shadowQualities[state->directionalSettings.x]))
+      {
+          for (unsigned int i = 0; i < IM_ARRAYSIZE(shadowQualities); i++)
+          {
+              bool isSelected = (shadowQualities[i] == shadowQualities[state->directionalSettings.x]);
+              if (ImGui::Selectable(shadowQualities[i], isSelected))
+                  state->directionalSettings.x = i;
+
+              if (isSelected)
+                  ImGui::SetItemDefaultFocus();
+          }
+
+          ImGui::EndCombo();
+      }
+
       ImGui::DragFloat("Cascade Lambda", &state->cascadeLambda, 0.01f, 0.5f, 1.0f);
-      ImGui::DragFloat("Bleed Reduction", &state->bleedReduction, 0.01f, 0.0f, 0.9f);
 
       int shadowWidth = state->cascadeSize;
       if (ImGui::InputInt("Shadowmap Size", &shadowWidth))
@@ -73,6 +88,31 @@ namespace Strontium
           storage->shadowBuffer[i].resize(state->cascadeSize, state->cascadeSize);
 
         storage->shadowEffectsBuffer.resize(state->cascadeSize, state->cascadeSize);
+      }
+
+      ImGui::Text("");
+
+      if (state->directionalSettings.x == 2)
+      {
+        if (ImGui::DragFloat("Filter Radius", &(state->shadowParams.z), 0.01f))
+        {
+          state->shadowParams.z = glm::max(state->shadowParams.z, 0.0f);
+        }
+      }
+
+      if (state->directionalSettings.x == 2)
+        ImGui::DragFloat("Bleed Reduction", &(state->shadowParams.x), 0.01f, 0.0f, 0.9f);
+
+      if (state->directionalSettings.x == 3)
+      {
+        if (ImGui::DragFloat("Light Size", &(state->shadowParams.y), 0.01f))
+        {
+          state->shadowParams.y = glm::max(state->shadowParams.y, 0.0f);
+        }
+        if (ImGui::DragFloat("Minimum Radius", &(state->shadowParams.z), 0.01f))
+        {
+          state->shadowParams.z = glm::max(state->shadowParams.z, 0.0f);
+        }
       }
 
       static bool showMaps = false;
