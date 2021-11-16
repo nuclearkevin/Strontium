@@ -165,36 +165,20 @@ float getMiePhase(float cosTheta)
   return result;
 }
 
-vec2 warpDepth(float depth)
+float offsetLookup(sampler2D map, vec2 loc, vec2 offset, float depth)
 {
-  float posWarp = exp(WARP * depth);
-  float negWarp = -1.0 * exp(-1.0 * WARP * depth);
-  return vec2(posWarp, negWarp);
-}
-
-float computeChebyshevBound(float moment1, float moment2, float depth)
-{
-  float variance2 = moment2 - moment1 * moment1;
-  float diff = depth - moment1;
-  float diff2 = diff * diff;
-  float pMax = clamp((variance2 / (variance2 + diff2) - u_shadowParams.x) / (1.0 - u_shadowParams.x), 0.0, 1.0);
-
-  return moment1 < depth ? pMax : 1.0;
+  vec2 texel = 1.0 / textureSize(map, 0).xy;
+  return float(texture(map, vec2(loc.xy + offset * texel)).r >= depth);
 }
 
 // Calculate if the fragment is in shadow or not, than shadow mapping.
 float calcShadow(uint cascadeIndex, vec3 position)
 {
+  float bias = u_shadowParams.w;
   vec4 lightClipPos = u_lightVP[cascadeIndex] * vec4(position, 1.0);
   vec3 projCoords = lightClipPos.xyz / lightClipPos.w;
   projCoords = 0.5 * projCoords + 0.5;
 
-  vec4 moments = texture(cascadeMaps[cascadeIndex], projCoords.xy).rgba;
-  vec2 warpedDepth = warpDepth(projCoords.z);
-
-  float shadowFactor1 = computeChebyshevBound(moments.r, moments.g, warpedDepth.r);
-  float shadowFactor2 = computeChebyshevBound(moments.b, moments.a, warpedDepth.g);
-  float shadowFactor = min(shadowFactor1, shadowFactor2);
-
-  return shadowFactor;
+  return offsetLookup(cascadeMaps[cascadeIndex], projCoords.xy, 0.0.xx,
+                      projCoords.z - bias);
 }

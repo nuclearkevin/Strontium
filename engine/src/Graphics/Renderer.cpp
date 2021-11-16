@@ -770,7 +770,7 @@ namespace Strontium
           if (state->directionalSettings.x == 2)
             storage->shadowBuffer[i].bindTextureID(FBOTargetParam::Colour0, i + 7);
           else
-              storage->shadowBuffer[i].bindTextureID(FBOTargetParam::Depth, i + 7);
+            storage->shadowBuffer[i].bindTextureID(FBOTargetParam::Depth, i + 7);
         }
         storage->cascadeShadowBuffer.setData(NUM_CASCADES * sizeof(glm::mat4)
                                               + NUM_CASCADES * sizeof(glm::vec4),
@@ -795,6 +795,9 @@ namespace Strontium
 
         if (light.castShadows && light.primaryLight)
         {
+           for (unsigned int i = 0; i < NUM_CASCADES; i++)
+             storage->shadowBuffer[i].bindTextureID(FBOTargetParam::Depth, i + 7);
+
            state->postProcessSettings.w = (uint)(storage->hasCascades && state->enableSkyshafts);
            storage->downsampleLightshaft.bind(2);
            storage->postProcessSettings.bindToPoint(1);
@@ -821,6 +824,14 @@ namespace Strontium
             storage->downsampleLightshaft.bindAsImage(1, 0, ImageAccessPolicy::Write);
             ShaderCache::getShader("bilateral_blur")->launchCompute(iWidth, iHeight, 1);
             Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
+          }
+
+          for (unsigned int i = 0; i < NUM_CASCADES; i++)
+          {
+            if (state->directionalSettings.x == 2)
+                storage->shadowBuffer[i].bindTextureID(FBOTargetParam::Colour0, i + 7);
+            else
+                storage->shadowBuffer[i].bindTextureID(FBOTargetParam::Depth, i + 7);
           }
 
           // Launch the primary shadowed directional light pass.
