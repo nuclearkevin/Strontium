@@ -18,7 +18,7 @@ layout(binding = 0) uniform samplerCube environmentMap;
 layout(rgba16f, binding = 1) writeonly uniform imageCube prefilterMap;
 
 // The required parameters.
-layout(std140, binding = 2) buffer paramBuff
+layout(std140, binding = 2) buffer ParamBuff
 {
   vec4 u_iblParams; // Roughness (x). y, z and w are unused.
   ivec4 u_iblParams1; // Number of samples (x). y, z and w are unused.

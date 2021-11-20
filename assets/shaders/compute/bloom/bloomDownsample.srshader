@@ -22,7 +22,7 @@ void main()
   ivec2 destCoords = ivec2(gl_GlobalInvocationID.xy);
   ivec2 sourceCoords = 2 * destCoords;
 
-  vec3 colour = bilinearFetch(sourceCoords);
+  vec3 colour = downsampleBox13Tap(sourceCoords);
   imageStore(nextImage, destCoords, vec4(colour, 1.0));
 }
 

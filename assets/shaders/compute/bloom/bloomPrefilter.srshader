@@ -50,6 +50,12 @@ vec3 quadraticThreshold(vec3 colour, float threshold, vec3 curve)
   return outColour;
 }
 
+float computeWeight(vec3 colour)
+{
+  float luma = dot(vec3(0.2126, 0.7152, 0.0722), colour);
+  return 1.0 / (1.0 + luma);
+}
+
 /*
   A   B   C
     J   K
@@ -61,19 +67,32 @@ vec3 quadraticThreshold(vec3 colour, float threshold, vec3 curve)
 vec3 downsampleBox13Tap(ivec2 coords)
 {
   vec3 A = bilinearFetch(coords + ivec2(-2, 2));
+  A *= computeWeight(A);
   vec3 B = bilinearFetch(coords + ivec2(0, 2));
+  B *= computeWeight(B);
   vec3 C = bilinearFetch(coords + ivec2(2, 2));
+  C *= computeWeight(C);
   vec3 D = bilinearFetch(coords + ivec2(-2, 0));
+  D *= computeWeight(D);
   vec3 E = bilinearFetch(coords + ivec2(0, 0));
+  E *= computeWeight(E);
   vec3 F = bilinearFetch(coords + ivec2(2, 0));
+  F *= computeWeight(F);
   vec3 G = bilinearFetch(coords + ivec2(-2, -2));
+  G *= computeWeight(G);
   vec3 H = bilinearFetch(coords + ivec2(0, -2));
+  H *= computeWeight(H);
   vec3 I = bilinearFetch(coords + ivec2(2, -2));
+  I *= computeWeight(I);
 
   vec3 J = bilinearFetch(coords + ivec2(-1, 1));
+  J *= computeWeight(J);
   vec3 K = bilinearFetch(coords + ivec2(1, 1));
+  K *= computeWeight(K);
   vec3 L = bilinearFetch(coords + ivec2(-1, -1));
+  L *= computeWeight(L);
   vec3 M = bilinearFetch(coords + ivec2(1, -1));
+  M *= computeWeight(M);
 
   vec2 weights = 0.25 * vec2(0.5, 0.125);
   vec3 result = (J + K + L + M) * weights.x;

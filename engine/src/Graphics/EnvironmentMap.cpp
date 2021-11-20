@@ -361,6 +361,8 @@ namespace Strontium
         Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
       }
     }
+
+    this->skyViewLUT.generateMips();
   }
 
   void 
