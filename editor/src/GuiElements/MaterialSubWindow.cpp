@@ -198,7 +198,7 @@ namespace Strontium
     ImGui::SetCursorPos(ImVec2(cursorPos.x, cursorPos.y + fontSize + 8.0f));
     ImGui::Text("Emissivity");
     ImGui::SetCursorPos(ImVec2(cursorPos.x, cursorPos.y + 2 * fontSize + 12.0f));
-    ImGui::SliderFloat("##Emiss", &uEmiss, 0.0f, 10.0f);
+    ImGui::SliderFloat("##Emiss", &uEmiss, 0.0f, 100.0f);
     ImGui::SetCursorPos(endCursorPos);
 
     materialMapSliderFloat("Metallic Map", "metallicMap", material, uMetallic, selectedSampler);

@@ -43,7 +43,7 @@ namespace Strontium
       bloomParams.internal = TextureInternalFormats::RGBA16f;
       bloomParams.dataType = TextureDataType::Floats;
 
-      float powOf2 = 1.0f;
+      float powOf2 = 2.0f;
       for (unsigned int i = 0; i < MAX_NUM_BLOOM_MIPS; i++)
       {
         storage->downscaleBloomTex[i].setSize((uint) ((float) width) / powOf2, (uint) ((float) height) / powOf2, 4);
@@ -57,7 +57,7 @@ namespace Strontium
         powOf2 *= 2.0f;
       }
 
-      powOf2 = 1.0f;
+      powOf2 = 2.0f;
       for (unsigned int i = 0; i < MAX_NUM_BLOOM_MIPS - 1; i++)
       {
         storage->bufferBloomTex[i].setSize((uint)((float)width) / powOf2, (uint)((float)height) / powOf2, 4);
@@ -136,7 +136,7 @@ namespace Strontium
         storage->gBuffer.resize(width, height);
         storage->lightingPass.resize(width, height);
 
-        float powOf2 = 1.0f;
+        float powOf2 = 2.0f;
         for (unsigned int i = 0; i < MAX_NUM_BLOOM_MIPS; i++)
         {
           storage->downscaleBloomTex[i].setSize((uint) ((float) width) / powOf2, (uint) ((float) height) / powOf2, 4);

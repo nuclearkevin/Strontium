@@ -31,7 +31,7 @@ vec3 bilinearFetch(ivec2 coords);
 void main()
 {
   ivec2 destCoords = ivec2(gl_GlobalInvocationID.xy);
-  ivec2 sourceCoords = destCoords;
+  ivec2 sourceCoords = 2 * destCoords;
 
   vec3 curve = vec3(u_filterParams.y, u_filterParams.z, u_filterParams.w);
 
@@ -67,39 +67,52 @@ float computeWeight(vec3 colour)
 vec3 downsampleBox13Tap(ivec2 coords)
 {
   vec3 A = bilinearFetch(coords + ivec2(-2, 2));
-  A *= computeWeight(A);
+  float wA = computeWeight(A);
+  A *= wA;
   vec3 B = bilinearFetch(coords + ivec2(0, 2));
-  B *= computeWeight(B);
+  float wB = computeWeight(B);
+  B *= wB;
   vec3 C = bilinearFetch(coords + ivec2(2, 2));
-  C *= computeWeight(C);
+  float wC = computeWeight(C);
+  C *= wC;
   vec3 D = bilinearFetch(coords + ivec2(-2, 0));
-  D *= computeWeight(D);
+  float wD = computeWeight(D);
+  D *= wD;
   vec3 E = bilinearFetch(coords + ivec2(0, 0));
-  E *= computeWeight(E);
+  float wE = computeWeight(E);
+  E *= wE;
   vec3 F = bilinearFetch(coords + ivec2(2, 0));
-  F *= computeWeight(F);
+  float wF = computeWeight(F);
+  F *= wF;
   vec3 G = bilinearFetch(coords + ivec2(-2, -2));
-  G *= computeWeight(G);
+  float wG = computeWeight(G);
+  G *= wG;
   vec3 H = bilinearFetch(coords + ivec2(0, -2));
-  H *= computeWeight(H);
+  float wH = computeWeight(H);
+  H *= wH;
   vec3 I = bilinearFetch(coords + ivec2(2, -2));
-  I *= computeWeight(I);
+  float wI = computeWeight(I);
+  I *= wI;
 
   vec3 J = bilinearFetch(coords + ivec2(-1, 1));
-  J *= computeWeight(J);
+  float wJ = computeWeight(J);
+  J *= wJ;
   vec3 K = bilinearFetch(coords + ivec2(1, 1));
-  K *= computeWeight(K);
+  float wK = computeWeight(K);
+  K *= wK;
   vec3 L = bilinearFetch(coords + ivec2(-1, -1));
-  L *= computeWeight(L);
+  float wL = computeWeight(L);
+  L *= wL;
   vec3 M = bilinearFetch(coords + ivec2(1, -1));
-  M *= computeWeight(M);
+  float wM = computeWeight(M);
+  M *= wM;
 
   vec2 weights = 0.25 * vec2(0.5, 0.125);
-  vec3 result = (J + K + L + M) * weights.x;
-  result += (A + B + D + E) * weights.y;
-  result += (B + C + E + F) * weights.y;
-  result += (D + E + G + H) * weights.y;
-  result += (E + F + H + I) * weights.y;
+  vec3 result = (J + K + L + M) * weights.x / (wJ + wK + wL + wM);
+  result += (A + B + D + E) * weights.y / (wA + wB + wD + wE);;
+  result += (B + C + E + F) * weights.y / (wB + wC + wE + wF);;
+  result += (D + E + G + H) * weights.y / (wD + wE + wG + wH);;
+  result += (E + F + H + I) * weights.y / (wE + wF + wH + wI);;
 
   return result;
 }
