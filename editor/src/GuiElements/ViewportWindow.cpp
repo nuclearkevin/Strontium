@@ -181,6 +181,9 @@ namespace Strontium
   void
   ViewportWindow::manipulateEntity(Entity entity)
   {
+    if (this->parentLayer->getSceneState() != SceneState::Edit)
+      return;
+
     // Get the camera matrices.
     auto& camProjection = this->parentLayer->getEditorCamera()->getProjMatrix();
     auto& camView = this->parentLayer->getEditorCamera()->getViewMatrix();

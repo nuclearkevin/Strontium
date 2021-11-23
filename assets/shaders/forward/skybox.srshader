@@ -200,7 +200,7 @@ vec3 sampleSkyViewLUT(sampler2D lut, vec3 viewPos, vec3 viewDir,
   float u = azimuthAngle / (TWO_PI);
   float v = 0.5 + 0.5 * sign(altitudeAngle) * sqrt(abs(altitudeAngle) / PI_OVER_TWO);
 
-  return texture(lut, vec2(u, v)).rgb;
+  return textureLod(lut, vec2(u, v), 0.0).rgb;
 }
 
 vec3 sampleHLUT(sampler2D tex, vec3 pos, vec3 sunDir,
@@ -214,7 +214,7 @@ vec3 sampleHLUT(sampler2D tex, vec3 pos, vec3 sunDir,
   float u = clamp(0.5 + 0.5 * sunCosZenithAngle, 0.0, 1.0);
   float v = max(0.0, min(1.0, (height - groundRadiusMM) / (atmosphereRadiusMM - groundRadiusMM)));
 
-  return texture(tex, vec2(u, v)).rgb;
+  return textureLod(tex, vec2(u, v), 0.0).rgb;
 }
 
 vec3 computeSunLuminance(vec3 e, vec3 s, float size, float intensity)

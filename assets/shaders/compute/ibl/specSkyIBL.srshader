@@ -21,7 +21,7 @@ layout(binding = 0) uniform sampler2D skyviewLUT;
 layout(rgba16f, binding = 1) writeonly uniform imageCube prefilterMap;
 
 // The required parameters.
-layout(std140, binding = 2) buffer paramBuff
+layout(std140, binding = 2) buffer ParamBuff
 {
   vec4 u_iblParams; // Roughness (x). y, z and w are unused.
   ivec4 u_iblParams1; // Number of samples (x). y, z and w are unused.
@@ -43,14 +43,14 @@ vec3 sampleSkyViewLUT(sampler2D lut, vec3 viewPos, vec3 viewDir,
                       vec3 sunDir, float groundRadiusMM, float mipLevel);
 // Smith-Schlick-Beckmann geometry function.
 float SSBGeometry(vec3 N, vec3 H, float roughness);
-// Hammersley sequence pseudorandom number generator.
+// Hammersley sequence, generates a low discrepancy pseudorandom number.
 vec2 Hammersley(uint i, uint N);
 // Importance sampling of the Smith-Schlick-Beckmann geometry function.
 vec3 SSBImportance(vec2 Xi, vec3 N, float roughness);
 
 void main()
 {
-  const uint sampleCount = 64;
+  const uint sampleCount = u_iblParams1.x;
   vec2 mipSize = vec2(imageSize(prefilterMap).xy);
   ivec3 cubeCoord = ivec3(gl_GlobalInvocationID);
 
@@ -60,7 +60,6 @@ void main()
 
   vec3 worldPos = cubeToWorld(cubeCoord, mipSize);
   vec3 N = normalize(worldPos);
-  //N.xz *= -1.0;
 
   vec3 prefilteredColor = vec3(0.0);
   float totalWeight = 0.0;
@@ -74,7 +73,7 @@ void main()
     float NdotL = max(dot(N, L), 0.0);
     if (NdotL > 0.0)
     {
-      float D   = SSBGeometry(N, H, u_iblParams.x);
+      float D = SSBGeometry(N, H, u_iblParams.x);
       float NdotH = max(dot(N, H), 0.0);
       float HdotV = max(dot(H, N), 0.0);
       float pdf = D * NdotH / (4.0 * HdotV + 0.0001);
@@ -84,9 +83,9 @@ void main()
 
       float mipLevel = u_iblParams.x == 0.0 ? 0.0 : 0.5 * log2(saSample / saTexel);
 
-      prefilteredColor += u_viewPosSkyIntensity.w *
-                          sampleSkyViewLUT(skyviewLUT, viewPos, L,
-                                           sunPos, groundRadiusMM, mipLevel);
+      vec3 skySample = sampleSkyViewLUT(skyviewLUT, viewPos, L, sunPos,
+                                        groundRadiusMM, mipLevel);
+      prefilteredColor += u_viewPosSkyIntensity.w * skySample * NdotL;
       totalWeight += NdotL;
     }
   }
@@ -121,6 +120,7 @@ float safeACos(float x)
 vec3 sampleSkyViewLUT(sampler2D lut, vec3 viewPos, vec3 viewDir,
                       vec3 sunDir, float groundRadiusMM, float mipLevel)
 {
+  viewDir.xz *= -1.0;
   float height = length(viewPos);
   vec3 up = viewPos / height;
 
@@ -138,7 +138,7 @@ vec3 sampleSkyViewLUT(sampler2D lut, vec3 viewPos, vec3 viewDir,
   float u = azimuthAngle / (TWO_PI);
   float v = 0.5 + 0.5 * sign(altitudeAngle) * sqrt(abs(altitudeAngle) / PI_OVER_TWO);
 
-  return textureLod(lut, vec2(u, v),mipLevel).rgb;
+  return textureLod(lut, vec2(u, v), mipLevel).rgb;
 }
 
 
@@ -157,7 +157,7 @@ float SSBGeometry(vec3 N, vec3 H, float roughness)
   return nom / denom;
 }
 
-// Hammersley sequence pseudorandom number generator.
+// Hammersley sequence, generates a low discrepancy pseudorandom number.
 vec2 Hammersley(uint i, uint N)
 {
   float fbits;

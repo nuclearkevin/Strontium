@@ -84,25 +84,21 @@ namespace Strontium
     params.dataType = TextureDataType::Floats;
 
     // The transmittance LUT.
-    this->transmittanceLUT.width = 256;
-    this->transmittanceLUT.height = 64;
-    this->transmittanceLUT.n = 4;
+    this->transmittanceLUT.setSize(256, 64, 4);
     this->transmittanceLUT.setParams(params);
     this->transmittanceLUT.initNullTexture();
 
     // The multi-scattering LUT.
-    this->multiScatLUT.width = 32;
-    this->multiScatLUT.height = 32;
-    this->multiScatLUT.n = 4;
+    this->multiScatLUT.setSize(32, 32, 4);
     this->multiScatLUT.setParams(params);
     this->multiScatLUT.initNullTexture();
 
     // The sky-view LUT.
-    this->skyViewLUT.width = 256;
-    this->skyViewLUT.height = 128;
-    this->skyViewLUT.n = 4;
+    this->skyViewLUT.setSize(256, 128, 4);
+    params.minFilter = TextureMinFilterParams::LinearMipMapLinear;
     this->skyViewLUT.setParams(params);
     this->skyViewLUT.initNullTexture();
+    this->skyViewLUT.generateMips();
 
     // Prepare parameters for dynamic sky models.
     this->dynamicSkyParams.emplace(DynamicSkyType::Preetham, new PreethamSkyParams());
@@ -381,6 +377,7 @@ namespace Strontium
     this->irradiance.initNullTexture();
 
     this->specPrefilter.setSize(64, 64, 4);
+    params.minFilter = TextureMinFilterParams::LinearMipMapLinear;
     this->specPrefilter.setParams(params);
     this->specPrefilter.initNullTexture();
     this->specPrefilter.generateMips();
@@ -503,6 +500,7 @@ namespace Strontium
         
         // Launch the compute shader.
         ShaderCache::getShader("cube_diffuse")->launchCompute(width / 32, height / 32, 6);
+        Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
         
         auto end = std::chrono::steady_clock::now();
         std::chrono::duration<double> elapsed = end - start;
@@ -525,6 +523,7 @@ namespace Strontium
 
       // Launch the compute shader.
       ShaderCache::getShader("sky_lut_diffuse")->launchCompute(32 / 32, 32 / 32, 6);
+      Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
     }
   }
 
@@ -572,20 +571,21 @@ namespace Strontium
         for (uint i = 0; i < 5; i++)
         {
           // Compute the current mip levels.
-          uint mipWidth  = (uint) ((float) width * std::pow(0.5f, i));
-          uint mipHeight = (uint) ((float) height * std::pow(0.5f, i));
+          uint mipWidth  = (uint) (static_cast<float>(width) * std::pow(0.5f, i));
+          uint mipHeight = (uint) (static_cast<float>(height) * std::pow(0.5f, i));
         
           // Bind the irradiance map for writing to by the compute shader.
           this->specPrefilter.bindAsImage(1, i, true, 0, ImageAccessPolicy::Write);
         
           // Roughness.
-          params0.x = ((float) i) / ((float) (5 - 1));
+          params0.x = static_cast<float>(i) / 4.0f;
           params1.x = static_cast<int>(state->prefilterSamples);
           this->iblParams.setData(0, sizeof(glm::vec4), &params0.x);
           this->iblParams.setData(sizeof(glm::vec4), sizeof(glm::ivec4), &params1.x);
         
           // Launch the compute.
           cubeSpecular->launchCompute(mipWidth / 32, mipHeight / 32, 6);
+          Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
         }
         
         auto end = std::chrono::steady_clock::now();
@@ -607,23 +607,29 @@ namespace Strontium
       // Bind the parameters for the LUT.
       this->skyboxParamBuffer.bindToPoint(3);
 
-      uint dims[5] = { 2, 1, 1, 1, 1 };
-
       // Perform the pre-filter for each roughness level.
       auto skySpecular = ShaderCache::getShader("sky_lut_specular");
       for (uint i = 0; i < 5; i++)
       {
+        // Compute the current mip levels.
+        uint mipWidth  = static_cast<uint>((static_cast<float>(specPrefilter.width[0]) * std::pow(0.5f, i)));
+        uint mipHeight = static_cast<uint>((static_cast<float>(specPrefilter.height[0]) * std::pow(0.5f, i)));
+        
+        uint groupX = static_cast<uint>(glm::ceil(static_cast<float>(mipWidth) / 32.0f));
+        uint groupY = static_cast<uint>(glm::ceil(static_cast<float>(mipHeight) / 32.0f));
+
         // Bind the irradiance map for writing to by the compute shader.
         this->specPrefilter.bindAsImage(1, i, true, 0, ImageAccessPolicy::Write);
 
         // Roughness.
-        params0.x = ((float)i) / ((float)(5 - 1));
-        params1.x = static_cast<int>(512);
+        params0.x = static_cast<float>(i) / 4.0f;
+        params1.x = static_cast<int>(64);
         this->iblParams.setData(0, sizeof(glm::vec4), &params0.x);
         this->iblParams.setData(sizeof(glm::vec4), sizeof(glm::ivec4), &params1.x);
 
         // Launch the compute.
-        skySpecular->launchCompute(dims[i], dims[i], 6);
+        skySpecular->launchCompute(groupX, groupY, 6);
+        Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
       }
     }
   }

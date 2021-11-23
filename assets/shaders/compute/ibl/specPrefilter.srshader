@@ -30,14 +30,14 @@ vec3 cubeToWorld(ivec3 cubeCoord, vec2 cubeSize);
 ivec3 texToCube(vec3 texCoord, vec2 cubeSize);
 // Smith-Schlick-Beckmann geometry function.
 float SSBGeometry(vec3 N, vec3 H, float roughness);
-// Hammersley sequence pseudorandom number generator.
+// Hammersley sequence, generates a low discrepancy pseudorandom number.
 vec2 Hammersley(uint i, uint N);
 // Importance sampling of the Smith-Schlick-Beckmann geometry function.
 vec3 SSBImportance(vec2 Xi, vec3 N, float roughness);
 
 void main()
 {
-  const uint SAMPLE_COUNT = uint(u_iblParams1);
+  const uint SAMPLE_COUNT = uint(u_iblParams1.x);
   vec2 enviSize = vec2(textureSize(environmentMap, 0).xy);
   vec2 mipSize = vec2(imageSize(prefilterMap).xy);
   ivec3 cubeCoord = ivec3(gl_GlobalInvocationID);
@@ -55,12 +55,12 @@ void main()
     vec3 L  = normalize(2.0 * dot(N, H) * H - N);
 
     float NdotL = max(dot(N, L), 0.0);
-    if(NdotL > 0.0)
+    if (NdotL > 0.0)
     {
-      float D   = SSBGeometry(N, H, u_iblParams.x);
+      float D = SSBGeometry(N, H, u_iblParams.x);
       float NdotH = max(dot(N, H), 0.0);
       float HdotV = max(dot(H, N), 0.0);
-      float pdf = D * NdotH / (4.0 * HdotV) + 0.0001;
+      float pdf = D * NdotH / (4.0 * HdotV + 0.0001);
 
       float saTexel  = 4.0 * PI / (6.0 * enviSize.x * enviSize.x);
       float saSample = 1.0 / (float(SAMPLE_COUNT) * pdf + 0.0001);
@@ -68,7 +68,7 @@ void main()
       float mipLevel = u_iblParams.x == 0.0 ? 0.0 : 0.5 * log2(saSample / saTexel);
 
       prefilteredColor += textureLod(environmentMap, L, mipLevel).rgb * NdotL;
-      totalWeight      += NdotL;
+      totalWeight += NdotL;
     }
   }
 
@@ -144,7 +144,7 @@ float SSBGeometry(vec3 N, vec3 H, float roughness)
   return nom / denom;
 }
 
-// Hammersley sequence pseudorandom number generator.
+// Hammersley sequence, generates a low discrepancy pseudorandom number.
 vec2 Hammersley(uint i, uint N)
 {
   float fbits;

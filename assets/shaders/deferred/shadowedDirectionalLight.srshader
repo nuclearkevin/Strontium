@@ -440,7 +440,7 @@ float calcShadow(uint cascadeIndex, vec3 position, vec3 normal, vec3 lightDir, i
   else if (quality == 2)
   {
     vec4 moments = texture(cascadeMaps[cascadeIndex], projCoords.xy).rgba;
-    vec2 warpedDepth = warpDepth(projCoords.z);
+    vec2 warpedDepth = warpDepth(projCoords.z - 1e-4);
 
     float shadowFactor1 = computeChebyshevBound(moments.r, moments.g, warpedDepth.r);
     float shadowFactor2 = computeChebyshevBound(moments.b, moments.a, warpedDepth.g);

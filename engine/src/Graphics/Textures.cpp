@@ -292,13 +292,13 @@ namespace Strontium
     glBindTexture(GL_TEXTURE_2D, this->textureID);
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S,
-                    static_cast<GLint>(this->params.sWrap));
+                    static_cast<GLenum>(this->params.sWrap));
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T,
-                    static_cast<GLint>(this->params.tWrap));
+                    static_cast<GLenum>(this->params.tWrap));
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
-                    static_cast<GLint>(this->params.minFilter));
+                    static_cast<GLenum>(this->params.minFilter));
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER,
-                    static_cast<GLint>(this->params.maxFilter));
+                    static_cast<GLenum>(this->params.maxFilter));
   }
 
   Texture2D::~Texture2D()
@@ -341,9 +341,9 @@ namespace Strontium
   void
   Texture2D::generateMips()
   {
-    glBindTexture(GL_TEXTURE_CUBE_MAP, this->textureID);
+    glBindTexture(GL_TEXTURE_2D, this->textureID);
     glGenerateMipmap(GL_TEXTURE_2D);
-    glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
+    glBindTexture(GL_TEXTURE_2D, 0);
   }
 
   // Clear the texture.
@@ -487,15 +487,15 @@ namespace Strontium
 
     glBindTexture(GL_TEXTURE_CUBE_MAP, this->textureID);
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S,
-                    static_cast<GLint>(params.sWrap));
+                    static_cast<GLenum>(params.sWrap));
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T,
-                    static_cast<GLint>(params.tWrap));
+                    static_cast<GLenum>(params.tWrap));
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R,
-                    static_cast<GLint>(params.rWrap));
+                    static_cast<GLenum>(params.rWrap));
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER,
-                    static_cast<GLint>(params.minFilter));
+                    static_cast<GLenum>(params.minFilter));
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER,
-                    static_cast<GLint>(params.maxFilter));
+                    static_cast<GLenum>(params.maxFilter));
     glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
   }
 

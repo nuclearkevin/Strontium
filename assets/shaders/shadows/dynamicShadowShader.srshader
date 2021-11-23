@@ -2,7 +2,7 @@
 #version 440
 /*
  * A directional light shadow shader for dynamic meshes. Exponentially-warped
- * variance shadowmaps. 
+ * variance shadowmaps.
  */
 
 #type vertex

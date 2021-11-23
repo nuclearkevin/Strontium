@@ -43,6 +43,7 @@ namespace Strontium
     Shared<Scene> getActiveScene() { return this->currentScene; }
     ImVec2& getEditorSize() { return this->editorSize; }
     Entity getSelectedEntity();
+    SceneState getSceneState() { return this->sceneState; }
     std::string& getDNDScenePath() { return this->dndScenePath; }
   protected:
     // Handle keyboard/mouse events.
