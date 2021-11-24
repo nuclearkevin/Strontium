@@ -1,7 +1,7 @@
 #include "GuiElements/AssetBrowserWindow.h"
 
 // Project includes.
-#include "Core/AssetManager.h"
+#include "Assets/AssetManager.h"
 #include "GuiElements/Styles.h"
 #include "Scenes/Entity.h"
 #include "GuiElements/Styles.h"

@@ -1,7 +1,6 @@
 #include "GuiElements/ShaderWindow.h"
 
 // Project includes.
-#include "Core/AssetManager.h"
 #include "Core/Logs.h"
 #include "Graphics/Shaders.h"
 #include "GuiElements/Styles.h"

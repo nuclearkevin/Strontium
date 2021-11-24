@@ -5,7 +5,7 @@
 
 // Project includes.
 #include "Core/ApplicationBase.h"
-#include "Core/AssetManager.h"
+#include "Assets/AssetManager.h"
 #include "Graphics/Shaders.h"
 #include "Graphics/Textures.h"
 #include "Graphics/Meshes.h"

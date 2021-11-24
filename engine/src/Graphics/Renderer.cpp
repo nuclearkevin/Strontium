@@ -1,8 +1,5 @@
 #include "Graphics/Renderer.h"
 
-// Project includes.
-#include "Core/AssetManager.h"
-
 namespace Strontium
 {
   //----------------------------------------------------------------------------

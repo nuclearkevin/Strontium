@@ -5,7 +5,7 @@
 
 // Project includes.
 #include "Core/ApplicationBase.h"
-#include "Core/AssetManager.h"
+#include "Assets/AssetManager.h"
 #include "Scenes/Scene.h"
 
 namespace Strontium

@@ -1,7 +1,7 @@
 #include "GuiElements/MaterialSubWindow.h"
 
 // Project includes.
-#include "Core/AssetManager.h"
+#include "Assets/AssetManager.h"
 #include "Scenes/Components.h"
 #include "GuiElements/Styles.h"
 #include "Serialization/YamlSerialization.h"

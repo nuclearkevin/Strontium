@@ -1,7 +1,6 @@
 #include "Graphics/Material.h"
 
 // Project includes.
-#include "Core/AssetManager.h"
 #include "Graphics/Buffers.h"
 
 namespace Strontium

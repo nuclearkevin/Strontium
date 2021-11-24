@@ -84,6 +84,10 @@ namespace Strontium
         this->onMouseEvent(mouseEvent);
         break;
       }
+      case EventType::WindowResizeEvent:
+      {
+
+      }
       default:
       {
         break;

@@ -8,8 +8,7 @@
 // Macro include file.
 #include "StrontiumPCH.h"
 
-// Project includes.
-#include "Core/AssetManager.h"
+#include "Assets/AssetManager.h"
 
 // Forward declare Assimp garbage.
 struct aiAnimation;

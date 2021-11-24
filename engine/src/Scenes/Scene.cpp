@@ -1,7 +1,6 @@
 #include "Scenes/Scene.h"
 
 // Project includes.
-#include "Core/AssetManager.h"
 #include "Scenes/Components.h"
 #include "Scenes/Entity.h"
 

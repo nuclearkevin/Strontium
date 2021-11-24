@@ -314,6 +314,20 @@ namespace Strontium
         }
       }
 
+      if (entity.hasComponent<CameraComponent>())
+      {
+        out << YAML::Key << "CameraComponent";
+        out << YAML::BeginMap;
+
+        auto& component = entity.getComponent<CameraComponent>();
+        out << YAML::Key << "IsPrimary" << YAML::Value << component.isPrimary;
+        out << YAML::Key << "Near" << YAML::Value << component.entCamera.near;
+        out << YAML::Key << "Far" << YAML::Value << component.entCamera.far;
+        out << YAML::Key << "FOV" << YAML::Value << component.entCamera.fov;
+
+        out << YAML::EndMap;
+      }
+
       if (entity.hasComponent<DirectionalLightComponent>())
       {
         out << YAML::Key << "DirectionalLightComponent";
@@ -733,6 +747,16 @@ namespace Strontium
         }
         else
           logs->logMessage(LogMessage("Error, file " + modelPath + " cannot be opened.", true, true));
+      }
+
+      auto camComponent = entity["CameraComponent"];
+      if (camComponent)
+      {
+        auto& camera = newEntity.addComponent<CameraComponent>();
+        camera.isPrimary = camComponent["IsPrimary"].as<bool>();
+        camera.entCamera.near = camComponent["Near"].as<float>();
+        camera.entCamera.far = camComponent["Far"].as<float>();
+        camera.entCamera.fov = camComponent["FOV"].as<float>();
       }
 
       auto directionalComponent = entity["DirectionalLightComponent"];

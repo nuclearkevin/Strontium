@@ -7,7 +7,7 @@
 #include "Core/ApplicationBase.h"
 #include "Core/ThreadPool.h"
 #include "Core/Window.h"
-#include "Core/AssetManager.h"
+#include "Assets/AssetManager.h"
 #include "Layers/Layers.h"
 #include "Layers/ImGuiLayer.h"
 #include "Graphics/Renderer.h"

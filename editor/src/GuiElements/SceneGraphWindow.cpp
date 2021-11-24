@@ -4,7 +4,6 @@
 #include <cstring>
 
 // Project includes.
-#include "Core/AssetManager.h"
 #include "Graphics/Renderer.h"
 #include "GuiElements/Styles.h"
 #include "Scenes/Components.h"
@@ -158,7 +157,7 @@ namespace Strontium
     this->dirBuffer->attachRenderBuffer();
     this->dirBuffer->setClearColour(glm::vec4(0.0f));
 
-    this->sphere.loadModel("./assets/.internal/sphere.fbx");
+    this->sphere.load("./assets/.internal/sphere.fbx");
   }
 
   SceneGraphWindow::~SceneGraphWindow()

@@ -1,7 +1,6 @@
 #include "Graphics/Model.h"
 
 // Project includes.
-#include "Core/AssetManager.h"
 #include "Core/Logs.h"
 #include "Core/Events.h"
 #include "Utils/AssimpUtilities.h"
@@ -27,7 +26,7 @@ namespace Strontium
   { }
 
   void
-  Model::loadModel(const std::string &filepath)
+  Model::load(const std::string &filepath)
   {
     Logger* logs = Logger::getInstance();
     auto eventDispatcher = EventDispatcher::getInstance();
@@ -85,6 +84,12 @@ namespace Strontium
 
     eventDispatcher->queueEvent(new GuiEvent(GuiEventType::EndSpinnerEvent, ""));
     logs->logMessage(LogMessage("Model loaded at path " + filepath));
+  }
+
+  void 
+  Model::unload()
+  {
+
   }
 
   // Recursively process all the nodes in the mesh.

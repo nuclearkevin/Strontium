@@ -2,7 +2,7 @@
 
 // Project includes.
 #include "Core/Logs.h"
-#include "Core/AssetManager.h"
+#include "Assets/AssetManager.h"
 #include "Graphics/Buffers.h"
 #include "Graphics/Renderer.h"
 

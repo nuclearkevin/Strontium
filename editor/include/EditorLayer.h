@@ -6,7 +6,6 @@
 // Project includes.
 #include "Core/ApplicationBase.h"
 #include "Core/Events.h"
-#include "Core/AssetManager.h"
 #include "Graphics/FrameBuffer.h"
 #include "Graphics/EditorCamera.h"
 #include "Layers/Layers.h"

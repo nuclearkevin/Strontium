@@ -1,7 +1,6 @@
 #include "GuiElements/ModelWindow.h"
 
 // Project includes.
-#include "Core/AssetManager.h"
 #include "GuiElements/Styles.h"
 #include "Serialization/YamlSerialization.h"
 #include "Utils/AsyncAssetLoading.h"

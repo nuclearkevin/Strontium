@@ -203,7 +203,7 @@ namespace Strontium
         if (!modelAssets->hasAsset(name))
         {
           loadable = new Model();
-          loadable->loadModel(filepath);
+          loadable->load(filepath);
 
           modelAssets->attachAsset(name, loadable);
 

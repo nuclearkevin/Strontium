@@ -5,12 +5,9 @@
 
 // Project includes.
 #include "Core/ApplicationBase.h"
+#include "Assets/Assets.h"
 #include "Graphics/Meshes.h"
 #include "Graphics/Animations.h"
-
-// STL includes.
-#include <mutex>
-#include <tuple>
 
 // Forward declare Assimp garbage.
 struct aiScene;
@@ -20,14 +17,15 @@ struct aiMesh;
 namespace Strontium
 {
   // Model class
-  class Model
+  class Model : public Asset
   {
   public:
     Model();
     ~Model();
 
     // Load a model.
-    void loadModel(const std::string &filepath);
+    void load(const std::string& filepath);
+    void unload();
 
     // Is the model loaded or not.
     bool isLoaded() { return this->loaded; }
