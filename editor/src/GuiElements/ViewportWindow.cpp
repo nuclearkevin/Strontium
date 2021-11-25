@@ -33,12 +33,6 @@ namespace Strontium
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
     ImGui::Begin(ICON_FA_GAMEPAD"  Editor Viewport", nullptr, ImGuiWindowFlags_NoCollapse);
     {
-      auto windowPos = ImGui::GetWindowPos();
-      auto windowMin = ImGui::GetWindowContentRegionMin();
-      auto windowMax = ImGui::GetWindowContentRegionMax();
-      windowPos.y = windowPos.y + windowMin.y;
-      ImVec2 contentSize = ImVec2(windowMax.x - windowMin.x, windowMax.y - windowMin.y);
-
       // TODO: Move off the lighting pass framebuffer and blitz the result to
       // the editor framebuffer, after post processing of course.
       ImGui::BeginChild("EditorRender");
@@ -52,7 +46,7 @@ namespace Strontium
         ImGui::Image((ImTextureID) (unsigned long) drawBuffer->getAttachID(FBOTargetParam::Colour0),
                      this->parentLayer->getEditorSize(), ImVec2(0, 1), ImVec2(1, 0));
         this->manipulateEntity(this->parentLayer->getSelectedEntity());
-        this->drawGizmoSelector(windowPos, contentSize);
+        this->drawGizmoSelector();
       }
       ImGui::EndChild();
     }
@@ -87,6 +81,7 @@ namespace Strontium
       case EventType::WindowResizeEvent:
       {
 
+        break;
       }
       default:
       {
@@ -293,21 +288,29 @@ namespace Strontium
   }
 
   void
-  ViewportWindow::drawGizmoSelector(ImVec2 windowPos, ImVec2 windowSize)
+  ViewportWindow::drawGizmoSelector()
   {
     auto flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoDocking
                | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_AlwaysAutoResize;
 
     // Bounding box detection to make sure this thing doesn't leave the editor
     // viewport.
+    /*
+    this->gizmoSelPos.x = this->gizmoSelPos.x < this->bounds[0].x ? this->bounds[0].x : this->gizmoSelPos.x;
+    this->gizmoSelPos.y = this->gizmoSelPos.y < this->bounds[0].y ? this->bounds[0].y : this->gizmoSelPos.y;
+    this->gizmoSelPos.x = this->gizmoSelPos.x > this->bounds[1].x ? this->bounds[1].x : this->gizmoSelPos.x;
+    this->gizmoSelPos.y = this->gizmoSelPos.y > this->bounds[1].y ? this->bounds[1].y : this->gizmoSelPos.y;
+    */
+
+    auto windowPos = ImGui::GetWindowPos();
+    auto windowSize = ImVec2(bounds[1].x - bounds[0].x, bounds[1].y - bounds[0].y);
     this->gizmoSelPos.x = this->gizmoSelPos.x < windowPos.x ? windowPos.x : this->gizmoSelPos.x;
     this->gizmoSelPos.y = this->gizmoSelPos.y < windowPos.y ? windowPos.y : this->gizmoSelPos.y;
-    this->gizmoSelPos.x = this->gizmoSelPos.x + selectorSize.x > windowPos.x + windowSize.x
-      ? windowPos.x + windowSize.x - selectorSize.x : this->gizmoSelPos.x;
-    this->gizmoSelPos.y = this->gizmoSelPos.y + selectorSize.y > windowPos.y + windowSize.y
-      ? windowPos.y + windowSize.y - selectorSize.y : this->gizmoSelPos.y;
+    this->gizmoSelPos.x = this->gizmoSelPos.x + 100 > windowPos.x + windowSize.x ? windowPos.x + windowSize.x - 100 : this->gizmoSelPos.x;
+    //this->gizmoSelPos.y = this->gizmoSelPos.y + 18 > windowPos.y + windowSize.y ? windowPos.y + windowSize.y - 20 : this->gizmoSelPos.y;
 
     ImGui::SetNextWindowPos(this->gizmoSelPos);
+    ImGui::SetNextWindowSize(ImVec2(100, 18));
     ImGui::Begin("GizmoSelector", nullptr, flags);
     this->selectorSize = ImGui::GetWindowSize();
 

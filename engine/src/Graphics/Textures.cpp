@@ -3,7 +3,7 @@
 // Project includes.
 #include "Core/Logs.h"
 #include "Core/Events.h"
-#include "Core/AssetManager.h"
+#include "Assets/AssetManager.h"
 #include "Utils/Utilities.h"
 
 // OpenGL includes.
