@@ -34,9 +34,22 @@ namespace Strontium
     if (parent.hasComponent<T>())
     {
       auto& component = parent.getComponent<T>();
-      if (ImGui::CollapsingHeader(name.c_str()))
+      if (ImGui::CollapsingHeader(name.c_str(), ImGuiTreeNodeFlags_AllowItemOverlap))
       {
+        ImGui::SameLine(ImGui::GetWindowWidth() - 30);
+        if (ImGui::Button(ICON_FA_TRASH_O))
+        {
+          parent.removeComponent<T>();
+        }
         ui(component);
+      }
+      else
+      {
+        ImGui::SameLine(ImGui::GetWindowWidth() - 30);
+        if (ImGui::Button(ICON_FA_TRASH_O))
+        {
+          parent.removeComponent<T>();
+        }
       }
     }
   }
@@ -290,7 +303,6 @@ namespace Strontium
             auto& renderable = this->selectedEntity.addComponent<RenderableComponent>(name);
             AsyncLoading::asyncLoadModel(path, name, this->selectedEntity, this->selectedEntity);
 
-            this->fileTargets = FileLoadTargets::TargetNone;
             break;
           }
 
@@ -306,12 +318,30 @@ namespace Strontium
             environment->precomputeIrradiance(state->irradianceWidth, state->irradianceWidth, true);
             environment->precomputeSpecular(state->prefilterWidth, state->prefilterWidth, true);
 
-            this->fileTargets = FileLoadTargets::TargetNone;
+            break;
+          }
+
+          case FileLoadTargets::TargetMaterial:
+          {
+            if (this->selectedSubmesh)
+            {
+              if (this->selectedEntity.hasComponent<RenderableComponent>())
+              {
+                YAMLSerialization::deserializeMaterial(path, name, true);
+                auto& submeshName = this->selectedSubmesh->getName();
+                auto& renderable = this->selectedEntity.getComponent<RenderableComponent>();
+                auto& materials = renderable.materials;
+                materials.swapMaterial(submeshName, name);
+              }
+            }
+
             break;
           }
 
           default: break;
         }
+
+        this->fileTargets = FileLoadTargets::TargetNone;
         break;
       }
 
@@ -321,17 +351,32 @@ namespace Strontium
           return;
 
         auto saveEvent = *(static_cast<SaveFileEvent*>(&event));
+        auto& path = saveEvent.getAbsPath();
+        auto& name = saveEvent.getFileName();
 
         switch (this->saveTargets)
         {
           case FileSaveTargets::TargetPrefab:
           {
-            auto& path = saveEvent.getAbsPath();
-            auto& name = saveEvent.getFileName();
             auto fabName = name.substr(0, name.find_last_of('.'));
 
             this->selectedEntity.addComponent<PrefabComponent>(fabName, path);
             YAMLSerialization::serializePrefab(this->selectedEntity, path, fabName);
+            break;
+          }
+
+          case FileSaveTargets::TargetMaterial:
+          {
+            if (this->selectedSubmesh)
+            {
+              if (this->selectedEntity.hasComponent<RenderableComponent>())
+              {
+                auto& renderable = this->selectedEntity.getComponent<RenderableComponent>();
+                auto& materials = renderable.materials;
+                auto handle = materials.getMaterialHandle(this->selectedSubmesh->getName());
+                YAMLSerialization::serializeMaterial(handle, path);
+              }
+            }
             break;
           }
         }
@@ -379,10 +424,14 @@ namespace Strontium
         drawComponentAdd<TransformComponent>("Transform Component", entity);
         drawComponentAdd<RenderableComponent>("Renderable Component", entity);
         drawComponentAdd<CameraComponent>("Camera Component", entity);
-        drawComponentAdd<DirectionalLightComponent>("Directional Light Component", entity);
-        drawComponentAdd<PointLightComponent>("Point Light Component", entity);
-        drawComponentAdd<SpotLightComponent>("Spot Light Component", entity);
-        drawComponentAdd<AmbientComponent>("Ambient Light Component", entity);
+
+        if (ImGui::BeginMenu("Light Components"))
+        {
+          drawComponentAdd<DirectionalLightComponent>("Directional Light Component", entity);
+          drawComponentAdd<PointLightComponent>("Point Light Component", entity);
+          drawComponentAdd<SpotLightComponent>("Spot Light Component", entity);
+          drawComponentAdd<AmbientComponent>("Ambient Light Component", entity);
+        }
 
         ImGui::EndMenu();
       }
@@ -393,10 +442,14 @@ namespace Strontium
         drawComponentRemove<TransformComponent>("Transform Component", entity);
         drawComponentRemove<RenderableComponent>("Renderable Component", entity);
         drawComponentRemove<CameraComponent>("Camera Component", entity);
-        drawComponentRemove<DirectionalLightComponent>("Directional Light Component", entity);
-        drawComponentRemove<PointLightComponent>("Point Light Component", entity);
-        drawComponentRemove<SpotLightComponent>("Spot Light Component", entity);
-        drawComponentRemove<AmbientComponent>("Ambient Light Component", entity);
+
+        if (ImGui::BeginMenu("Light Components"))
+        {
+          drawComponentRemove<DirectionalLightComponent>("Directional Light Component", entity);
+          drawComponentRemove<PointLightComponent>("Point Light Component", entity);
+          drawComponentRemove<SpotLightComponent>("Spot Light Component", entity);
+          drawComponentRemove<AmbientComponent>("Ambient Light Component", entity);
+        }
 
         ImGui::EndMenu();
       }
@@ -405,7 +458,7 @@ namespace Strontium
       {
         if (ImGui::MenuItem("New Model"))
         {
-  				auto model = createChildEntity(entity, activeScene, "New Model");
+  	      auto model = createChildEntity(entity, activeScene, "New Model");
           model.addComponent<TransformComponent>();
           model.addComponent<RenderableComponent>();
         }
@@ -630,9 +683,8 @@ namespace Strontium
         ImGui::Separator();
         if (ImGui::Button(ICON_FA_FOLDER_OPEN))
         {
-          EventDispatcher* dispatcher = EventDispatcher::getInstance();
-          dispatcher->queueEvent(new OpenDialogueEvent(DialogueEventType::FileOpen,
-                                                       ".obj,.FBX,.fbx"));
+          EventDispatcher::getInstance()->queueEvent(new OpenDialogueEvent(DialogueEventType::FileOpen,
+                                                     ".obj,.FBX,.fbx"));
 
           this->fileTargets = FileLoadTargets::TargetModel;
         }
@@ -645,7 +697,7 @@ namespace Strontium
         ImGui::Text("");
         ImGui::Separator();
         ImGui::Text("Materials");
-        if (this->selectedSubmesh)
+        if (this->selectedSubmesh && componentModel)
         {
           if (ImGui::BeginCombo("##sceneGraphSelectedSubmesh", this->selectedSubmesh->getName().c_str()))
           {
@@ -671,21 +723,68 @@ namespace Strontium
           {
             ImGui::PushID("MaterialPreview");
             if (ImGui::ImageButton((ImTextureID) (unsigned long) material->getSampler2D("albedoMap")->getID(),
-                                   ImVec2(64, 64), ImVec2(0, 1), ImVec2(1, 0)))
+                                   ImVec2(48, 48), ImVec2(0, 1), ImVec2(1, 0)))
             {
 
             }
             this->loadDNDAsset(this->selectedSubmesh->getName());
             ImGui::PopID();
 
-            if (ImGui::Button("Edit Material"))
+            if (ImGui::Button(ICON_FA_COG))
             {
               this->materialEditor.isOpen = true;
               this->materialEditor.setSelectedMaterial(materialHandle);
             }
+
+            static bool makingNewmaterial = false;
+            static std::string newMaterialname = "";
+            ImGui::SameLine();
+            if (ImGui::Button(ICON_FA_FILE))
+            {
+              newMaterialname = "";
+              makingNewmaterial = true;
+            }
+
+            if (makingNewmaterial)
+            {
+              char nameBuffer[256];
+              memset(nameBuffer, 0, sizeof(nameBuffer));
+              std::strncpy(nameBuffer, newMaterialname.c_str(), sizeof(nameBuffer));
+
+              ImGui::Begin("New Material", &makingNewmaterial, ImGuiWindowFlags_AlwaysAutoResize);
+              if (ImGui::InputText("Name##newMaterialName", nameBuffer, sizeof(nameBuffer)))
+              {
+                newMaterialname = nameBuffer;
+              }
+
+              if (ImGui::Button("Create##newMaterial"))
+              {
+                auto newMat = new Material();
+                AssetManager<Material>::getManager()->attachAsset(newMaterialname, newMat);
+                component.materials.swapMaterial(submeshName, newMaterialname);
+                makingNewmaterial = false;
+              }
+
+              ImGui::End();
+            }
+
+            if (ImGui::Button(ICON_FA_FOLDER_O))
+            {
+              EventDispatcher::getInstance()->queueEvent(new OpenDialogueEvent(DialogueEventType::FileOpen,
+                                                         ".srmat"));
+              this->fileTargets = FileLoadTargets::TargetMaterial;
+            }
+
+            ImGui::SameLine();
+            if (ImGui::Button(ICON_FA_FLOPPY_O))
+            {
+              EventDispatcher::getInstance()->queueEvent(new OpenDialogueEvent(DialogueEventType::FileSave,
+                                                         ".srmat"));
+              this->saveTargets = FileSaveTargets::TargetMaterial;
+            }
           }
         }
-        else
+        else if (componentModel)
         {
           if (ImGui::BeginCombo("##sceneGraphSelectedSubmesh", ""))
           {

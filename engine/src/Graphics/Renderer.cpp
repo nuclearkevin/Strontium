@@ -796,7 +796,6 @@ namespace Strontium
              storage->shadowBuffer[i].bindTextureID(FBOTargetParam::Depth, i + 7);
 
            state->postProcessSettings.w = (uint)(storage->hasCascades && state->enableSkyshafts);
-           storage->downsampleLightshaft.bind(2);
            storage->postProcessSettings.bindToPoint(1);
            storage->postProcessSettings.setData(0, sizeof(glm::mat4), glm::value_ptr(storage->sceneCam.invViewProj));
            storage->postProcessSettings.setData(2 * sizeof(glm::mat4) + 2 * sizeof(glm::vec4), sizeof(glm::ivec4), &state->postProcessSettings.x);
@@ -830,6 +829,8 @@ namespace Strontium
             else
                 storage->shadowBuffer[i].bindTextureID(FBOTargetParam::Depth, i + 7);
           }
+
+          storage->downsampleLightshaft.bind(1);
 
           // Launch the primary shadowed directional light pass.
           storage->blankVAO.bind();

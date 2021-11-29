@@ -35,7 +35,7 @@ void main()
   float roughness = float(invoke.y) / size.y;
 
   vec3 V;
-  V.x = sqrt(1.0 - NdotV*NdotV);
+  V.x = sqrt(1.0 - NdotV * NdotV);
   V.y = 0.0;
   V.z = NdotV;
 
@@ -60,8 +60,8 @@ void main()
       float G_Vis = (G * VdotH) / max(NdotH * NdotV, 1e-4);
       float Fc = pow(1.0 - VdotH, 5.0);
 
-      A += (1.0 - Fc) * G_Vis;
-      B += Fc * G_Vis;
+      A += Fc * G_Vis;
+      B += G_Vis;
     }
   }
 
@@ -116,7 +116,7 @@ vec3 SSBImportance(vec2 Xi, vec3 N, float roughness)
 	float a = roughness * roughness;
 
 	float phi = 2.0 * PI * Xi.x;
-	float cosTheta = sqrt((1.0 - Xi.y) / (1.0 + (a*a - 1.0) * Xi.y));
+	float cosTheta = sqrt((1.0 - Xi.y) / max(1.0 + (a*a - 1.0) * Xi.y, 1e-4));
 	float sinTheta = sqrt(1.0 - cosTheta * cosTheta);
 
 	// from spherical coordinates to cartesian coordinates - halfway vector

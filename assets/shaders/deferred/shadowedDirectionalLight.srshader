@@ -56,7 +56,8 @@ layout(std140, binding = 7) uniform CascadedShadowBlock
 };
 
 // Uniforms for the geometry buffer.
-layout(binding = 2) uniform sampler2D godrayTex;
+layout(binding = 1) uniform sampler2D godrayTex;
+layout(binding = 2) uniform sampler2D brdfLookUp;
 layout(binding = 3) uniform sampler2D gPosition;
 layout(binding = 4) uniform sampler2D gNormal;
 layout(binding = 5) uniform sampler2D gAlbedo;
@@ -205,8 +206,8 @@ vec3 fdLambertCorrected(vec3 f0, vec3 f90, float vDotH, float lDotH,
   return (iorRatio * iorRatio) * diffuseAlbedo * (vec3(1.0) - fIncoming) * (vec3(1.0) - fOutgoing) / (PI * tirDiffuse);
 }
 
-// The final combined BRDF.
-// TODO: Compensate for energy loss by accounting for multi-scattering events.
+// The final combined BRDF. Compensates for energy gain in the diffuse BRDF and
+// energy loss in the specular BRDF.
 vec3 filamentBRDF(vec3 l, vec3 v, vec3 n, float roughness, float metallic,
                   vec3 dielectricF0, vec3 metallicF0, vec3 f90,
                   vec3 diffuseAlbedo)
@@ -222,11 +223,18 @@ vec3 filamentBRDF(vec3 l, vec3 v, vec3 n, float roughness, float metallic,
   float clampedRoughness = max(roughness, 0.045);
   float actualRoughness = clampedRoughness * clampedRoughness;
 
+  vec2 dfg = texture(brdfLookUp, vec2(nDotV, roughness)).rg;
+  dfg = max(dfg, 1e-4.xx);
+  vec3 energyDielectric = 1.0.xxx + dielectricF0 * (1.0.xxx / dfg.y - 1.0.xxx);
+  vec3 energyMetallic = 1.0.xxx + metallicF0 * (1.0.xxx / dfg.y - 1.0.xxx);
+
   vec3 fs = fsCookTorrance(nDotH, lDotH, nDotV, nDotL, vDotH, actualRoughness, dielectricF0, f90);
+  fs *= energyDielectric;
   vec3 fd = fdLambertCorrected(dielectricF0, f90, vDotH, lDotH, diffuseAlbedo);
   vec3 dielectricBRDF = fs + fd;
 
   vec3 metallicBRDF = fsCookTorrance(nDotH, lDotH, nDotV, nDotL, vDotH, actualRoughness, metallicF0, f90);
+  metallicBRDF *= energyMetallic;
 
   return mix(dielectricBRDF, metallicBRDF, metallic);
 }

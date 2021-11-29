@@ -180,6 +180,14 @@ namespace Strontium
   void
   ViewportWindow::manipulateEntity(Entity entity)
   {
+    auto windowMin = ImGui::GetWindowContentRegionMin();
+    auto windowMax = ImGui::GetWindowContentRegionMax();
+    auto windowOffset = ImGui::GetWindowPos();
+    this->bounds[0] = ImVec2(windowMin.x + windowOffset.x,
+        windowMin.y + windowOffset.y);
+    this->bounds[1] = ImVec2(windowMax.x + windowOffset.x,
+        windowMax.y + windowOffset.y);
+
     if (this->parentLayer->getSceneState() != SceneState::Edit)
       return;
 
@@ -195,14 +203,6 @@ namespace Strontium
     // draw the gizmos to.
     ImGuizmo::SetOrthographic(false);
     ImGuizmo::SetDrawlist();
-
-    auto windowMin = ImGui::GetWindowContentRegionMin();
-    auto windowMax = ImGui::GetWindowContentRegionMax();
-    auto windowOffset = ImGui::GetWindowPos();
-    this->bounds[0] = ImVec2(windowMin.x + windowOffset.x,
-                             windowMin.y + windowOffset.y);
-    this->bounds[1] = ImVec2(windowMax.x + windowOffset.x,
-                             windowMax.y + windowOffset.y);
 
     ImGuizmo::SetRect(bounds[0].x, bounds[0].y, bounds[1].x - bounds[0].x,
                       bounds[1].y - bounds[0].y);
@@ -307,7 +307,7 @@ namespace Strontium
     this->gizmoSelPos.x = this->gizmoSelPos.x < windowPos.x ? windowPos.x : this->gizmoSelPos.x;
     this->gizmoSelPos.y = this->gizmoSelPos.y < windowPos.y ? windowPos.y : this->gizmoSelPos.y;
     this->gizmoSelPos.x = this->gizmoSelPos.x + 100 > windowPos.x + windowSize.x ? windowPos.x + windowSize.x - 100 : this->gizmoSelPos.x;
-    //this->gizmoSelPos.y = this->gizmoSelPos.y + 18 > windowPos.y + windowSize.y ? windowPos.y + windowSize.y - 20 : this->gizmoSelPos.y;
+    this->gizmoSelPos.y = this->gizmoSelPos.y + 18 > windowPos.y + windowSize.y ? windowPos.y + windowSize.y - 20 : this->gizmoSelPos.y;
 
     ImGui::SetNextWindowPos(this->gizmoSelPos);
     ImGui::SetNextWindowSize(ImVec2(100, 18));

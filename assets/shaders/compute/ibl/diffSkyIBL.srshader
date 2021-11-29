@@ -34,6 +34,9 @@ vec3 cubeToWorld(ivec3 cubeCoord, vec2 cubeSize);
 vec3 sampleSkyViewLUT(sampler2D lut, vec3 viewPos, vec3 viewDir,
                       vec3 sunDir, float groundRadiusMM);
 
+// Importance sample a cosine lobe.
+vec3 importanceSampleCos(uint i, uint N, vec3 normal);
+
 void main()
 {
   vec2 cubemapSize = vec2(imageSize(irradianceMap).xy);
@@ -47,32 +50,16 @@ void main()
   vec3 normal = normalize(worldPos);
   normal.xz *= -1.0;
 
-  // Other hemispherical directions required for the integral.
-  vec3 up     = vec3(0.0, 1.0, 0.0);
-  vec3 right  = cross(up, normal);
-  up          = cross(normal, right);
-
-  float sampleDelta = 0.25;
-  float nrSamples = 0.0;
   vec3 irradiance = vec3(0.0);
+  const uint numSamples = 512;
 
-  for (float phi = 0.0; phi < 2.0 * PI; phi += sampleDelta)
+  for (uint i = 0; i < numSamples; i++)
   {
-    for (float theta = 0.0; theta < 0.5 * PI; theta += sampleDelta)
-    {
-      // Spherical to cartesian (in tangent space).
-      vec3 tangentSample = vec3(sin(theta) * cos(phi), sin(theta) * sin(phi), cos(theta));
-      // Tangent space to world.
-      vec3 sampleVec = tangentSample.x * right + tangentSample.y * up + tangentSample.z * normal;
-
-      irradiance += u_viewPosSkyIntensity.w *
-                    sampleSkyViewLUT(skyviewLUT, viewPos, sampleVec, sunPos,
-                                     groundRadiusMM);
-      nrSamples++;
-    }
+    vec3 sampleDir = importanceSampleCos(i, numSamples, normal);
+    irradiance += sampleSkyViewLUT(skyviewLUT, viewPos, sampleDir, sunPos, groundRadiusMM);
   }
 
-  irradiance = PI * irradiance * (1.0 / float(nrSamples));
+  irradiance = PI * irradiance * (1.0 / float(numSamples)) * u_viewPosSkyIntensity.w;
   imageStore(irradianceMap, ivec3(gl_GlobalInvocationID), vec4(irradiance, 1.0));
 }
 
@@ -119,4 +106,37 @@ vec3 sampleSkyViewLUT(sampler2D lut, vec3 viewPos, vec3 viewDir,
   float v = 0.5 + 0.5 * sign(altitudeAngle) * sqrt(abs(altitudeAngle) / PI_OVER_TWO);
 
   return texture(lut, vec2(u, v)).rgb;
+}
+
+// Hammersley sequence, generates a low discrepancy pseudorandom number.
+vec2 Hammersley(uint i, uint N)
+{
+  float fbits;
+  uint bits = i;
+
+  bits  = (bits << 16u) | (bits >> 16u);
+  bits  = ((bits & 0x55555555u) << 1u) | ((bits & 0xAAAAAAAAu) >> 1u);
+  bits  = ((bits & 0x33333333u) << 2u) | ((bits & 0xCCCCCCCCu) >> 2u);
+  bits  = ((bits & 0x0F0F0F0Fu) << 4u) | ((bits & 0xF0F0F0F0u) >> 4u);
+  bits  = ((bits & 0x00FF00FFu) << 8u) | ((bits & 0xFF00FF00u) >> 8u);
+  fbits = float(bits) * 2.3283064365386963e-10;
+
+  return vec2(float(i) / float(N), fbits);
+}
+
+// Importance sample a cosine lobe.
+vec3 importanceSampleCos(uint i, uint N, vec3 normal)
+{
+  vec2 xi = Hammersley(i, N);
+
+  float phi = TWO_PI * xi.x;
+  float theta = safeACos(sqrt(xi.y));
+
+  float sinTheta = sin(theta);
+  vec3 world = vec3(sinTheta * cos(phi), sinTheta * sin(phi), cos(theta));
+
+  vec3 up = abs(normal.z) < 0.999 ? vec3(0.0, 0.0, 1.0) : vec3(1.0, 0.0, 0.0);
+	vec3 tangent = normalize(cross(up, normal));
+	vec3 bitangent = cross(normal, tangent);
+  return normalize(tangent * world.x + bitangent * world.y + normal * world.z);
 }

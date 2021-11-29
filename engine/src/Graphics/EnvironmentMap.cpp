@@ -27,7 +27,7 @@ namespace Strontium
     switch(type)
     {
       case DynamicSkyType::Preetham: return "Preetham";
-      case DynamicSkyType::Hillaire: return "UE4";
+      case DynamicSkyType::Hillaire: return "Hillaire";
       default: return "Unknown";
     }
   }
@@ -368,6 +368,7 @@ namespace Strontium
 
     // Clear and resize the cubemap.
     TextureCubeMapParams params = TextureCubeMapParams();
+    Texture2DParams params2 = Texture2DParams();
 
     params.internal = TextureInternalFormats::RGBA16f;
     params.dataType = TextureDataType::Floats;

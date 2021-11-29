@@ -92,8 +92,7 @@ vec3 evaluateFilamentIBL(vec3 n, vec3 v, vec3 diffuseColour, vec3 f0, vec3 f90,
   vec3 specularDecomp = textureLod(reflectanceMap, r, lod).rgb;
   vec2 splitSums = texture(brdfLookUp, vec2(nDotV, roughness)).rg;
 
-  // I have no idea why this yields a NaN...
-  vec3 brdf = f0 * splitSums.x + f90 * splitSums.y;
+  vec3 brdf = mix(splitSums.xxx, splitSums.yyy, f0);
 
   vec3 specularRadiance = brdf * specularDecomp;
 
