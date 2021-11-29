@@ -202,6 +202,7 @@ namespace Strontium
     std::string& getFilepath() { return this->filepath; }
   protected:
     Unique<Texture2D> erMap;
+
     CubeMap skybox;
     CubeMap irradiance;
     CubeMap specPrefilter;

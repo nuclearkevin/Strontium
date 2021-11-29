@@ -257,7 +257,8 @@ namespace Strontium
 
     if (!Utilities::pairSearch<std::string, AssetHandle>(this->materials, meshName))
     {
-      materialAssets->attachAsset(meshName, new Material(type));
+      if (!materialAssets->hasAsset(meshName))
+        materialAssets->attachAsset(meshName, new Material(type));
       this->materials.emplace_back(meshName, meshName);
     }
   }
