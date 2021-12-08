@@ -85,4 +85,10 @@ namespace Strontium
   {
     glDrawArrays(static_cast<GLenum>(primative), start, count);
   }
+
+  void 
+  RendererCommands::cullType(FaceType face)
+  {
+    glCullFace(static_cast<GLenum>(face));
+  }
 }

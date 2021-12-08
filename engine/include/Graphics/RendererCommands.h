@@ -38,6 +38,12 @@ namespace Strontium
     Triangle = 0x0004 // GL_TRIANGLES
   };
 
+  enum class FaceType
+  {
+    Front = 0x0404, // GL_FRONT
+    Back = 0x0405 // GL_BACK
+  };
+
   namespace RendererCommands
   {
     void enable(const RendererFunction &toEnable);
@@ -54,5 +60,6 @@ namespace Strontium
 
     void drawElements(PrimativeType primative, uint count, const void* indices = nullptr);
     void drawArrays(PrimativeType primative, uint start, uint count);
+    void cullType(FaceType face);
   };
 }

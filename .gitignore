@@ -49,3 +49,4 @@ Application
 !**/assets/.internal/*
 !**/assets/.icons/*
 !**/assets/.fonts/*
+!**/assets/tests/*

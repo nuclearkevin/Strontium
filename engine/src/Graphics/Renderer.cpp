@@ -648,14 +648,14 @@ namespace Strontium
               glm::vec3 max = submesh.getMaxPos();
 
               if (!boundingBoxInFrustum(lightCullingFrustums[i], min, max, transform) && state->frustumCull)
-                  continue;
+                continue;
 
               if (submesh.hasVAO())
-                  Renderer3D::draw(submesh.getVAO(), program);
+                Renderer3D::draw(submesh.getVAO(), program);
               else
               {
-                  submesh.generateVAO();
-                  Renderer3D::draw(submesh.getVAO(), program);
+                submesh.generateVAO();
+                Renderer3D::draw(submesh.getVAO(), program);
               }
             }
           }

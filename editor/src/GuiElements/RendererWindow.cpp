@@ -92,12 +92,22 @@ namespace Strontium
 
       ImGui::Text("");
 
+      if (state->directionalSettings.x == 0)
+      {
+        float bias = state->shadowParams.w;
+        ImGui::DragFloat("Shadow Bias", &(bias), 0.01f);
+        state->shadowParams.w = bias;
+      }
+
       if (state->directionalSettings.x == 1)
       {
         if (ImGui::DragFloat("Filter Radius", &(state->shadowParams.z), 0.01f))
         {
           state->shadowParams.z = glm::max(state->shadowParams.z, 0.0f);
         }
+        float bias = state->shadowParams.w;
+        ImGui::DragFloat("Shadow Bias", &(bias), 0.01f);
+        state->shadowParams.w = bias;
       }
 
       if (state->directionalSettings.x == 2)
@@ -113,6 +123,9 @@ namespace Strontium
         {
           state->shadowParams.z = glm::max(state->shadowParams.z, 0.0f);
         }
+        float bias = state->shadowParams.w;
+        ImGui::DragFloat("Shadow Bias", &(bias), 0.01f);
+        state->shadowParams.w = bias;
       }
 
       static bool showMaps = false;

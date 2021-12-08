@@ -182,7 +182,7 @@ namespace Strontium
         , prefilterSamples(512)
         , cascadeLambda(0.5f)
         , cascadeSize(2048)
-        , shadowParams(0.2f, 20.0f, 3.0f, 0.0005f)
+        , shadowParams(0.2f, 20.0f, 1.0f, 0.01f)
         , directionalSettings(0)
         , enableSkyshafts(false)
         , mieScatIntensity(4.0f, 4.0f, 4.0f, 1.0f)
