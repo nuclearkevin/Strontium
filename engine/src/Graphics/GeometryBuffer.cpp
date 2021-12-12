@@ -11,28 +11,33 @@ namespace Strontium
   {
     this->geoBuffer.setClearColour(glm::vec4(0.0f));
 
-    auto cSpec = FBOCommands::getFloatColourSpec(FBOTargetParam::Colour0);
-    auto dSpec = FBOCommands::getDefaultDepthSpec();
+    auto cSpec = Texture2D::getFloatColourParams();
+    auto dSpec = Texture2D::getDefaultDepthParams();
+
+    auto attachment = FBOAttachment(FBOTargetParam::Colour0, FBOTextureParam::Texture2D, 
+                                    cSpec.internal, cSpec.format, cSpec.dataType);
 
     // The position texture.
-    this->geoBuffer.attachTexture2D(cSpec);
+    this->geoBuffer.attach(cSpec, attachment);
     // The normal texture.
-    cSpec = FBOCommands::getFloatColourSpec(FBOTargetParam::Colour1);
-    this->geoBuffer.attachTexture2D(cSpec);
+    attachment.target = FBOTargetParam::Colour1;
+    this->geoBuffer.attach(cSpec, attachment);
     // The albedo texture.
-    cSpec = FBOCommands::getFloatColourSpec(FBOTargetParam::Colour2);
-    this->geoBuffer.attachTexture2D(cSpec);
+    attachment.target = FBOTargetParam::Colour2;
+    this->geoBuffer.attach(cSpec, attachment);
     // The lighting materials texture.
-    cSpec = FBOCommands::getFloatColourSpec(FBOTargetParam::Colour3);
-    this->geoBuffer.attachTexture2D(cSpec);
+    attachment.target = FBOTargetParam::Colour3;
+    this->geoBuffer.attach(cSpec, attachment);
     // The ID texture with a mask for the current selected entity.
-    cSpec = FBOCommands::getFloatColourSpec(FBOTargetParam::Colour4);
     cSpec.sWrap = TextureWrapParams::ClampEdges;
     cSpec.tWrap = TextureWrapParams::ClampEdges;
-    this->geoBuffer.attachTexture2D(cSpec);
+    attachment.target = FBOTargetParam::Colour4;
+    this->geoBuffer.attach(cSpec, attachment);
     this->geoBuffer.setDrawBuffers();
 
-    this->geoBuffer.attachTexture2D(dSpec);
+    attachment = FBOAttachment(FBOTargetParam::Depth, FBOTextureParam::Texture2D,
+                               dSpec.internal, dSpec.format, dSpec.dataType);
+    this->geoBuffer.attach(dSpec, attachment);
     this->geoBuffer.bindTextureID(FBOTargetParam::Depth, 0);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LESS);
@@ -42,49 +47,55 @@ namespace Strontium
     : type(type)
     , geoBuffer(width, height)
   {
-    auto cSpec = FBOCommands::getFloatColourSpec(FBOTargetParam::Colour0);
-    auto dSpec = FBOCommands::getDefaultDepthSpec();
+    auto cSpec = Texture2D::getFloatColourParams();
+    auto dSpec = Texture2D::getDefaultDepthParams();
+
+    auto attachment = FBOAttachment(FBOTargetParam::Colour0, FBOTextureParam::Texture2D,
+                                    cSpec.internal, cSpec.format, cSpec.dataType);
+
     switch (type)
     {
       case RuntimeType::Editor:
       {
         // The position texture.
-        this->geoBuffer.attachTexture2D(cSpec);
+        this->geoBuffer.attach(cSpec, attachment);
         // The normal texture.
-        cSpec = FBOCommands::getFloatColourSpec(FBOTargetParam::Colour1);
-        this->geoBuffer.attachTexture2D(cSpec);
+        attachment.target = FBOTargetParam::Colour1;
+        this->geoBuffer.attach(cSpec, attachment);
         // The albedo texture.
-        cSpec = FBOCommands::getFloatColourSpec(FBOTargetParam::Colour2);
-        this->geoBuffer.attachTexture2D(cSpec);
+        attachment.target = FBOTargetParam::Colour2;
+        this->geoBuffer.attach(cSpec, attachment);
         // The lighting materials texture.
-        cSpec = FBOCommands::getFloatColourSpec(FBOTargetParam::Colour3);
-        this->geoBuffer.attachTexture2D(cSpec);
+        attachment.target = FBOTargetParam::Colour3;
+        this->geoBuffer.attach(cSpec, attachment);
         // The ID texture with a mask for the current selected entity.
-        cSpec = FBOCommands::getFloatColourSpec(FBOTargetParam::Colour4);
         cSpec.sWrap = TextureWrapParams::ClampEdges;
         cSpec.tWrap = TextureWrapParams::ClampEdges;
-        this->geoBuffer.attachTexture2D(cSpec);
+        attachment.target = FBOTargetParam::Colour4;
+        this->geoBuffer.attach(cSpec, attachment);
         this->geoBuffer.setDrawBuffers();
         break;
       }
       case RuntimeType::Runtime:
       {
         // The position texture.
-        this->geoBuffer.attachTexture2D(cSpec);
+        this->geoBuffer.attach(cSpec, attachment);
         // The normal texture.
-        cSpec = FBOCommands::getFloatColourSpec(FBOTargetParam::Colour1);
-        this->geoBuffer.attachTexture2D(cSpec);
+        attachment.target = FBOTargetParam::Colour1;
+        this->geoBuffer.attach(cSpec, attachment);
         // The albedo texture.
-        cSpec = FBOCommands::getFloatColourSpec(FBOTargetParam::Colour2);
-        this->geoBuffer.attachTexture2D(cSpec);
+        attachment.target = FBOTargetParam::Colour2;
+        this->geoBuffer.attach(cSpec, attachment);
         // The lighting materials texture.
-        cSpec = FBOCommands::getFloatColourSpec(FBOTargetParam::Colour3);
-        this->geoBuffer.attachTexture2D(cSpec);
+        attachment.target = FBOTargetParam::Colour3;
+        this->geoBuffer.attach(cSpec, attachment);
         this->geoBuffer.setDrawBuffers();
         break;
       }
     }
-    this->geoBuffer.attachTexture2D(dSpec);
+    attachment = FBOAttachment(FBOTargetParam::Depth, FBOTextureParam::Texture2D,
+                               dSpec.internal, dSpec.format, dSpec.dataType);
+    this->geoBuffer.attach(dSpec, attachment);
     this->geoBuffer.bindTextureID(FBOTargetParam::Depth, 0);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LESS);
@@ -110,49 +121,55 @@ namespace Strontium
     auto size = this->geoBuffer.getSize();
     this->type = type;
 
-    auto cSpec = FBOCommands::getFloatColourSpec(FBOTargetParam::Colour0);
-    auto dSpec = FBOCommands::getDefaultDepthSpec();
+    auto cSpec = Texture2D::getFloatColourParams();
+    auto dSpec = Texture2D::getDefaultDepthParams();
+
+    auto attachment = FBOAttachment(FBOTargetParam::Colour0, FBOTextureParam::Texture2D,
+                                    cSpec.internal, cSpec.format, cSpec.dataType);
+
     switch (type)
     {
       case RuntimeType::Editor:
       {
         // The position texture.
-        this->geoBuffer.attachTexture2D(cSpec);
+        this->geoBuffer.attach(cSpec, attachment);
         // The normal texture.
-        cSpec = FBOCommands::getFloatColourSpec(FBOTargetParam::Colour1);
-        this->geoBuffer.attachTexture2D(cSpec);
+        attachment.target = FBOTargetParam::Colour1;
+        this->geoBuffer.attach(cSpec, attachment);
         // The albedo texture.
-        cSpec = FBOCommands::getFloatColourSpec(FBOTargetParam::Colour2);
-        this->geoBuffer.attachTexture2D(cSpec);
+        attachment.target = FBOTargetParam::Colour2;
+        this->geoBuffer.attach(cSpec, attachment);
         // The lighting materials texture.
-        cSpec = FBOCommands::getFloatColourSpec(FBOTargetParam::Colour3);
-        this->geoBuffer.attachTexture2D(cSpec);
+        attachment.target = FBOTargetParam::Colour3;
+        this->geoBuffer.attach(cSpec, attachment);
         // The ID texture with a mask for the current selected entity.
-        cSpec = FBOCommands::getFloatColourSpec(FBOTargetParam::Colour4);
         cSpec.sWrap = TextureWrapParams::ClampEdges;
         cSpec.tWrap = TextureWrapParams::ClampEdges;
-        this->geoBuffer.attachTexture2D(cSpec);
+        attachment.target = FBOTargetParam::Colour4;
+        this->geoBuffer.attach(cSpec, attachment);
         this->geoBuffer.setDrawBuffers();
         break;
       }
       case RuntimeType::Runtime:
       {
         // The position texture.
-        this->geoBuffer.attachTexture2D(cSpec);
+        this->geoBuffer.attach(cSpec, attachment);
         // The normal texture.
-        cSpec = FBOCommands::getFloatColourSpec(FBOTargetParam::Colour1);
-        this->geoBuffer.attachTexture2D(cSpec);
+        attachment.target = FBOTargetParam::Colour1;
+        this->geoBuffer.attach(cSpec, attachment);
         // The albedo texture.
-        cSpec = FBOCommands::getFloatColourSpec(FBOTargetParam::Colour2);
-        this->geoBuffer.attachTexture2D(cSpec);
+        attachment.target = FBOTargetParam::Colour2;
+        this->geoBuffer.attach(cSpec, attachment);
         // The lighting materials texture.
-        cSpec = FBOCommands::getFloatColourSpec(FBOTargetParam::Colour3);
-        this->geoBuffer.attachTexture2D(cSpec);
+        attachment.target = FBOTargetParam::Colour3;
+        this->geoBuffer.attach(cSpec, attachment);
         this->geoBuffer.setDrawBuffers();
         break;
       }
     }
-    this->geoBuffer.attachTexture2D(dSpec);
+    attachment = FBOAttachment(FBOTargetParam::Depth, FBOTextureParam::Texture2D,
+                               dSpec.internal, dSpec.format, dSpec.dataType);
+    this->geoBuffer.attach(dSpec, attachment);
     this->geoBuffer.bindTextureID(FBOTargetParam::Depth, 0);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LESS);

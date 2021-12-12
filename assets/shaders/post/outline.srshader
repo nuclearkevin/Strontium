@@ -18,11 +18,9 @@ layout(binding = 0) uniform sampler2D entity;
 // The post processing properties.
 layout(std140, binding = 1) uniform PostProcessBlock
 {
-  mat4 u_invViewProj;
-  mat4 u_viewProj;
   vec4 u_camPosScreenSize; // Camera position (x, y, z) and the screen width (w).
   vec4 u_screenSizeGammaBloom;  // Screen height (x), gamma (y) and bloom intensity (z). w is unused.
-  ivec4 u_postProcessingPasses;
+  ivec4 u_postProcessingPasses; // Tone mapping operator (x), using bloom (y), using FXAA (z) and using sunshafts (w).
 };
 
 layout(location = 0) out vec4 fragColour;

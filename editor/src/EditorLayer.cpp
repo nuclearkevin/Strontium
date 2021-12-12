@@ -19,6 +19,8 @@ namespace Strontium
 {
   EditorLayer::EditorLayer()
     : Layer("Editor Layer")
+    , editorCam(1920 / 2, 1080 / 2, glm::vec3{ 0.0f, 1.0f, 4.0f }, 
+                EditorCameraType::Stationary)
     , loadTarget(FileLoadTargets::TargetNone)
     , saveTarget(FileSaveTargets::TargetNone)
     , dndScenePath("")
@@ -45,28 +47,34 @@ namespace Strontium
 
     // Fetch a default floating point FBO spec and attach it. Also attach a single
     // float spec for entity IDs.
-    auto cSpec = FBOCommands::getFloatColourSpec(FBOTargetParam::Colour0);
-    this->drawBuffer->attachTexture2D(cSpec);
-    cSpec = FBOCommands::getFloatColourSpec(FBOTargetParam::Colour1); // The ID texture.
+    auto cSpec = Texture2D::getFloatColourParams();
+    auto colourAttachment = FBOAttachment(FBOTargetParam::Colour0, FBOTextureParam::Texture2D,
+                                          cSpec.internal, cSpec.format, cSpec.dataType);
+    this->drawBuffer->attach(cSpec, colourAttachment);
+    
     cSpec.internal = TextureInternalFormats::R32f;
     cSpec.format = TextureFormats::Red;
     cSpec.sWrap = TextureWrapParams::ClampEdges;
     cSpec.tWrap = TextureWrapParams::ClampEdges;
-    this->drawBuffer->attachTexture2D(cSpec);
+    colourAttachment = FBOAttachment(FBOTargetParam::Colour1, FBOTextureParam::Texture2D,
+                                     cSpec.internal, cSpec.format, cSpec.dataType);
+    this->drawBuffer->attach(cSpec, colourAttachment);
     this->drawBuffer->setDrawBuffers();
-  	this->drawBuffer->attachTexture2D(FBOCommands::getDefaultDepthSpec());
+
+    auto dSpec = Texture2D::getDefaultDepthParams();
+    auto depthAttachment = FBOAttachment(FBOTargetParam::Depth, FBOTextureParam::Texture2D,
+                                           dSpec.internal, dSpec.format, dSpec.dataType);
+  	this->drawBuffer->attach(dSpec, depthAttachment);
 
     // Setup stuff for the scene.
     this->currentScene = createShared<Scene>();
 
-    // Finally, the editor camera.
-    this->editorCam = createShared<EditorCamera>(1920 / 2, 1080 / 2, glm::vec3 { 0.0f, 1.0f, 4.0f },
-                                                 EditorCameraType::Stationary);
-    this->editorCam->init(90.0f, 1.0f, 0.1f, 200.0f);
+    // Init the editor camera.
+    this->editorCam.init(90.0f, 1.0f, 0.1f, 200.0f);
 
     // All the windows!
     this->windows.push_back(new SceneGraphWindow(this));
-    this->windows.push_back(new CameraWindow(this, this->editorCam));
+    this->windows.push_back(new CameraWindow(this, &this->editorCam));
     this->windows.push_back(new ShaderWindow(this));
     this->windows.push_back(new FileBrowserWindow(this));
     this->windows.push_back(new ModelWindow(this, false));
@@ -90,7 +98,7 @@ namespace Strontium
       window->onEvent(event);
 
     // Push the event through to the editor camera.
-    this->editorCam->onEvent(event);
+    this->editorCam.onEvent(event);
 
     // Handle events for the layer.
     switch(event.getType())
@@ -191,10 +199,10 @@ namespace Strontium
     if (this->editorSize.x != size.x || this->editorSize.y != size.y)
     {
       if (this->editorSize.x >= 1.0f && this->editorSize.y >= 1.0f)
-        this->editorCam->updateProj(this->editorCam->getHorFOV(),
-                                    this->editorSize.x / this->editorSize.y,
-                                    this->editorCam->getNear(),
-                                    this->editorCam->getFar());
+        this->editorCam.updateProj(this->editorCam.getHorFOV(),
+                                   this->editorSize.x / this->editorSize.y,
+                                   this->editorCam.getNear(),
+                                   this->editorCam.getFar());
       this->drawBuffer->resize(this->editorSize.x, this->editorSize.y);
     }
 
@@ -208,12 +216,12 @@ namespace Strontium
 
         // Draw the scene.
         this->drawBuffer->clear();
-        Renderer3D::begin(this->editorSize.x, this->editorSize.y, (Camera) (*this->editorCam.get()));
+        Renderer3D::begin(this->editorSize.x, this->editorSize.y, (Camera) this->editorCam);
         this->currentScene->onRenderEditor(this->getSelectedEntity());
         Renderer3D::end(this->drawBuffer);
 
         // Update the editor camera.
-        this->editorCam->onUpdate(dt);
+        this->editorCam.onUpdate(dt);
         break;
       }
 
@@ -237,8 +245,8 @@ namespace Strontium
         }
         else
         {
-          primaryCamera = (Camera)(*this->editorCam.get());
-          this->editorCam->onUpdate(dt);
+          primaryCamera = (Camera) this->editorCam;
+          this->editorCam.onUpdate(dt);
         }
 
         this->drawBuffer->clear();
@@ -571,7 +579,7 @@ namespace Strontium
 
     int keyCode = keyEvent.getKeyCode();
 
-    bool camStationary = this->editorCam->isStationary();
+    bool camStationary = this->editorCam.isStationary();
     bool lControlHeld = appWindow->isKeyPressed(SR_KEY_LEFT_CONTROL);
     bool lShiftHeld = appWindow->isKeyPressed(SR_KEY_LEFT_SHIFT);
 
@@ -639,7 +647,7 @@ namespace Strontium
 
     int mouseCode = mouseEvent.getButton();
 
-    bool camStationary = this->editorCam->isStationary();
+    bool camStationary = this->editorCam.isStationary();
     bool lControlHeld = appWindow->isKeyPressed(SR_KEY_LEFT_CONTROL);
     bool lShiftHeld = appWindow->isKeyPressed(SR_KEY_LEFT_SHIFT);
 

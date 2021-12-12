@@ -26,16 +26,8 @@ layout(std140, binding = 0) uniform CameraBlock
 {
   mat4 u_viewMatrix;
   mat4 u_projMatrix;
+  mat4 u_invViewProjMatrix;
   vec3 u_camPosition;
-};
-
-layout(std140, binding = 1) uniform PostProcessBlock
-{
-  mat4 u_invViewProj;
-  mat4 u_viewProj;
-  vec4 u_camPosScreenSize; // Camera position (x, y, z) and the screen width (w).
-  vec4 u_screenSizeGammaBloom;  // Screen height (x), gamma (y) and bloom intensity (z). w is unused.
-  ivec4 u_postProcessingPasses; // Tone mapping operator (x), using bloom (y), using FXAA (z) and using screenspace godrays (w).
 };
 
 // Directional light uniforms.
@@ -95,7 +87,7 @@ void main()
   vec2 xy = 2.0 * gBufferUV - 1.0;
   float z = 2.0 * texture(gDepth, gBufferUV).r - 1.0;
   vec4 posNDC = vec4(xy, z, 1.0);
-  posNDC = u_invViewProj * posNDC;
+  posNDC = u_invViewProjMatrix * posNDC;
   posNDC /= posNDC.w;
 
   // March from the camera position to the fragment position.

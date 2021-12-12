@@ -15,7 +15,7 @@ namespace Strontium
   class CameraWindow : public GuiWindow
   {
   public:
-    CameraWindow(EditorLayer* parentLayer, Shared<EditorCamera> camera);
+    CameraWindow(EditorLayer* parentLayer, EditorCamera* camera);
     ~CameraWindow();
 
     void onImGuiRender(bool &isOpen, Shared<Scene> activeScene);
@@ -23,6 +23,6 @@ namespace Strontium
     void onEvent(Event &event);
 
   private:
-    Shared<EditorCamera> camera;
+    EditorCamera* camera;
   };
 }

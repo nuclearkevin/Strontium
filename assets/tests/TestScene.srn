@@ -1,13 +1,82 @@
 Scene: tests\TestScene.srn
 Entities:
-  - EntityID: 5
+  - EntityID: 1
+    NameComponent:
+      Name: Scene
+      Description: ""
+    ChildEntities:
+      - EntityID: 2
+        NameComponent:
+          Name: Ground
+          Description: ""
+        TransformComponent:
+          Translation: [0, 0, 0]
+          Rotation: [0, 0, 0]
+          Scale: [10, 0.100000001, 10]
+        RenderableComponent:
+          ModelPath: ./assets/tests\cube.fbx
+          ModelName: tests\cube.fbx
+          CurrentAnimation: None
+          Material:
+            - SubmeshName: Cube.001
+              MaterialHandle: Cube.001
+      - EntityID: 3
+        NameComponent:
+          Name: Wall
+          Description: ""
+        TransformComponent:
+          Translation: [10, 4.9000001, 0]
+          Rotation: [0, -0, 0]
+          Scale: [0.100000001, 5, 10]
+        RenderableComponent:
+          ModelPath: ./assets/tests\cube.fbx
+          ModelName: tests\cube.fbx
+          CurrentAnimation: None
+          Material:
+            - SubmeshName: Cube.001
+              MaterialHandle: Cube.001
+      - EntityID: 4
+        NameComponent:
+          Name: Sphere
+          Description: ""
+        TransformComponent:
+          Translation: [-3.00201941, 1.04578507, -0.360065222]
+          Rotation: [0, -0, 0]
+          Scale: [1, 1, 1]
+        RenderableComponent:
+          ModelPath: ./assets/tests\sphere.fbx
+          ModelName: tests\sphere.fbx
+          CurrentAnimation: None
+          Material:
+            - SubmeshName: Sphere
+              MaterialHandle: Sphere
+      - EntityID: 5
+        NameComponent:
+          Name: Cube
+          Description: ""
+        TransformComponent:
+          Translation: [-0.837779462, 1.09989142, 3.14369678]
+          Rotation: [0, -0, 0]
+          Scale: [1, 1, 1]
+        RenderableComponent:
+          ModelPath: ./assets/tests\cube.fbx
+          ModelName: tests\cube.fbx
+          CurrentAnimation: None
+          Material:
+            - SubmeshName: Cube.001
+              MaterialHandle: Cube.001
+    TransformComponent:
+      Translation: [0, 0, 0]
+      Rotation: [0, -0, 0]
+      Scale: [1, 1, 1]
+  - EntityID: 0
     NameComponent:
       Name: Skylight
       Description: ""
     TransformComponent:
       Translation: [0, 0, 0]
-      Rotation: [0.558111787, 0.0840540752, 1.42176521]
-      Scale: [0.999961257, 0.999981821, 0.999961078]
+      Rotation: [0.11232309, 0.0110666705, 1.40024054]
+      Scale: [0.999878585, 0.999876082, 0.999890864]
     DirectionalLightComponent:
       Direction: [0, 1, 0]
       Colour: [1, 1, 1]
@@ -25,98 +94,37 @@ Entities:
       SkyboxType: 3
       DynamicSkyType: 1
       DynamicSkyParams:
-        SunPosition: [0.832267463, -0.169920892, -0.527725339]
+        SunPosition: [0.979191244, -0.169904038, -0.112094082]
         SunSize: 1
-        SunIntensity: 5
-        SkyIntensity: 5
+        SunIntensity: 1
+        SkyIntensity: 1
         RayleighScatteringBase: [5.80200005, 13.5579996, 33.0999985]
-        RayleighAbsorptionBase: 0
-        MieScatteringBase: 3.99600005
-        MieAbsorptionBase: 4.4000001
+        RayleighScatteringDist: 8
+        RayleighAbsorptionBase: [0, 0, 0]
+        RayleighAbsorptionDist: 8
+        MieScatteringBase: [3.99600005, 3.99600005, 3.99600005]
+        MieScatteringDist: 1.20000005
+        MieAbsorptionBase: [4.4000001, 4.4000001, 4.4000001]
+        MieAbsorptionDist: 1.20000005
         OzoneAbsorptionBase: [0.649999976, 1.88100004, 0.0850000009]
+        OzoneAbsorptionDist: 0.00200000009
+        PlanetAlbedo: [0, 0, 0]
         PlanetRadius: 6.36000013
         AtmosphereRadius: 6.46000004
         ViewPosition: [0, 6.36019993, 0]
-  - EntityID: 0
-    NameComponent:
-      Name: Scene
-      Description: ""
-    ChildEntities:
-      - EntityID: 1
-        NameComponent:
-          Name: Ground
-          Description: ""
-        TransformComponent:
-          Translation: [0, 0, 0]
-          Rotation: [0, 0, 0]
-          Scale: [10, 0.100000001, 10]
-        RenderableComponent:
-          ModelPath: ./assets/tests\cube.fbx
-          ModelName: tests\cube.fbx
-          CurrentAnimation: None
-          Material:
-            - SubmeshName: Cube.001
-              MaterialHandle: Cube.001
-      - EntityID: 2
-        NameComponent:
-          Name: Wall
-          Description: ""
-        TransformComponent:
-          Translation: [10, 4.9000001, 0]
-          Rotation: [0, -0, 0]
-          Scale: [0.100000001, 5, 10]
-        RenderableComponent:
-          ModelPath: ./assets/tests\cube.fbx
-          ModelName: tests\cube.fbx
-          CurrentAnimation: None
-          Material:
-            - SubmeshName: Cube.001
-              MaterialHandle: Cube.001
-      - EntityID: 3
-        NameComponent:
-          Name: Sphere
-          Description: ""
-        TransformComponent:
-          Translation: [-3.00201941, 1.04578507, -0.360065222]
-          Rotation: [0, -0, 0]
-          Scale: [1, 1, 1]
-        RenderableComponent:
-          ModelPath: ./assets/tests\sphere.fbx
-          ModelName: tests\sphere.fbx
-          CurrentAnimation: None
-          Material:
-            - SubmeshName: Sphere
-              MaterialHandle: Sphere
-      - EntityID: 4
-        NameComponent:
-          Name: Cube
-          Description: ""
-        TransformComponent:
-          Translation: [-0.837779462, 1.09989142, 3.14369678]
-          Rotation: [0, -0, 0]
-          Scale: [1, 1, 1]
-        RenderableComponent:
-          ModelPath: ./assets/tests\cube.fbx
-          ModelName: tests\cube.fbx
-          CurrentAnimation: None
-          Material:
-            - SubmeshName: Cube.001
-              MaterialHandle: Cube.001
-    TransformComponent:
-      Translation: [0, 0, 0]
-      Rotation: [0, 0, 0]
-      Scale: [1, 1, 1]
 RendererSettings:
   BasicSettings:
     FrustumCull: false
+    UseFXAA: false
   ShadowSettings:
     ShadowQuality: 3
-    CascadeLambda: 0.5
+    CascadeLambda: 0.899999976
     CascadeSize: 2048
     CascadeLightBleed: 0.200000003
     LightSize: 20
-    PCFRadius: 1
-    DepthBias: 0.00999999978
+    PCFRadius: 3
+    NormalDepthBias: 50
+    ConstDepthBias: 0.0399999991
   VolumetricLightSettings:
     EnableVolumetricPrimaryLight: false
     VolumetricIntensity: 1
@@ -139,7 +147,7 @@ Materials:
       - UniformName: uMetallic
         UniformValue: 0
       - UniformName: uRoughness
-        UniformValue: 0
+        UniformValue: 0.497999996
       - UniformName: uAO
         UniformValue: 1
       - UniformName: uEmiss

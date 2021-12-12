@@ -99,7 +99,7 @@ namespace Strontium
 
     int keyCode = keyEvent.getKeyCode();
 
-    bool camStationary = this->parentLayer->getEditorCamera()->isStationary();
+    bool camStationary = this->parentLayer->getEditorCamera().isStationary();
     bool lControlHeld = appWindow->isKeyPressed(SR_KEY_LEFT_CONTROL);
 
     switch (keyCode)
@@ -143,7 +143,7 @@ namespace Strontium
 
     int mouseCode = mouseEvent.getButton();
 
-    bool camStationary = this->parentLayer->getEditorCamera()->isStationary();
+    bool camStationary = this->parentLayer->getEditorCamera().isStationary();
     bool lControlHeld = appWindow->isKeyPressed(SR_KEY_LEFT_CONTROL);
 
     switch (mouseCode)
@@ -192,8 +192,8 @@ namespace Strontium
       return;
 
     // Get the camera matrices.
-    auto& camProjection = this->parentLayer->getEditorCamera()->getProjMatrix();
-    auto& camView = this->parentLayer->getEditorCamera()->getViewMatrix();
+    auto& camProjection = this->parentLayer->getEditorCamera().getProjMatrix();
+    auto& camView = this->parentLayer->getEditorCamera().getViewMatrix();
 
     // Quit early if the entity is invalid.
     if (!entity)

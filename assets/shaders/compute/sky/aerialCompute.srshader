@@ -1,12 +1,9 @@
 #type compute
 #version 440
 /*
- * Compute shader to generate the sky-view lookup texture as described in
+ * Compute shader to generate the aerial perspective lookup texture as described in
  * [Hillaire2020].
  * https://sebh.github.io/publications/egsr2020.pdf
- *
- * Based off of a shadertoy implementation by Andrew Helmer:
- * https://www.shadertoy.com/view/slSXRW
 */
 
 #define PI 3.141592654
@@ -15,10 +12,19 @@
 
 layout(local_size_x = 32, local_size_y = 32) in;
 
-layout(rgba16f, binding = 0) writeonly uniform image2D skyviewImage;
+layout(rgba16f, binding = 0) writeonly uniform image3D aerialLUT;
 
 layout(binding = 2) uniform sampler2D transLUT;
 layout(binding = 3) uniform sampler2D multiScatLut;
+
+// Camera specific uniforms.
+layout(std140, binding = 0) uniform CameraBlock
+{
+  mat4 u_viewMatrix;
+  mat4 u_projMatrix;
+  mat4 u_invViewProjMatrix;
+  vec3 u_camPosition;
+};
 
 // Planetary radii are in Mm. Height falloffs are in km.
 layout(std140, binding = 1) uniform HillaireParams
@@ -70,58 +76,10 @@ float rayIntersectSphere(vec3 ro, vec3 rd, float rad)
 vec3 raymarchScattering(vec3 pos, vec3 rayDir, vec3 sunDir, float tMax,
                         ScatteringParams params, float groundRadiusMM,
                         float atmoRadiusMM);
+
 void main()
 {
-  ScatteringParams params;
-  params.rayleighScat = u_rayleighScat;
-  params.rayleighAbs = u_rayleighAbs;
-  params.mieScat = u_mieScat;
-  params.mieAbs = u_mieAbs;
-  params.ozoneAbs = u_ozoneAbs;
-
-  float groundRadiusMM = u_planetAlbedoRadius.w;
-  float atmosphereRadiusMM = u_sunDirAtmRadius.w;
-
-  vec3 sunDir = normalize(-u_sunDirAtmRadius.xyz);
-  vec3 viewPos = vec3(u_viewPos.wyz);
-
-  ivec2 invoke = ivec2(gl_GlobalInvocationID.xy);
-  vec2 size = vec2(imageSize(skyviewImage).xy);
-  float u = invoke.x / size.x;
-  float v = invoke.y / size.y;
-
-  float azimuthAngle = 2.0 * PI * (u - 0.5);
-  float adjV;
-  if (v < 0.5)
-  {
-    float coord = 1.0 - 2.0 * v;
-    adjV = -(coord * coord);
-  }
-  else
-  {
-    float coord = v * 2.0 - 1.0;
-    adjV = coord * coord;
-  }
-
-  float height = length(viewPos);
-  vec3 up = viewPos / height;
-  float horizonAngle = safeACos(sqrt(height * height - groundRadiusMM * groundRadiusMM) / height) - 0.5 * PI;
-  float altitudeAngle = adjV * 0.5 * PI - horizonAngle;
-
-  float cosAltitude = cos(altitudeAngle);
-  vec3 rayDir = normalize(vec3(cosAltitude * sin(azimuthAngle), sin(altitudeAngle), -cosAltitude * cos(azimuthAngle)));
-
-  float sunAltitude = (0.5 * PI) - acos(dot(sunDir, up));
-  vec3 newSunDir = normalize(vec3(0.0, sin(sunAltitude), -cos(sunAltitude)));
-
-  float atmoDist = rayIntersectSphere(viewPos, rayDir, atmosphereRadiusMM);
-  float groundDist = rayIntersectSphere(viewPos, rayDir, groundRadiusMM);
-  float tMax = (groundDist < 0.0) ? atmoDist : groundDist;
-  bool ground = (groundDist < 0.0) ? false : true;
-
-  vec3 lum = raymarchScattering(viewPos, rayDir, newSunDir, tMax, params,
-                                groundRadiusMM, atmosphereRadiusMM);
-  imageStore(skyviewImage, invoke, vec4(lum, 1.0));
+  
 }
 
 vec3 getValFromLUT(sampler2D tex, vec3 pos, vec3 sunDir,

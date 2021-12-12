@@ -31,6 +31,8 @@ ShaderCache:
     Filepath: ./assets/shaders/compute/sky/multiscatCompute.srshader
   - Handle: hillaire_skyview
     Filepath: ./assets/shaders/compute/sky/skyviewCompute.srshader
+  - Handle: hillaire_aerial
+    Filepath: ./assets/shaders/compute/sky/aerialCompute.srshader
   - Handle: skybox
     Filepath: ./assets/shaders/forward/skybox.srshader
     #

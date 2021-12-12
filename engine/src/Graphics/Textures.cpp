@@ -209,8 +209,7 @@ namespace Strontium
       // If its HDR, needs to be GL_RGBA16F instead of GL_RGB16F. Thanks OpenGL....
       if (isHDR)
       {
-        float* dataFNew;
-        dataFNew = new float[width * height * 4];
+        float* dataFNew = new float[width * height * 4];
         uint offset = 0;
 
         for (uint i = 0; i < (width * height * 4); i+=4)
@@ -273,8 +272,53 @@ namespace Strontium
     return outTex;
   }
 
+  Texture2DParams 
+  Texture2D::getDefaultColourParams()
+  {
+    Texture2DParams defaultColour = Texture2DParams();
+    defaultColour.internal = TextureInternalFormats::RGB;
+    defaultColour.format = TextureFormats::RGB;
+    defaultColour.dataType = TextureDataType::Bytes;
+    defaultColour.sWrap = TextureWrapParams::Repeat;
+    defaultColour.tWrap = TextureWrapParams::Repeat;
+    defaultColour.minFilter = TextureMinFilterParams::Linear;
+    defaultColour.maxFilter = TextureMaxFilterParams::Linear;
+    return defaultColour;
+  }
+
+  Texture2DParams 
+  Texture2D::getFloatColourParams()
+  {
+    Texture2DParams floatColour = Texture2DParams();
+    floatColour.internal = TextureInternalFormats::RGBA16f;
+    floatColour.format = TextureFormats::RGBA;
+    floatColour.dataType = TextureDataType::Floats;
+    floatColour.sWrap = TextureWrapParams::Repeat;
+    floatColour.tWrap = TextureWrapParams::Repeat;
+    floatColour.minFilter = TextureMinFilterParams::Linear;
+    floatColour.maxFilter = TextureMaxFilterParams::Linear;
+    return floatColour;
+  }
+
+  Texture2DParams 
+  Texture2D::getDefaultDepthParams()
+  {
+    Texture2DParams defaultDepth = Texture2DParams();
+    defaultDepth.internal = TextureInternalFormats::Depth32f;
+    defaultDepth.format = TextureFormats::Depth;
+    defaultDepth.dataType = TextureDataType::Floats;
+    defaultDepth.sWrap = TextureWrapParams::Repeat;
+    defaultDepth.tWrap = TextureWrapParams::Repeat;
+    defaultDepth.minFilter = TextureMinFilterParams::Nearest;
+    defaultDepth.maxFilter = TextureMaxFilterParams::Nearest;
+    return defaultDepth;
+  }
+
   Texture2D::Texture2D()
     : filepath("")
+    , width(0)
+    , height(0)
+    , n(0)
   {
     glGenTextures(1, &this->textureID);
     glBindTexture(GL_TEXTURE_2D, this->textureID);
@@ -463,6 +507,130 @@ namespace Strontium
                        static_cast<GLenum>(this->params.internal));
   }
 
+  Texture2DArray::Texture2DArray()
+    : width(0)
+    , height(0)
+    , n(0)
+    , numLayers(0)
+  {
+    glGenTextures(1, &this->textureID);
+  }
+
+  Texture2DArray::Texture2DArray(uint width, uint height, uint n, 
+                                 uint numLayers, const Texture2DParams& params)
+    : width(width)
+    , height(height)
+    , n(n)
+    , numLayers(numLayers)
+    , params(params)
+  {
+    glGenTextures(1, &this->textureID);
+    glBindTexture(GL_TEXTURE_2D_ARRAY, 0);
+
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S,
+        static_cast<GLint>(this->params.sWrap));
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T,
+        static_cast<GLint>(this->params.tWrap));
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER,
+        static_cast<GLint>(this->params.minFilter));
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER,
+        static_cast<GLint>(this->params.maxFilter));
+  }
+
+  Texture2DArray::~Texture2DArray()
+  {
+    glDeleteTextures(1, &this->textureID);
+  }
+
+  // Init the texture using given data and stored params.
+  void 
+  Texture2DArray::initNullTexture()
+  {
+    glBindTexture(GL_TEXTURE_2D_ARRAY, this->textureID);
+    glTexStorage3D(GL_TEXTURE_2D_ARRAY, 0, static_cast<GLenum>(this->params.internal), 
+                   this->width, this->height, this->numLayers);
+    glBindTexture(GL_TEXTURE_2D_ARRAY, 0);
+  }
+
+  // Set the parameters after generating the texture.
+  void 
+  Texture2DArray::setSize(uint width, uint height, uint n, uint numLayers)
+  {
+    this->width = width;
+    this->height = height;
+    this->n = n;
+    this->numLayers = numLayers;
+  }
+
+  void 
+  Texture2DArray::setParams(const Texture2DParams& newParams)
+  {
+    this->params = newParams;
+
+    glBindTexture(GL_TEXTURE_2D_ARRAY, this->textureID);
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S,
+                    static_cast<GLint>(this->params.sWrap));
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T,
+                    static_cast<GLint>(this->params.tWrap));
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER,
+                    static_cast<GLint>(this->params.minFilter));
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER,
+                    static_cast<GLint>(this->params.maxFilter));
+    glBindTexture(GL_TEXTURE_2D_ARRAY, 0);
+  }
+
+  // Generate mipmaps. TODO
+  void 
+  Texture2DArray::generateMips()
+  {
+
+  }
+
+  // Clear the texture. TODO
+  void 
+  Texture2DArray::clearTexture()
+  {
+
+  }
+
+  // Bind/unbind the texture.
+  void 
+  Texture2DArray::bind()
+  {
+    glBindTexture(GL_TEXTURE_2D, this->textureID);
+  }
+
+  void 
+  Texture2DArray::bind(uint bindPoint)
+  {
+    glActiveTexture(GL_TEXTURE0 + bindPoint);
+    glBindTexture(GL_TEXTURE_2D, this->textureID);
+  }
+
+  void 
+  Texture2DArray::unbind()
+  {
+    glBindTexture(GL_TEXTURE_2D, 0);
+  }
+
+  void 
+  Texture2DArray::unbind(uint bindPoint)
+  {
+    glActiveTexture(GL_TEXTURE0 + bindPoint);
+    glBindTexture(GL_TEXTURE_2D, 0);
+  }
+
+  // Bind the texture as an image unit.
+  void 
+  Texture2DArray::bindAsImage(uint bindPoint, uint miplevel, bool isLayered,
+                              uint layer, ImageAccessPolicy policy)
+  {
+    glBindImageTexture(bindPoint, this->textureID, miplevel,
+                       static_cast<GLenum>(isLayered), layer,
+                       static_cast<GLenum>(policy),
+                       static_cast<GLenum>(this->params.internal));
+  }
+
   //----------------------------------------------------------------------------
   // Cubemap textures.
   //----------------------------------------------------------------------------
@@ -470,6 +638,13 @@ namespace Strontium
   {
     glGenTextures(1, &this->textureID);
     glBindTexture(GL_TEXTURE_CUBE_MAP, this->textureID);
+
+    for (uint i = 0; i < 6; i++)
+    {
+      this->width[i] = 0;
+      this->height[i] = 0;
+      this->n[i] = 0;
+    }
   }
 
   CubeMap::CubeMap(const uint &width, const uint &height, const uint &n,

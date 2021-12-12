@@ -421,14 +421,20 @@ namespace Strontium
             out << YAML::Key << "SunSize" << YAML::Value << hillaireSkyParams.sunSize;
             out << YAML::Key << "SunIntensity" << YAML::Value << hillaireSkyParams.sunIntensity;
             out << YAML::Key << "SkyIntensity" << YAML::Value << hillaireSkyParams.skyIntensity;
-            out << YAML::Key << "RayleighScatteringBase" << YAML::Value << hillaireSkyParams.rayleighScatteringBase;
-            out << YAML::Key << "RayleighAbsorptionBase" << YAML::Value << hillaireSkyParams.rayleighAbsorptionBase;
-            out << YAML::Key << "MieScatteringBase" << YAML::Value << hillaireSkyParams.mieScatteringBase;
-            out << YAML::Key << "MieAbsorptionBase" << YAML::Value << hillaireSkyParams.mieAbsorptionBase;
-            out << YAML::Key << "OzoneAbsorptionBase" << YAML::Value << hillaireSkyParams.ozoneAbsorptionBase;
-            out << YAML::Key << "PlanetRadius" << YAML::Value << hillaireSkyParams.planetRadius;
-            out << YAML::Key << "AtmosphereRadius" << YAML::Value << hillaireSkyParams.atmosphereRadius;
-            out << YAML::Key << "ViewPosition" << YAML::Value << hillaireSkyParams.viewPos;
+            out << YAML::Key << "RayleighScatteringBase" << YAML::Value << glm::vec3(hillaireSkyParams.rayleighScat);
+            out << YAML::Key << "RayleighScatteringDist" << YAML::Value << hillaireSkyParams.rayleighScat.w;
+            out << YAML::Key << "RayleighAbsorptionBase" << YAML::Value << glm::vec3(hillaireSkyParams.rayleighAbs);
+            out << YAML::Key << "RayleighAbsorptionDist" << YAML::Value << hillaireSkyParams.rayleighAbs.w;
+            out << YAML::Key << "MieScatteringBase" << YAML::Value << glm::vec3(hillaireSkyParams.mieScat);
+            out << YAML::Key << "MieScatteringDist" << YAML::Value << hillaireSkyParams.mieScat.w;
+            out << YAML::Key << "MieAbsorptionBase" << YAML::Value << glm::vec3(hillaireSkyParams.mieAbs);
+            out << YAML::Key << "MieAbsorptionDist" << YAML::Value << hillaireSkyParams.mieAbs.w;
+            out << YAML::Key << "OzoneAbsorptionBase" << YAML::Value << glm::vec3(hillaireSkyParams.ozoneAbs);
+            out << YAML::Key << "OzoneAbsorptionDist" << YAML::Value << hillaireSkyParams.ozoneAbs.w;
+            out << YAML::Key << "PlanetAlbedo" << YAML::Value << glm::vec3(hillaireSkyParams.planetAlbedoRadius);
+            out << YAML::Key << "PlanetRadius" << YAML::Value << hillaireSkyParams.planetAlbedoRadius.w;
+            out << YAML::Key << "AtmosphereRadius" << YAML::Value << hillaireSkyParams.sunDirAtmRadius.w;
+            out << YAML::Key << "ViewPosition" << YAML::Value << glm::vec3(hillaireSkyParams.viewPos);
             break;
           }
         }
@@ -471,6 +477,7 @@ namespace Strontium
       out << YAML::Key << "BasicSettings";
       out << YAML::BeginMap;
       out << YAML::Key << "FrustumCull" << YAML::Value << state->frustumCull;
+      out << YAML::Key << "UseFXAA" << YAML::Value << state->enableFXAA;
       out << YAML::EndMap;
 
       out << YAML::Key << "ShadowSettings";
@@ -478,10 +485,11 @@ namespace Strontium
       out << YAML::Key << "ShadowQuality" << YAML::Value << state->directionalSettings.x;
       out << YAML::Key << "CascadeLambda" << YAML::Value << state->cascadeLambda;
       out << YAML::Key << "CascadeSize" << YAML::Value << state->cascadeSize;
-      out << YAML::Key << "CascadeLightBleed" << YAML::Value << state->shadowParams.x;
-      out << YAML::Key << "LightSize" << YAML::Value << state->shadowParams.y;
-      out << YAML::Key << "PCFRadius" << YAML::Value << state->shadowParams.z;
-      out << YAML::Key << "DepthBias" << YAML::Value << state->shadowParams.w;
+      out << YAML::Key << "CascadeLightBleed" << YAML::Value << state->shadowParams[0].x;
+      out << YAML::Key << "LightSize" << YAML::Value << state->shadowParams[0].y;
+      out << YAML::Key << "PCFRadius" << YAML::Value << state->shadowParams[0].z;
+      out << YAML::Key << "NormalDepthBias" << YAML::Value << state->shadowParams[0].w;
+      out << YAML::Key << "ConstDepthBias" << YAML::Value << state->shadowParams[1].x;
       out << YAML::EndMap;
 
       out << YAML::Key << "VolumetricLightSettings";
@@ -854,14 +862,55 @@ namespace Strontium
               hillaireSkyParams.sunSize = dynamicSkyParams["SunSize"].as<float>();
               hillaireSkyParams.sunIntensity = dynamicSkyParams["SunIntensity"].as<float>();
               hillaireSkyParams.skyIntensity = dynamicSkyParams["SkyIntensity"].as<float>();
-              hillaireSkyParams.rayleighScatteringBase = dynamicSkyParams["RayleighScatteringBase"].as<glm::vec3>();
-              hillaireSkyParams.rayleighAbsorptionBase = dynamicSkyParams["RayleighAbsorptionBase"].as<float>();
-              hillaireSkyParams.mieScatteringBase = dynamicSkyParams["MieScatteringBase"].as<float>();
-              hillaireSkyParams.mieAbsorptionBase = dynamicSkyParams["MieAbsorptionBase"].as<float>();
-              hillaireSkyParams.ozoneAbsorptionBase = dynamicSkyParams["OzoneAbsorptionBase"].as<glm::vec3>();
-              hillaireSkyParams.planetRadius = dynamicSkyParams["PlanetRadius"].as<float>();
-              hillaireSkyParams.atmosphereRadius = dynamicSkyParams["AtmosphereRadius"].as<float>();
-              hillaireSkyParams.viewPos = dynamicSkyParams["ViewPosition"].as<glm::vec3>();
+
+              auto rayleighScatBase = dynamicSkyParams["RayleighScatteringBase"].as<glm::vec3>();
+              auto rayleighScatDist = dynamicSkyParams["RayleighScatteringDist"].as<float>();
+              hillaireSkyParams.rayleighScat.x = rayleighScatBase.x;
+              hillaireSkyParams.rayleighScat.y = rayleighScatBase.y;
+              hillaireSkyParams.rayleighScat.z = rayleighScatBase.z;
+              hillaireSkyParams.rayleighScat.w = rayleighScatDist;
+
+              auto rayleighAbsBase = dynamicSkyParams["RayleighAbsorptionBase"].as<glm::vec3>();
+              auto rayleighAbsDist = dynamicSkyParams["RayleighAbsorptionDist"].as<float>();
+              hillaireSkyParams.rayleighAbs.x = rayleighAbsBase.x;
+              hillaireSkyParams.rayleighAbs.y = rayleighAbsBase.y;
+              hillaireSkyParams.rayleighAbs.z = rayleighAbsBase.z;
+              hillaireSkyParams.rayleighAbs.w = rayleighAbsDist;
+
+              auto miewScatBase = dynamicSkyParams["MieScatteringBase"].as<glm::vec3>();
+              auto miewScatDist = dynamicSkyParams["MieScatteringDist"].as<float>();
+              hillaireSkyParams.mieScat.x = miewScatBase.x;
+              hillaireSkyParams.mieScat.y = miewScatBase.y;
+              hillaireSkyParams.mieScat.z = miewScatBase.z;
+              hillaireSkyParams.mieScat.w = miewScatDist;
+
+              auto miewAbsBase = dynamicSkyParams["MieAbsorptionBase"].as<glm::vec3>();
+              auto miewAbsDist = dynamicSkyParams["MieAbsorptionDist"].as<float>();
+              hillaireSkyParams.mieAbs.x = miewAbsBase.x;
+              hillaireSkyParams.mieAbs.y = miewAbsBase.y;
+              hillaireSkyParams.mieAbs.z = miewAbsBase.z;
+              hillaireSkyParams.mieAbs.w = miewAbsDist;
+
+              auto ozoneAbsBase = dynamicSkyParams["OzoneAbsorptionBase"].as<glm::vec3>();
+              auto ozoneAbsScale = dynamicSkyParams["OzoneAbsorptionDist"].as<float>();
+              hillaireSkyParams.ozoneAbs.x = ozoneAbsBase.x;
+              hillaireSkyParams.ozoneAbs.y = ozoneAbsBase.y;
+              hillaireSkyParams.ozoneAbs.z = ozoneAbsBase.z;
+              hillaireSkyParams.ozoneAbs.w = ozoneAbsScale;
+
+              auto planetAlbedo = dynamicSkyParams["PlanetAlbedo"].as<glm::vec3>();
+              auto planetRadius = dynamicSkyParams["PlanetRadius"].as<float>();
+              hillaireSkyParams.planetAlbedoRadius.x = planetAlbedo.x;
+              hillaireSkyParams.planetAlbedoRadius.y = planetAlbedo.y;
+              hillaireSkyParams.planetAlbedoRadius.z = planetAlbedo.z;
+              hillaireSkyParams.planetAlbedoRadius.w = planetRadius;
+
+              hillaireSkyParams.sunDirAtmRadius.w = dynamicSkyParams["AtmosphereRadius"].as<float>();
+
+              auto viewPosition = dynamicSkyParams["ViewPosition"].as<glm::vec3>();
+              hillaireSkyParams.viewPos.x = viewPosition.x;
+              hillaireSkyParams.viewPos.y = viewPosition.y;
+              hillaireSkyParams.viewPos.z = viewPosition.z;
 
               env->setSkyModelParams<HillaireSkyParams>(hillaireSkyParams);
               break;
@@ -900,6 +949,7 @@ namespace Strontium
         if (basicSettings)
         {
           state->frustumCull = basicSettings["FrustumCull"].as<bool>();
+          state->enableFXAA = basicSettings["UseFXAA"].as<bool>();
         }
 
         auto shadowSettings = rendererSettings["ShadowSettings"];
@@ -908,10 +958,11 @@ namespace Strontium
           state->directionalSettings.x = shadowSettings["ShadowQuality"].as<int>();
           state->cascadeLambda = shadowSettings["CascadeLambda"].as<float>();
           state->cascadeSize = shadowSettings["CascadeSize"].as<uint>();
-          state->shadowParams.x = shadowSettings["CascadeLightBleed"].as<float>();
-          state->shadowParams.y = shadowSettings["LightSize"].as<float>();
-          state->shadowParams.z = shadowSettings["PCFRadius"].as<float>();
-          state->shadowParams.w = shadowSettings["DepthBias"].as<float>();
+          state->shadowParams[0].x = shadowSettings["CascadeLightBleed"].as<float>();
+          state->shadowParams[0].y = shadowSettings["LightSize"].as<float>();
+          state->shadowParams[0].z = shadowSettings["PCFRadius"].as<float>();
+          state->shadowParams[0].w = shadowSettings["NormalDepthBias"].as<float>();
+          state->shadowParams[1].x = shadowSettings["ConstDepthBias"].as<float>();
         }
 
         auto volumetricSettings = rendererSettings["VolumetricLightSettings"];

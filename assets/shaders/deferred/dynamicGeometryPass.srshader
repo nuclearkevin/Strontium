@@ -4,13 +4,14 @@
  * A dynamic mesh shader program for the geometry pass.
  */
 
-// Camera specific uniforms.
-layout(std140, binding = 0) uniform CameraBlock
-{
-  mat4 u_viewMatrix;
-  mat4 u_projMatrix;
-  vec3 u_camPosition;
-};
+ // Camera specific uniforms.
+ layout(std140, binding = 0) uniform CameraBlock
+ {
+   mat4 u_viewMatrix;
+   mat4 u_projMatrix;
+   mat4 u_invViewProjMatrix;
+   vec3 u_camPosition;
+ };
 
 // The material properties.
 layout(std140, binding = 1) uniform MaterialBlock

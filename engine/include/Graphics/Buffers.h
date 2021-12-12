@@ -147,6 +147,7 @@ namespace Strontium
   public:
     // Default constructor generates a generic render buffer with just a depth
     // attachment.
+    RenderBuffer();
     RenderBuffer(uint width, uint height);
     RenderBuffer(uint width, uint height, const RBOInternalFormat &format);
     ~RenderBuffer();
@@ -155,6 +156,10 @@ namespace Strontium
     // issues related to the underlying API.
     RenderBuffer(const RenderBuffer&) = delete;
     RenderBuffer& operator=(const RenderBuffer&) = delete;
+
+    // Reset the renderbuffer.
+    void reset(uint newWidth, uint newHeight);
+    void reset(uint newWidth, uint newHeight, const RBOInternalFormat& newFormat);
 
     // Bind/unbind the buffer.
     void bind();

@@ -74,9 +74,9 @@ namespace Strontium
       ShaderStorageBuffer boneBuffer;
 
       // Required objects for bloom.
-      Texture2D downscaleBloomTex[MAX_NUM_BLOOM_MIPS];
-      Texture2D bufferBloomTex[MAX_NUM_BLOOM_MIPS - 1];
-      Texture2D upscaleBloomTex[MAX_NUM_BLOOM_MIPS];
+      Texture2D downscaleBloomTex;
+      Texture2D bufferBloomTex;
+      Texture2D upscaleBloomTex;
       ShaderStorageBuffer bloomSettingsBuffer;
 
       // Required parameters for volumetric light shafts.
@@ -92,7 +92,7 @@ namespace Strontium
       std::vector<std::pair<Model*, glm::mat4>> staticShadowQueue;
       std::vector<std::tuple<Model*, Animator*, glm::mat4>> dynamicShadowQueue;
       glm::mat4 cascades[NUM_CASCADES];
-      float cascadeSplits[NUM_CASCADES];
+      glm::vec4 cascadeSplits[NUM_CASCADES];
       bool hasCascades;
 
       Unique<EnvironmentMap> currentEnvironment;
@@ -107,7 +107,7 @@ namespace Strontium
 
       RendererStorage()
         : blankVAO()
-        , camBuffer(2 * sizeof(glm::mat4) + sizeof(glm::vec3), BufferType::Dynamic)
+        , camBuffer(3 * sizeof(glm::mat4) + sizeof(glm::vec3), BufferType::Dynamic)
         , transformBuffer(sizeof(glm::mat4), BufferType::Dynamic)
         , editorBuffer(sizeof(glm::vec4), BufferType::Dynamic)
         , ambientPassBuffer(sizeof(glm::vec4), BufferType::Dynamic)
@@ -115,10 +115,9 @@ namespace Strontium
         , pointPassBuffer(sizeof(PointLight), BufferType::Dynamic)
         , cascadeShadowPassBuffer(sizeof(glm::mat4), BufferType::Dynamic)
         , cascadeShadowBuffer(NUM_CASCADES * sizeof(glm::mat4)
-                              + NUM_CASCADES * sizeof(glm::vec4) + sizeof(glm::vec4),
+                              + NUM_CASCADES * sizeof(glm::vec4) + 2 * sizeof(glm::vec4),
                               BufferType::Dynamic)
-        , postProcessSettings(2 * sizeof(glm::mat4) + 2 * sizeof(glm::vec4)
-                              + sizeof(glm::ivec4), BufferType::Dynamic)
+        , postProcessSettings(2 * sizeof(glm::vec4) + sizeof(glm::ivec4), BufferType::Dynamic)
         , boneBuffer(MAX_BONES_PER_MODEL * sizeof(glm::mat4), BufferType::Dynamic)
         , lightShaftSettingsBuffer(2 * sizeof(glm::vec4), BufferType::Dynamic)
         , bloomSettingsBuffer(sizeof(glm::vec4) + sizeof(float), BufferType::Dynamic)
@@ -146,7 +145,7 @@ namespace Strontium
       // Cascaded shadow settings.
       float cascadeLambda;
       uint cascadeSize;
-      glm::vec4 shadowParams;
+      glm::vec4 shadowParams[2];
       glm::ivec4 directionalSettings;
 
       // Volumetric light settings.
@@ -182,7 +181,7 @@ namespace Strontium
         , prefilterSamples(512)
         , cascadeLambda(0.5f)
         , cascadeSize(2048)
-        , shadowParams(0.2f, 20.0f, 1.0f, 0.01f)
+        , shadowParams{glm::vec4(0.2f, 20.0f, 1.0f, 50.0f), glm::vec4(0.01f, 0.0f, 0.0f, 0.0f) }
         , directionalSettings(0)
         , enableSkyshafts(false)
         , mieScatIntensity(4.0f, 4.0f, 4.0f, 1.0f)

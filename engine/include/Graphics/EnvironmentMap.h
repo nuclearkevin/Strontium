@@ -76,6 +76,7 @@ namespace Strontium
 
   struct HillaireSkyParams : public DynamicSkyCommonParams
   {
+    /*
     glm::vec3 rayleighScatteringBase;
     float rayleighAbsorptionBase;
     float mieScatteringBase;
@@ -86,28 +87,38 @@ namespace Strontium
     float atmosphereRadius;
 
     glm::vec3 viewPos;
+    */
+    // Planetary radii are in Mm. Height falloffs are in km.
+    glm::vec4 rayleighScat; //  Rayleigh scattering base (x, y, z) and height falloff (w).
+    glm::vec4 rayleighAbs; //  Rayleigh absorption base (x, y, z) and height falloff (w).
+    glm::vec4 mieScat; //  Mie scattering base (x, y, z) and height falloff (w).
+    glm::vec4 mieAbs; //  Mie absorption base (x, y, z) and height falloff (w).
+    glm::vec4 ozoneAbs; //  Ozone absorption base (x, y, z) and height falloff (w).
+    glm::vec4 planetAlbedoRadius; // Planet albedo (x, y, z) and radius.
+    glm::vec4 sunDirAtmRadius; // Sun direction (x, y, z) and atmosphere radius (w).
+    glm::vec4 viewPos; // View position (x, y, z). w is unused.
 
     HillaireSkyParams()
       : DynamicSkyCommonParams(DynamicSkyType::Hillaire)
-      , rayleighScatteringBase(5.802f, 13.558f, 33.1f)
-      , rayleighAbsorptionBase(0.0f)
-      , mieScatteringBase(3.996f)
-      , mieAbsorptionBase(4.4f)
-      , ozoneAbsorptionBase(0.650f, 1.881f, 0.085f)
-      , planetRadius(6.360f)
-      , atmosphereRadius(6.460f)
-      , viewPos(0.0f, 6.360f + 0.0002f, 0.0f)
+      , rayleighScat(5.802f, 13.558f, 33.1f, 8.0f)
+      , rayleighAbs(0.0f, 0.0f, 0.0f, 8.0f)
+      , mieScat(3.996f, 3.996f, 3.996f, 1.2f)
+      , mieAbs(4.4f, 4.4f, 4.4f, 1.2f)
+      , ozoneAbs(0.650f, 1.881f, 0.085f, 0.002f)
+      , planetAlbedoRadius(0.0f, 0.0f, 0.0f, 6.360f)
+      , sunDirAtmRadius(sunPos, 6.460f)
+      , viewPos(0.0f, 6.360f + 0.0002f, 0.0f, 0.0f)
     { }
 
     bool operator==(const HillaireSkyParams& other)
     {
-      return this->rayleighScatteringBase == other.rayleighScatteringBase &&
-             this->rayleighAbsorptionBase == other.rayleighAbsorptionBase &&
-             this->mieScatteringBase == other.mieScatteringBase &&
-             this->mieAbsorptionBase == other.mieAbsorptionBase &&
-             this->ozoneAbsorptionBase == other.ozoneAbsorptionBase &&
-             this->planetRadius == other.planetRadius &&
-             this->atmosphereRadius == other.atmosphereRadius &&
+      return this->rayleighScat == other.rayleighScat &&
+             this->rayleighAbs == other.rayleighAbs &&
+             this->mieScat == other.mieScat &&
+             this->mieAbs == other.mieAbs &&
+             this->ozoneAbs == other.ozoneAbs &&
+             this->planetAlbedoRadius == other.planetAlbedoRadius &&
+             this->sunDirAtmRadius == other.sunDirAtmRadius &&
              this->viewPos == other.viewPos &&
              DynamicSkyCommonParams::operator==(other);
     }
@@ -214,7 +225,7 @@ namespace Strontium
 
     UniformBuffer skyboxParamBuffer;
     ShaderStorageBuffer preethamParams;
-    ShaderStorageBuffer hillaireParams;
+    UniformBuffer hillaireParams;
     ShaderStorageBuffer iblParams;
 
     std::unordered_map<DynamicSkyType, DynamicSkyCommonParams*> dynamicSkyParams;

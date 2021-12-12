@@ -37,7 +37,7 @@ namespace Strontium
     virtual void onEvent(Event &event) override;
     virtual void onUpdate(float dt) override;
 
-    Shared<EditorCamera> getEditorCamera() { return this->editorCam; }
+    EditorCamera& getEditorCamera() { return this->editorCam; }
     Shared<FrameBuffer> getFrontBuffer() { return this->drawBuffer; }
     Shared<Scene> getActiveScene() { return this->currentScene; }
     ImVec2& getEditorSize() { return this->editorSize; }
@@ -57,7 +57,7 @@ namespace Strontium
     // The framebuffer for the scene.
     Shared<FrameBuffer> drawBuffer;
     // Editor camera.
-    Shared<EditorCamera> editorCam;
+    EditorCamera editorCam;
 
     // Managing the current scene.
     SceneState sceneState;
@@ -71,7 +71,6 @@ namespace Strontium
 
     // Stuff for ImGui and the GUI. TODO: Move to other windows?
     bool showPerf;
-    bool showSceneGraph;
     ImVec2 editorSize;
   };
 }

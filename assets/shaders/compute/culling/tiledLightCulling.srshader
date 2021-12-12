@@ -23,10 +23,12 @@ struct PointLight
   vec4 u_lColourIntensity; // Colour (x, y, z) and intensity (w).
 };
 
+// Camera specific uniforms.
 layout(std140, binding = 0) uniform CameraBlock
 {
   mat4 u_viewMatrix;
   mat4 u_projMatrix;
+  mat4 u_invViewProjMatrix;
   vec3 u_camPosition;
 };
 

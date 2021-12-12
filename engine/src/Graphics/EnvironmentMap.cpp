@@ -36,7 +36,7 @@ namespace Strontium
     : erMap(nullptr)
     , skyboxParamBuffer(3 * sizeof(glm::vec4) + sizeof(glm::ivec4), BufferType::Dynamic)
     , preethamParams(2 * sizeof(glm::vec4), BufferType::Dynamic)
-    , hillaireParams(5 * sizeof(glm::vec4), BufferType::Dynamic)
+    , hillaireParams(8 * sizeof(glm::vec4), BufferType::Dynamic)
     , iblParams(sizeof(glm::vec4) + sizeof(glm::ivec4), BufferType::Dynamic)
     , currentEnvironment(MapType::Skybox)
     , currentDynamicSky(DynamicSkyType::Preetham)
@@ -245,8 +245,8 @@ namespace Strontium
 
           params1.x = hillaireSkyParams.sunIntensity;
           params1.y = hillaireSkyParams.sunSize;
-          params1.z = hillaireSkyParams.planetRadius;
-          params1.w = hillaireSkyParams.atmosphereRadius;
+          params1.z = hillaireSkyParams.planetAlbedoRadius.w;
+          params1.w = hillaireSkyParams.sunDirAtmRadius.w;
 
           params2.x = hillaireSkyParams.viewPos.x;
           params2.y = hillaireSkyParams.viewPos.y;
@@ -304,42 +304,12 @@ namespace Strontium
       case DynamicSkyType::Hillaire:
       {
         // Updates the three LUTs associated with the Hillaire sky model.
-        glm::vec4 params1 = glm::vec4(0.0f);
-        glm::vec4 params2 = glm::vec4(0.0f);
-        glm::vec4 params3 = glm::vec4(0.0f);
-        glm::vec4 params4 = glm::vec4(0.0f);
-        glm::vec4 params5 = glm::vec4(0.0f);
 
         auto& hillaireSkyParams = this->getSkyParams<HillaireSkyParams>(DynamicSkyType::Hillaire);
 
-        params1.x = hillaireSkyParams.rayleighScatteringBase.x;
-        params1.y = hillaireSkyParams.rayleighScatteringBase.y;
-        params1.z = hillaireSkyParams.rayleighScatteringBase.z;
-        params1.w = hillaireSkyParams.rayleighAbsorptionBase;
-
-        params2.x = hillaireSkyParams.ozoneAbsorptionBase.x;
-        params2.y = hillaireSkyParams.ozoneAbsorptionBase.y;
-        params2.z = hillaireSkyParams.ozoneAbsorptionBase.z;
-        params2.w = hillaireSkyParams.mieScatteringBase;
-
-        params3.x = hillaireSkyParams.mieAbsorptionBase;
-        params3.y = hillaireSkyParams.planetRadius;
-        params3.z = hillaireSkyParams.atmosphereRadius;
-        params3.w = hillaireSkyParams.viewPos.x;
-
-        params4.x = -1.0f * hillaireSkyParams.sunPos.x;
-        params4.y = -1.0f * hillaireSkyParams.sunPos.y;
-        params4.z = -1.0f * hillaireSkyParams.sunPos.z;
-        params4.w = hillaireSkyParams.viewPos.y;
-
-        params5.x = hillaireSkyParams.viewPos.z;
-
         this->hillaireParams.bindToPoint(1);
-        this->hillaireParams.setData(0, sizeof(glm::vec4), &(params1.x));
-        this->hillaireParams.setData(1 * sizeof(glm::vec4), sizeof(glm::vec4), &(params2.x));
-        this->hillaireParams.setData(2 * sizeof(glm::vec4), sizeof(glm::vec4), &(params3.x));
-        this->hillaireParams.setData(3 * sizeof(glm::vec4), sizeof(glm::vec4), &(params4.x));
-        this->hillaireParams.setData(4 * sizeof(glm::vec4), sizeof(glm::vec4), &(params5.x));
+        this->hillaireParams.setData(0, 8 * sizeof(glm::vec4), &(hillaireSkyParams.rayleighScat.x));
+        this->hillaireParams.setData(6 * sizeof(glm::vec4), sizeof(glm::vec3), &(hillaireSkyParams.sunPos.x));
 
         this->transmittanceLUT.bindAsImage(0, 0, ImageAccessPolicy::Write);
         ShaderCache::getShader("hillaire_transmittance")->launchCompute(256 / 32, 64 / 32, 1);

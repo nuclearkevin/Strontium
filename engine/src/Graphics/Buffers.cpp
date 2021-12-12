@@ -111,6 +111,9 @@ namespace Strontium
   }
 
   UniformBuffer::UniformBuffer()
+    : type(BufferType::Static)
+    , dataSize(0)
+    , filled(false)
   {
     glGenBuffers(1, &this->bufferID);
   }
@@ -153,6 +156,14 @@ namespace Strontium
     this->filled = true;
   }
 
+  RenderBuffer::RenderBuffer()
+    : format(RBOInternalFormat::DepthStencil)
+    , width(0)
+    , height(0)
+  {
+    glGenRenderbuffers(1, &this->bufferID);
+  }
+
   RenderBuffer::RenderBuffer(uint width, uint height)
     : format(RBOInternalFormat::DepthStencil)
     , width(width)
@@ -182,6 +193,31 @@ namespace Strontium
   RenderBuffer::~RenderBuffer()
   {
     glDeleteRenderbuffers(1, &this->bufferID);
+  }
+
+  void 
+  RenderBuffer::reset(uint newWidth, uint newHeight)
+  {
+    this->width = newWidth;
+    this->height = newHeight;
+    glBindRenderbuffer(GL_RENDERBUFFER, this->bufferID);
+
+    glRenderbufferStorage(GL_RENDERBUFFER, static_cast<GLenum>(this->format),
+                          this->width, this->height);
+    glBindRenderbuffer(GL_RENDERBUFFER, 0);
+  }
+
+  void 
+  RenderBuffer::reset(uint newWidth, uint newHeight, const RBOInternalFormat& newFormat)
+  {
+    this->format = newFormat;
+    this->width = newWidth;
+    this->height = newHeight;
+    glBindRenderbuffer(GL_RENDERBUFFER, this->bufferID);
+
+    glRenderbufferStorage(GL_RENDERBUFFER, static_cast<GLenum>(this->format),
+                          this->width, this->height);
+    glBindRenderbuffer(GL_RENDERBUFFER, 0);
   }
 
   void

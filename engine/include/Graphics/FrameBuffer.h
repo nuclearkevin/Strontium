@@ -24,7 +24,7 @@ namespace Strontium
     DepthStencil = 0x84F9
   };
 
-  enum class FBOTex2DParam
+  enum class FBOTextureParam
   {
     Texture2D = 0x0DE1,
     CubeMapPX = 0x8515, // GL_TEXTURE_CUBE_MAP_POSITIVE_X
@@ -35,56 +35,40 @@ namespace Strontium
     CubeMapNZ = 0x851A // GL_TEXTURE_CUBE_MAP_NEGATIVE_Z
   };
 
-  // Framebuffer specifications. Use this struct template to generate a
-  // framebuffer colour texture.
-  struct FBOSpecification
+  struct FBOAttachment
   {
+    uint attachmentID;
     FBOTargetParam target;
-    FBOTex2DParam type;
+    FBOTextureParam type;
+    bool ownedByFBO;
 
     TextureInternalFormats internal;
-    TextureFormats         format;
-    TextureDataType        dataType;
+    TextureFormats format;
+    TextureDataType dataType;
 
-    TextureWrapParams      sWrap;
-    TextureWrapParams      tWrap;
-    TextureMinFilterParams minFilter;
-    TextureMaxFilterParams maxFilter;
-
-    FBOSpecification()
-      : target(FBOTargetParam::Colour0)
-      , type(FBOTex2DParam::Texture2D)
-      , internal(TextureInternalFormats::RGB)
-      , format(TextureFormats::RGB)
-      , dataType(TextureDataType::Bytes)
-      , sWrap(TextureWrapParams::Repeat)
-      , tWrap(TextureWrapParams::Repeat)
-      , minFilter(TextureMinFilterParams::Linear)
-      , maxFilter(TextureMaxFilterParams::Linear)
+    FBOAttachment(FBOTargetParam target, FBOTextureParam type,
+                  TextureInternalFormats internal, TextureFormats format,
+                  TextureDataType dataType)
+      : attachmentID(0)
+      , target(target)
+      , type(type)
+      , ownedByFBO(true)
+      , internal(internal)
+      , format(format)
+      , dataType(dataType)
     { };
 
-    operator Texture2DParams() const
-    {
-      Texture2DParams outParams = Texture2DParams();
-      outParams.sWrap = sWrap;
-      outParams.tWrap = tWrap;
-      outParams.minFilter = minFilter;
-      outParams.maxFilter = maxFilter;
-      outParams.internal = internal;
-      outParams.format = format;
-      outParams.dataType = dataType;
-      return outParams;
-    }
-  };
-
-  namespace Textures
-  {
-    const FBOTex2DParam cubemapFaces[6] =
-    {
-      FBOTex2DParam::CubeMapPX, FBOTex2DParam::CubeMapNX,
-      FBOTex2DParam::CubeMapPY, FBOTex2DParam::CubeMapNY,
-      FBOTex2DParam::CubeMapPZ, FBOTex2DParam::CubeMapNZ
-    };
+    FBOAttachment(uint id, FBOTargetParam target, FBOTextureParam type, 
+                  TextureInternalFormats internal, TextureFormats format, 
+                  TextureDataType dataType)
+      : attachmentID(0)
+      , target(target)
+      , type(FBOTextureParam::Texture2D)
+      , ownedByFBO(false)
+      , internal(internal)
+      , format(format)
+      , dataType(dataType)
+    { };
   };
 
   // Frame buffer class.
@@ -108,16 +92,13 @@ namespace Strontium
     void bindTextureID(const FBOTargetParam &attachment);
     void bindTextureID(const FBOTargetParam &attachment, uint bindPoint);
 
-    // Methods for texture/buffer generation and attachment.
-    void attachTexture2D(const FBOSpecification &spec, const bool &removeTex = true);
-    void attachTexture2D(const FBOSpecification &spec, Shared<Texture2D> &tex,
-                         const bool &removeTex = true);
-    void attachRenderBuffer(RBOInternalFormat format = RBOInternalFormat::Depth32f);
+    void bindTextureIDAsImage(const FBOTargetParam& attachment, uint bindPoint, 
+                              uint miplevel, bool isLayered,  uint layer, 
+                              ImageAccessPolicy policy);
 
-    // Detach/reattach FBO attachments. Doesn't delete the attachment from the
-    // FBO's storage.
-    void detach(const FBOTargetParam &attachment);
-    void reattach(const FBOTargetParam &attachment);
+    // Methods for texture/buffer generation and attachment.
+    void attach(const Texture2DParams &params, const FBOAttachment &attachment);
+    void attachRenderBuffer(RBOInternalFormat format = RBOInternalFormat::Depth32f);
 
     // Misc functions.
     void blitzToOther(FrameBuffer &target, const FBOTargetParam &type);
@@ -134,15 +115,14 @@ namespace Strontium
 
     bool isValid();
     glm::vec2 getSize() { return glm::vec2(this->width, this->height); }
-    uint getAttachID(const FBOTargetParam &attachment) { return this->textureAttachments.at(attachment).second->getID(); }
-    Shared<Texture2D> getAttachment(const FBOTargetParam &attachment) { return this->textureAttachments.at(attachment).second; }
-    uint getRenderBufferID() { return this->depthBuffer != nullptr ? this->depthBuffer->getID() : 0; };
+    uint getAttachID(const FBOTargetParam &attachment) { return this->textureAttachments.at(attachment).attachmentID; }
+    uint getRenderBufferID() { return this->depthBuffer.getID(); };
     uint getID() { return this->bufferID; }
   protected:
     uint bufferID;
 
-    std::map<FBOTargetParam, std::pair<FBOSpecification, Shared<Texture2D>>> textureAttachments;
-    Shared<RenderBuffer> depthBuffer;
+    std::map<FBOTargetParam, FBOAttachment> textureAttachments;
+    RenderBuffer depthBuffer;
 
     uint width, height;
 
@@ -151,13 +131,5 @@ namespace Strontium
     uint clearFlags;
 
     glm::vec4 clearColour;
-  };
-
-  namespace FBOCommands
-  {
-    // Helper commands to get a colour and depth specification.
-    FBOSpecification getDefaultColourSpec(const FBOTargetParam &attach);
-    FBOSpecification getFloatColourSpec(const FBOTargetParam &attach);
-    FBOSpecification getDefaultDepthSpec();
   };
 }

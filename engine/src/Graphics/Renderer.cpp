@@ -40,28 +40,23 @@ namespace Strontium
       bloomParams.internal = TextureInternalFormats::RGBA16f;
       bloomParams.dataType = TextureDataType::Floats;
 
-      float powOf2 = 2.0f;
-      for (unsigned int i = 0; i < MAX_NUM_BLOOM_MIPS; i++)
-      {
-        storage->downscaleBloomTex[i].setSize((uint) ((float) width) / powOf2, (uint) ((float) height) / powOf2, 4);
-        storage->downscaleBloomTex[i].setParams(bloomParams);
-        storage->downscaleBloomTex[i].initNullTexture();
+      storage->downscaleBloomTex.setSize(static_cast<uint>((static_cast<float>(width) / 2.0)), 
+                                         static_cast<uint>((static_cast<float>(height) / 2.0)), 4);
+      storage->downscaleBloomTex.setParams(bloomParams);
+      storage->downscaleBloomTex.initNullTexture();
+      storage->downscaleBloomTex.generateMips();
 
-        storage->upscaleBloomTex[i].setSize((uint) ((float) width) / powOf2, (uint) ((float) height) / powOf2, 4);
-        storage->upscaleBloomTex[i].setParams(bloomParams);
-        storage->upscaleBloomTex[i].initNullTexture();
+      storage->upscaleBloomTex.setSize(static_cast<uint>((static_cast<float>(width) / 2.0)), 
+                                       static_cast<uint>((static_cast<float>(height) / 2.0)), 4);
+      storage->upscaleBloomTex.setParams(bloomParams);
+      storage->upscaleBloomTex.initNullTexture();
+      storage->upscaleBloomTex.generateMips();
 
-        powOf2 *= 2.0f;
-      }
-
-      powOf2 = 2.0f;
-      for (unsigned int i = 0; i < MAX_NUM_BLOOM_MIPS - 1; i++)
-      {
-        storage->bufferBloomTex[i].setSize((uint)((float)width) / powOf2, (uint)((float)height) / powOf2, 4);
-        storage->bufferBloomTex[i].setParams(bloomParams);
-        storage->bufferBloomTex[i].initNullTexture();
-        powOf2 *= 2.0f;
-      }
+      storage->bufferBloomTex.setSize(static_cast<uint>((static_cast<float>(width) / 2.0)), 
+                                      static_cast<uint>((static_cast<float>(height) / 2.0)), 4);
+      storage->bufferBloomTex.setParams(bloomParams);
+      storage->bufferBloomTex.initNullTexture();
+      storage->bufferBloomTex.generateMips();
 
       // Init the texture for the screen-space godrays. Use same params as bloom.
       storage->downsampleLightshaft.setSize(width / 2, height / 2, 4);
@@ -72,20 +67,23 @@ namespace Strontium
       storage->halfResBuffer1.initNullTexture();
 
       // Prepare the shadow buffers.
-      auto dSpec = FBOCommands::getDefaultDepthSpec();
-      auto vSpec = FBOCommands::getFloatColourSpec(FBOTargetParam::Colour0);
-      vSpec.internal = TextureInternalFormats::RGBA32f;
-      vSpec.format = TextureFormats::RGBA;
+      auto dSpec = Texture2D::getDefaultDepthParams();
+      auto mSpec = Texture2D::getFloatColourParams();;
+      mSpec.internal = TextureInternalFormats::RGBA32f;
+      auto colourAttachment = FBOAttachment(FBOTargetParam::Colour0, FBOTextureParam::Texture2D, 
+                                            mSpec.internal, mSpec.format, mSpec.dataType);
+      auto depthAttachment = FBOAttachment(FBOTargetParam::Depth, FBOTextureParam::Texture2D,
+                                           dSpec.internal, dSpec.format, dSpec.dataType);
       for (unsigned int i = 0; i < NUM_CASCADES; i++)
       {
         storage->shadowBuffer[i].resize(state->cascadeSize, state->cascadeSize);
-        storage->shadowBuffer[i].attachTexture2D(vSpec);
-        storage->shadowBuffer[i].attachTexture2D(dSpec);
+        storage->shadowBuffer[i].attach(mSpec, colourAttachment);
+        storage->shadowBuffer[i].attach(dSpec, depthAttachment);
         storage->shadowBuffer[i].setClearColour(glm::vec4(1.0f));
       }
       storage->shadowEffectsBuffer.resize(state->cascadeSize, state->cascadeSize);
-      storage->shadowEffectsBuffer.attachTexture2D(vSpec);
-      storage->shadowEffectsBuffer.attachTexture2D(dSpec);
+      storage->shadowEffectsBuffer.attach(mSpec, colourAttachment);
+      storage->shadowEffectsBuffer.attach(dSpec, depthAttachment);
       storage->shadowEffectsBuffer.setClearColour(glm::vec4(1.0f));
       storage->hasCascades = false;
 
@@ -93,8 +91,9 @@ namespace Strontium
 
       // The lighting pass framebuffer.
       storage->lightingPass.resize(width, height);
-      auto cSpec = FBOCommands::getFloatColourSpec(FBOTargetParam::Colour0);
-      storage->lightingPass.attachTexture2D(cSpec);
+      auto cSpec = Texture2D::getFloatColourParams();
+      colourAttachment = FBOAttachment(FBOTargetParam::Colour0, FBOTextureParam::Texture2D, cSpec.internal, cSpec.format, cSpec.dataType);
+      storage->lightingPass.attach(cSpec, colourAttachment);
       storage->lightingPass.attachRenderBuffer();
     }
 
@@ -133,22 +132,20 @@ namespace Strontium
         storage->gBuffer.resize(width, height);
         storage->lightingPass.resize(width, height);
 
-        float powOf2 = 2.0f;
-        for (unsigned int i = 0; i < MAX_NUM_BLOOM_MIPS; i++)
-        {
-          storage->downscaleBloomTex[i].setSize((uint) ((float) width) / powOf2, (uint) ((float) height) / powOf2, 4);
-          storage->downscaleBloomTex[i].initNullTexture();
+        storage->downscaleBloomTex.setSize(static_cast<uint>((static_cast<float>(width) / 2.0)),
+                                           static_cast<uint>((static_cast<float>(height) / 2.0)), 4);
+        storage->downscaleBloomTex.initNullTexture();
+        storage->downscaleBloomTex.generateMips();
 
-          storage->upscaleBloomTex[i].setSize((uint) ((float) width) / powOf2, (uint) ((float) height) / powOf2, 4);
-          storage->upscaleBloomTex[i].initNullTexture();
+        storage->upscaleBloomTex.setSize(static_cast<uint>((static_cast<float>(width) / 2.0)),
+                                         static_cast<uint>((static_cast<float>(height) / 2.0)), 4);
+        storage->upscaleBloomTex.initNullTexture();
+        storage->upscaleBloomTex.generateMips();
 
-          if (i < MAX_NUM_BLOOM_MIPS - 1)
-          {
-            storage->bufferBloomTex[i].setSize((uint) ((float) width) / powOf2, (uint) ((float) height) / powOf2, 4);
-            storage->bufferBloomTex[i].initNullTexture();
-          }
-          powOf2 *= 2.0f;
-        }
+        storage->bufferBloomTex.setSize(static_cast<uint>((static_cast<float>(width) / 2.0)),
+                                        static_cast<uint>((static_cast<float>(height) / 2.0)), 4);
+        storage->bufferBloomTex.initNullTexture();
+        storage->bufferBloomTex.generateMips();
 
         storage->downsampleLightshaft.setSize(width / 2, height / 2, 4);
         storage->downsampleLightshaft.initNullTexture();
@@ -305,7 +302,8 @@ namespace Strontium
       storage->camBuffer.bindToPoint(0);
       storage->camBuffer.setData(0, sizeof(glm::mat4), glm::value_ptr(storage->sceneCam.view));
       storage->camBuffer.setData(sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(storage->sceneCam.projection));
-      storage->camBuffer.setData(2 * sizeof(glm::mat4), sizeof(glm::vec3), &(storage->sceneCam.position.x));
+      storage->camBuffer.setData(2 * sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(storage->sceneCam.invViewProj));
+      storage->camBuffer.setData(3 * sizeof(glm::mat4), sizeof(glm::vec3), &(storage->sceneCam.position.x));
 
       // Start the geometry pass.
       storage->gBuffer.beginGeoPass();
@@ -429,9 +427,6 @@ namespace Strontium
     //--------------------------------------------------------------------------
     // Deferred shadow mapping pass. Cascaded shadows for a "primary light".
     //--------------------------------------------------------------------------
-    // TODO: Soft shadow quality settings (hard shadows, Low, medium, high, ultra).
-    // Low is a simple box blur, medium->ultra are gaussian with different number
-    // of taps. Hard shadows are regular shadow maps with zero prefiltering.
     void
     shadowPass()
     {
@@ -585,7 +580,7 @@ namespace Strontium
 
           previousCascadeDistance = cascadeSplits[i];
 
-          storage->cascadeSplits[i] = near + (cascadeSplits[i] * (far - near));
+          storage->cascadeSplits[i].x = near + (cascadeSplits[i] * (far - near));
         }
       }
 
@@ -762,7 +757,7 @@ namespace Strontium
           storage->cascadeShadowBuffer.setData(i * sizeof(glm::mat4), sizeof(glm::mat4),
                                                 glm::value_ptr(storage->cascades[i]));
           storage->cascadeShadowBuffer.setData(NUM_CASCADES * sizeof(glm::mat4)
-                                                + i * sizeof(glm::vec4), sizeof(float),
+                                                + i * sizeof(glm::vec4), sizeof(glm::vec4),
                                                 &storage->cascadeSplits[i]);
           if (state->directionalSettings.x == 2)
             storage->shadowBuffer[i].bindTextureID(FBOTargetParam::Colour0, i + 7);
@@ -771,8 +766,8 @@ namespace Strontium
         }
         storage->cascadeShadowBuffer.setData(NUM_CASCADES * sizeof(glm::mat4)
                                               + NUM_CASCADES * sizeof(glm::vec4),
-                                              sizeof(glm::vec4),
-                                              &(state->shadowParams.x));
+                                              2 * sizeof(glm::vec4),
+                                              state->shadowParams);
       }
 
       for (auto& light : storage->directionalQueue)
@@ -797,8 +792,7 @@ namespace Strontium
 
            state->postProcessSettings.w = (uint)(storage->hasCascades && state->enableSkyshafts);
            storage->postProcessSettings.bindToPoint(1);
-           storage->postProcessSettings.setData(0, sizeof(glm::mat4), glm::value_ptr(storage->sceneCam.invViewProj));
-           storage->postProcessSettings.setData(2 * sizeof(glm::mat4) + 2 * sizeof(glm::vec4), sizeof(glm::ivec4), &state->postProcessSettings.x);
+           storage->postProcessSettings.setData(2 * sizeof(glm::vec4), sizeof(glm::ivec4), &state->postProcessSettings.x);
 
           // Launch the godray compute shaders.
           if (state->enableSkyshafts)
@@ -908,45 +902,50 @@ namespace Strontium
         storage->bloomSettingsBuffer.setData(0, sizeof(glm::vec4), &bloomSettings.x);
         storage->bloomSettingsBuffer.setData(sizeof(glm::vec4), sizeof(float), &state->bloomRadius);
 
-        storage->lightingPass.getAttachment(FBOTargetParam::Colour0)
-               ->bindAsImage(0, 0, ImageAccessPolicy::Read);
-        storage->downscaleBloomTex[0].bindAsImage(1, 0, ImageAccessPolicy::Write);
-        glm::ivec3 invoke = glm::ivec3(glm::ceil(((float) storage->downscaleBloomTex[0].width) / 32.0f),
-                                       glm::ceil(((float) storage->downscaleBloomTex[0].height) / 32.0f),
+        storage->lightingPass.bindTextureIDAsImage(FBOTargetParam::Colour0, 0, 0, 
+                                                   false, 0, ImageAccessPolicy::Read);
+        storage->downscaleBloomTex.bindAsImage(1, 0, ImageAccessPolicy::Write);
+        glm::ivec3 invoke = glm::ivec3(glm::ceil(((float) storage->downscaleBloomTex.width) / 32.0f),
+                                       glm::ceil(((float) storage->downscaleBloomTex.height) / 32.0f),
                                        1);
         ShaderCache::getShader("bloom_prefilter")->launchCompute(invoke.x, invoke.y, invoke.z);
         Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
 
         // Continuously downsample the bloom texture to make an image pyramid.
+        float powerOfTwo = 2.0f;
         for (unsigned int i = 1; i < MAX_NUM_BLOOM_MIPS; i++)
         {
-          storage->downscaleBloomTex[i - 1].bindAsImage(0, 0, ImageAccessPolicy::Read);
-          storage->downscaleBloomTex[i].bindAsImage(1, 0, ImageAccessPolicy::Write);
-          invoke = glm::ivec3(glm::ceil(((float) storage->downscaleBloomTex[i].width) / 32.0f),
-                              glm::ceil(((float) storage->downscaleBloomTex[i].height) / 32.0f),
+          storage->downscaleBloomTex.bindAsImage(0, i - 1, ImageAccessPolicy::Read);
+          storage->downscaleBloomTex.bindAsImage(1, i, ImageAccessPolicy::Write);
+          invoke = glm::ivec3(glm::ceil(((float) storage->downscaleBloomTex.width) / (powerOfTwo * 32.0f)),
+                              glm::ceil(((float) storage->downscaleBloomTex.height) / (powerOfTwo * 32.0f)),
                               1);
           downsample->launchCompute(invoke.x, invoke.y, invoke.z);
           Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
+          powerOfTwo *= 2.0;
         }
 
         // Blur each of the mips.
+        powerOfTwo = 1.0f;
         for (unsigned int i = 0; i < MAX_NUM_BLOOM_MIPS - 1; i++)
         {
-          storage->downscaleBloomTex[i].bindAsImage(0, 0, ImageAccessPolicy::Read);
-          storage->bufferBloomTex[i].bindAsImage(1, 0, ImageAccessPolicy::Write);
-          invoke = glm::ivec3(glm::ceil(((float) storage->bufferBloomTex[i].width) / 32.0f),
-                              glm::ceil(((float) storage->bufferBloomTex[i].height) / 32.0f),
+          storage->downscaleBloomTex.bindAsImage(0, i, ImageAccessPolicy::Read);
+          storage->bufferBloomTex.bindAsImage(1, i, ImageAccessPolicy::Write);
+          invoke = glm::ivec3(glm::ceil(((float) storage->bufferBloomTex.width) / (powerOfTwo * 32.0f)),
+                              glm::ceil(((float) storage->bufferBloomTex.height) / (powerOfTwo * 32.0f)),
                               1);
           upsample->launchCompute(invoke.x, invoke.y, invoke.z);
           Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
+          powerOfTwo *= 2.0f;
         }
 
         // Copy and blur the last mip of the downsampling pyramid into the last
         // mip of the upsampling pyramid.
-        storage->downscaleBloomTex[MAX_NUM_BLOOM_MIPS - 1].bindAsImage(0, 0, ImageAccessPolicy::Read);
-        storage->upscaleBloomTex[MAX_NUM_BLOOM_MIPS - 1].bindAsImage(1, 0, ImageAccessPolicy::Write);
-        invoke = glm::ivec3(glm::ceil(((float) storage->bufferBloomTex[MAX_NUM_BLOOM_MIPS - 2].width) / 32.0f),
-                            glm::ceil(((float) storage->bufferBloomTex[MAX_NUM_BLOOM_MIPS - 2].height) / 32.0f),
+        powerOfTwo = std::pow(2.0, static_cast<float>(MAX_NUM_BLOOM_MIPS - 1));
+        storage->downscaleBloomTex.bindAsImage(0, MAX_NUM_BLOOM_MIPS - 1, ImageAccessPolicy::Read);
+        storage->upscaleBloomTex.bindAsImage(1, MAX_NUM_BLOOM_MIPS - 1, ImageAccessPolicy::Write);
+        invoke = glm::ivec3(glm::ceil(((float) storage->bufferBloomTex.width) / (powerOfTwo * 32.0f)),
+                            glm::ceil(((float) storage->bufferBloomTex.height) / (powerOfTwo * 32.0f)),
                             1);
         upsample->launchCompute(invoke.x, invoke.y, invoke.z);
         Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
@@ -954,11 +953,12 @@ namespace Strontium
         // Blend the previous mips together with a blur on the previous mip.
         for (unsigned int i = MAX_NUM_BLOOM_MIPS - 1; i > 0; i--)
         {
-          storage->upscaleBloomTex[i].bindAsImage(0, 0, ImageAccessPolicy::Read);
-          storage->bufferBloomTex[i - 1].bindAsImage(1, 0, ImageAccessPolicy::Read);
-          storage->upscaleBloomTex[i - 1].bindAsImage(2, 0, ImageAccessPolicy::Write);
-          invoke = glm::ivec3(glm::ceil(((float) storage->upscaleBloomTex[i - 1].width) / 32.0f),
-                              glm::ceil(((float) storage->upscaleBloomTex[i - 1].height) / 32.0f),
+          powerOfTwo /= 2.0f;
+          storage->upscaleBloomTex.bindAsImage(0, i, ImageAccessPolicy::Read);
+          storage->bufferBloomTex.bindAsImage(1, i - 1, ImageAccessPolicy::Read);
+          storage->upscaleBloomTex.bindAsImage(2, i - 1, ImageAccessPolicy::Write);
+          invoke = glm::ivec3(glm::ceil(((float) storage->upscaleBloomTex.width) / (powerOfTwo * 32.0f)),
+                              glm::ceil(((float) storage->upscaleBloomTex.height) / (powerOfTwo * 32.0f)),
                               1);
           upsampleBlend->launchCompute(invoke.x, invoke.y, invoke.z);
           Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
@@ -974,8 +974,6 @@ namespace Strontium
       //------------------------------------------------------------------------
       // Prepare the post processing buffer.
       storage->postProcessSettings.bindToPoint(1);
-      auto viewProj = storage->sceneCam.projection * storage->sceneCam.view;
-      auto invViewProj = storage->sceneCam.invViewProj;
       auto camPos = storage->sceneCam.position;
       auto screenSize = frontBuffer->getSize();
       auto data0 = glm::vec4(camPos.x, camPos.y, camPos.z, screenSize.x);
@@ -984,15 +982,13 @@ namespace Strontium
       state->postProcessSettings.y = (uint) state->enableBloom;
       state->postProcessSettings.z = (uint) state->enableFXAA;
 
-      storage->postProcessSettings.setData(0, sizeof(glm::mat4), glm::value_ptr(invViewProj));
-      storage->postProcessSettings.setData(sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(viewProj));
-      storage->postProcessSettings.setData(2 * sizeof(glm::mat4), sizeof(glm::vec4), &data0.x);
-      storage->postProcessSettings.setData(2 * sizeof(glm::mat4) + sizeof(glm::vec4), sizeof(glm::vec4), &data1.x);
-      storage->postProcessSettings.setData(2 * sizeof(glm::mat4) + 2 * sizeof(glm::vec4), sizeof(glm::ivec4), &state->postProcessSettings.x);
+      storage->postProcessSettings.setData(0, sizeof(glm::vec4), &data0.x);
+      storage->postProcessSettings.setData(sizeof(glm::vec4), sizeof(glm::vec4), &data1.x);
+      storage->postProcessSettings.setData(2 * sizeof(glm::vec4), sizeof(glm::ivec4), &state->postProcessSettings.x);
 
       storage->lightingPass.bindTextureID(FBOTargetParam::Colour0, 0);
       storage->gBuffer.bindAttachment(FBOTargetParam::Colour4, 1);
-      storage->upscaleBloomTex[0].bind(2);
+      storage->upscaleBloomTex.bind(2);
 
       storage->blankVAO.bind();
       ShaderCache::getShader("post_processing")->bind();

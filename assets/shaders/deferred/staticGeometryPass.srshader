@@ -9,6 +9,7 @@ layout(std140, binding = 0) uniform CameraBlock
 {
   mat4 u_viewMatrix;
   mat4 u_projMatrix;
+  mat4 u_invViewProjMatrix;
   vec3 u_camPosition;
 };
 

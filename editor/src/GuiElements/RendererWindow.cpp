@@ -94,38 +94,59 @@ namespace Strontium
 
       if (state->directionalSettings.x == 0)
       {
-        float bias = state->shadowParams.w;
-        ImGui::DragFloat("Shadow Bias", &(bias), 0.01f);
-        state->shadowParams.w = bias;
+        float normalBias = state->shadowParams[0].w;
+        if (ImGui::DragFloat("Normal Bias", &(normalBias), 0.01f))
+        {
+          state->shadowParams[0].w = glm::max(normalBias, 0.0f);
+        }
+        float constBias = state->shadowParams[1].x;
+        if (ImGui::DragFloat("Constant Bias", &(constBias), 0.01f))
+        {
+          state->shadowParams[1].x = glm::max(constBias, 0.0f);
+        }
       }
 
       if (state->directionalSettings.x == 1)
       {
-        if (ImGui::DragFloat("Filter Radius", &(state->shadowParams.z), 0.01f))
+        if (ImGui::DragFloat("Filter Radius", &(state->shadowParams[0].z), 0.01f))
         {
-          state->shadowParams.z = glm::max(state->shadowParams.z, 0.0f);
+          state->shadowParams[0].z = glm::max(state->shadowParams[0].z, 0.0f);
         }
-        float bias = state->shadowParams.w;
-        ImGui::DragFloat("Shadow Bias", &(bias), 0.01f);
-        state->shadowParams.w = bias;
+        float normalBias = state->shadowParams[0].w;
+        if (ImGui::DragFloat("Normal Bias", &(normalBias), 0.01f))
+        {
+          state->shadowParams[0].w = glm::max(normalBias, 0.0f);
+        }
+        float constBias = state->shadowParams[1].x;
+        if (ImGui::DragFloat("Constant Bias", &(constBias), 0.01f))
+        {
+          state->shadowParams[1].x = glm::max(constBias, 0.0f);
+        }
       }
 
       if (state->directionalSettings.x == 2)
-        ImGui::DragFloat("Bleed Reduction", &(state->shadowParams.x), 0.01f, 0.0f, 0.9f);
+        ImGui::DragFloat("Bleed Reduction", &(state->shadowParams[0].x), 0.01f, 0.0f, 0.9f);
 
       if (state->directionalSettings.x == 3)
       {
-        if (ImGui::DragFloat("Light Size", &(state->shadowParams.y), 0.01f))
+        if (ImGui::DragFloat("Light Size", &(state->shadowParams[0].y), 0.01f))
         {
-          state->shadowParams.y = glm::max(state->shadowParams.y, 0.0f);
+          state->shadowParams[0].y = glm::max(state->shadowParams[0].y, 0.0f);
         }
-        if (ImGui::DragFloat("Minimum Radius", &(state->shadowParams.z), 0.01f))
+        if (ImGui::DragFloat("Minimum Radius", &(state->shadowParams[0].z), 0.01f))
         {
-          state->shadowParams.z = glm::max(state->shadowParams.z, 0.0f);
+          state->shadowParams[0].z = glm::max(state->shadowParams[0].z, 0.0f);
         }
-        float bias = state->shadowParams.w;
-        ImGui::DragFloat("Shadow Bias", &(bias), 0.01f);
-        state->shadowParams.w = bias;
+        float normalBias = state->shadowParams[0].w;
+        if (ImGui::DragFloat("Normal Bias", &(normalBias), 0.01f))
+        {
+          state->shadowParams[0].w = glm::max(normalBias, 0.0f);
+        }
+        float constBias = state->shadowParams[1].x;
+        if (ImGui::DragFloat("Constant Bias", &(constBias), 0.01f))
+        {
+          state->shadowParams[1].x = glm::max(constBias, 0.0f);
+        }
       }
 
       static bool showMaps = false;
@@ -187,9 +208,6 @@ namespace Strontium
     {
       auto bufferSize = storage->gBuffer.getSize();
       float ratio = bufferSize.x / bufferSize.y;
-      static int downMipView = 0;
-      static int upMipView = 0;
-      static int bufferMipView = 0;
 
       ImGui::Checkbox("Use Bloom", &state->enableBloom);
       ImGui::DragFloat("Threshold", &state->bloomThreshold, 0.01f, 0.0f, 10.0f);
@@ -203,24 +221,21 @@ namespace Strontium
       if (showBloomTextures)
       {
         ImGui::Text("Downsample Image Pyramid (%d, %d)",
-                    storage->downscaleBloomTex[downMipView].width,
-                    storage->downscaleBloomTex[downMipView].height);
-        ImGui::SliderInt("Mip##downSample", &downMipView, 0, MAX_NUM_BLOOM_MIPS - 1);
-        ImGui::Image((ImTextureID) (unsigned long) storage->downscaleBloomTex[downMipView].getID(),
+                    storage->downscaleBloomTex.width,
+                    storage->downscaleBloomTex.height);
+        ImGui::Image((ImTextureID) (unsigned long) storage->downscaleBloomTex.getID(),
                      ImVec2(128.0f * ratio, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
 
         ImGui::Text("Upsample Image Pyramid (%d, %d)",
-                    storage->upscaleBloomTex[upMipView].width,
-                    storage->upscaleBloomTex[upMipView].height);
-        ImGui::SliderInt("Mip##upSample", &upMipView, 0, MAX_NUM_BLOOM_MIPS - 1);
-        ImGui::Image((ImTextureID) (unsigned long) storage->upscaleBloomTex[upMipView].getID(),
+                    storage->upscaleBloomTex.width,
+                    storage->upscaleBloomTex.height);
+        ImGui::Image((ImTextureID) (unsigned long) storage->upscaleBloomTex.getID(),
                      ImVec2(128.0f * ratio, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
 
         ImGui::Text("Buffer Image Pyramid (%d, %d)",
-                    storage->bufferBloomTex[bufferMipView].width,
-                    storage->bufferBloomTex[bufferMipView].height);
-        ImGui::SliderInt("Mip##buffer", &bufferMipView, 0, MAX_NUM_BLOOM_MIPS - 2);
-        ImGui::Image((ImTextureID) (unsigned long) storage->bufferBloomTex[bufferMipView].getID(),
+                    storage->bufferBloomTex.width,
+                    storage->bufferBloomTex.height);
+        ImGui::Image((ImTextureID) (unsigned long) storage->bufferBloomTex.getID(),
                      ImVec2(128.0f * ratio, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
       }
     }

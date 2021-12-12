@@ -29,16 +29,16 @@ layout(std140, binding = 0) uniform CameraBlock
 {
   mat4 u_viewMatrix;
   mat4 u_projMatrix;
+  mat4 u_invViewProjMatrix;
   vec3 u_camPosition;
 };
 
+// The post processing properties.
 layout(std140, binding = 1) uniform PostProcessBlock
 {
-  mat4 u_invViewProj;
-  mat4 u_viewProj;
   vec4 u_camPosScreenSize; // Camera position (x, y, z) and the screen width (w).
   vec4 u_screenSizeGammaBloom;  // Screen height (x), gamma (y) and bloom intensity (z). w is unused.
-  ivec4 u_postProcessingPasses; // Tone mapping operator (x), using bloom (y), using FXAA (z) and using screenspace godrays (w).
+  ivec4 u_postProcessingPasses; // Tone mapping operator (x), using bloom (y), using FXAA (z) and using sunshafts (w).
 };
 
 // Directional light uniforms.
@@ -52,8 +52,9 @@ layout(std140, binding = 5) uniform DirectionalBlock
 layout(std140, binding = 7) uniform CascadedShadowBlock
 {
   mat4 u_lightVP[NUM_CASCADES];
-  float u_cascadeSplits[NUM_CASCADES];
-  vec4 u_shadowParams; // Light bleed reduction (x), light size for PCSS (y), minimum PCF radius (z) and the bias multiplier (w).
+  vec4 u_cascadeData[NUM_CASCADES]; // Cascade split distance (x). y, z and w are unused.
+  vec4 u_shadowParams1; // Light bleed reduction (x), light size for PCSS (y), minimum PCF radius (z) and the normal bias (w).
+  vec4 u_shadowParams2; // The constant bias (x). y, z and w are unused.
 };
 
 // Uniforms for the geometry buffer.
@@ -106,14 +107,14 @@ void main()
   float shadowFactor = 1.0;
   for (uint i = 0; i < NUM_CASCADES; i++)
   {
-    if (-clipSpacePos.z <= (u_cascadeSplits[i]))
+    if (-clipSpacePos.z <= (u_cascadeData[i].x))
     {
       // Interpolate between the current and the next cascade to smooth the
       // transition between shadows.
       shadowFactor = calcShadow(i, position, normal, light, u_directionalSettings.x);
 
-      float currentSplit = i == 0 ? 0.0 : u_cascadeSplits[i - 1];
-      float nextSplit = u_cascadeSplits[i];
+      float currentSplit = i == 0 ? 0.0 : u_cascadeData[i - 1].x;
+      float nextSplit = u_cascadeData[i].x;
       float splitDelta = nextSplit - currentSplit;
       float fadeFactor = (nextSplit + clipSpacePos.z) / splitDelta;
 
@@ -366,7 +367,7 @@ float computeChebyshevBound(float moment1, float moment2, float depth)
   float variance2 = moment2 - moment1 * moment1;
   float diff = depth - moment1;
   float diff2 = diff * diff;
-  float pMax = clamp((variance2 / (variance2 + diff2) - u_shadowParams.x) / (1.0 - u_shadowParams.x), 0.0, 1.0);
+  float pMax = clamp((variance2 / (variance2 + diff2) - u_shadowParams1.x) / (1.0 - u_shadowParams1.x), 0.0, 1.0);
 
   return moment1 < depth ? pMax : 1.0;
 }
@@ -440,19 +441,18 @@ float calcShadow(uint cascadeIndex, vec3 position, vec3 normal, vec3 lightDir,
   float depthRange = 0.0;
   if (cascadeIndex == 0)
   {
-    depthRange = u_cascadeSplits[cascadeIndex];
+    depthRange = u_cascadeData[cascadeIndex].x;
   }
   else
   {
-    depthRange = u_cascadeSplits[cascadeIndex] - u_cascadeSplits[cascadeIndex - 1];
+    depthRange = u_cascadeData[cascadeIndex].x - u_cascadeData[cascadeIndex - 1].x;
   }
 
-  float bias = u_shadowParams.w / 1000.0 * depthRange;
+  float bias = u_shadowParams2.x / 1000.0 * depthRange;
 
   float normalOffsetScale = clamp(1.0 - dot(normal, lightDir), 0.0, 1.0);
   normalOffsetScale /= textureSize(cascadeMaps[cascadeIndex], 0).x;
-  normalOffsetScale += u_shadowParams.w;
-  normalOffsetScale *= depthRange;
+  normalOffsetScale *= depthRange * u_shadowParams1.w;
 
   vec4 shadowOffset = vec4(position + normal * normalOffsetScale, 1.0);
   shadowOffset = u_lightVP[cascadeIndex] * shadowOffset;
@@ -468,8 +468,8 @@ float calcShadow(uint cascadeIndex, vec3 position, vec3 normal, vec3 lightDir,
   if (quality == 3)
   {
     shadowFactor = 0.0;
-    float radius = calcPCFKernelSize(cascadeMaps[cascadeIndex], projCoords, bias, u_shadowParams.y);
-    radius = max(radius, u_shadowParams.z);
+    float radius = calcPCFKernelSize(cascadeMaps[cascadeIndex], projCoords, bias, u_shadowParams1.y);
+    radius += u_shadowParams1.z;
     mat2 rotation = randomRotation();
     for (uint i = 0; i < PCF_SAMPLES; i++)
     {
@@ -496,14 +496,14 @@ float calcShadow(uint cascadeIndex, vec3 position, vec3 normal, vec3 lightDir,
   else if (quality == 1)
   {
     shadowFactor = 0.0;
-    float radius = u_shadowParams.z;
+    float radius = u_shadowParams1.z;
     mat2 rotation = randomRotation();
     for (uint i = 0; i < PCF_SAMPLES; i++)
     {
       vec2 disk = radius * samplePoissonDisk(i);
       disk = rotation * disk;
       shadowFactor += offsetLookup(cascadeMaps[cascadeIndex], projCoords.xy,
-                                   disk, projCoords.z);
+                                   disk, projCoords.z - bias);
     }
 
     shadowFactor /= float(PCF_SAMPLES);
@@ -512,7 +512,7 @@ float calcShadow(uint cascadeIndex, vec3 position, vec3 normal, vec3 lightDir,
   else if (quality == 0)
   {
     shadowFactor = offsetLookup(cascadeMaps[cascadeIndex], projCoords.xy, 0.0.xx,
-                                projCoords.z);
+                                projCoords.z - bias);
   }
 
   return shadowFactor;

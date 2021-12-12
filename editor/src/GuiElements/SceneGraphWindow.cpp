@@ -164,9 +164,11 @@ namespace Strontium
     , widgetWidth(0.0f)
     , selectedSubmesh(nullptr)
   {
-    auto cSpec = FBOCommands::getFloatColourSpec(FBOTargetParam::Colour0);
+    auto cSpec = Texture2D::getFloatColourParams();
+    auto attachment = FBOAttachment(FBOTargetParam::Colour0, FBOTextureParam::Texture2D,
+                                    cSpec.internal, cSpec.format, cSpec.dataType);
     this->dirBuffer = createShared<FrameBuffer>(512, 512);
-    this->dirBuffer->attachTexture2D(cSpec);
+    this->dirBuffer->attach(cSpec, attachment);
     this->dirBuffer->attachRenderBuffer();
     this->dirBuffer->setClearColour(glm::vec4(0.0f));
 
@@ -1076,26 +1078,62 @@ namespace Strontium
 
             if (ImGui::CollapsingHeader("Scattering Parameters##UE4Atmo"))
             {
+              Styles::drawFloatControl("Rayleigh Density", 8.0f, hillaireParams.rayleighScat.w, 
+                                       0.0f, 0.01f, 0.0f, 10.0f);
+
+              auto rayleighScattering = glm::vec3(hillaireParams.rayleighScat);
               Styles::drawVec3Controls("Rayleigh Scattering", glm::vec3(5.802f, 13.558f, 33.1f),
-                                       hillaireParams.rayleighScatteringBase, 0.0f, 0.1f,
+                                       rayleighScattering, 0.0f, 0.1f,
                                        0.0f, 100.0f);
-              Styles::drawFloatControl("Rayleigh Absorption", 0.0f,
-                                       hillaireParams.rayleighAbsorptionBase, 0.0f, 0.1f,
+              hillaireParams.rayleighScat.x = rayleighScattering.x;
+              hillaireParams.rayleighScat.y = rayleighScattering.y;
+              hillaireParams.rayleighScat.z = rayleighScattering.z;
+
+              auto rayleighAbsorption = glm::vec3(hillaireParams.rayleighAbs);
+              Styles::drawVec3Controls("Rayleigh Absorption", glm::vec3(0.0f),
+                                       rayleighAbsorption, 0.0f, 0.1f,
                                        0.0f, 100.0f);
-              Styles::drawFloatControl("Mie Scattering", 3.996f, hillaireParams.mieScatteringBase,
+              hillaireParams.rayleighAbs.x = rayleighAbsorption.x;
+              hillaireParams.rayleighAbs.y = rayleighAbsorption.y;
+              hillaireParams.rayleighAbs.z = rayleighAbsorption.z;
+              hillaireParams.rayleighAbs.w = hillaireParams.rayleighScat.w;
+
+              Styles::drawFloatControl("Mie Density", 1.2f, hillaireParams.mieScat.w, 
+                                       0.0f, 0.01f, 0.0f, 10.0f);
+
+              auto mieScat = glm::vec3(hillaireParams.mieScat);
+              Styles::drawVec3Controls("Mie Scattering", glm::vec3(3.996f), mieScat,
                                        0.0f, 0.1f, 0.0f, 100.0f);
-              Styles::drawFloatControl("Mie Absorption", 4.4f, hillaireParams.mieAbsorptionBase,
+              hillaireParams.mieScat.x = mieScat.x;
+              hillaireParams.mieScat.y = mieScat.y;
+              hillaireParams.mieScat.z = mieScat.z;
+
+              auto mieAbs = glm::vec3(hillaireParams.mieAbs);
+              Styles::drawVec3Controls("Mie Absorption", glm::vec3(4.4f), mieAbs,
                                        0.0f, 0.1f, 0.0f, 100.0f);
+              hillaireParams.mieAbs.x = mieAbs.x;
+              hillaireParams.mieAbs.y = mieAbs.y;
+              hillaireParams.mieAbs.z = mieAbs.z;
+              hillaireParams.mieAbs.w = hillaireParams.mieScat.w;
+
+              Styles::drawFloatControl("Ozone Strength", 0.002f, hillaireParams.ozoneAbs.w,
+                                       0.0f, 0.001f, 0.0f, 1.0f);
+
+              auto ozone = glm::vec3(hillaireParams.ozoneAbs);
               Styles::drawVec3Controls("Ozone Absorption", glm::vec3(0.650f, 1.881f, 0.085f),
-                                       hillaireParams.ozoneAbsorptionBase, 0.0f, 0.1f,
-                                       0.0f, 100.0f);
+                                       ozone, 0.0f, 0.1f,  0.0f, 100.0f);
+              hillaireParams.ozoneAbs.x = ozone.x;
+              hillaireParams.ozoneAbs.y = ozone.y;
+              hillaireParams.ozoneAbs.z = ozone.z;
             }
 
             if (ImGui::CollapsingHeader("Planetary Parameters##UE4Atmo"))
             {
-              float planetRadiusKM = hillaireParams.planetRadius * 1000.0f;
-              float atmosphereRadiusKM = hillaireParams.atmosphereRadius * 1000.0f;
-              glm::vec3 viewPosKM = hillaireParams.viewPos * 1000.0f;
+              float planetRadiusKM = hillaireParams.planetAlbedoRadius.w * 1000.0f;
+              float atmosphereRadiusKM = hillaireParams.sunDirAtmRadius.w * 1000.0f;
+              glm::vec3 viewPosKM = glm::vec3(hillaireParams.viewPos) * 1000.0f;
+              glm::vec3 planetAlbedo = glm::vec3(hillaireParams.planetAlbedoRadius);
+              ImGui::ColorEdit3("Planet Albedo", &planetAlbedo.x);
               Styles::drawFloatControl("Planet Radius (Km)",
                                        6360.0f, planetRadiusKM,
                                        0.0f, 1.0f, 0.0f, atmosphereRadiusKM);
@@ -1106,9 +1144,14 @@ namespace Strontium
                                        viewPosKM.y, 0.0f, 0.1f,
                                        planetRadiusKM,
                                        atmosphereRadiusKM);
-              hillaireParams.planetRadius = planetRadiusKM / 1000.0f;
-              hillaireParams.atmosphereRadius = atmosphereRadiusKM / 1000.0f;
-              hillaireParams.viewPos = viewPosKM / 1000.0f;
+              hillaireParams.planetAlbedoRadius.x = planetAlbedo.x;
+              hillaireParams.planetAlbedoRadius.y = planetAlbedo.y;
+              hillaireParams.planetAlbedoRadius.z = planetAlbedo.z;
+              hillaireParams.planetAlbedoRadius.w = planetRadiusKM / 1000.0f;
+              hillaireParams.sunDirAtmRadius.w = atmosphereRadiusKM / 1000.0f;
+              hillaireParams.viewPos.x = viewPosKM.x / 1000.0f;
+              hillaireParams.viewPos.y = viewPosKM.y / 1000.0f;
+              hillaireParams.viewPos.z = viewPosKM.z / 1000.0f;
             }
             ImGui::Unindent();
 

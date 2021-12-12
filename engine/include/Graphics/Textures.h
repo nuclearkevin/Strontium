@@ -80,7 +80,7 @@ namespace Strontium
     ReadWrite = 0x88BA // GL_READ_WRITE
   };
 
-  // Parameters for loading textures.
+  // Texture parameters.
   struct Texture2DParams
   {
     TextureWrapParams      sWrap;
@@ -159,6 +159,10 @@ namespace Strontium
     static Texture2D* loadTexture2D(const std::string &filepath, const Texture2DParams &params
                                     = Texture2DParams(), bool cache = true);
 
+    static Texture2DParams getDefaultColourParams();
+    static Texture2DParams getFloatColourParams();
+    static Texture2DParams getDefaultDepthParams();
+
     // The actual 2D texture class.
     Texture2D();
     Texture2D(const uint &width, const uint &height, const uint &n,
@@ -205,6 +209,53 @@ namespace Strontium
     uint textureID;
 
     std::string filepath;
+  };
+
+  class Texture2DArray
+  {
+  public:
+    Texture2DArray();
+    Texture2DArray(uint width, uint height, uint n, uint numLayers,
+                   const Texture2DParams &params = Texture2DParams());
+    ~Texture2DArray();
+
+    // Delete the copy constructor and the assignment operator. Prevents
+    // issues related to the underlying API.
+    Texture2DArray(const Texture2DArray&) = delete;
+    Texture2DArray& operator=(const Texture2DArray&) = delete;
+
+    uint width;
+    uint height;
+    uint n;
+    uint numLayers;
+    Texture2DParams params;
+
+    // Init the texture using given data and stored params.
+    void initNullTexture();
+
+    // Set the parameters after generating the texture.
+    void setSize(uint width, uint height, uint n, uint numLayers);
+    void setParams(const Texture2DParams& newParams);
+
+    // Generate mipmaps.
+    void generateMips();
+
+    // Clear the texture.
+    void clearTexture();
+
+    // Bind/unbind the texture.
+    void bind();
+    void bind(uint bindPoint);
+    void unbind();
+    void unbind(uint bindPoint);
+
+    // Bind the texture as an image unit.
+    void bindAsImage(uint bindPoint, uint miplevel, bool isLayered,
+                     uint layer, ImageAccessPolicy policy);
+
+    uint& getID() { return this->textureID; }
+  private:
+    uint textureID;
   };
 
   //----------------------------------------------------------------------------
