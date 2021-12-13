@@ -83,7 +83,7 @@ void main()
   float atmosphereRadiusMM = u_sunDirAtmRadius.w;
 
   vec3 sunDir = normalize(-u_sunDirAtmRadius.xyz);
-  vec3 viewPos = vec3(u_viewPos.wyz);
+  vec3 viewPos = vec3(u_viewPos.xyz);
 
   ivec2 invoke = ivec2(gl_GlobalInvocationID.xy);
   vec2 size = vec2(imageSize(skyviewImage).xy);
@@ -117,7 +117,6 @@ void main()
   float atmoDist = rayIntersectSphere(viewPos, rayDir, atmosphereRadiusMM);
   float groundDist = rayIntersectSphere(viewPos, rayDir, groundRadiusMM);
   float tMax = (groundDist < 0.0) ? atmoDist : groundDist;
-  bool ground = (groundDist < 0.0) ? false : true;
 
   vec3 lum = raymarchScattering(viewPos, rayDir, newSunDir, tMax, params,
                                 groundRadiusMM, atmosphereRadiusMM);

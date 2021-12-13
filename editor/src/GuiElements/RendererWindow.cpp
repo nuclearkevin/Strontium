@@ -221,20 +221,20 @@ namespace Strontium
       if (showBloomTextures)
       {
         ImGui::Text("Downsample Image Pyramid (%d, %d)",
-                    storage->downscaleBloomTex.width,
-                    storage->downscaleBloomTex.height);
+                    storage->downscaleBloomTex.getWidth(),
+                    storage->downscaleBloomTex.getHeight());
         ImGui::Image((ImTextureID) (unsigned long) storage->downscaleBloomTex.getID(),
                      ImVec2(128.0f * ratio, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
 
         ImGui::Text("Upsample Image Pyramid (%d, %d)",
-                    storage->upscaleBloomTex.width,
-                    storage->upscaleBloomTex.height);
+                    storage->upscaleBloomTex.getWidth(),
+                    storage->upscaleBloomTex.getHeight());
         ImGui::Image((ImTextureID) (unsigned long) storage->upscaleBloomTex.getID(),
                      ImVec2(128.0f * ratio, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
 
         ImGui::Text("Buffer Image Pyramid (%d, %d)",
-                    storage->bufferBloomTex.width,
-                    storage->bufferBloomTex.height);
+                    storage->bufferBloomTex.getWidth(),
+                    storage->bufferBloomTex.getHeight());
         ImGui::Image((ImTextureID) (unsigned long) storage->bufferBloomTex.getID(),
                      ImVec2(128.0f * ratio, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
       }

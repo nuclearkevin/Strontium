@@ -583,8 +583,8 @@ namespace Strontium
       for (uint i = 0; i < 5; i++)
       {
         // Compute the current mip levels.
-        uint mipWidth  = static_cast<uint>((static_cast<float>(specPrefilter.width[0]) * std::pow(0.5f, i)));
-        uint mipHeight = static_cast<uint>((static_cast<float>(specPrefilter.height[0]) * std::pow(0.5f, i)));
+        uint mipWidth  = static_cast<uint>((static_cast<float>(specPrefilter.getWidth(0)) * std::pow(0.5f, i)));
+        uint mipHeight = static_cast<uint>((static_cast<float>(specPrefilter.getHeight(0)) * std::pow(0.5f, i)));
         
         uint groupX = static_cast<uint>(glm::ceil(static_cast<float>(mipWidth) / 32.0f));
         uint groupY = static_cast<uint>(glm::ceil(static_cast<float>(mipHeight) / 32.0f));

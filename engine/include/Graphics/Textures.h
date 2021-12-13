@@ -127,6 +127,31 @@ namespace Strontium
     { };
   };
 
+  // Texture parameters.
+  struct Texture3DParams
+  {
+    TextureWrapParams      sWrap;
+    TextureWrapParams      tWrap;
+    TextureWrapParams      rWrap;
+    TextureMinFilterParams minFilter;
+    TextureMaxFilterParams maxFilter;
+
+    TextureInternalFormats internal;
+    TextureFormats         format;
+    TextureDataType        dataType;
+
+    Texture3DParams()
+      : sWrap(TextureWrapParams::Repeat)
+      , tWrap(TextureWrapParams::Repeat)
+      , rWrap(TextureWrapParams::Repeat)
+      , minFilter(TextureMinFilterParams::Linear)
+      , maxFilter(TextureMaxFilterParams::Linear)
+      , internal(TextureInternalFormats::RGBA)
+      , format(TextureFormats::RGBA)
+      , dataType(TextureDataType::Bytes)
+    { };
+  };
+
   struct ImageData2D
   {
     int width;
@@ -174,11 +199,6 @@ namespace Strontium
     Texture2D(const Texture2D&) = delete;
     Texture2D& operator=(const Texture2D&) = delete;
 
-    int width;
-    int height;
-    int n;
-    Texture2DParams params;
-
     // Init the texture using given data and stored params.
     void initNullTexture();
     void loadData(const float* data);
@@ -203,10 +223,19 @@ namespace Strontium
     // Bind the texture as an image unit.
     void bindAsImage(uint bindPoint, uint miplevel, ImageAccessPolicy policy);
 
+    int getWidth() { return this->width; }
+    int getHeight() { return this->height; }
+    int getN() { return this->n; }
+
     uint& getID() { return this->textureID; }
     std::string& getFilepath() { return this->filepath; }
   private:
     uint textureID;
+
+    int width;
+    int height;
+    int n;
+    Texture2DParams params;
 
     std::string filepath;
   };
@@ -223,12 +252,6 @@ namespace Strontium
     // issues related to the underlying API.
     Texture2DArray(const Texture2DArray&) = delete;
     Texture2DArray& operator=(const Texture2DArray&) = delete;
-
-    uint width;
-    uint height;
-    uint n;
-    uint numLayers;
-    Texture2DParams params;
 
     // Init the texture using given data and stored params.
     void initNullTexture();
@@ -256,6 +279,12 @@ namespace Strontium
     uint& getID() { return this->textureID; }
   private:
     uint textureID;
+
+    uint width;
+    uint height;
+    uint n;
+    uint numLayers;
+    Texture2DParams params;
   };
 
   //----------------------------------------------------------------------------
@@ -273,11 +302,6 @@ namespace Strontium
     // issues related to the underlying API.
     CubeMap(const CubeMap&) = delete;
     CubeMap& operator=(const CubeMap&) = delete;
-
-    int width[6];
-    int height[6];
-    int n[6];
-    TextureCubeMapParams params;
 
     // Init the texture using given data and stored params.
     void initNullTexture();
@@ -302,11 +326,68 @@ namespace Strontium
     void bindAsImage(uint bindPoint, uint miplevel, bool isLayered,
                      uint layer, ImageAccessPolicy policy);
 
+    int getWidth(uint face) { return this->width[face]; }
+    int getHeight(uint face) { return this->height[face]; }
+    int getN(uint face) { return this->n[face]; }
+
     uint& getID() { return this->textureID; }
     std::string& getFilepath() { return this->filepath; }
   private:
     uint textureID;
 
+    int width[6];
+    int height[6];
+    int n[6];
+    TextureCubeMapParams params;
+
     std::string filepath;
+  };
+
+  class Texture3D
+  {
+  public:
+    Texture3D();
+    Texture3D(uint width, uint height, uint depth, uint n, 
+              const Texture3DParams &params = Texture3DParams());
+    ~Texture3D();
+
+    // Delete the copy constructor and the assignment operator. Prevents
+    // issues related to the underlying API.
+    Texture3D(const Texture3D&) = delete;
+    Texture3D& operator=(const Texture3D&) = delete;
+    
+    // Init the texture using given data and stored params.
+    void initNullTexture();
+
+    // Generate mipmaps.
+    void generateMips();
+
+    // Clear the texture.
+    void clearTexture();
+
+    // Set the parameters after generating the texture.
+    void setSize(uint width, uint height, uint depth, uint n);
+    void setParams(const Texture3DParams& newParams);
+
+    // Bind/unbind the texture.
+    void bind();
+    void bind(uint bindPoint);
+    void unbind();
+    void unbind(uint bindPoint);
+
+    // Bind the texture as an image unit.
+    void bindAsImage(uint bindPoint, uint miplevel, bool isLayered,
+                     uint layer, ImageAccessPolicy policy);
+
+    uint& getID() { return this->textureID; }
+  private:
+    uint textureID;
+
+    int width;
+    int height;
+    int depth;
+    int n;
+
+    Texture3DParams params;
   };
 }

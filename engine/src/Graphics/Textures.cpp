@@ -816,4 +816,130 @@ namespace Strontium
                        static_cast<GLenum>(policy),
                        static_cast<GLenum>(this->params.internal));
   }
+
+  Texture3D::Texture3D()
+    : width(0)
+    , height(0)
+    , depth(0)
+    , n(4)
+    , params()
+  {
+    glGenTextures(1, &this->textureID);
+  }
+
+  Texture3D::Texture3D(uint width, uint height, uint depth, uint n,
+                       const Texture3DParams& params)
+    : width(0)
+    , height(0)
+    , depth(0)
+    , n(4)
+    , params(params)
+  {
+    glGenTextures(1, &this->textureID);
+    glBindTexture(GL_TEXTURE_3D, this->textureID);
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S,
+        static_cast<GLint>(params.sWrap));
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T,
+        static_cast<GLint>(params.tWrap));
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R,
+        static_cast<GLint>(params.rWrap));
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER,
+        static_cast<GLint>(params.minFilter));
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER,
+        static_cast<GLint>(params.maxFilter));
+    glBindTexture(GL_TEXTURE_3D, 0);
+  }
+
+  Texture3D::~Texture3D()
+  {
+    glDeleteTextures(1, &this->textureID);
+  }
+
+  // Init the texture using given data and stored params.
+  void 
+  Texture3D::initNullTexture()
+  {
+    glBindTexture(GL_TEXTURE_3D, this->textureID);
+    glTexStorage3D(GL_TEXTURE_3D, 0, static_cast<GLenum>(this->params.internal),
+                   this->width, this->height, this->depth);
+    glBindTexture(GL_TEXTURE_3D, 0);
+  }
+
+  // TODO: Generate mipmaps.
+  void 
+  Texture3D::generateMips()
+  {
+  }
+
+  // TODO: Clear the texture.
+  void 
+  Texture3D::clearTexture()
+  {
+  }
+
+  // Set the parameters after generating the texture.
+  void 
+  Texture3D::setSize(uint width, uint height, uint depth, uint n)
+  {
+    this->width = width;
+    this->height = height;
+    this->depth = depth;
+    this->n = n;
+  }
+
+  void 
+  Texture3D::setParams(const Texture3DParams& newParams)
+  {
+    glBindTexture(GL_TEXTURE_3D, this->textureID);
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S,
+        static_cast<GLint>(newParams.sWrap));
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T,
+        static_cast<GLint>(newParams.tWrap));
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R,
+        static_cast<GLint>(newParams.rWrap));
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER,
+        static_cast<GLint>(newParams.minFilter));
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER,
+        static_cast<GLint>(newParams.maxFilter));
+    glBindTexture(GL_TEXTURE_3D, 0);
+    this->params = newParams;
+  }
+
+  // Bind/unbind the texture.
+  void 
+  Texture3D::bind()
+  {
+    glBindTexture(GL_TEXTURE_3D, this->textureID);
+  }
+
+  void 
+  Texture3D::bind(uint bindPoint)
+  {
+    glActiveTexture(GL_TEXTURE0 + bindPoint);
+    glBindTexture(GL_TEXTURE_3D, this->textureID);
+  }
+
+  void 
+  Texture3D::unbind()
+  {
+    glBindTexture(GL_TEXTURE_3D, 0);
+  }
+
+  void 
+  Texture3D::unbind(uint bindPoint)
+  {
+    glActiveTexture(GL_TEXTURE0 + bindPoint);
+    glBindTexture(GL_TEXTURE_3D, 0);
+  }
+
+  // Bind the texture as an image unit.
+  void 
+  Texture3D::bindAsImage(uint bindPoint, uint miplevel, bool isLayered,
+                         uint layer, ImageAccessPolicy policy)
+  {
+    glBindImageTexture(bindPoint, this->textureID, miplevel,
+                       static_cast<GLenum>(isLayered), layer,
+                       static_cast<GLenum>(policy),
+                       static_cast<GLenum>(this->params.internal));
+  }
 }

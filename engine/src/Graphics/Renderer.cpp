@@ -805,8 +805,8 @@ namespace Strontium
                                                       &(state->mieAbsDensity.x));   
 
             storage->halfResBuffer1.bindAsImage(0, 0, ImageAccessPolicy::Write);
-            uint iWidth = (uint) glm::ceil(storage->downsampleLightshaft.width / 32.0f);
-            uint iHeight = (uint) glm::ceil(storage->downsampleLightshaft.height / 32.0f);
+            uint iWidth = (uint) glm::ceil(storage->downsampleLightshaft.getWidth() / 32.0f);
+            uint iHeight = (uint) glm::ceil(storage->downsampleLightshaft.getHeight() / 32.0f);
             ShaderCache::getShader("screen_space_godrays")->launchCompute(iWidth, iHeight, 1);
             Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
 
@@ -905,8 +905,8 @@ namespace Strontium
         storage->lightingPass.bindTextureIDAsImage(FBOTargetParam::Colour0, 0, 0, 
                                                    false, 0, ImageAccessPolicy::Read);
         storage->downscaleBloomTex.bindAsImage(1, 0, ImageAccessPolicy::Write);
-        glm::ivec3 invoke = glm::ivec3(glm::ceil(((float) storage->downscaleBloomTex.width) / 32.0f),
-                                       glm::ceil(((float) storage->downscaleBloomTex.height) / 32.0f),
+        glm::ivec3 invoke = glm::ivec3(glm::ceil(((float) storage->downscaleBloomTex.getWidth()) / 32.0f),
+                                       glm::ceil(((float) storage->downscaleBloomTex.getHeight()) / 32.0f),
                                        1);
         ShaderCache::getShader("bloom_prefilter")->launchCompute(invoke.x, invoke.y, invoke.z);
         Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
@@ -917,8 +917,8 @@ namespace Strontium
         {
           storage->downscaleBloomTex.bindAsImage(0, i - 1, ImageAccessPolicy::Read);
           storage->downscaleBloomTex.bindAsImage(1, i, ImageAccessPolicy::Write);
-          invoke = glm::ivec3(glm::ceil(((float) storage->downscaleBloomTex.width) / (powerOfTwo * 32.0f)),
-                              glm::ceil(((float) storage->downscaleBloomTex.height) / (powerOfTwo * 32.0f)),
+          invoke = glm::ivec3(glm::ceil(((float) storage->downscaleBloomTex.getWidth()) / (powerOfTwo * 32.0f)),
+                              glm::ceil(((float) storage->downscaleBloomTex.getHeight()) / (powerOfTwo * 32.0f)),
                               1);
           downsample->launchCompute(invoke.x, invoke.y, invoke.z);
           Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
@@ -931,8 +931,8 @@ namespace Strontium
         {
           storage->downscaleBloomTex.bindAsImage(0, i, ImageAccessPolicy::Read);
           storage->bufferBloomTex.bindAsImage(1, i, ImageAccessPolicy::Write);
-          invoke = glm::ivec3(glm::ceil(((float) storage->bufferBloomTex.width) / (powerOfTwo * 32.0f)),
-                              glm::ceil(((float) storage->bufferBloomTex.height) / (powerOfTwo * 32.0f)),
+          invoke = glm::ivec3(glm::ceil(((float) storage->bufferBloomTex.getWidth()) / (powerOfTwo * 32.0f)),
+                              glm::ceil(((float) storage->bufferBloomTex.getHeight()) / (powerOfTwo * 32.0f)),
                               1);
           upsample->launchCompute(invoke.x, invoke.y, invoke.z);
           Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
@@ -944,8 +944,8 @@ namespace Strontium
         powerOfTwo = std::pow(2.0, static_cast<float>(MAX_NUM_BLOOM_MIPS - 1));
         storage->downscaleBloomTex.bindAsImage(0, MAX_NUM_BLOOM_MIPS - 1, ImageAccessPolicy::Read);
         storage->upscaleBloomTex.bindAsImage(1, MAX_NUM_BLOOM_MIPS - 1, ImageAccessPolicy::Write);
-        invoke = glm::ivec3(glm::ceil(((float) storage->bufferBloomTex.width) / (powerOfTwo * 32.0f)),
-                            glm::ceil(((float) storage->bufferBloomTex.height) / (powerOfTwo * 32.0f)),
+        invoke = glm::ivec3(glm::ceil(((float) storage->bufferBloomTex.getWidth()) / (powerOfTwo * 32.0f)),
+                            glm::ceil(((float) storage->bufferBloomTex.getHeight()) / (powerOfTwo * 32.0f)),
                             1);
         upsample->launchCompute(invoke.x, invoke.y, invoke.z);
         Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
@@ -957,8 +957,8 @@ namespace Strontium
           storage->upscaleBloomTex.bindAsImage(0, i, ImageAccessPolicy::Read);
           storage->bufferBloomTex.bindAsImage(1, i - 1, ImageAccessPolicy::Read);
           storage->upscaleBloomTex.bindAsImage(2, i - 1, ImageAccessPolicy::Write);
-          invoke = glm::ivec3(glm::ceil(((float) storage->upscaleBloomTex.width) / (powerOfTwo * 32.0f)),
-                              glm::ceil(((float) storage->upscaleBloomTex.height) / (powerOfTwo * 32.0f)),
+          invoke = glm::ivec3(glm::ceil(((float) storage->upscaleBloomTex.getWidth()) / (powerOfTwo * 32.0f)),
+                              glm::ceil(((float) storage->upscaleBloomTex.getHeight()) / (powerOfTwo * 32.0f)),
                               1);
           upsampleBlend->launchCompute(invoke.x, invoke.y, invoke.z);
           Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);

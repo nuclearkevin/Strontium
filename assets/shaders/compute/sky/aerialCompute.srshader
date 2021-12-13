@@ -7,7 +7,7 @@
 */
 
 #define PI 3.141592654
-
+#define PLANET_RADIUS_OFFSET 0.01
 #define NUM_STEPS 32
 
 layout(local_size_x = 32, local_size_y = 32) in;
@@ -73,13 +73,62 @@ float rayIntersectSphere(vec3 ro, vec3 rd, float rad)
 }
 
 // Raymarch to compute the scattering integral.
-vec3 raymarchScattering(vec3 pos, vec3 rayDir, vec3 sunDir, float tMax,
+vec4 raymarchScattering(vec3 pos, vec3 rayDir, vec3 sunDir, float tMax,
                         ScatteringParams params, float groundRadiusMM,
                         float atmoRadiusMM);
 
 void main()
 {
-  
+  ivec3 invoke = ivec3(gl_GlobalInvocationID.xyz);
+
+  vec3 tex = vec3(imageSize(aerialLUT).xyz);
+  vec3 texelSize = 1.0.xxx / tex;
+
+  ScatteringParams params;
+  params.rayleighScat = u_rayleighScat;
+  params.rayleighAbs = u_rayleighAbs;
+  params.mieScat = u_mieScat;
+  params.mieAbs = u_mieAbs;
+  params.ozoneAbs = u_ozoneAbs;
+
+  float groundRadiusMM = u_planetAlbedoRadius.w;
+  float atmosphereRadiusMM = u_sunDirAtmRadius.w;
+
+  vec3 sunDir = normalize(-u_sunDirAtmRadius.xyz);
+  vec3 viewPos = vec3(u_viewPos.xyz);
+
+  // Compute the center of the voxel in worldspace (relative to the planet).
+  // TODO: Compact more voxels close to the near plane.
+  vec3 uvw = (vec3(invoke) + 0.5.xxx) * texelSize; // Voxel centers.
+  vec3 clipSpace = 2.0.xxx * uvw - 1.0.xxx;
+  vec4 temp = u_invViewProjMatrix * vec4(clipSpace, 1.0);
+  vec3 worldSpaceCenter = temp.xyz / temp.w;
+
+  // Offset the voxel center and camera position by the planet radius. Assumes
+  // the planet is centered on 0.0, 0.0, 0.0.
+  vec3 planetSpaceCenter = worldSpaceCenter + (normalize(worldSpaceCenter) * viewPos.y);
+  vec3 planetSpaceCameraPos = u_camPosition + (normalize(u_camPosition) * viewPos.y);
+
+  // The ray direction.
+  vec3 rayDir = normalize(planetSpaceCenter - planetSpaceCameraPos);
+
+  // Offset the voxel center if its in the ground.
+  float viewHeight = length(planetSpaceCenter);
+  if (viewHeight < groundRadiusMM + PLANET_RADIUS_OFFSET)
+  {
+    planetSpaceCenter = normalize(planetSpaceCenter) * (groundRadiusMM + PLANET_RADIUS_OFFSET + 0.001);
+    rayDir = normalize(planetSpaceCenter - planetSpaceCameraPos);
+  }
+
+  // Compute the maximum value of the ray parameter t.
+  // TODO: Add in the depth buffer to intersect geometry.
+  float atmoDist = rayIntersectSphere(planetSpaceCenter, rayDir, atmosphereRadiusMM);
+  float groundDist = rayIntersectSphere(planetSpaceCenter, rayDir, groundRadiusMM);
+  float tMax = (groundDist < 0.0) ? atmoDist : groundDist;
+
+  vec4 result = raymarchScattering(planetSpaceCenter, rayDir, sunDir, tMax, params,
+                                   groundRadiusMM, atmosphereRadiusMM);
+  imageStore(aerialLUT, invoke, result);
 }
 
 vec3 getValFromLUT(sampler2D tex, vec3 pos, vec3 sunDir,
@@ -147,7 +196,8 @@ float getRayleighPhase(float cosTheta)
   return k * (1.0 + cosTheta * cosTheta);
 }
 
-vec3 raymarchScattering(vec3 pos, vec3 rayDir, vec3 sunDir, float tMax,
+// TODO: Add in global CSM for volumetric shadows.
+vec4 raymarchScattering(vec3 pos, vec3 rayDir, vec3 sunDir, float tMax,
                         ScatteringParams params, float groundRadiusMM,
                         float atmoRadiusMM)
 {
@@ -191,5 +241,5 @@ vec3 raymarchScattering(vec3 pos, vec3 rayDir, vec3 sunDir, float tMax,
     transmittance *= sampleTransmittance;
   }
 
-  return lum;
+  return vec4(lum, dot(transmittance, vec3(1.0 / 3.0)));
 }
