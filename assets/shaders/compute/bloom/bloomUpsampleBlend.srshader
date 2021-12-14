@@ -14,7 +14,7 @@ layout(rgba16f, binding = 0) readonly uniform image2D previousUpscaleImage;
 layout(rgba16f, binding = 1) readonly uniform image2D currentDownscaleImage;
 
 // The next mip in the upsampling mip chain.
-layout(rgba16f, binding = 2) writeonly uniform image2D nextUpscaleImage;
+layout(rgba16f, binding = 2) restrict writeonly uniform image2D nextUpscaleImage;
 
 layout(std140, binding = 3) buffer PrefilterParams
 {

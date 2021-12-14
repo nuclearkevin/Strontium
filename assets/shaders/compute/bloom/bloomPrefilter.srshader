@@ -10,7 +10,7 @@ layout(local_size_x = 32, local_size_y = 32) in;
 layout(rgba16f, binding = 0) readonly uniform image2D lightingPassImage;
 
 // The prefiltered output image, ready for downsampling.
-layout(rgba16f, binding = 1) writeonly uniform image2D prefilteredImage;
+layout(rgba16f, binding = 1) restrict writeonly uniform image2D prefilteredImage;
 
 // The knee and threshold.
 layout(std140, binding = 3) buffer PrefilterParams

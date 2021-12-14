@@ -317,7 +317,7 @@ namespace Strontium
 
         this->transmittanceLUT.bind(2);
         this->multiScatLUT.bindAsImage(0, 0, ImageAccessPolicy::Write);
-        ShaderCache::getShader("hillaire_multiscat")->launchCompute(32 / 32, 32 / 32, 1);
+        ShaderCache::getShader("hillaire_multiscat")->launchCompute(32, 32, 1);
         Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
 
         this->transmittanceLUT.bind(2);

@@ -985,6 +985,7 @@ namespace Strontium
         auto bloomSettings = rendererSettings["BloomSettings"];
         if (bloomSettings)
         {
+          state->enableBloom = bloomSettings["EnableBloom"].as<bool>();
           state->bloomThreshold = bloomSettings["Threshold"].as<float>();
           state->bloomKnee = bloomSettings["Knee"].as<float>();
           state->bloomIntensity = bloomSettings["Intensity"].as<float>();
