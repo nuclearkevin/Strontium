@@ -157,12 +157,14 @@ namespace Strontium
     void bind(const MapType &type);
     void bind(const MapType &type, uint bindPoint);
     void bindBRDFLUT(uint bindPoint);
+    void bindAerialPerspectiveLUT(uint bindPoint);
 
     // Draw the skybox.
     void configure();
 
     // Update the dynamic sky.
     void updateDynamicSky();
+    void updateAerialPerspective(UniformBuffer &cameraBuffer);
 
     // Set the environment map to constantly update the diffuse irradiance
     // and specular prefilter cubemaps. Forces the resolution of the diffuse 
@@ -222,6 +224,7 @@ namespace Strontium
     Texture2D transmittanceLUT;
     Texture2D multiScatLUT;
     Texture2D skyViewLUT;
+    Texture3D aerialPerspectiveLUT;
 
     UniformBuffer skyboxParamBuffer;
     ShaderStorageBuffer preethamParams;

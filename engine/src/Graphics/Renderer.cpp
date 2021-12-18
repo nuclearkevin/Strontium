@@ -304,6 +304,8 @@ namespace Strontium
       storage->camBuffer.setData(sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(storage->sceneCam.projection));
       storage->camBuffer.setData(2 * sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(storage->sceneCam.invViewProj));
       storage->camBuffer.setData(3 * sizeof(glm::mat4), sizeof(glm::vec3), &(storage->sceneCam.position.x));
+      auto nearFar = glm::vec2(storage->sceneCam.near, storage->sceneCam.far);
+      storage->camBuffer.setData(3 * sizeof(glm::mat4) + sizeof(glm::vec4), sizeof(glm::vec2), &(nearFar.x));
 
       // Start the geometry pass.
       storage->gBuffer.beginGeoPass();
@@ -704,6 +706,7 @@ namespace Strontium
     void
     lightingPass()
     {
+      storage->currentEnvironment->updateAerialPerspective(storage->camBuffer);
       auto start = std::chrono::steady_clock::now();
 
       RendererCommands::disable(RendererFunction::DepthTest);
@@ -860,6 +863,21 @@ namespace Strontium
       // Spot lighting subpass.
       //------------------------------------------------------------------------
       storage->spotQueue.clear();
+
+      //------------------------------------------------------------------------
+      // Apply the aerial perspective texture if the current skybox permits.
+      //------------------------------------------------------------------------
+      if (storage->currentEnvironment->getDynamicSkyType() == DynamicSkyType::Hillaire
+          && storage->currentEnvironment->getDrawingType() == MapType::DynamicSky)
+      {
+        storage->currentEnvironment->configure();
+        storage->blankVAO.bind();
+        storage->gBuffer.bindAttachment(FBOTargetParam::Depth, 1);
+        storage->currentEnvironment->bindAerialPerspectiveLUT(7);
+        ShaderCache::getShader("apply_aerial_perspective")->bind();
+        RendererCommands::drawArrays(PrimativeType::Triangle, 0, 3);
+      }
+
       RendererCommands::disable(RendererFunction::Blending);
 
       //------------------------------------------------------------------------

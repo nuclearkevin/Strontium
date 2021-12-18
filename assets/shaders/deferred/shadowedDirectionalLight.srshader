@@ -31,6 +31,7 @@ layout(std140, binding = 0) uniform CameraBlock
   mat4 u_projMatrix;
   mat4 u_invViewProjMatrix;
   vec3 u_camPosition;
+  vec4 u_nearFar; // Near plane (x), far plane (y). z and w are unused.
 };
 
 // The post processing properties.
@@ -247,12 +248,12 @@ vec3 filamentBRDF(vec3 l, vec3 v, vec3 n, float roughness, float metallic,
   vec3 energyMetallic = 1.0.xxx + metallicF0 * (1.0.xxx / dfg.y - 1.0.xxx);
 
   vec3 fs = fsCookTorrance(nDotH, lDotH, nDotV, nDotL, vDotH, actualRoughness, dielectricF0, f90);
-  fs *= energyDielectric;
+  //fs *= energyDielectric;
   vec3 fd = fdLambertCorrected(dielectricF0, f90, vDotH, lDotH, diffuseAlbedo);
   vec3 dielectricBRDF = fs + fd;
 
   vec3 metallicBRDF = fsCookTorrance(nDotH, lDotH, nDotV, nDotL, vDotH, actualRoughness, metallicF0, f90);
-  metallicBRDF *= energyMetallic;
+  //metallicBRDF *= energyMetallic;
 
   return mix(dielectricBRDF, metallicBRDF, metallic);
 }

@@ -48,31 +48,31 @@ namespace Strontium
   { 
     // Compute the BRDF LUT.
     {
-        Logger* logs = Logger::getInstance();
-        auto start = std::chrono::steady_clock::now();
+      Logger* logs = Logger::getInstance();
+      auto start = std::chrono::steady_clock::now();
 
-        Texture2DParams params = Texture2DParams();
-        params.sWrap = TextureWrapParams::ClampEdges;
-        params.tWrap = TextureWrapParams::ClampEdges;
-        params.internal = TextureInternalFormats::RG16f;
-        params.dataType = TextureDataType::Floats;
+      Texture2DParams params = Texture2DParams();
+      params.sWrap = TextureWrapParams::ClampEdges;
+      params.tWrap = TextureWrapParams::ClampEdges;
+      params.internal = TextureInternalFormats::RG16f;
+      params.dataType = TextureDataType::Floats;
 
-        this->brdfIntLUT.setSize(32, 32, 2);
-        this->brdfIntLUT.setParams(params);
-        this->brdfIntLUT.initNullTexture();
+      this->brdfIntLUT.setSize(32, 32, 2);
+      this->brdfIntLUT.setParams(params);
+      this->brdfIntLUT.initNullTexture();
 
-        // Bind the integration map for writing to by the compute shader.
-        this->brdfIntLUT.bindAsImage(3, 0, ImageAccessPolicy::Write);
+      // Bind the integration map for writing to by the compute shader.
+      this->brdfIntLUT.bindAsImage(3, 0, ImageAccessPolicy::Write);
 
-        // Launch the compute shader.
-        ShaderCache::getShader("split_sums_brdf")->launchCompute(32 / 32, 32 / 32, 1);
+      // Launch the compute shader.
+      ShaderCache::getShader("split_sums_brdf")->launchCompute(32 / 32, 32 / 32, 1);
 
-        auto end = std::chrono::steady_clock::now();
-        std::chrono::duration<double> elapsed = end - start;
+      auto end = std::chrono::steady_clock::now();
+      std::chrono::duration<double> elapsed = end - start;
 
-        logs->logMessage(LogMessage("Generated BRDF lookup texture (elapsed time: "
-            + std::to_string(elapsed.count()) + " s).", true,
-            true));
+      logs->logMessage(LogMessage("Generated BRDF lookup texture (elapsed time: "
+          + std::to_string(elapsed.count()) + " s).", true,
+          true));
     }
 
     // The dynamic sky model LUT.
@@ -99,6 +99,17 @@ namespace Strontium
     this->skyViewLUT.setParams(params);
     this->skyViewLUT.initNullTexture();
     this->skyViewLUT.generateMips();
+
+    // The aerial perspective LUT.
+    auto params3D = Texture3DParams();
+    params3D.internal = TextureInternalFormats::RGBA16f;
+    params3D.dataType = TextureDataType::Floats;
+    params3D.sWrap = TextureWrapParams::ClampEdges;
+    params3D.tWrap = TextureWrapParams::ClampEdges;
+    params3D.rWrap = TextureWrapParams::ClampEdges;
+    this->aerialPerspectiveLUT.setSize(32, 32, 32, 4);
+    this->aerialPerspectiveLUT.setParams(params3D);
+    this->aerialPerspectiveLUT.initNullTexture();
 
     // Prepare parameters for dynamic sky models.
     this->dynamicSkyParams.emplace(DynamicSkyType::Preetham, new PreethamSkyParams());
@@ -200,6 +211,12 @@ namespace Strontium
   EnvironmentMap::bindBRDFLUT(uint bindPoint)
   {
     this->brdfIntLUT.bind(bindPoint);
+  }
+
+  void 
+  EnvironmentMap::bindAerialPerspectiveLUT(uint bindPoint) 
+  {
+    this->aerialPerspectiveLUT.bind(bindPoint);
   }
 
   // Draw the skybox.
@@ -329,6 +346,28 @@ namespace Strontium
     }
 
     this->skyViewLUT.generateMips();
+  }
+
+  void 
+  EnvironmentMap::updateAerialPerspective(UniformBuffer& cameraBuffer)
+  {
+    if (this->currentDynamicSky == DynamicSkyType::Hillaire
+        && this->currentEnvironment == MapType::DynamicSky)
+    {
+      cameraBuffer.bindToPoint(0);
+      
+      auto& hillaireSkyParams = this->getSkyParams<HillaireSkyParams>(DynamicSkyType::Hillaire);
+      this->hillaireParams.bindToPoint(1);
+      this->hillaireParams.setData(0, 8 * sizeof(glm::vec4), &(hillaireSkyParams.rayleighScat.x));
+      this->hillaireParams.setData(6 * sizeof(glm::vec4), sizeof(glm::vec3), &(hillaireSkyParams.sunPos.x));
+
+      this->transmittanceLUT.bind(2);
+      this->multiScatLUT.bind(3);
+
+      this->aerialPerspectiveLUT.bindAsImage(0, 0, true, 0, ImageAccessPolicy::Write);
+      ShaderCache::getShader("hillaire_aerial")->launchCompute(1, 1, 32);
+      Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
+    }
   }
 
   void 

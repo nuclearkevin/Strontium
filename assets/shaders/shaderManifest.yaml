@@ -50,6 +50,8 @@ ShaderCache:
     Filepath: ./assets/shaders/compute/ibl/specSkyIBL.srshader
   - Handle: split_sums_brdf
     Filepath: ./assets/shaders/compute/ibl/integrateBRDF.srshader
+  - Handle: apply_aerial_perspective
+    Filepath: ./assets/shaders/deferred/applyAerialPerspective.srshader
     #
     # Lighting
     #

@@ -860,8 +860,10 @@ namespace Strontium
   Texture3D::initNullTexture()
   {
     glBindTexture(GL_TEXTURE_3D, this->textureID);
-    glTexStorage3D(GL_TEXTURE_3D, 0, static_cast<GLenum>(this->params.internal),
-                   this->width, this->height, this->depth);
+    glTexImage3D(GL_TEXTURE_3D, 0, static_cast<GLenum>(this->params.internal),
+                   this->width, this->height, this->depth, 0, 
+                   static_cast<GLenum>(this->params.format), 
+                   static_cast<GLenum>(this->params.dataType), nullptr);
     glBindTexture(GL_TEXTURE_3D, 0);
   }
 

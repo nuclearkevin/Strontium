@@ -107,7 +107,7 @@ namespace Strontium
 
       RendererStorage()
         : blankVAO()
-        , camBuffer(3 * sizeof(glm::mat4) + sizeof(glm::vec3), BufferType::Dynamic)
+        , camBuffer(3 * sizeof(glm::mat4) + 2 * sizeof(glm::vec4), BufferType::Dynamic)
         , transformBuffer(sizeof(glm::mat4), BufferType::Dynamic)
         , editorBuffer(sizeof(glm::vec4), BufferType::Dynamic)
         , ambientPassBuffer(sizeof(glm::vec4), BufferType::Dynamic)
