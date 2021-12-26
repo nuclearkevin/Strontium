@@ -8,7 +8,7 @@
 
 #define PI 3.141592654
 
-layout(local_size_x = 32, local_size_y = 32) in;
+layout(local_size_x = 8, local_size_y = 8) in;
 
 // The output BRDF integration LUT.
 layout(rg16f, binding = 3) writeonly uniform image2D brdfIntMap;
@@ -31,8 +31,8 @@ void main()
 
   vec2 size = vec2(imageSize(brdfIntMap).xy);
 
-  float NdotV = float(invoke.x) / size.x;
-  float roughness = float(invoke.y) / size.y;
+  float NdotV = (float(invoke.x) + 0.5) / size.x;
+  float roughness = (float(invoke.y) + 0.5) / size.y;
 
   vec3 V;
   V.x = sqrt(1.0 - NdotV * NdotV);

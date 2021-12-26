@@ -65,7 +65,7 @@ namespace Strontium
       this->brdfIntLUT.bindAsImage(3, 0, ImageAccessPolicy::Write);
 
       // Launch the compute shader.
-      ShaderCache::getShader("split_sums_brdf")->launchCompute(32 / 32, 32 / 32, 1);
+      ShaderCache::getShader("split_sums_brdf")->launchCompute(32 / 8, 32 / 8, 1);
 
       auto end = std::chrono::steady_clock::now();
       std::chrono::duration<double> elapsed = end - start;
@@ -312,7 +312,7 @@ namespace Strontium
 
         this->skyViewLUT.bindAsImage(0, 0, ImageAccessPolicy::Write);
 
-        ShaderCache::getShader("preetham_lut")->launchCompute(256 / 32, 128 / 32, 1);
+        ShaderCache::getShader("preetham_lut")->launchCompute(256 / 8, 128 / 8, 1);
         Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
 
         break;
@@ -329,7 +329,7 @@ namespace Strontium
         this->hillaireParams.setData(6 * sizeof(glm::vec4), sizeof(glm::vec3), &(hillaireSkyParams.sunPos.x));
 
         this->transmittanceLUT.bindAsImage(0, 0, ImageAccessPolicy::Write);
-        ShaderCache::getShader("hillaire_transmittance")->launchCompute(256 / 32, 64 / 32, 1);
+        ShaderCache::getShader("hillaire_transmittance")->launchCompute(256 / 8, 64 / 8, 1);
         Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
 
         this->transmittanceLUT.bind(2);
@@ -340,7 +340,7 @@ namespace Strontium
         this->transmittanceLUT.bind(2);
         this->multiScatLUT.bind(3);
         this->skyViewLUT.bindAsImage(0, 0, ImageAccessPolicy::Write);
-        ShaderCache::getShader("hillaire_skyview")->launchCompute(256 / 32, 128 / 32, 1);
+        ShaderCache::getShader("hillaire_skyview")->launchCompute(256 / 8, 128 / 8, 1);
         Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
       }
     }
@@ -365,7 +365,7 @@ namespace Strontium
       this->multiScatLUT.bind(3);
 
       this->aerialPerspectiveLUT.bindAsImage(0, 0, true, 0, ImageAccessPolicy::Write);
-      ShaderCache::getShader("hillaire_aerial")->launchCompute(1, 1, 32);
+      ShaderCache::getShader("hillaire_aerial")->launchCompute(4, 4, 4);
       Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
     }
   }
@@ -464,7 +464,7 @@ namespace Strontium
       this->skybox.bindAsImage(1, 0, true, 0, ImageAccessPolicy::ReadWrite);
 
       // Launch the compute shader.
-      ShaderCache::getShader("equirectangular_to_cube")->launchCompute(width / 32, height / 32, 6);
+      ShaderCache::getShader("equirectangular_to_cube")->launchCompute(width / 8, height / 8, 6);
 
       this->skybox.generateMips();
 
@@ -509,7 +509,7 @@ namespace Strontium
         this->irradiance.bindAsImage(1, 0, true, 0, ImageAccessPolicy::Write);
         
         // Launch the compute shader.
-        ShaderCache::getShader("cube_diffuse")->launchCompute(width / 32, height / 32, 6);
+        ShaderCache::getShader("cube_diffuse")->launchCompute(width / 8, height / 8, 6);
         Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
         
         auto end = std::chrono::steady_clock::now();
@@ -532,7 +532,7 @@ namespace Strontium
       this->irradiance.bindAsImage(1, 0, true, 0, ImageAccessPolicy::Write);
 
       // Launch the compute shader.
-      ShaderCache::getShader("sky_lut_diffuse")->launchCompute(32 / 32, 32 / 32, 6);
+      ShaderCache::getShader("sky_lut_diffuse")->launchCompute(32 / 8, 32 / 8, 6);
       Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
     }
   }
@@ -594,7 +594,7 @@ namespace Strontium
           this->iblParams.setData(sizeof(glm::vec4), sizeof(glm::ivec4), &params1.x);
         
           // Launch the compute.
-          cubeSpecular->launchCompute(mipWidth / 32, mipHeight / 32, 6);
+          cubeSpecular->launchCompute(mipWidth / 8, mipHeight / 8, 6);
           Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
         }
         
@@ -625,8 +625,8 @@ namespace Strontium
         uint mipWidth  = static_cast<uint>((static_cast<float>(specPrefilter.getWidth(0)) * std::pow(0.5f, i)));
         uint mipHeight = static_cast<uint>((static_cast<float>(specPrefilter.getHeight(0)) * std::pow(0.5f, i)));
         
-        uint groupX = static_cast<uint>(glm::ceil(static_cast<float>(mipWidth) / 32.0f));
-        uint groupY = static_cast<uint>(glm::ceil(static_cast<float>(mipHeight) / 32.0f));
+        uint groupX = static_cast<uint>(glm::ceil(static_cast<float>(mipWidth) / 8.0f));
+        uint groupY = static_cast<uint>(glm::ceil(static_cast<float>(mipHeight) / 8.0f));
 
         // Bind the irradiance map for writing to by the compute shader.
         this->specPrefilter.bindAsImage(1, i, true, 0, ImageAccessPolicy::Write);

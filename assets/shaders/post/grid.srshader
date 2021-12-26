@@ -54,7 +54,7 @@ in VERT_OUT
   vec3 fFarPoint;
 } fragIn;
 
-layout(binding = 0) uniform sampler2DShadow gDepth;
+layout(binding = 3) uniform sampler2D gDepth;
 
 layout(location = 0) out vec4 fragColour;
 
@@ -83,8 +83,8 @@ void main()
   float xyFragDepth = 0.5 * (xyFragClipPos.z / xyFragClipPos.w) + 0.5;
   // Fetch the scene depth test for both planes.
   vec2 fTexCoords = gl_FragCoord.xy / textureSize(gDepth, 0);
-  float xzSceneDepth = texture(gDepth, vec3(fTexCoords, xzFragDepth)).r;
-  float xySceneDepth = texture(gDepth, vec3(fTexCoords, xyFragDepth)).r;
+  float xzSceneDepth = float(texture(gDepth, fTexCoords).r > xzFragDepth);
+  float xySceneDepth = float(texture(gDepth, fTexCoords).r > xyFragDepth);
 
   vec3 screenNear = unProject(vec3(0.0), u_invViewProjMatrix);
   float xzFalloff = max(1.5 - 0.1 * length(xzFragPos3D - screenNear), 0.0);

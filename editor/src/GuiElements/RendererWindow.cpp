@@ -398,20 +398,17 @@ namespace Strontium
       ImGui::Separator();
       ImGui::Text("GBuffer:");
       ImGui::Separator();
-      ImGui::Text("Positions:");
+      ImGui::Text("Normals:");
       ImGui::Image((ImTextureID) (unsigned long) storage->gBuffer.getAttachmentID(FBOTargetParam::Colour0),
       ImVec2(128.0f * ratio, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
-      ImGui::Text("Normals:");
+      ImGui::Text("Albedo:");
       ImGui::Image((ImTextureID) (unsigned long) storage->gBuffer.getAttachmentID(FBOTargetParam::Colour1),
       ImVec2(128.0f * ratio, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
-      ImGui::Text("Albedo:");
+      ImGui::Text("Materials:");
       ImGui::Image((ImTextureID) (unsigned long) storage->gBuffer.getAttachmentID(FBOTargetParam::Colour2),
       ImVec2(128.0f * ratio, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
-      ImGui::Text("Materials:");
-      ImGui::Image((ImTextureID) (unsigned long) storage->gBuffer.getAttachmentID(FBOTargetParam::Colour3),
-      ImVec2(128.0f * ratio, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
       ImGui::Text("Entity Mask:");
-      ImGui::Image((ImTextureID) (unsigned long) storage->gBuffer.getAttachmentID(FBOTargetParam::Colour4),
+      ImGui::Image((ImTextureID) (unsigned long) storage->gBuffer.getAttachmentID(FBOTargetParam::Colour3),
       ImVec2(128.0f * ratio, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
       ImGui::Text("Depth:");
       ImGui::Image((ImTextureID) (unsigned long) storage->gBuffer.getAttachmentID(FBOTargetParam::Depth),

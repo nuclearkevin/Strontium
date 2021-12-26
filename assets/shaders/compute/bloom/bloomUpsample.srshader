@@ -4,7 +4,7 @@
  * A bloom blurring compute shader.
 */
 
-layout(local_size_x = 32, local_size_y = 32) in;
+layout(local_size_x = 8, local_size_y = 8) in;
 
 // The equivalent downsample mip to the next mip in the upsample chain, it will
 // be filtered and added to the previous mip of the upsampling chain.
@@ -13,10 +13,10 @@ layout(rgba16f, binding = 0) readonly uniform image2D blurImage;
 // The next mip in the upsampling mip chain.
 layout(rgba16f, binding = 1) restrict writeonly uniform image2D nextImage;
 
-layout(std140, binding = 3) buffer PrefilterParams
+layout(std140, binding = 3) readonly buffer PrefilterParams
 {
   vec4 u_filterParams; // Threshold (x), threshold - knee (y), 2.0 * knee (z) and 0.25 / knee (w).
-  float u_upsampleRadius;
+  vec2 u_upsampleRadius; // Upsampling filter radius (x).
 };
 
 // Interpolating sampler.
@@ -29,7 +29,7 @@ void main()
 {
   ivec2 sourceCoords = ivec2(gl_GlobalInvocationID.xy);
 
-  vec3 filteredColour = upsampleBoxTent(sourceCoords, u_upsampleRadius);
+  vec3 filteredColour = upsampleBoxTent(sourceCoords, u_upsampleRadius.x);
   imageStore(nextImage, sourceCoords, vec4(filteredColour, 1.0));
 }
 
@@ -42,7 +42,7 @@ vec3 samplePrevious(ivec2 centerCoords, ivec2 offsetCoords, float radius)
   ivec2 sampleCoords1 = centerCoords + int(ceil(radius)) * offsetCoords;
   vec3 sample1 = imageLoad(blurImage, sampleCoords1).rgb;
 
-  return mix(sample0, sample1, fract(radius));
+  return mix(sample0, sample1, sign(fract(radius)));
 }
 
 /*

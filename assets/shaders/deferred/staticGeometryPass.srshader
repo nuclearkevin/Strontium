@@ -65,11 +65,10 @@ void main()
 }
 
 #type fragment
-layout (location = 0) out vec4 gPosition;
-layout (location = 1) out vec4 gNormal;
-layout (location = 2) out vec4 gAlbedo;
-layout (location = 3) out vec4 gMatProp;
-layout (location = 4) out vec4 gIDMaskColour;
+layout (location = 0) out vec4 gNormal; // z and w components unused.
+layout (location = 1) out vec4 gAlbedo;
+layout (location = 2) out vec4 gMatProp;
+layout (location = 3) out vec4 gIDMaskColour; // This should be a 2-component buffer...
 
 in VERT_OUT
 {
@@ -86,10 +85,29 @@ uniform sampler2D metallicMap;
 uniform sampler2D aOcclusionMap;
 uniform sampler2D specF0Map;
 
+vec3 getNormal(sampler2D normalMap, mat3 tbn, vec2 texCoords)
+{
+  return normalize(tbn * (texture(normalMap, texCoords).xyz * 2.0 - 1.0));
+}
+
+// Fast octahedron normal vector encoding.
+// https://jcgt.org/published/0003/02/01/
+vec2 signNotZero(vec2 v)
+{
+  return vec2((v.x >= 0.0) ? 1.0 : -1.0, (v.y >= 0.0) ? 1.0 : -1.0);
+}
+// Assume normalized input. Output is on [-1, 1] for each component.
+vec2 encodeNormal(vec3 v)
+{
+  // Project the sphere onto the octahedron, and then onto the xy plane
+  vec2 p = v.xy * (1.0 / (abs(v.x) + abs(v.y) + abs(v.z)));
+  // Reflect the folds of the lower hemisphere over the diagonals
+  return (v.z <= 0.0) ? ((1.0 - abs(p.yx)) * signNotZero(p)) : p;
+}
+
 void main()
 {
-  gPosition = vec4(fragIn.fPosition, 1.0);
-  gNormal = vec4(fragIn.fTBN * (texture(normalMap, fragIn.fTexCoords).xyz * 2.0 - 1.0), 1.0);
+  gNormal = vec4(encodeNormal(getNormal(normalMap, fragIn.fTBN, fragIn.fTexCoords)), 1.0.xx);
   gAlbedo = vec4(pow(texture(albedoMap, fragIn.fTexCoords).rgb * u_albedoReflectance.rgb, vec3(2.2)), 1.0);
   gAlbedo.a = texture(specF0Map, fragIn.fTexCoords).r * u_albedoReflectance.a;
 

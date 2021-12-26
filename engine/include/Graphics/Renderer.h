@@ -91,6 +91,7 @@ namespace Strontium
       // Items for the shadow pass.
       std::vector<std::pair<Model*, glm::mat4>> staticShadowQueue;
       std::vector<std::tuple<Model*, Animator*, glm::mat4>> dynamicShadowQueue;
+
       glm::mat4 cascades[NUM_CASCADES];
       glm::vec4 cascadeSplits[NUM_CASCADES];
       bool hasCascades;
@@ -120,7 +121,7 @@ namespace Strontium
         , postProcessSettings(2 * sizeof(glm::vec4) + sizeof(glm::ivec4), BufferType::Dynamic)
         , boneBuffer(MAX_BONES_PER_MODEL * sizeof(glm::mat4), BufferType::Dynamic)
         , lightShaftSettingsBuffer(2 * sizeof(glm::vec4), BufferType::Dynamic)
-        , bloomSettingsBuffer(sizeof(glm::vec4) + sizeof(float), BufferType::Dynamic)
+        , bloomSettingsBuffer(sizeof(glm::vec4) + sizeof(glm::vec2), BufferType::Dynamic)
       {
         currentEnvironment = createUnique<EnvironmentMap>();
       }
@@ -152,6 +153,8 @@ namespace Strontium
       bool enableSkyshafts;
       glm::vec4 mieScatIntensity;
       glm::vec4 mieAbsDensity;
+
+      bool useAerialPersp;
 
       // HDR settings.
       float gamma;
@@ -195,6 +198,7 @@ namespace Strontium
         , enableFXAA(false)
         , postProcessSettings(0)
         , drawGrid(true)
+        , useAerialPersp(false)
       { }
     };
 

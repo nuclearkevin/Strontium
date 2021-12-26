@@ -433,6 +433,8 @@ namespace Strontium
           drawComponentAdd<PointLightComponent>("Point Light Component", entity);
           drawComponentAdd<SpotLightComponent>("Spot Light Component", entity);
           drawComponentAdd<AmbientComponent>("Ambient Light Component", entity);
+
+          ImGui::EndMenu();
         }
 
         ImGui::EndMenu();
@@ -451,6 +453,8 @@ namespace Strontium
           drawComponentRemove<PointLightComponent>("Point Light Component", entity);
           drawComponentRemove<SpotLightComponent>("Spot Light Component", entity);
           drawComponentRemove<AmbientComponent>("Ambient Light Component", entity);
+
+          ImGui::EndMenu();
         }
 
         ImGui::EndMenu();
@@ -876,7 +880,9 @@ namespace Strontium
               }
               ImGui::PopStyleVar();
           
-              ImGui::SliderFloat("##AnimationTime", &component.animator.getAnimationTime(), 0.0f, storedAnimation->getDuration());
+              if (ImGui::SliderFloat("##AnimationTime", &component.animator.getAnimationTime(), 
+                                     0.0f, storedAnimation->getDuration()))
+                component.animator.setScrubbing();
             }
             else
             {
@@ -1069,6 +1075,7 @@ namespace Strontium
             auto hillaireParams = env->getSkyParams<HillaireSkyParams>(DynamicSkyType::Hillaire);
 
             ImGui::Indent();
+            ImGui::Checkbox("Enable Aerial Perspective", &Renderer3D::getState()->useAerialPersp);
             if (ImGui::CollapsingHeader("Common Sky Parameters##PreethamAtmo"))
             {
               Styles::drawFloatControl("Sun Size", 1.5f, hillaireParams.sunSize, 0.0f, 0.1f, 0.0f, 10.0f);

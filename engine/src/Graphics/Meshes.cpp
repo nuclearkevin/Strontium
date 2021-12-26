@@ -9,6 +9,7 @@ namespace Strontium
     : loaded(false)
     , name(name)
     , parent(parent)
+    , localTransform(1.0f)
   { }
 
   Mesh::Mesh(const std::string &name, const std::vector<Vertex> &vertices,
@@ -19,6 +20,7 @@ namespace Strontium
     , vArray(nullptr)
     , name(name)
     , parent(parent)
+    , localTransform(1.0f)
   { }
 
   Mesh::~Mesh()

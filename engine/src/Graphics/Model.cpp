@@ -18,8 +18,10 @@ namespace Strontium
   Model::Model()
     : loaded(false)
     , globalInverseTransform(1.0f)
+    , globalTransform(1.0f)
     , minPos(std::numeric_limits<float>::max())
     , maxPos(std::numeric_limits<float>::min())
+    , isSkinned(false)
   { }
 
   Model::~Model()
@@ -32,9 +34,9 @@ namespace Strontium
     auto eventDispatcher = EventDispatcher::getInstance();
     eventDispatcher->queueEvent(new GuiEvent(GuiEventType::StartSpinnerEvent, filepath));
 
-    auto flags = aiProcess_CalcTangentSpace | aiProcess_GenNormals
-               | aiProcess_JoinIdenticalVertices | aiProcess_Triangulate
-               | aiProcess_GenUVCoords | aiProcess_SortByPType;
+    auto flags = aiProcess_Triangulate | aiProcess_GenNormals | aiProcess_GenUVCoords 
+                | aiProcess_OptimizeMeshes | aiProcess_ValidateDataStructure 
+                | aiProcess_JoinIdenticalVertices | aiProcess_CalcTangentSpace;
 
     Assimp::Importer importer;
 
@@ -66,6 +68,7 @@ namespace Strontium
     
     // Load the model data.
     this->globalInverseTransform = glm::inverse(Utilities::mat4ToGLM(scene->mRootNode->mTransformation));
+    this->globalTransform = Utilities::mat4ToGLM(scene->mRootNode->mTransformation);
     this->rootNode = SceneNode(scene->mRootNode->mName.C_Str(), Utilities::mat4ToGLM(scene->mRootNode->mTransformation));
 
     for (uint i = 0; i < scene->mRootNode->mNumChildren; i++)
@@ -94,7 +97,8 @@ namespace Strontium
 
   // Recursively process all the nodes in the mesh.
   void
-  Model::processNode(aiNode* node, const aiScene* scene, const std::string &directory)
+  Model::processNode(aiNode* node, const aiScene* scene, const std::string &directory, 
+                     const glm::mat4& parentTransform)
   {
     if (this->sceneNodes.find(node->mName.C_Str()) == this->sceneNodes.end())
     {
@@ -103,24 +107,28 @@ namespace Strontium
         this->sceneNodes[node->mName.C_Str()].childNames.emplace_back(node->mChildren[i]->mName.C_Str());
     }
 
+    auto globalTransform = parentTransform * Utilities::mat4ToGLM(node->mTransformation);
+
     for (uint i = 0; i < node->mNumMeshes; i++)
     {
       aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
-      this->processMesh(mesh, scene, directory);
+      this->processMesh(mesh, scene, directory, globalTransform);
     }
 
     for (uint i = 0; i < node->mNumChildren; i++)
-      this->processNode(node->mChildren[i], scene, directory);
+      this->processNode(node->mChildren[i], scene, directory, globalTransform);
   }
 
   // Process each individual mesh.
   void
-  Model::processMesh(aiMesh* mesh, const aiScene* scene, const std::string &directory)
+  Model::processMesh(aiMesh* mesh, const aiScene* scene, const std::string &directory, 
+                     const glm::mat4& localTransform)
   {
     std::string meshName = std::string(mesh->mName.C_Str());
     this->subMeshes.emplace_back(meshName, this);
     auto& meshVertices = this->subMeshes.back().getData();
     auto& meshIndicies = this->subMeshes.back().getIndices();
+    this->subMeshes.back().getTransform() = localTransform;
 
     auto& meshMin = this->subMeshes.back().getMinPos();
     auto& meshMax = this->subMeshes.back().getMaxPos();
@@ -167,7 +175,7 @@ namespace Strontium
     }
 
     // Get the UV's, but only supporting a single UV channel for now.
-    if (mesh->mTextureCoords[0])
+    if (mesh->HasTextureCoords(0))
     {
       // Loop over the texture coords and assign them.
       for (uint i = 0; i < mesh->mNumVertices; i++)
@@ -294,8 +302,11 @@ namespace Strontium
     }
 
     // Load in vertex bones.
+    // Vertex 0 has weights of 0 on specific hardware??
     if (mesh->HasBones())
     {
+      this->isSkinned = true;
+
       for (unsigned int i = 0; i < mesh->mNumBones; i++)
       {
         std::string boneName = mesh->mBones[i]->mName.C_Str();
@@ -317,7 +328,6 @@ namespace Strontium
         {
           unsigned int vertexIndex = mesh->mBones[i]->mWeights[j].mVertexId;
           float weight = mesh->mBones[i]->mWeights[j].mWeight;
-
           this->addBoneData(boneIndex, weight, meshVertices[vertexIndex]);
         }
       }
@@ -331,7 +341,7 @@ namespace Strontium
   {
     for (unsigned int i = 0; i < MAX_BONES_PER_VERTEX; i++)
     {
-      if (toMod.boneIDs[i] < 0)
+      if (toMod.boneIDs[i] < 0 || toMod.boneWeights[i] == 0.0f)
       {
         toMod.boneWeights[i] = boneWeight;
         toMod.boneIDs[i] = boneIndex;

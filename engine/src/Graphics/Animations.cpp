@@ -71,24 +71,64 @@ namespace Strontium
   }
 
   void
-  Animation::computeBoneTransforms(float aniTime, std::vector<glm::mat4>& outBones)
+  Animation::computeBoneTransforms(float aniTime, std::vector<glm::mat4>& outBonesSkinned, 
+                                   std::unordered_map<std::string, glm::mat4>& outBonesUnskinned)
   {
-    outBones.clear();
-    outBones.resize(this->parentModel->getBones().size(), glm::mat4(1.0f));
-    this->readNodeHierarchy(aniTime, this->parentModel->getRootNode(), glm::mat4(1.0f), outBones);
+    if (this->parentModel->hasSkins())
+    {
+      // Compute the transformations for a skinned model.
+      outBonesSkinned.clear();
+      outBonesSkinned.resize(this->parentModel->getBones().size(), glm::mat4(1.0f));
+      this->readSkinnedNodeHierarchy(aniTime, this->parentModel->getRootNode(), 
+                                     parentModel->getGlobalTransform(), outBonesSkinned);
+    }
+    else
+    {
+      // Compute the transformations for an unskinned model.
+      outBonesUnskinned.clear();
+      this->readUnSkinnedNodeHierarchy(aniTime, this->parentModel->getRootNode(),
+                                       parentModel->getGlobalTransform(), outBonesUnskinned);
+    }
   }
 
-  void
-  Animation::readNodeHierarchy(float aniTime, const SceneNode &node,
-                               const glm::mat4 parentTransform,
-                               std::vector<glm::mat4> &outBones)
+  void 
+  Animation::readUnSkinnedNodeHierarchy(float aniTime, const SceneNode& node,
+                                        const glm::mat4 parentTransform,
+                                        std::unordered_map<std::string, glm::mat4>& outBones)
   {
     auto nodeName = node.name;
     auto nodeTransform = node.localTransform;
 
     if (this->animationNodes.find(nodeName) != this->animationNodes.end())
     {
-      auto aniNode = this->animationNodes[nodeName];
+      auto& aniNode = this->animationNodes[nodeName];
+      glm::mat4 translation = this->interpolateTranslation(aniTime, aniNode);
+      glm::mat4 rotation = this->interpolateRotation(aniTime, aniNode);
+      glm::mat4 scale = this->interpolateScale(aniTime, aniNode);
+
+      nodeTransform = translation * rotation * scale;
+    }
+
+    auto globalTransform = parentTransform * nodeTransform;
+
+    outBones[nodeName] = this->parentModel->getGlobalInverseTransform() * globalTransform;
+
+    auto& sceneNodes = this->parentModel->getSceneNodes();
+    for (auto& childNodeName : node.childNames)
+      this->readUnSkinnedNodeHierarchy(aniTime, sceneNodes[childNodeName], globalTransform, outBones);
+  }
+
+  void
+  Animation::readSkinnedNodeHierarchy(float aniTime, const SceneNode &node,
+                                      const glm::mat4 parentTransform,
+                                      std::vector<glm::mat4> &outBones)
+  {
+    auto nodeName = node.name;
+    auto nodeTransform = node.localTransform;
+
+    if (this->animationNodes.find(nodeName) != this->animationNodes.end())
+    {
+      auto& aniNode = this->animationNodes[nodeName];
       glm::mat4 translation = this->interpolateTranslation(aniTime, aniNode);
       glm::mat4 rotation = this->interpolateRotation(aniTime, aniNode);
       glm::mat4 scale = this->interpolateScale(aniTime, aniNode);
@@ -109,7 +149,7 @@ namespace Strontium
 
     auto& sceneNodes = this->parentModel->getSceneNodes();
     for (auto& childNodeName : node.childNames)
-      this->readNodeHierarchy(aniTime, sceneNodes[childNodeName], globalTransform, outBones);
+      this->readSkinnedNodeHierarchy(aniTime, sceneNodes[childNodeName], globalTransform, outBones);
   }
 
   glm::mat4
@@ -197,6 +237,7 @@ namespace Strontium
     , currentAniTime(0.0f)
     , animating(false)
     , paused(true)
+    , scrubbing(false)
   { }
 
   void
@@ -220,9 +261,15 @@ namespace Strontium
       this->currentAniTime += dt * this->storedAnimation->getTPS();
       this->currentAniTime = fmod(this->currentAniTime, this->storedAnimation->getDuration());
 
-      this->storedAnimation->computeBoneTransforms(this->currentAniTime, this->finalBoneTransforms);
+      this->storedAnimation->computeBoneTransforms(this->currentAniTime, this->finalBoneTransforms, 
+                                                   this->unSkinnedFinalTransforms);
     }
-    else if (this->storedAnimation && this->animating && this->paused)
-      this->storedAnimation->computeBoneTransforms(this->currentAniTime, this->finalBoneTransforms);
+
+    if (this->scrubbing)
+    {
+      this->scrubbing = false;
+      this->storedAnimation->computeBoneTransforms(this->currentAniTime, this->finalBoneTransforms, 
+                                                   this->unSkinnedFinalTransforms);
+    }
   }
 }

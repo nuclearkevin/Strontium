@@ -67,7 +67,6 @@ namespace Strontium
 
     // Generate/delete the vertex array object.
     void generateVAO();
-    void deleteVAO();
 
     // Set the loaded state.
     void setLoaded(bool isLoaded) { this->loaded = isLoaded; }
@@ -77,6 +76,7 @@ namespace Strontium
     std::vector<uint>& getIndices() { return this->indices; }
     glm::vec3& getMinPos() { return this->minPos; }
     glm::vec3& getMaxPos() { return this->maxPos; }
+    glm::mat4& getTransform() { return this->localTransform; }
     VertexArray*  getVAO() { return this->vArray.get(); }
     std::string& getFilepath() { return this->filepath; }
     std::string& getName() { return this->name; }
@@ -93,6 +93,7 @@ namespace Strontium
 
     glm::vec3 minPos;
     glm::vec3 maxPos;
+    glm::mat4 localTransform;
 
     std::string filepath;
     std::string name;

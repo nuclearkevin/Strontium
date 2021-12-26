@@ -8,7 +8,7 @@
 
 #define invAtan vec2(0.1591, 0.3183)
 
-layout(local_size_x = 32, local_size_y = 32) in;
+layout(local_size_x = 8, local_size_y = 8) in;
 
 // The input equirectangular map.
 layout(rgba16f, binding = 0) uniform readonly image2D equirectangularMap;

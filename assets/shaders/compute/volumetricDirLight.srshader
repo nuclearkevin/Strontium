@@ -7,18 +7,16 @@
 
 #define PI 3.141592654
 
-#define NUM_STEPS 50
+#define NUM_STEPS 32
 #define G_SCATTERING 0.5
-
 #define NUM_CASCADES 4
-#define WARP 44.0
 
-layout(local_size_x = 32, local_size_y = 32) in;
+layout(local_size_x = 8, local_size_y = 8) in;
 
 // The output texture for the volumetric effect.
-layout(rgba16f, binding = 0) writeonly uniform image2D volumetric;
+layout(rgba16f, binding = 0) restrict writeonly uniform image2D volumetric;
 
-layout(binding = 1) uniform sampler2D gDepth;
+layout(binding = 3) uniform sampler2D gDepth;
 layout(binding = 7) uniform sampler2D cascadeMaps[NUM_CASCADES]; // TODO: Texture arrays.
 
 // Camera specific uniforms.
@@ -42,11 +40,12 @@ layout(std140, binding = 5) uniform DirectionalBlock
 layout(std140, binding = 7) uniform CascadedShadowBlock
 {
   mat4 u_lightVP[NUM_CASCADES];
-  float u_cascadeSplits[NUM_CASCADES];
-  vec4 u_shadowParams; // Light bleed reduction (x), light size for PCSS (y), minimum PCF radius (z) and the bias multiplier (w).
+  vec4 u_cascadeData[NUM_CASCADES]; // Cascade split distance (x). y, z and w are unused.
+  vec4 u_shadowParams1; // Light bleed reduction (x), light size for PCSS (y), minimum PCF radius (z) and the normal bias (w).
+  vec4 u_shadowParams2; // The constant bias (x). y, z and w are unused.
 };
 
-layout(std140, binding = 0) buffer GodrayParams
+layout(std140, binding = 1) readonly buffer GodrayParams
 {
   vec4 u_mieScatIntensity; // Mie scattering coefficients (x, y, z), light shaft intensity (w).
   vec4 u_mieAbsDensity; // Mie scattering coefficients (x, y, z), density (w).
@@ -70,7 +69,7 @@ void main()
   // Half resolution.
   ivec2 gBufferCoords = 2 * invoke;
   vec2 gBufferSize = textureSize(gDepth, 0).xy;
-  vec2 gBufferUV = vec2(gBufferCoords) / gBufferSize;
+  vec2 gBufferUV = (vec2(gBufferCoords) + 0.5.xx) / gBufferSize;
 
   // Light properties.
   vec3 lightDir = normalize(u_lDirection.xyz);
@@ -96,46 +95,61 @@ void main()
   vec3 startPos = u_camPosition.xyz;
   vec3 ray = endPos - startPos;
   vec3 rayDir = normalize(ray);
-  vec3 rayStep = ray / float(NUM_STEPS);
-  float rayStepLength = length(rayStep);
+  float tMax = length(ray);
 
   // Dither to add some noise.
-  vec3 currentPos = startPos + (rayStep * sampleDither(gBufferCoords));
+  vec3 realStartPos = startPos + (rayDir * sampleDither(gBufferCoords) * tMax / float(NUM_STEPS));
 
+  // Integrate the light contribution and transmittance along the ray.
   vec3 fog = vec3(0.0);
   vec3 totalTransmittance = vec3(1.0);
   float miePhaseValue = getMiePhase(dot(lightDir, rayDir));
-
-  // Integrate the light contribution and transmittance along the ray.
-  for (uint i = 0; i < NUM_STEPS; i++)
+  for (float i = 0; i < NUM_STEPS; i++)
   {
-    float shadowFactor;
-    vec4 clipSpacePos = u_viewMatrix * vec4(currentPos, 1.0);
+    float t0 = float(i) / float(NUM_STEPS);
+    float t1 = (float(i) + 1.0f) / float(NUM_STEPS);
+
+    // Non linear distribution of samples within the range.
+    t0 = t0 * t0;
+    t1 = t1 * t1;
+
+    // Make t0 and t1 world space.
+    t0 = tMax * t0;
+    float comp = float(t1 <= 1.0);
+    t1 = mix(tMax, tMax * t1, comp);
+
+    float t = t0 + (t1 - t0) * 0.3f;
+    float dt = t1 - t0;
+
+    vec3 pos = realStartPos + (t * rayDir);
+    float shadowFactor = 1.0;
+    vec4 clipSpacePos = u_viewMatrix * vec4(pos, 1.0);
 
     // Cascaded shadow maps.
-    for (uint i = 0; i < NUM_CASCADES; i++)
+    for (uint j = 0; j < NUM_CASCADES; j++)
     {
-      if (clipSpacePos.z > -(u_cascadeSplits[i]))
+      if (clipSpacePos.z > -(u_cascadeData[j].x))
       {
-        shadowFactor = calcShadow(i, currentPos);
+        shadowFactor = calcShadow(j, pos);
         break;
       }
     }
 
-    vec3 sampleTransmittance = exp(-rayStepLength * extinction);
+    vec3 sampleTransmittance = exp(-dt * extinction);
     totalTransmittance *= sampleTransmittance;
 
     vec3 inScattering = mieScattering * miePhaseValue;
     vec3 scatteringIntegral = (inScattering - inScattering * sampleTransmittance) / extinction;
 
     fog += scatteringIntegral * totalTransmittance * lightColour * lightIntensity * shadowFactor;
-
-    currentPos += rayStep;
   }
 
-  fog *= volumetricIntensity;
-  fog = max(fog, vec3(0.0));
-  imageStore(volumetric, invoke, vec4(fog, totalTransmittance));
+  // Density AA as described in:
+  // http://advances.realtimerendering.com/s2021/jpatry_advances2021/index.html
+  float averageOpacity = (1.0 - dot(totalTransmittance, (1.0 / 3.0).xxx));
+  fog /= averageOpacity;
+  fog *= u_mieScatIntensity.w;
+  imageStore(volumetric, invoke, vec4(fog, averageOpacity));
 }
 
 float sampleDither(ivec2 coords)
@@ -167,7 +181,18 @@ float offsetLookup(sampler2D map, vec2 loc, vec2 offset, float depth)
 // Calculate if the fragment is in shadow or not, than shadow mapping.
 float calcShadow(uint cascadeIndex, vec3 position)
 {
-  float bias = u_shadowParams.w;
+  float depthRange = 0.0;
+  if (cascadeIndex == 0)
+  {
+    depthRange = u_cascadeData[cascadeIndex].x;
+  }
+  else
+  {
+    depthRange = u_cascadeData[cascadeIndex].x - u_cascadeData[cascadeIndex - 1].x;
+  }
+
+  float bias = u_shadowParams2.x / 1000.0 * depthRange;
+
   vec4 lightClipPos = u_lightVP[cascadeIndex] * vec4(position, 1.0);
   vec3 projCoords = lightClipPos.xyz / lightClipPos.w;
   projCoords = 0.5 * projCoords + 0.5;

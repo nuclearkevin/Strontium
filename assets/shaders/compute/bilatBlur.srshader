@@ -16,9 +16,9 @@ const float kernel[MSIZE] = float[MSIZE]
   0.035206333, 0.033322271, 0.031225216
 );
 
-layout(local_size_x = 32, local_size_y = 32) in;
+layout(local_size_x = 8, local_size_y = 8) in;
 
-layout(rgba16f, binding = 0) readonly uniform image2D inImage;
+layout(binding = 0) uniform sampler2D inTexture;
 layout(rgba16f, binding = 1) writeonly uniform image2D outImage;
 
 float normpdf(float x, float sigma)
@@ -34,8 +34,10 @@ float normpdf4(vec4 v, float sigma)
 void main()
 {
   ivec2 invoke = ivec2(gl_GlobalInvocationID.xy);
+  vec2 texSize = vec2(textureSize(inTexture, 0).xy);
+  vec2 uvs = (vec2(invoke) + 0.5.xx) / texSize;
 
-  vec4 c = imageLoad(inImage, invoke + ivec2(0, 0)).rgba;
+  vec4 c = texture(inTexture, uvs);
 
   const int kSize = (MSIZE - 1) / 2;
   vec4 result = vec4(0.0);
@@ -48,7 +50,8 @@ void main()
   {
     for (int j = -kSize; j <= kSize; ++j)
     {
-      cc = imageLoad(inImage, invoke + ivec2(i, j)).rgba;
+      vec2 offset = vec2(i, j) / texSize;
+      cc = texture(inTexture, uvs + offset);
       factor = normpdf4(cc - c, BSIGMA) * bZ * kernel[kSize + j] * kernel[kSize + i];
       Z += factor;
       result += factor * cc;

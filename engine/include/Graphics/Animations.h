@@ -72,7 +72,8 @@ namespace Strontium
 
     void loadAnimation(const aiAnimation* animation);
 
-    void computeBoneTransforms(float aniTime, std::vector<glm::mat4> &outBones);
+    void computeBoneTransforms(float aniTime, std::vector<glm::mat4> &outBonesSkinned, 
+                               std::unordered_map<std::string, glm::mat4>& outBonesUnskinned);
 
     float getDuration() const { return this->duration; }
     float getTPS() const { return this->ticksPerSecond; }
@@ -83,9 +84,13 @@ namespace Strontium
     glm::mat4 interpolateRotation(float aniTime, const AnimationNode &node);
     glm::mat4 interpolateScale(float aniTime, const AnimationNode &node);
 
-    void readNodeHierarchy(float aniTime, const SceneNode &node,
-                           const glm::mat4 parentTransform,
-                           std::vector<glm::mat4> &outBones);
+    void readUnSkinnedNodeHierarchy(float aniTime, const SceneNode& node,
+                                    const glm::mat4 parentTransform,
+                                    std::unordered_map<std::string, glm::mat4>& outBones);
+
+    void readSkinnedNodeHierarchy(float aniTime, const SceneNode &node,
+                                  const glm::mat4 parentTransform,
+                                  std::vector<glm::mat4> &outBones);
     Model* parentModel;
 
     std::unordered_map<std::string, AnimationNode> animationNodes;
@@ -109,20 +114,25 @@ namespace Strontium
     void pauseAnimation() { this->paused = true; }
     void resumeAnimation() { this->paused = false; }
     void stopAnimation() { this->animating = false; this->currentAniTime = 0.0f; this->paused = true; }
+    void setScrubbing() { this->scrubbing = true;  }
 
     std::vector<glm::mat4>& getFinalBoneTransforms() { return this->finalBoneTransforms; }
+    std::unordered_map<std::string, glm::mat4>& getFinalUnSkinnedTransforms() { return this->unSkinnedFinalTransforms; }
     Animation* getStoredAnimation() { return this->storedAnimation; }
     float& getAnimationTime() { return this->currentAniTime; }
     bool isAnimating() { return this->animating; }
     bool isPaused() { return this->paused; }
     bool animationRenderable() { return this->storedAnimation != nullptr && this->animating; }
+    bool isScrubbing() { return this->scrubbing; }
   private:
     float currentAniTime;
     AssetHandle storedModel;
     Animation* storedAnimation;
     std::vector<glm::mat4> finalBoneTransforms;
+    std::unordered_map<std::string, glm::mat4> unSkinnedFinalTransforms;
 
     bool animating;
     bool paused;
+    bool scrubbing;
   };
 }

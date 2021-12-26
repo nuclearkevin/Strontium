@@ -22,7 +22,7 @@ layout(std140, binding = 6) uniform LightSpaceBlock
   mat4 u_lightViewProj;
 };
 
-layout(std140, binding = 4) buffer BoneBlock
+layout(std140, binding = 4) readonly buffer BoneBlock
 {
   mat4 u_boneMatrices[MAX_BONES_PER_MODEL];
 };
@@ -30,7 +30,8 @@ layout(std140, binding = 4) buffer BoneBlock
 void main()
 {
   // Skinning calculations.
-  mat4 skinMatrix = u_boneMatrices[vBoneID.x] * vBoneWeight.x;
+  mat4 skinMatrix = vBoneID.x > -1 ? u_boneMatrices[vBoneID.x] * vBoneWeight.x
+                                   : mat4(1.0);
   skinMatrix += u_boneMatrices[vBoneID.y] * vBoneWeight.y;
   skinMatrix += u_boneMatrices[vBoneID.z] * vBoneWeight.z;
   skinMatrix += u_boneMatrices[vBoneID.w] * vBoneWeight.w;

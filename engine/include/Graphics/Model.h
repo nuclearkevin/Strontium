@@ -39,16 +39,22 @@ namespace Strontium
     std::unordered_map<std::string, uint>& getBoneMap() { return this->boneMap; }
     std::vector<VertexBone>& getBones() { return this->storedBones; }
     glm::mat4& getGlobalInverseTransform() { return this->globalInverseTransform; }
+    glm::mat4& getGlobalTransform() { return this->globalTransform; }
     SceneNode& getRootNode() { return this->rootNode; }
     std::string& getFilepath() { return this->filepath; }
+
+    bool hasSkins() { return this->isSkinned; }
   private:
-    void processNode(aiNode* node, const aiScene* scene, const std::string &directory);
-    void processMesh(aiMesh* mesh, const aiScene* scene, const std::string &directory);
+    void processNode(aiNode* node, const aiScene* scene, const std::string &directory, 
+                     const glm::mat4 &parentTransform = glm::mat4(1.0f));
+    void processMesh(aiMesh* mesh, const aiScene* scene, const std::string &directory, 
+                     const glm::mat4& localTransform = glm::mat4(1.0f));
 
     void addBoneData(unsigned int boneIndex, float boneWeight, Vertex &toMod);
 
     // Scene information for this model.
     glm::mat4 globalInverseTransform;
+    glm::mat4 globalTransform;
     SceneNode rootNode;
     std::unordered_map<std::string, SceneNode> sceneNodes;
 
@@ -62,6 +68,7 @@ namespace Strontium
 
     // Is the model loaded or not?
     bool loaded;
+    bool isSkinned;
 
     glm::vec3 minPos;
     glm::vec3 maxPos;

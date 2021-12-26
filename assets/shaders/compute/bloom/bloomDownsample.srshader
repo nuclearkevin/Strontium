@@ -4,7 +4,7 @@
  * A bloom downsampling compute shader.
 */
 
-layout(local_size_x = 32, local_size_y = 32) in;
+layout(local_size_x = 8, local_size_y = 8) in;
 
 // The previous mip in the downsampling mip chain.
 layout(rgba16f, binding = 0) readonly uniform image2D previousImage;

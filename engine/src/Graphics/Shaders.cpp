@@ -62,6 +62,9 @@ namespace Strontium
   void
   Shader::rebuild()
   {
+    glDeleteProgram(this->progID);
+    this->progID = glCreateProgram();
+
     this->shaderSources.clear();
 
     // Load the shader source code from disk into the map.

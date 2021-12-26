@@ -4,7 +4,7 @@
  * A bloom upsampling and blending compute shader.
 */
 
-layout(local_size_x = 32, local_size_y = 32) in;
+layout(local_size_x = 8, local_size_y = 8) in;
 
 // The previous mip in the upsampling mip chain.
 layout(rgba16f, binding = 0) readonly uniform image2D previousUpscaleImage;
@@ -16,10 +16,10 @@ layout(rgba16f, binding = 1) readonly uniform image2D currentDownscaleImage;
 // The next mip in the upsampling mip chain.
 layout(rgba16f, binding = 2) restrict writeonly uniform image2D nextUpscaleImage;
 
-layout(std140, binding = 3) buffer PrefilterParams
+layout(std140, binding = 3) readonly buffer PrefilterParams
 {
   vec4 u_filterParams; // Threshold (x), threshold - knee (y), 2.0 * knee (z) and 0.25 / knee (w).
-  float u_upsampleRadius;
+  vec2 u_upsampleRadius; // Upsampling filter radius (x).
 };
 
 // Interpolating sampler.
@@ -33,7 +33,7 @@ void main()
   ivec2 destCoords = ivec2(gl_GlobalInvocationID.xy);
   ivec2 sourceCoords = destCoords / 2;
 
-  vec3 previousColour = upsampleBoxTentPrevious(sourceCoords, u_upsampleRadius);
+  vec3 previousColour = upsampleBoxTentPrevious(sourceCoords, u_upsampleRadius.x);
   vec3 filteredColour = imageLoad(currentDownscaleImage, destCoords).rgb;
   vec3 blendedColour = filteredColour + previousColour;
   imageStore(nextUpscaleImage, destCoords, vec4(blendedColour, 1.0));
@@ -42,13 +42,21 @@ void main()
 // Interpolating sampler.
 vec3 samplePrevious(ivec2 centerCoords, ivec2 offsetCoords, float radius)
 {
+  ivec2 right0 = centerCoords + int(floor(radius)) * ivec2(offsetCoords.x, 0);
+  ivec2 topRight0 = centerCoords + int(floor(radius)) * offsetCoords;
+  ivec2 top0 = centerCoords + int(floor(radius)) * ivec2(0, offsetCoords.y);
+
+  ivec2 right1 = centerCoords + int(ceil(radius)) * ivec2(offsetCoords.x, 0);
+  ivec2 topRight1 = centerCoords + int(ceil(radius)) * offsetCoords;
+  ivec2 top1 = centerCoords + int(ceil(radius)) * ivec2(0, offsetCoords.y);
+
   ivec2 sampleCoords0 = centerCoords + int(floor(radius)) * offsetCoords;
   vec3 sample0 = imageLoad(previousUpscaleImage, sampleCoords0).rgb;
 
   ivec2 sampleCoords1 = centerCoords + int(ceil(radius)) * offsetCoords;
   vec3 sample1 = imageLoad(previousUpscaleImage, sampleCoords1).rgb;
 
-  return mix(sample0, sample1, fract(radius));
+  return mix(sample0, sample1, sign(fract(radius)));
 }
 
 /*

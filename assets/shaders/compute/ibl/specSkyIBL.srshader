@@ -12,7 +12,7 @@
 #define PI 3.141592654
 #define PI_OVER_TWO 1.570796327
 
-layout(local_size_x = 32, local_size_y = 32) in;
+layout(local_size_x = 8, local_size_y = 8) in;
 
 // The environment map to prefilter.
 layout(binding = 0) uniform sampler2D skyviewLUT;
