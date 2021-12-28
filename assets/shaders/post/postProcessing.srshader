@@ -54,13 +54,6 @@ vec3 applyFXAA(vec2 screenSize, vec2 uv, sampler2D screenTexture);
 
 // Tone mapping.
 vec3 toneMap(vec3 colour, uint operator);
-vec3 reinhardOperator(vec3 rgbColour);
-vec3 luminanceReinhardOperator(vec3 rgbColour);
-vec3 luminanceReinhardJodieOperator(vec3 rgbColour);
-vec3 partialUnchartedOperator(vec3 rgbColour);
-vec3 filmicUnchartedOperator(vec3 rgbColour);
-vec3 fastAcesOperator(vec3 rgbColour);
-vec3 acesOperator(vec3 rgbColour);
 
 // Gamma correct.
 vec3 applyGamma(vec3 colour, float gamma);
@@ -71,7 +64,6 @@ void main()
   vec2 fTexCoords = gl_FragCoord.xy / screenSize;
 
   vec3 colour;
-
   if (u_postProcessingPasses.z != 0)
     colour = applyFXAA(screenSize, fTexCoords, screenColour);
   else
@@ -82,7 +74,6 @@ void main()
 
   colour = toneMap(colour, uint(u_postProcessingPasses.x));
   colour = applyGamma(colour, u_screenSizeGammaBloom.y);
-  colour = max(colour, vec3(0.0));
 
   fragColour = vec4(colour, 1.0);
   fragID = texture(entityIDs, fTexCoords).a;
@@ -175,21 +166,6 @@ vec3 applyFXAA(vec2 screenSize, vec2 uv, sampler2D screenTexture)
     return rgbB;
 }
 
-// Tone mapping.
-vec3 toneMap(vec3 colour, uint operator)
-{
-  switch (operator)
-  {
-    case 0: return reinhardOperator(colour);
-    case 1: return luminanceReinhardOperator(colour);
-    case 2: return luminanceReinhardJodieOperator(colour);
-    case 3: return filmicUnchartedOperator(colour);
-    case 4: return fastAcesOperator(colour);
-    case 5: return acesOperator(colour);
-    default: return colour;
-  }
-}
-
 vec3 reinhardOperator(vec3 rgbColour)
 {
   return rgbColour / (vec3(1.0) + rgbColour);
@@ -268,6 +244,21 @@ vec3 acesOperator(vec3 rgbColour)
   vec3 b = inputColour * (0.983729 * inputColour + 0.4329510) + 0.238081;
   vec3 c = a / b;
   return outputMatrix * c;
+}
+
+// Tone mapping.
+vec3 toneMap(vec3 colour, uint operator)
+{
+  switch (operator)
+  {
+    case 0: return reinhardOperator(colour);
+    case 1: return luminanceReinhardOperator(colour);
+    case 2: return luminanceReinhardJodieOperator(colour);
+    case 3: return filmicUnchartedOperator(colour);
+    case 4: return fastAcesOperator(colour);
+    case 5: return acesOperator(colour);
+    default: return colour;
+  }
 }
 
 // Gamma correct.

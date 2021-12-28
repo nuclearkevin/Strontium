@@ -158,20 +158,26 @@ void main()
     }
   }
 
-  // Compute the radiance contribution.
-  vec3 radiance = filamentBRDF(light, view, normal, roughness, metallic,
-                               dielectricF0, metallicF0, f90, albedo);
-  radiance *= (lightIntensity * nDotL * lightColour * shadowFactor);
-
   // Add on screen-space godrays.
+  vec3 radiance = vec3(0.0);
+  float transmittance = 1.0;
   if (u_postProcessingPasses.w != 0)
   {
+    // Bicubic upsampling to AA in the u and v direction as described in [Patry2021]:
+    // http://advances.realtimerendering.com/s2021/jpatry_advances2021/index.html
     vec4 godrays = bicubicHermiteTextureSample(godrayTex, fTexCoords);
-    radiance += godrays.rgb * godrays.a;
+    radiance += godrays.rgb * godrays.a * lightIntensity * lightColour;
+
+    // Compute transmittance from the stored opacity.
+    transmittance = 1.0 - godrays.a;
   }
 
-  radiance = max(radiance, vec3(0.0));
-  fragColour = vec4(radiance, 1.0);
+  // Compute the radiance contribution.
+  vec3 lRadiance = filamentBRDF(light, view, normal, roughness, metallic,
+                                dielectricF0, metallicF0, f90, albedo);
+  lRadiance *= (lightIntensity * nDotL * lightColour * shadowFactor * transmittance);
+
+  fragColour = vec4(radiance + lRadiance, 1.0);
 }
 
 //------------------------------------------------------------------------------

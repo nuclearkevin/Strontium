@@ -1,75 +1,6 @@
 Scene: tests\TestScene.srn
 Entities:
-  - EntityID: 1
-    NameComponent:
-      Name: Scene
-      Description: ""
-    ChildEntities:
-      - EntityID: 2
-        NameComponent:
-          Name: Ground
-          Description: ""
-        TransformComponent:
-          Translation: [0, 0, 0]
-          Rotation: [0, 0, 0]
-          Scale: [10, 0.100000001, 10]
-        RenderableComponent:
-          ModelPath: ./assets/tests\cube.fbx
-          ModelName: tests\cube.fbx
-          CurrentAnimation: None
-          Material:
-            - SubmeshName: Cube.001
-              MaterialHandle: Cube.001
-      - EntityID: 3
-        NameComponent:
-          Name: Wall
-          Description: ""
-        TransformComponent:
-          Translation: [10, 4.9000001, 0]
-          Rotation: [0, -0, 0]
-          Scale: [0.100000001, 5, 10]
-        RenderableComponent:
-          ModelPath: ./assets/tests\cube.fbx
-          ModelName: tests\cube.fbx
-          CurrentAnimation: None
-          Material:
-            - SubmeshName: Cube.001
-              MaterialHandle: Cube.001
-      - EntityID: 4
-        NameComponent:
-          Name: Sphere
-          Description: ""
-        TransformComponent:
-          Translation: [-3.00201941, 1.04578507, -0.360065222]
-          Rotation: [0, -0, 0]
-          Scale: [1, 1, 1]
-        RenderableComponent:
-          ModelPath: ./assets/tests\sphere.fbx
-          ModelName: tests\sphere.fbx
-          CurrentAnimation: None
-          Material:
-            - SubmeshName: Sphere
-              MaterialHandle: Sphere
-      - EntityID: 5
-        NameComponent:
-          Name: Cube
-          Description: ""
-        TransformComponent:
-          Translation: [-0.837779462, 1.09989142, 3.14369678]
-          Rotation: [0, -0, 0]
-          Scale: [1, 1, 1]
-        RenderableComponent:
-          ModelPath: ./assets/tests\cube.fbx
-          ModelName: tests\cube.fbx
-          CurrentAnimation: None
-          Material:
-            - SubmeshName: Cube.001
-              MaterialHandle: Cube.001
-    TransformComponent:
-      Translation: [0, 0, 0]
-      Rotation: [0, -0, 0]
-      Scale: [1, 1, 1]
-  - EntityID: 0
+  - EntityID: 5
     NameComponent:
       Name: Skylight
       Description: ""
@@ -112,6 +43,75 @@ Entities:
         PlanetRadius: 6.36000013
         AtmosphereRadius: 6.46000004
         ViewPosition: [0, 6.36020041, 0]
+  - EntityID: 0
+    NameComponent:
+      Name: Scene
+      Description: ""
+    ChildEntities:
+      - EntityID: 1
+        NameComponent:
+          Name: Ground
+          Description: ""
+        TransformComponent:
+          Translation: [0, 0, 0]
+          Rotation: [0, 0, 0]
+          Scale: [0.100000001, 0.00999999978, 0.100000001]
+        RenderableComponent:
+          ModelPath: ./assets/tests\cube.fbx
+          ModelName: tests\cube.fbx
+          CurrentAnimation: None
+          Material:
+            - SubmeshName: Cube.001
+              MaterialHandle: Cube.001
+      - EntityID: 2
+        NameComponent:
+          Name: Wall
+          Description: ""
+        TransformComponent:
+          Translation: [10, 4.9000001, 0]
+          Rotation: [0, -0, 0]
+          Scale: [0.00999999978, 0.0500000007, 0.100000001]
+        RenderableComponent:
+          ModelPath: ./assets/tests\cube.fbx
+          ModelName: tests\cube.fbx
+          CurrentAnimation: None
+          Material:
+            - SubmeshName: Cube.001
+              MaterialHandle: Cube.001
+      - EntityID: 3
+        NameComponent:
+          Name: Sphere
+          Description: ""
+        TransformComponent:
+          Translation: [-3.00201941, 1.64999998, -0.360065222]
+          Rotation: [0, -0, 0]
+          Scale: [0.00999999978, 0.00999999978, 0.00999999978]
+        RenderableComponent:
+          ModelPath: ./assets/tests\sphere.fbx
+          ModelName: tests\sphere.fbx
+          CurrentAnimation: None
+          Material:
+            - SubmeshName: Sphere
+              MaterialHandle: Sphere
+      - EntityID: 4
+        NameComponent:
+          Name: Cube
+          Description: ""
+        TransformComponent:
+          Translation: [-0.837779462, 1.89999998, 3.14369678]
+          Rotation: [0, -0, 0]
+          Scale: [0.00999999978, 0.00999999978, 0.00999999978]
+        RenderableComponent:
+          ModelPath: ./assets/tests\cube.fbx
+          ModelName: tests\cube.fbx
+          CurrentAnimation: None
+          Material:
+            - SubmeshName: Cube.001
+              MaterialHandle: Cube.001
+    TransformComponent:
+      Translation: [0, 0, 0]
+      Rotation: [0, -0, 0]
+      Scale: [1, 1, 1]
 RendererSettings:
   BasicSettings:
     FrustumCull: true
@@ -126,7 +126,7 @@ RendererSettings:
     NormalDepthBias: 50
     ConstDepthBias: 0.0399999991
   VolumetricLightSettings:
-    EnableVolumetricPrimaryLight: false
+    EnableVolumetricPrimaryLight: true
     VolumetricIntensity: 1
     ParticleDensity: 1
     MieScattering: [4, 4, 4]

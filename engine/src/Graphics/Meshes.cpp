@@ -7,6 +7,7 @@ namespace Strontium
 {
   Mesh::Mesh(const std::string &name, Model* parent)
     : loaded(false)
+    , skinned(false)
     , name(name)
     , parent(parent)
     , localTransform(1.0f)
@@ -15,6 +16,7 @@ namespace Strontium
   Mesh::Mesh(const std::string &name, const std::vector<Vertex> &vertices,
              const std::vector<uint> &indices, Model* parent)
     : loaded(true)
+    , skinned(false)
     , data(vertices)
     , indices(indices)
     , vArray(nullptr)

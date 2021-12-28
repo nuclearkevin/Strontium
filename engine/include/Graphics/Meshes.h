@@ -88,6 +88,7 @@ namespace Strontium
   protected:
     // Mesh properties.
     bool loaded;
+    bool skinned;
     std::vector<Vertex> data;
     std::vector<uint> indices;
 

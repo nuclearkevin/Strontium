@@ -64,10 +64,12 @@ ShaderCache:
   - Handle: deferred_point
     Filepath: ./assets/shaders/deferred/pointLight.srshader
     #
-    # Screen-space godrays
+    # Screen-space effects
     #
   - Handle: screen_space_godrays
     Filepath: ./assets/shaders/compute/volumetricDirLight.srshader
+  - Handle: screen_space_hbao
+    Filepath: ./assets/shaders/compute/hbaoCompute.srshader
     #
     # Bloom
     #

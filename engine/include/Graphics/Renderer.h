@@ -79,10 +79,15 @@ namespace Strontium
       Texture2D upscaleBloomTex;
       ShaderStorageBuffer bloomSettingsBuffer;
 
-      // Required parameters for volumetric light shafts.
+      // Required objects for volumetric light shafts.
       Texture2D downsampleLightshaft;
       Texture2D halfResBuffer1;
       ShaderStorageBuffer lightShaftSettingsBuffer;
+
+      // Required objects for SSHBAO.
+      Texture2D downsampleAO;
+      Texture2D quarterResBuffer1;
+      UniformBuffer aoParamsBuffer;
 
       // Items for the geometry pass.
       std::vector<std::tuple<Model*, ModelMaterial*, glm::mat4, uint, bool>> staticRenderQueue;
@@ -122,6 +127,7 @@ namespace Strontium
         , boneBuffer(MAX_BONES_PER_MODEL * sizeof(glm::mat4), BufferType::Dynamic)
         , lightShaftSettingsBuffer(2 * sizeof(glm::vec4), BufferType::Dynamic)
         , bloomSettingsBuffer(sizeof(glm::vec4) + sizeof(glm::vec2), BufferType::Dynamic)
+        , aoParamsBuffer(sizeof(glm::vec4), BufferType::Dynamic)
       {
         currentEnvironment = createUnique<EnvironmentMap>();
       }
@@ -154,6 +160,11 @@ namespace Strontium
       glm::vec4 mieScatIntensity;
       glm::vec4 mieAbsDensity;
 
+      // AO settings.
+      bool enableAO;
+      glm::vec4 aoSettings;
+
+      // Using aerial perspective.
       bool useAerialPersp;
 
       // HDR settings.
@@ -199,6 +210,8 @@ namespace Strontium
         , postProcessSettings(0)
         , drawGrid(true)
         , useAerialPersp(false)
+        , aoSettings(0.001f, 1.0f, 1.0f, 0.0f)
+        , enableAO(false)
       { }
     };
 

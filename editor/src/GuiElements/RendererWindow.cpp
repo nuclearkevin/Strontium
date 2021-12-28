@@ -204,6 +204,28 @@ namespace Strontium
       }
     }
 
+    if (ImGui::CollapsingHeader("HBAO"))
+    {
+      ImGui::Checkbox("Enable HBAO", &state->enableAO);
+
+      ImGui::SliderFloat("Radius", &(state->aoSettings.x), 0.0f, 1.0f);
+      ImGui::SliderFloat("Multiplier", &(state->aoSettings.y), 0.0f, 10.0f);
+      ImGui::SliderFloat("Power", &(state->aoSettings.z), 0.0f, 10.0f);
+
+      static bool showHBAOTexture = false;
+      ImGui::Checkbox("Show HBAO Texture", &showHBAOTexture);
+
+      if (showHBAOTexture)
+      {
+        auto bufferSize = storage->gBuffer.getSize();
+        float ratio = bufferSize.x / bufferSize.y;
+
+        ImGui::Text("HBAO Texture");
+        ImGui::Image((ImTextureID) (unsigned long) storage->downsampleAO.getID(),
+                     ImVec2(128.0f * ratio, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
+      }
+    }
+
     if (ImGui::CollapsingHeader("Bloom"))
     {
       auto bufferSize = storage->gBuffer.getSize();

@@ -35,7 +35,7 @@ namespace Strontium
       storage->width = width;
       storage->height = height;
 
-      // Prepare bloom settings.
+      // Init the bloom textures.
       Texture2DParams bloomParams = Texture2DParams();
       bloomParams.sWrap = TextureWrapParams::ClampEdges;
       bloomParams.tWrap = TextureWrapParams::ClampEdges;
@@ -67,6 +67,18 @@ namespace Strontium
       storage->halfResBuffer1.setSize(width / 2, height / 2, 4);
       storage->halfResBuffer1.setParams(bloomParams);
       storage->halfResBuffer1.initNullTexture();
+
+      // Init the textures for the screen-space HBAO. Use the same params as bloom.
+      bloomParams.internal = TextureInternalFormats::R32f;
+      bloomParams.format = TextureFormats::Red;
+      bloomParams.dataType = TextureDataType::Floats;
+      storage->downsampleAO.setSize(width / 4, height / 4, 1);
+      storage->downsampleAO.setParams(bloomParams);
+      storage->downsampleAO.initNullTexture();
+
+      storage->quarterResBuffer1.setSize(width / 4, height / 4, 1);
+      storage->quarterResBuffer1.setParams(bloomParams);
+      storage->quarterResBuffer1.initNullTexture();
 
       // Prepare the shadow buffers.
       auto dSpec = Texture2D::getDefaultDepthParams();
@@ -154,6 +166,12 @@ namespace Strontium
         storage->halfResBuffer1.setSize(width / 2, height / 2, 4);
         storage->halfResBuffer1.initNullTexture();
 
+        storage->downsampleAO.setSize(width / 4, height / 4, 1);
+        storage->downsampleAO.initNullTexture();
+
+        storage->quarterResBuffer1.setSize(width / 4, height / 4, 1);
+        storage->quarterResBuffer1.initNullTexture();
+
         storage->width = width;
         storage->height = height;
       }
@@ -228,16 +246,7 @@ namespace Strontium
     submit(Model* data, ModelMaterial &materials, const glm::mat4 &model,
            float id, bool drawSelectionMask)
     {
-      // Cull the model early.
-      glm::vec3 min = data->getMinPos();
-      glm::vec3 max = data->getMaxPos();
-      glm::vec3 center = (min + max) / 2.0f;
-
-      if (boundingBoxInFrustum(storage->camFrustum, min, max, model) && state->frustumCull)
-        storage->staticRenderQueue.emplace_back(data, &materials, model, id,
-                                                drawSelectionMask);
-      else if (!state->frustumCull)
-        storage->staticRenderQueue.emplace_back(data, &materials, model, id,
+      storage->staticRenderQueue.emplace_back(data, &materials, model, id,
                                                 drawSelectionMask);
 
       storage->staticShadowQueue.emplace_back(data, model);
@@ -246,15 +255,7 @@ namespace Strontium
     void submit(Model* data, Animator* animation, ModelMaterial &materials,
                 const glm::mat4 &model, float id, bool drawSelectionMask)
     {
-      // Cull the model early.
-      glm::vec3 min = data->getMinPos();
-      glm::vec3 max = data->getMaxPos();
-
-      if (boundingBoxInFrustum(storage->camFrustum, min, max, model) && state->frustumCull)
-        storage->dynamicRenderQueue.emplace_back(data, animation, &materials,
-                                                 model, id, drawSelectionMask);
-      else if (!state->frustumCull)
-        storage->dynamicRenderQueue.emplace_back(data, animation, &materials,
+      storage->dynamicRenderQueue.emplace_back(data, animation, &materials,
                                                  model, id, drawSelectionMask);
 
       storage->dynamicShadowQueue.emplace_back(data, animation, model);
@@ -795,8 +796,45 @@ namespace Strontium
     void
     lightingPass()
     {
-      storage->currentEnvironment->updateAerialPerspective(storage->camBuffer);
       auto start = std::chrono::steady_clock::now();
+      storage->currentEnvironment->updateAerialPerspective(storage->camBuffer);
+
+      // Gbuffer textures.
+      storage->gBuffer.bindAttachment(FBOTargetParam::Depth, 3);
+      storage->gBuffer.bindAttachment(FBOTargetParam::Colour0, 4);
+      storage->gBuffer.bindAttachment(FBOTargetParam::Colour1, 5);
+      storage->gBuffer.bindAttachment(FBOTargetParam::Colour2, 6);
+       
+      //------------------------------------------------------------------------
+      // Screen-space HBAO subpass.
+      //------------------------------------------------------------------------
+      if (state->enableAO)
+      {
+        storage->aoParamsBuffer.bindToPoint(1);
+        storage->aoParamsBuffer.setData(0, sizeof(glm::vec4), &(state->aoSettings.x));
+        
+        storage->downsampleAO.bindAsImage(0, 0, ImageAccessPolicy::Write);
+        uint iWidth = (uint)glm::ceil(storage->downsampleAO.getWidth() / 8.0f);
+        uint iHeight = (uint)glm::ceil(storage->downsampleAO.getHeight() / 8.0f);
+        ShaderCache::getShader("screen_space_hbao")->launchCompute(iWidth, iHeight, 1);
+        Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
+        
+        // Blurring the volumetric texture to remove noise.
+        auto depthBlur = ShaderCache::getShader("bilateral_blur");
+        // X blur pass.
+        storage->downsampleAO.bind(0);
+        storage->quarterResBuffer1.bindAsImage(2, 0, ImageAccessPolicy::Write);
+        depthBlur->addUniformVector("u_direction", glm::vec2(1.0, 0.0));
+        depthBlur->launchCompute(iWidth, iHeight, 1);
+        Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
+        
+        // Y blur pass.
+        storage->quarterResBuffer1.bind(0);
+        storage->downsampleAO.bindAsImage(2, 0, ImageAccessPolicy::Write);
+        depthBlur->addUniformVector("u_direction", glm::vec2(0.0, 1.0));
+        depthBlur->launchCompute(iWidth, iHeight, 1);
+        Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
+      }
 
       RendererCommands::disable(RendererFunction::DepthTest);
       storage->lightingPass.bind();
@@ -810,19 +848,14 @@ namespace Strontium
       storage->currentEnvironment->bind(MapType::Irradiance, 0);
       storage->currentEnvironment->bind(MapType::Prefilter, 1);
       storage->currentEnvironment->bindBRDFLUT(2);
-      // Gbuffer textures.
-      storage->gBuffer.bindAttachment(FBOTargetParam::Depth, 3);
-      storage->gBuffer.bindAttachment(FBOTargetParam::Colour0, 4);
-      storage->gBuffer.bindAttachment(FBOTargetParam::Colour1, 5);
-      storage->gBuffer.bindAttachment(FBOTargetParam::Colour2, 6);
 
-      auto sizeIntensity = glm::vec3(0.0f);
-      auto screenSize = storage->lightingPass.getSize();
-      sizeIntensity.x = screenSize.x;
-      sizeIntensity.y = screenSize.y;
-      sizeIntensity.z = storage->currentEnvironment->getIntensity();
+      auto ambientParams = glm::vec3(0.0f);
+      ambientParams.x = static_cast<float>(state->enableAO);
+      ambientParams.z = storage->currentEnvironment->getIntensity();
       storage->ambientPassBuffer.bindToPoint(4);
-      storage->ambientPassBuffer.setData(0, sizeof(glm::vec3), &sizeIntensity.x);
+      storage->ambientPassBuffer.setData(0, sizeof(glm::vec3), &(ambientParams.x));
+
+      storage->downsampleAO.bind(7);
 
       storage->blankVAO.bind();
       ambientShader->bind();
@@ -892,15 +925,26 @@ namespace Strontium
             storage->lightShaftSettingsBuffer.setData(sizeof(glm::vec4), sizeof(glm::vec4),
                                                       &(state->mieAbsDensity.x));   
 
-            storage->halfResBuffer1.bindAsImage(0, 0, ImageAccessPolicy::Write);
+            storage->downsampleLightshaft.bindAsImage(0, 0, ImageAccessPolicy::Write);
             uint iWidth = (uint) glm::ceil(storage->downsampleLightshaft.getWidth() / 8.0f);
             uint iHeight = (uint) glm::ceil(storage->downsampleLightshaft.getHeight() / 8.0f);
             ShaderCache::getShader("screen_space_godrays")->launchCompute(iWidth, iHeight, 1);
             Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
+            
+            // Blurring the volumetric texture to remove noise.
+            auto depthBlur = ShaderCache::getShader("bilateral_blur");
+            // X blur pass.
+            storage->downsampleLightshaft.bind(0);
+            storage->halfResBuffer1.bindAsImage(2, 0, ImageAccessPolicy::Write);
+            depthBlur->addUniformVector("u_direction", glm::vec2(1.0, 0.0));
+            depthBlur->launchCompute(iWidth, iHeight, 1);
+            Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
 
+            // Y blur pass.
             storage->halfResBuffer1.bind(0);
-            storage->downsampleLightshaft.bindAsImage(1, 0, ImageAccessPolicy::Write);
-            ShaderCache::getShader("bilateral_blur")->launchCompute(iWidth, iHeight, 1);
+            storage->downsampleLightshaft.bindAsImage(2, 0, ImageAccessPolicy::Write);
+            depthBlur->addUniformVector("u_direction", glm::vec2(0.0, 1.0));
+            depthBlur->launchCompute(iWidth, iHeight, 1);
             Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
           }
 
