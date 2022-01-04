@@ -16,7 +16,7 @@
 layout(local_size_x = 8, local_size_y = 8) in;
 
 // The output texture for the AO.
-layout(r16f, binding = 0) restrict writeonly uniform image2D aoOut;
+layout(rg16f, binding = 0) restrict writeonly uniform image2D aoOut;
 
 layout(binding = 3) uniform sampler2D gDepth;
 layout(binding = 4) uniform sampler2D gNormal;
@@ -39,6 +39,28 @@ layout(std140, binding = 1) uniform AOBlock
 float computeHBAO(ivec2 coords, vec2 uv, vec4 aoParams, sampler2D depthTex,
                   sampler2D normalTex, mat4 view, mat4 invVP, vec2 fullResTexel);
 
+// https://stackoverflow.com/questions/51108596/linearize-depth
+float linearizeDepth(float d, float zNear, float zFar)
+{
+  float zN = 2.0 * d - 1.0;
+  return 2.0 * zNear * zFar / (zFar + zNear - zN * (zFar - zNear));
+}
+
+// Fast octahedron normal vector decoding.
+// https://jcgt.org/published/0003/02/01/
+vec2 signNotZero(vec2 v)
+{
+  return vec2((v.x >= 0.0) ? 1.0 : -1.0, (v.y >= 0.0) ? 1.0 : -1.0);
+}
+vec3 decodeNormal(vec2 texCoords, sampler2D encodedNormals)
+{
+  vec2 e = texture(encodedNormals, texCoords).xy;
+  vec3 v = vec3(e.xy, 1.0 - abs(e.x) - abs(e.y));
+  if (v.z < 0)
+    v.xy = (1.0 - abs(v.yx)) * signNotZero(v.xy);
+  return normalize(v);
+}
+
 void main()
 {
   ivec2 invoke = ivec2(gl_GlobalInvocationID.xy);
@@ -48,10 +70,12 @@ void main()
   vec2 texelSize = vec2(1.0) / vec2(textureSize(gDepth, 0).xy);
   vec2 gBufferUV = (vec2(gBufferCoords) + 0.5.xx) * texelSize;
 
+  float linearDepth = linearizeDepth(textureLod(gDepth, gBufferUV, 2.0).r, u_nearFar.x, u_nearFar.y);
+
   float ao = computeHBAO(invoke, gBufferUV, u_aoParams1, gDepth, gNormal,
                          u_viewMatrix, u_invViewProjMatrix, texelSize);
 
-  imageStore(aoOut, invoke, vec4(pow(ao, u_aoParams1.z)));
+  imageStore(aoOut, invoke, vec4(pow(ao, u_aoParams1.z), linearDepth, 1.0, 1.0));
 }
 
 // Sample a dithering pattern.
@@ -93,25 +117,10 @@ float falloff(float distanceSquare, float invR2)
 // Decodes the worldspace position of the fragment from depth.
 vec3 decodePosition(vec2 texCoords, sampler2D depthMap, mat4 invVP)
 {
-  float depth = texture(depthMap, texCoords).r;
+  float depth = texture(depthMap, texCoords, 2.0).r;
   vec3 clipCoords = 2.0 * vec3(texCoords, depth) - 1.0.xxx;
   vec4 temp = invVP * vec4(clipCoords, 1.0);
   return temp.xyz / temp.w;
-}
-
-// Fast octahedron normal vector decoding.
-// https://jcgt.org/published/0003/02/01/
-vec2 signNotZero(vec2 v)
-{
-  return vec2((v.x >= 0.0) ? 1.0 : -1.0, (v.y >= 0.0) ? 1.0 : -1.0);
-}
-vec3 decodeNormal(vec2 texCoords, sampler2D encodedNormals)
-{
-  vec2 e = texture(encodedNormals, texCoords).xy;
-  vec3 v = vec3(e.xy, 1.0 - abs(e.x) - abs(e.y));
-  if (v.z < 0)
-    v.xy = (1.0 - abs(v.yx)) * signNotZero(v.xy);
-  return normalize(v);
 }
 
 //------------------------------------------------------------------------------
@@ -132,7 +141,7 @@ float
 computeHBAO(ivec2 coords, vec2 uv, vec4 aoParams, sampler2D depthTex,
             sampler2D normalTex, mat4 view, mat4 invVP, vec2 fullResTexel)
 {
-  // Compute the view-space position and depth.
+  // Compute the view-space position and normal.
   vec3 viewPos = (view * vec4(decodePosition(uv, depthTex, invVP), 1.0)).xyz;
   vec3 viewNormal = normalize((view * vec4(decodeNormal(uv, normalTex), 0.0)).xyz);
 

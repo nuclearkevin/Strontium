@@ -1,0 +1,72 @@
+#type compute
+#version 440
+/*
+ * A depth-aware bilateral blur used to smooth screen-space effects. Based off of:
+ * https://github.com/nvpro-samples/gl_ssao/blob/master/hbao_blur.frag.glsl
+*/
+
+#define KERNEL_RADIUS 3
+#define SHARPNESS 1.0
+
+layout(local_size_x = 8, local_size_y = 8) in;
+
+layout(binding = 0) uniform sampler2D inTexture;
+layout(binding = 3) uniform sampler2D gDepth;
+layout(rg16f, binding = 2) restrict writeonly uniform image2D outImage;
+
+layout(location = 0) uniform vec2 u_direction; // Either (1, 0) for x or (0, 1) for y.
+
+// Camera specific uniforms.
+layout(std140, binding = 0) uniform CameraBlock
+{
+  mat4 u_viewMatrix;
+  mat4 u_projMatrix;
+  mat4 u_invViewProjMatrix;
+  vec3 u_camPosition;
+  vec4 u_nearFar; // Near plane (x), far plane (y). z and w are unused.
+};
+
+float blurFunction(vec2 uv, float r, float centerDepth, sampler2D depthMap,
+                   sampler2D blurMap, vec2 nearFar, inout float totalWeight)
+{
+  float aoSample = texture(blurMap, uv).r;
+  float d = texture(blurMap, uv).g;
+
+  const float blurSigma = float(KERNEL_RADIUS) * 0.5;
+  const float blurFalloff = 1.0 / (2.0 * blurSigma * blurSigma);
+
+  float ddiff = (d - centerDepth) * SHARPNESS;
+  float w = exp2(-r * r * blurFalloff - ddiff * ddiff);
+  totalWeight += w;
+
+  return aoSample * w;
+}
+
+void main()
+{
+  ivec2 invoke = ivec2(gl_GlobalInvocationID.xy);
+  vec2 texelSize = 1.0.xx / vec2(textureSize(inTexture, 0).xy);
+  vec2 uvs = (vec2(invoke) + 0.5.xx) * texelSize;
+
+  vec4 fetch = texture(inTexture, uvs);
+  float center = fetch.r;
+  vec2 centerNormal = fetch.ba;
+  float centerDepth = texture(inTexture, uvs).g;
+
+  float cTotal = center;
+  float wTotal = 1.0;
+
+  for (uint r = 1; r <= KERNEL_RADIUS; r++)
+  {
+    vec2 uv = uvs + (texelSize * float(r) * u_direction);
+    cTotal += blurFunction(uv, r, centerDepth, gDepth, inTexture, u_nearFar.xy, wTotal);
+  }
+
+  for (uint r = 1; r <= KERNEL_RADIUS; r++)
+  {
+    vec2 uv = uvs - (texelSize * float(r) * u_direction);
+    cTotal += blurFunction(uv, r, centerDepth, gDepth, inTexture, u_nearFar.xy, wTotal);
+  }
+
+  imageStore(outImage, invoke, vec4(cTotal / wTotal, centerDepth, 1.0, 1.0));
+}

@@ -373,6 +373,9 @@ namespace Strontium
   void 
   EnvironmentMap::setDynamicSkyIBL()
   {
+    if (!this->staticIBL)
+      return;
+
     this->staticIBL = false;
 
     // Clear and resize the cubemap.
@@ -396,6 +399,9 @@ namespace Strontium
   void 
   EnvironmentMap::setStaticIBL()
   {
+    if (this->staticIBL)
+      return;
+
     this->staticIBL = true;
 
     auto state = Renderer3D::getState();
@@ -503,7 +509,7 @@ namespace Strontium
         auto start = std::chrono::steady_clock::now();
         
         // Bind the skybox for reading by the compute shader.
-        this->skybox.bindAsImage(0, 0, true, 0, ImageAccessPolicy::Read);
+        this->skybox.bind(0);
         
         // Bind the irradiance map for writing to by the compute shader.
         this->irradiance.bindAsImage(1, 0, true, 0, ImageAccessPolicy::Write);

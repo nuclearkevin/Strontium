@@ -14,7 +14,7 @@ layout(local_size_x = 8, local_size_y = 8) in;
 layout(rgba16f, binding = 0) uniform readonly image2D equirectangularMap;
 
 // The output environment map after conversion.
-layout(rgba16f, binding = 1) writeonly uniform imageCube environmentMap;
+layout(rgba16f, binding = 1) restrict writeonly uniform imageCube environmentMap;
 
 // Function for converting between cubemap image coordiantes and world coordiantes.
 vec3 cubeToWorld(ivec3 cubeCoord, vec2 cubeSize);
