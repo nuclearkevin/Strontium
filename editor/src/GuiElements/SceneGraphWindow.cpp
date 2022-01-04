@@ -1026,7 +1026,7 @@ namespace Strontium
 
           if (this->selectedEntity.hasComponent<TransformComponent>())
           {
-            ImGui::Checkbox("Aniamte Dynamic Sky", &component.animate);
+            ImGui::Checkbox("Animate Dynamic Sky", &component.animate);
             if (component.animate)
             {
               ImGui::DragFloat("Animation Speed", &component.animationSpeed, 0.001f);

@@ -146,7 +146,7 @@ vec3 applyFXAA(vec2 screenSize, vec2 uv, sampler2D screenTexture)
       (lumaNW + lumaNE + lumaSW + lumaSE) * (0.25 * FXAA_REDUCE_MUL),
       FXAA_REDUCE_MIN);
 
-  float rcpDirMin = 1.0 / (min(abs(dir.x), abs(dir.y)) + dirReduce);
+  float rcpDirMin = 1.0 / max(min(abs(dir.x), abs(dir.y)) + dirReduce, 1e-4);
 
   dir = min(vec2(FXAA_SPAN_MAX, FXAA_SPAN_MAX),
         max(vec2(-FXAA_SPAN_MAX, -FXAA_SPAN_MAX),
@@ -243,7 +243,7 @@ vec3 acesOperator(vec3 rgbColour)
   vec3 a = inputColour * (inputColour + vec3(0.0245786)) - vec3(0.000090537);
   vec3 b = inputColour * (0.983729 * inputColour + 0.4329510) + 0.238081;
   vec3 c = a / b;
-  return outputMatrix * c;
+  return max(outputMatrix * c, 0.0.xxx);
 }
 
 // Tone mapping.

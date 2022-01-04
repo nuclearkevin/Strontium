@@ -14,6 +14,11 @@ namespace Strontium
     auto cSpec = Texture2D::getFloatColourParams();
     auto dSpec = Texture2D::getDefaultDepthParams();
 
+    cSpec.sWrap = TextureWrapParams::ClampEdges;
+    cSpec.tWrap = TextureWrapParams::ClampEdges;
+    dSpec.sWrap = TextureWrapParams::ClampEdges;
+    dSpec.tWrap = TextureWrapParams::ClampEdges;
+
     auto attachment = FBOAttachment(FBOTargetParam::Colour0, FBOTextureParam::Texture2D, 
                                     cSpec.internal, cSpec.format, cSpec.dataType);
 
@@ -26,8 +31,6 @@ namespace Strontium
     attachment.target = FBOTargetParam::Colour2;
     this->geoBuffer.attach(cSpec, attachment);
     // The ID texture with a mask for the current selected entity.
-    cSpec.sWrap = TextureWrapParams::ClampEdges;
-    cSpec.tWrap = TextureWrapParams::ClampEdges;
     attachment.target = FBOTargetParam::Colour3;
     this->geoBuffer.attach(cSpec, attachment);
     this->geoBuffer.setDrawBuffers();
@@ -43,6 +46,11 @@ namespace Strontium
   {
     auto cSpec = Texture2D::getFloatColourParams();
     auto dSpec = Texture2D::getDefaultDepthParams();
+
+    cSpec.sWrap = TextureWrapParams::ClampEdges;
+    cSpec.tWrap = TextureWrapParams::ClampEdges;
+    dSpec.sWrap = TextureWrapParams::ClampEdges;
+    dSpec.tWrap = TextureWrapParams::ClampEdges;
 
     auto attachment = FBOAttachment(FBOTargetParam::Colour0, FBOTextureParam::Texture2D,
                                     cSpec.internal, cSpec.format, cSpec.dataType);
@@ -108,6 +116,10 @@ namespace Strontium
 
     auto cSpec = Texture2D::getFloatColourParams();
     auto dSpec = Texture2D::getDefaultDepthParams();
+    cSpec.sWrap = TextureWrapParams::ClampEdges;
+    cSpec.tWrap = TextureWrapParams::ClampEdges;
+    dSpec.sWrap = TextureWrapParams::ClampEdges;
+    dSpec.tWrap = TextureWrapParams::ClampEdges;
 
     auto attachment = FBOAttachment(FBOTargetParam::Colour0, FBOTextureParam::Texture2D,
                                     cSpec.internal, cSpec.format, cSpec.dataType);

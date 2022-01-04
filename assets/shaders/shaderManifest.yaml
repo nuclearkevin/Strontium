@@ -5,7 +5,10 @@ ShaderCache:
     Filepath: ./assets/shaders/compute/culling/tiledFrustAABB.srshader
   - Handle: tiled_light_culling
     Filepath: ./assets/shaders/compute/culling/tiledLightCulling.srshader
-    #
+  - Handle: copy_depth_hi_z
+    Filepath: ./assets/shaders/compute/copyDepthCompute.srshader
+  - Handle: generate_hi_z
+    Filepath: ./assets/shaders/compute/hiZCompute.srshader
     #
     # Shadows
     #
@@ -70,6 +73,8 @@ ShaderCache:
     Filepath: ./assets/shaders/compute/volumetricDirLight.srshader
   - Handle: screen_space_hbao
     Filepath: ./assets/shaders/compute/hbaoCompute.srshader
+  - Handle: screen_space_hbao_blur
+    Filepath: ./assets/shaders/compute/hbaoBlurCompute.srshader
     #
     # Bloom
     #

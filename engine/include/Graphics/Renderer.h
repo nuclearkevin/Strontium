@@ -89,6 +89,9 @@ namespace Strontium
       Texture2D quarterResBuffer1;
       UniformBuffer aoParamsBuffer;
 
+      // Hi-Z buffer.
+      Texture2D hierarchicalDepth;
+
       // Items for the geometry pass.
       std::vector<std::tuple<Model*, ModelMaterial*, glm::mat4, uint, bool>> staticRenderQueue;
       std::vector<std::tuple<Model*, Animator*, ModelMaterial*, glm::mat4, uint, bool>> dynamicRenderQueue;

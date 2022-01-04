@@ -208,7 +208,7 @@ namespace Strontium
     {
       ImGui::Checkbox("Enable HBAO", &state->enableAO);
 
-      ImGui::SliderFloat("Radius", &(state->aoSettings.x), 0.0f, 1.0f);
+      ImGui::SliderFloat("Radius", &(state->aoSettings.x), 0.0f, 0.1f);
       ImGui::SliderFloat("Multiplier", &(state->aoSettings.y), 0.0f, 10.0f);
       ImGui::SliderFloat("Power", &(state->aoSettings.z), 0.0f, 10.0f);
 

@@ -1,7 +1,5 @@
 #include "Graphics/Renderer.h"
 
-#include <glm/gtx/string_cast.hpp>
-
 namespace Strontium
 {
   //----------------------------------------------------------------------------
@@ -69,20 +67,24 @@ namespace Strontium
       storage->halfResBuffer1.initNullTexture();
 
       // Init the textures for the screen-space HBAO. Use the same params as bloom.
-      bloomParams.internal = TextureInternalFormats::R32f;
-      bloomParams.format = TextureFormats::Red;
+      bloomParams.internal = TextureInternalFormats::RG16f;
+      bloomParams.format = TextureFormats::RG;
       bloomParams.dataType = TextureDataType::Floats;
-      storage->downsampleAO.setSize(width / 4, height / 4, 1);
+      storage->downsampleAO.setSize(width / 4, height / 4, 2);
       storage->downsampleAO.setParams(bloomParams);
       storage->downsampleAO.initNullTexture();
 
-      storage->quarterResBuffer1.setSize(width / 4, height / 4, 1);
+      storage->quarterResBuffer1.setSize(width / 4, height / 4, 2);
       storage->quarterResBuffer1.setParams(bloomParams);
       storage->quarterResBuffer1.initNullTexture();
 
       // Prepare the shadow buffers.
       auto dSpec = Texture2D::getDefaultDepthParams();
-      auto mSpec = Texture2D::getFloatColourParams();;
+      dSpec.sWrap = TextureWrapParams::ClampEdges;
+      dSpec.tWrap = TextureWrapParams::ClampEdges;
+      auto mSpec = Texture2D::getFloatColourParams();
+      mSpec.sWrap = TextureWrapParams::ClampEdges;
+      mSpec.tWrap = TextureWrapParams::ClampEdges;
       mSpec.internal = TextureInternalFormats::RGBA32f;
       auto colourAttachment = FBOAttachment(FBOTargetParam::Colour0, FBOTextureParam::Texture2D, 
                                             mSpec.internal, mSpec.format, mSpec.dataType);
@@ -101,7 +103,19 @@ namespace Strontium
       storage->shadowEffectsBuffer.setClearColour(glm::vec4(1.0f));
       storage->hasCascades = false;
 
+      // Resize the GBuffer.
       storage->gBuffer.resize(width, height);
+
+      // Prepare a Hi-Z downsampled depth buffer.
+      bloomParams.internal = TextureInternalFormats::R32f;
+      bloomParams.format = TextureFormats::Red;
+      bloomParams.dataType = TextureDataType::Floats;
+      bloomParams.minFilter = TextureMinFilterParams::NearestMipMapNearest;
+      bloomParams.maxFilter = TextureMaxFilterParams::Nearest;
+      storage->hierarchicalDepth.setSize(width, height, 1);
+      storage->hierarchicalDepth.setParams(bloomParams);
+      storage->hierarchicalDepth.initNullTexture();
+      storage->hierarchicalDepth.generateMips();
 
       // The lighting pass framebuffer.
       storage->lightingPass.resize(width, height);
@@ -166,11 +180,15 @@ namespace Strontium
         storage->halfResBuffer1.setSize(width / 2, height / 2, 4);
         storage->halfResBuffer1.initNullTexture();
 
-        storage->downsampleAO.setSize(width / 4, height / 4, 1);
+        storage->downsampleAO.setSize(width / 4, height / 4, 2);
         storage->downsampleAO.initNullTexture();
 
-        storage->quarterResBuffer1.setSize(width / 4, height / 4, 1);
+        storage->quarterResBuffer1.setSize(width / 4, height / 4, 2);
         storage->quarterResBuffer1.initNullTexture();
+
+        storage->hierarchicalDepth.setSize(width, height, 1);
+        storage->hierarchicalDepth.initNullTexture();
+        storage->hierarchicalDepth.generateMips();
 
         storage->width = width;
         storage->height = height;
@@ -793,8 +811,7 @@ namespace Strontium
     //--------------------------------------------------------------------------
     // Deferred lighting pass.
     //--------------------------------------------------------------------------
-    void
-    lightingPass()
+    void lightingPass()
     {
       auto start = std::chrono::steady_clock::now();
       storage->currentEnvironment->updateAerialPerspective(storage->camBuffer);
@@ -804,12 +821,41 @@ namespace Strontium
       storage->gBuffer.bindAttachment(FBOTargetParam::Colour0, 4);
       storage->gBuffer.bindAttachment(FBOTargetParam::Colour1, 5);
       storage->gBuffer.bindAttachment(FBOTargetParam::Colour2, 6);
-       
+
+      //------------------------------------------------------------------------
+      // Generate the current frame Hi-Z depth buffer.
+      //------------------------------------------------------------------------
+      // Copy the depth buffer to the Hi-Z pyramid.
+      storage->hierarchicalDepth.bindAsImage(0, 0, ImageAccessPolicy::Write);
+      uint groupX = static_cast<uint>(glm::ceil(static_cast<float>(storage->hierarchicalDepth.getWidth()) / 8.0f));
+      uint groupY = static_cast<uint>(glm::ceil(static_cast<float>(storage->hierarchicalDepth.getHeight()) / 8.0f));
+      ShaderCache::getShader("copy_depth_hi_z")->launchCompute(groupX, groupY, 1);
+      Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
+
+      // Number of passes to yield a mip level with a minimum size of 2 texels.
+      int maxDim = glm::max(storage->hierarchicalDepth.getWidth(), 
+                            storage->hierarchicalDepth.getHeight());
+      uint numPasses = static_cast<uint>(glm::ceil(glm::log2(static_cast<float>(maxDim))));
+      float powerOfTwo = 2.0f;
+      auto hiZCompute = ShaderCache::getShader("generate_hi_z");
+      // Generate the image pyramid.
+      for (uint i = 1; i < numPasses; i++)
+      {
+        storage->hierarchicalDepth.bindAsImage(1, i - 1, ImageAccessPolicy::Read);
+        storage->hierarchicalDepth.bindAsImage(0, i, ImageAccessPolicy::Write);
+        groupX = static_cast<uint>(glm::ceil(static_cast<float>(storage->hierarchicalDepth.getWidth()) / (8.0f * powerOfTwo)));
+        groupY = static_cast<uint>(glm::ceil(static_cast<float>(storage->hierarchicalDepth.getHeight()) / (8.0f * powerOfTwo)));
+        hiZCompute->launchCompute(groupX, groupY, 1);
+        Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
+        powerOfTwo *= 2.0f;
+      }
+
       //------------------------------------------------------------------------
       // Screen-space HBAO subpass.
       //------------------------------------------------------------------------
       if (state->enableAO)
       {
+        storage->hierarchicalDepth.bind(3);
         storage->aoParamsBuffer.bindToPoint(1);
         storage->aoParamsBuffer.setData(0, sizeof(glm::vec4), &(state->aoSettings.x));
         
@@ -819,20 +865,20 @@ namespace Strontium
         ShaderCache::getShader("screen_space_hbao")->launchCompute(iWidth, iHeight, 1);
         Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
         
-        // Blurring the volumetric texture to remove noise.
-        auto depthBlur = ShaderCache::getShader("bilateral_blur");
+        // Blurring the HBAO texture to remove noise.
+        auto hbaoBlur = ShaderCache::getShader("screen_space_hbao_blur");
         // X blur pass.
         storage->downsampleAO.bind(0);
         storage->quarterResBuffer1.bindAsImage(2, 0, ImageAccessPolicy::Write);
-        depthBlur->addUniformVector("u_direction", glm::vec2(1.0, 0.0));
-        depthBlur->launchCompute(iWidth, iHeight, 1);
+        hbaoBlur->addUniformVector("u_direction", glm::vec2(1.0, 0.0));
+        hbaoBlur->launchCompute(iWidth, iHeight, 1);
         Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
         
         // Y blur pass.
         storage->quarterResBuffer1.bind(0);
         storage->downsampleAO.bindAsImage(2, 0, ImageAccessPolicy::Write);
-        depthBlur->addUniformVector("u_direction", glm::vec2(0.0, 1.0));
-        depthBlur->launchCompute(iWidth, iHeight, 1);
+        hbaoBlur->addUniformVector("u_direction", glm::vec2(0.0, 1.0));
+        hbaoBlur->launchCompute(iWidth, iHeight, 1);
         Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
       }
 

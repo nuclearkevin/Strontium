@@ -2,25 +2,25 @@
 #version 440
 /*
  * A compute shader to compute the diffuse lighting integral through
- * convolution.
- * Many thanks to http://alinloghin.com/articles/compute_ibl.html, some of the
- * code here was adapted from their excellent article.
+ * importance sampling the cosine lobe.
 */
 
+#define TWO_PI 6.283185308
 #define PI 3.141592654
 
 layout(local_size_x = 8, local_size_y = 8) in;
 
 // The environment map to convolute.
-layout(rgba16f, binding = 0) uniform readonly imageCube environmentMap;
+layout(binding = 0) uniform samplerCube environmentMap;
 
 // The output irradiance map.
-layout(rgba16f, binding = 1) writeonly uniform imageCube irradianceMap;
+layout(rgba16f, binding = 1) restrict writeonly uniform imageCube irradianceMap;
 
 // Function for converting between image coordiantes and world coordiantes.
 vec3 cubeToWorld(ivec3 cubeCoord, vec2 cubeSize);
-// Function for converting between tangent coordinates and image coordiantes.
-ivec3 texToCube(vec3 texCoord, vec2 cubeSize);
+
+// Importance sample a cosine lobe.
+vec3 importanceSampleCos(uint i, uint N, vec3 normal);
 
 void main()
 {
@@ -30,31 +30,16 @@ void main()
   // The normal is the same as the worldspace position.
   vec3 normal = normalize(worldPos);
 
-  // Other hemispherical directions required for the integral.
-  vec3 up     = vec3(0.0, 1.0, 0.0);
-  vec3 right  = cross(up, normal);
-  up          = cross(normal, right);
-
-  float sampleDelta = 0.025;
-  float nrSamples = 0.0;
   vec3 irradiance = vec3(0.0);
+  const uint numSamples = 1024u;
 
-  for (float phi = 0.0; phi < 2.0 * PI; phi += sampleDelta)
+  for (uint i = 0; i < numSamples; i++)
   {
-    for (float theta = 0.0; theta < 0.5 * PI; theta += sampleDelta)
-    {
-      // Spherical to cartesian (in tangent space).
-      vec3 tangentSample = vec3(sin(theta) * cos(phi), sin(theta) * sin(phi), cos(theta));
-      // Tangent space to world.
-      vec3 sampleVec = tangentSample.x * right + tangentSample.y * up + tangentSample.z * normal;
-      ivec3 sampleCoord = texToCube(sampleVec, cubemapSize);
-
-      irradiance += imageLoad(environmentMap, sampleCoord).rgb * cos(theta) * sin(theta);
-      nrSamples++;
-    }
+    vec3 sampleDir = importanceSampleCos(i, numSamples, normal);
+    irradiance += texture(environmentMap, sampleDir).rgb;
   }
 
-  irradiance = PI * irradiance * (1.0 / float(nrSamples));
+  irradiance = PI * irradiance * (1.0 / float(numSamples));
 
   imageStore(irradianceMap, ivec3(gl_GlobalInvocationID), vec4(irradiance, 1.0));
 }
@@ -76,37 +61,40 @@ vec3 cubeToWorld(ivec3 cubeCoord, vec2 cubeSize)
   return vec3(0.0);
 }
 
-ivec3 texToCube(vec3 texCoord, vec2 cubeSize)
+float safeACos(float x)
 {
-  vec3 abst = abs(texCoord);
-  texCoord /= max(max(abst.x, abst.y), abst.z);
+  return acos(clamp(x, -1.0, 1.0));
+}
 
-  float cubeFace;
-  vec2 uvCoord;
-  if (abst.x > abst.y && abst.x > abst.z)
-  {
-    // X major.
-    float negx = step(texCoord.x, 0.0);
-    uvCoord = mix(-texCoord.zy, vec2(texCoord.z, -texCoord.y), negx);
-    cubeFace = negx;
-  }
-  else if (abst.y > abst.z)
-  {
-    // Y major.
-    float negy = step(texCoord.y, 0.0);
-    uvCoord = mix(texCoord.xz, vec2(texCoord.x, -texCoord.z), negy);
-    cubeFace = 2.0 + negy;
-  }
-  else
-  {
-    // Z major.
-    float negz = step(texCoord.z, 0.0);
-    uvCoord = mix(vec2(texCoord.x, -texCoord.y), -texCoord.xy, negz);
-    cubeFace = 4.0 + negz;
-  }
-  uvCoord = (uvCoord + 1.0) * 0.5; // 0..1
-  uvCoord = uvCoord * cubeSize;
-  uvCoord = clamp(uvCoord, vec2(0.0), cubeSize - vec2(1.0));
+// Hammersley sequence, generates a low discrepancy pseudorandom number.
+vec2 Hammersley(uint i, uint N)
+{
+  float fbits;
+  uint bits = i;
 
-  return ivec3(ivec2(uvCoord), int(cubeFace));
+  bits  = (bits << 16u) | (bits >> 16u);
+  bits  = ((bits & 0x55555555u) << 1u) | ((bits & 0xAAAAAAAAu) >> 1u);
+  bits  = ((bits & 0x33333333u) << 2u) | ((bits & 0xCCCCCCCCu) >> 2u);
+  bits  = ((bits & 0x0F0F0F0Fu) << 4u) | ((bits & 0xF0F0F0F0u) >> 4u);
+  bits  = ((bits & 0x00FF00FFu) << 8u) | ((bits & 0xFF00FF00u) >> 8u);
+  fbits = float(bits) * 2.3283064365386963e-10;
+
+  return vec2(float(i) / float(N), fbits);
+}
+
+// Importance sample a cosine lobe.
+vec3 importanceSampleCos(uint i, uint N, vec3 normal)
+{
+  vec2 xi = Hammersley(i, N);
+
+  float phi = TWO_PI * xi.x;
+  float theta = safeACos(sqrt(xi.y));
+
+  float sinTheta = sin(theta);
+  vec3 world = vec3(sinTheta * cos(phi), sinTheta * sin(phi), cos(theta));
+
+  vec3 up = abs(normal.z) < 0.999 ? vec3(0.0, 0.0, 1.0) : vec3(1.0, 0.0, 0.0);
+	vec3 tangent = normalize(cross(up, normal));
+	vec3 bitangent = cross(normal, tangent);
+  return normalize(tangent * world.x + bitangent * world.y + normal * world.z);
 }
