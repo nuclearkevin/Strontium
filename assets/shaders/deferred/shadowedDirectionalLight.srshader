@@ -486,7 +486,7 @@ float calcShadow(uint cascadeIndex, vec3 position, vec3 normal, vec3 lightDir,
     depthRange = u_cascadeData[cascadeIndex].x - u_cascadeData[cascadeIndex - 1].x;
   }
 
-  float bias = u_shadowParams2.x / 1000.0 * depthRange;
+  float bias = u_shadowParams2.x / 1000.0;
 
   float normalOffsetScale = clamp(1.0 - dot(normal, lightDir), 0.0, 1.0);
   normalOffsetScale /= textureSize(cascadeMaps[cascadeIndex], 0).x;

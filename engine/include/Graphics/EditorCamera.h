@@ -32,7 +32,7 @@ namespace Strontium
     void cameraZoom(glm::vec2 offsets);
 
     // The update function.
-    void onUpdate(float dt);
+    void onUpdate(float dt, const glm::vec2 &viewportSize);
 
     // Implement the event system.
     void onEvent(Event& event);
@@ -78,39 +78,34 @@ namespace Strontium
   protected:
     // Event handling functions.
     void onMouseScroll(MouseScrolledEvent &mouseEvent);
-    void onWindowResize(WindowResizeEvent &windowEvent);
     void onKeyPress(KeyPressedEvent &keyEvent);
 
     // Variables for camera position, front and top vectors.
-    glm::vec3   position;
-    glm::vec3   camFront;
-    glm::vec3   camTop;
+    glm::vec3 position;
+    glm::vec3 pivot;
+    glm::vec3 camFront;
+    glm::vec3 camTop;
 
     // The camera matrices. Stored here to avoid recalculation on each frame.
-    glm::mat4   view;
-    glm::mat4   proj;
-
-    // Time steps to normalize camera movement to frame time.
-    float       lastTime;
+    glm::mat4 view;
+    glm::mat4 proj;
 
     // Previous x and y coords of the mouse, plus a boolean to detect if the app
     // just launched.
-    float       lastMouseX;
-    float       lastMouseY;
+    float lastMouseX;
+    float lastMouseY;
+    bool firstClick;
 
     // FPS/free camera variables.
-    float       yaw;
-    float       pitch;
-    float       horFOV;
-    float       near;
-    float       far;
-    float       aspect;
-    float       scalarSpeed = 2.5f;
-    float       sensitivity = 0.1f;
+    float yaw;
+    float pitch;
+    float horFOV;
+    float near;
+    float far;
+    float aspect;
+    float scalarSpeed = 2.5f;
+    float sensitivity = 0.1f;
 
-    EditorCameraType  currentType;
-
-    // Editor cam variables.
-    bool        firstClick;
+    EditorCameraType currentType;
   };
 }

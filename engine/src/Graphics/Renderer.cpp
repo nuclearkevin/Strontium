@@ -520,15 +520,21 @@ namespace Strontium
       glm::mat4 camInvVP = storage->sceneCam.invViewProj;
 
       Frustum lightCullingFrustums[NUM_CASCADES];
-
       float cascadeSplits[NUM_CASCADES];
+
+      const float clipRange = far - near;
+      // Calculate the optimal cascade distances
+      const float minZ = near;
+      const float maxZ = near + clipRange;
+      const float range = maxZ - minZ;
+      const float ratio = maxZ / minZ;
       for (unsigned int i = 0; i < NUM_CASCADES; i++)
       {
-        float p = (i + 1.0f) / (float) NUM_CASCADES;
-        float log = near * std::pow(far / near, p);
-        float uniform = near + (far - near) * p;
-        float d = state->cascadeLambda * (log - uniform) + uniform;
-        cascadeSplits[i] = (d - near) / (far - near);
+        const float p = (static_cast<float>(i) + 1.0f) / static_cast<float>(NUM_CASCADES);
+        const float log = minZ * glm::pow(ratio, p);
+        const float uniform = minZ + range * p;
+        const float d = state->cascadeLambda * (log - uniform) + uniform;
+        cascadeSplits[i] = (d - near) / clipRange;
       }
 
       // Compute the scene AABB in world space. This fixes issues with objects
@@ -616,7 +622,7 @@ namespace Strontium
             float distance = glm::length(glm::vec3(frustumCorners[j] - cascadeCenter));
             radius = glm::max(radius, distance);
           }
-          radius = std::ceil(radius);
+          radius = std::ceil(radius * 16.0f) / 16.0f;
           glm::vec3 maxDims = glm::vec3(radius);
           glm::vec3 minDims = -1.0f * maxDims;
 
@@ -661,7 +667,7 @@ namespace Strontium
 
           previousCascadeDistance = cascadeSplits[i];
 
-          storage->cascadeSplits[i].x = near + (cascadeSplits[i] * (far - near));
+          storage->cascadeSplits[i].x = minZ + (cascadeSplits[i] * clipRange);
         }
       }
 

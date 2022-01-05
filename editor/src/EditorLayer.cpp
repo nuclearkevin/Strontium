@@ -221,7 +221,7 @@ namespace Strontium
         Renderer3D::end(this->drawBuffer);
 
         // Update the editor camera.
-        this->editorCam.onUpdate(dt);
+        this->editorCam.onUpdate(dt, glm::vec2(this->editorSize.x, this->editorSize.y));
         break;
       }
 
@@ -246,7 +246,7 @@ namespace Strontium
         else
         {
           primaryCamera = (Camera) this->editorCam;
-          this->editorCam.onUpdate(dt);
+          this->editorCam.onUpdate(dt, glm::vec2(this->editorSize.x, this->editorSize.y));
         }
 
         this->drawBuffer->clear();
