@@ -335,8 +335,8 @@ namespace Strontium
 
         auto& component = entity.getComponent<DirectionalLightComponent>();
         out << YAML::Key << "Direction" << YAML::Value << component.light.direction;
-        out << YAML::Key << "Colour" << YAML::Value << component.light.colour;
-        out << YAML::Key << "Intensity" << YAML::Value << component.light.intensity;
+        out << YAML::Key << "Colour" << YAML::Value << glm::vec3(component.light.colourIntensity);
+        out << YAML::Key << "Intensity" << YAML::Value << component.light.colourIntensity.w;
         out << YAML::Key << "CastShadows" << YAML::Value << component.light.castShadows;
         out << YAML::Key << "PrimaryLight" << YAML::Value << component.light.primaryLight;
 
@@ -358,24 +358,7 @@ namespace Strontium
         out << YAML::EndMap;
       }
 
-      if (entity.hasComponent<SpotLightComponent>())
-      {
-        out << YAML::Key << "SpotLightComponent";
-        out << YAML::BeginMap;
-
-        auto& component = entity.getComponent<SpotLightComponent>();
-        out << YAML::Key << "Position" << YAML::Value << component.light.position;
-        out << YAML::Key << "Direction" << YAML::Value << component.light.direction;
-        out << YAML::Key << "Colour" << YAML::Value << component.light.colour;
-        out << YAML::Key << "Intensity" << YAML::Value << component.light.intensity;
-        out << YAML::Key << "InnerCutoff" << YAML::Value << component.light.innerCutoff;
-        out << YAML::Key << "OuterCutoff" << YAML::Value << component.light.outerCutoff;
-        out << YAML::Key << "Radius" << YAML::Value << component.light.radius;
-        out << YAML::Key << "CastShadows" << YAML::Value << component.light.castShadows;
-
-        out << YAML::EndMap;
-      }
-
+      /*
       if (entity.hasComponent<AmbientComponent>())
       {
         out << YAML::Key << "AmbientComponent";
@@ -442,6 +425,7 @@ namespace Strontium
 
         out << YAML::EndMap;
       }
+      */
 
       out << YAML::EndMap;
     }
@@ -450,7 +434,7 @@ namespace Strontium
     serializeScene(Shared<Scene> scene, const std::string &filepath,
                    const std::string &name)
     {
-      auto state = Renderer3D::getState();
+      //auto state = Renderer3D::getState();
       auto materialAssets = AssetManager<Material>::getManager();
 
       YAML::Emitter out;
@@ -472,6 +456,7 @@ namespace Strontium
 
       out << YAML::EndSeq;
 
+      /*
       out << YAML::Key << "RendererSettings";
       out << YAML::BeginMap;
       out << YAML::Key << "BasicSettings";
@@ -517,6 +502,7 @@ namespace Strontium
       out << YAML::EndMap;
 
       out << YAML::EndMap;
+      */
 
       out << YAML::Key << "Materials";
       out << YAML::BeginSeq;
@@ -771,9 +757,9 @@ namespace Strontium
       if (directionalComponent)
       {
         auto& dComponent = newEntity.addComponent<DirectionalLightComponent>();
-        dComponent.light.direction = directionalComponent["Direction"].as<glm::vec3>();
-        dComponent.light.colour = directionalComponent["Colour"].as<glm::vec3>();
-        dComponent.light.intensity = directionalComponent["Intensity"].as<float>();
+        dComponent.light.direction = glm::vec4(directionalComponent["Direction"].as<glm::vec3>(), 0.0f);
+        dComponent.light.colourIntensity = glm::vec4(directionalComponent["Colour"].as<glm::vec3>(), 
+                                                     directionalComponent["Intensity"].as<float>());
         dComponent.light.castShadows = directionalComponent["CastShadows"].as<bool>();
         dComponent.light.primaryLight = directionalComponent["PrimaryLight"].as<bool>();
       }
@@ -789,20 +775,7 @@ namespace Strontium
         pComponent.castShadows = pointComponent["CastShadows"].as<bool>();
       }
 
-      auto spotComponent = entity["SpotLightComponent"];
-      if (spotComponent)
-      {
-        auto& sComponent = newEntity.addComponent<SpotLightComponent>();
-        sComponent.light.position = spotComponent["Position"].as<glm::vec3>();
-        sComponent.light.direction = spotComponent["Direction"].as<glm::vec3>();
-        sComponent.light.colour = spotComponent["Colour"].as<glm::vec3>();
-        sComponent.light.intensity = spotComponent["Intensity"].as<float>();
-        sComponent.light.innerCutoff = spotComponent["InnerCutoff"].as<float>();
-        sComponent.light.outerCutoff = spotComponent["OuterCutoff"].as<float>();
-        sComponent.light.radius = spotComponent["Radius"].as<float>();
-        sComponent.light.castShadows = spotComponent["CastShadows"].as<bool>();
-      }
-
+      /*
       auto ambientComponent = entity["AmbientComponent"];
       if (ambientComponent)
       {
@@ -921,6 +894,7 @@ namespace Strontium
         if (drawingType == MapType::DynamicSky)
             aComponent.ambient->setDynamicSkyIBL();
       }
+      */
 
       return newEntity;
     }
@@ -940,6 +914,7 @@ namespace Strontium
       for (auto entity : entities)
         deserializeEntity(entity, scene);
 
+      /*
       auto rendererSettings = data["RendererSettings"];
       if (rendererSettings)
       {
@@ -999,7 +974,7 @@ namespace Strontium
           state->gamma = tonemapSettings["Gamma"].as<float>();
         }
       }
-
+      */
       auto materials = data["Materials"];
       if (materials)
       {
@@ -1010,6 +985,7 @@ namespace Strontium
         for (auto& texturePath : texturePaths)
           AsyncLoading::loadImageAsync(texturePath);
       }
+      
 
       return true;
     }

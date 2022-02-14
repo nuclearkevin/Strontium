@@ -160,7 +160,7 @@ namespace Strontium
     , selectedString("")
     , fileTargets(FileLoadTargets::TargetNone)
     , saveTargets(FileSaveTargets::TargetNone)
-    , dirWidgetShader("./assets/shaders/widgets/lightWidget.srshader")
+    , dirWidgetShader("./assets/shaders/widgets/lightWidget.glsl")
     , widgetWidth(0.0f)
     , selectedSubmesh(nullptr)
   {
@@ -196,11 +196,11 @@ namespace Strontium
     });
 
     // Right-click on blank space to create a new entity.
-		if (ImGui::BeginPopupContextWindow(0, ImGuiPopupFlags_MouseButtonRight, false))
-		{
+	if (ImGui::BeginPopupContextWindow(0, ImGuiPopupFlags_MouseButtonRight, false))
+	{
       if (ImGui::MenuItem("New Model"))
       {
-				auto model = activeScene->createEntity("New Model");
+		auto model = activeScene->createEntity("New Model");
         model.addComponent<TransformComponent>();
         model.addComponent<RenderableComponent>();
       }
@@ -221,27 +221,14 @@ namespace Strontium
           light.addComponent<TransformComponent>();
         }
 
-        if (ImGui::MenuItem("Spot Light"))
-        {
-          auto light = activeScene->createEntity("New Spot Light");
-          light.addComponent<SpotLightComponent>();
-          light.addComponent<TransformComponent>();
-        }
-
-        if (ImGui::MenuItem("Ambient Light"))
-        {
-          auto light = activeScene->createEntity("New Ambient Light");
-          light.addComponent<AmbientComponent>();
-        }
-
         ImGui::EndMenu();
       }
 
       if (ImGui::MenuItem("New Empty Entity"))
-				activeScene->createEntity();
+	    activeScene->createEntity();
 
-			ImGui::EndPopup();
-		}
+	  ImGui::EndPopup();
+	}
 
     ImGui::End();
 
@@ -308,21 +295,6 @@ namespace Strontium
             break;
           }
 
-          case FileLoadTargets::TargetEnvironment:
-          {
-            auto environment = this->selectedEntity.getComponent<AmbientComponent>().ambient;
-            auto state = Renderer3D::getState();
-
-            environment->unloadEnvironment();
-            environment->loadEquirectangularMap(path);
-            environment->equiToCubeMap(true, state->skyboxWidth, state->skyboxWidth);
-            environment->equiToCubeMap(true, state->skyboxWidth, state->skyboxWidth);
-            environment->precomputeIrradiance(state->irradianceWidth, state->irradianceWidth, true);
-            environment->precomputeSpecular(state->prefilterWidth, state->prefilterWidth, true);
-
-            break;
-          }
-
           case FileLoadTargets::TargetMaterial:
           {
             if (this->selectedSubmesh)
@@ -379,13 +351,15 @@ namespace Strontium
                 YAMLSerialization::serializeMaterial(handle, path);
               }
             }
+
             break;
           }
         }
-
         this->saveTargets = FileSaveTargets::TargetNone;
+
         break;
       }
+
       default: break;
     }
 
@@ -426,13 +400,12 @@ namespace Strontium
         drawComponentAdd<TransformComponent>("Transform Component", entity);
         drawComponentAdd<RenderableComponent>("Renderable Component", entity);
         drawComponentAdd<CameraComponent>("Camera Component", entity);
+        drawComponentAdd<SkyAtmosphereComponent>("Sky and Atmosphere Component", entity);
 
         if (ImGui::BeginMenu("Light Components"))
         {
           drawComponentAdd<DirectionalLightComponent>("Directional Light Component", entity);
           drawComponentAdd<PointLightComponent>("Point Light Component", entity);
-          drawComponentAdd<SpotLightComponent>("Spot Light Component", entity);
-          drawComponentAdd<AmbientComponent>("Ambient Light Component", entity);
 
           ImGui::EndMenu();
         }
@@ -446,13 +419,12 @@ namespace Strontium
         drawComponentRemove<TransformComponent>("Transform Component", entity);
         drawComponentRemove<RenderableComponent>("Renderable Component", entity);
         drawComponentRemove<CameraComponent>("Camera Component", entity);
+        drawComponentRemove<SkyAtmosphereComponent>("Sky and Atmosphere Component", entity);
 
         if (ImGui::BeginMenu("Light Components"))
         {
           drawComponentRemove<DirectionalLightComponent>("Directional Light Component", entity);
           drawComponentRemove<PointLightComponent>("Point Light Component", entity);
-          drawComponentRemove<SpotLightComponent>("Spot Light Component", entity);
-          drawComponentRemove<AmbientComponent>("Ambient Light Component", entity);
 
           ImGui::EndMenu();
         }
@@ -473,7 +445,6 @@ namespace Strontium
         {
           if (ImGui::MenuItem("Directional Light"))
           {
-
             auto light = createChildEntity(entity, activeScene, "New Directional Light");
             light.addComponent<DirectionalLightComponent>();
             light.addComponent<TransformComponent>();
@@ -486,24 +457,11 @@ namespace Strontium
             light.addComponent<TransformComponent>();
           }
 
-          if (ImGui::MenuItem("Spot Light"))
-          {
-            auto light = createChildEntity(entity, activeScene, "New Spot Light");
-            light.addComponent<SpotLightComponent>();
-            light.addComponent<TransformComponent>();
-          }
-
-          if (ImGui::MenuItem("Ambient Light"))
-          {
-            auto light = createChildEntity(entity, activeScene, "New Ambient Light");
-            light.addComponent<AmbientComponent>();
-          }
-
           ImGui::EndMenu();
         }
 
         if (ImGui::MenuItem("New Empty Entity"))
-  				createChildEntity(entity, activeScene);
+  	      createChildEntity(entity, activeScene);
 
         ImGui::EndMenu();
       }
@@ -517,7 +475,7 @@ namespace Strontium
         copyComponent<RenderableComponent>(entity, newEntity);
         copyComponent<DirectionalLightComponent>(entity, newEntity);
         copyComponent<PointLightComponent>(entity, newEntity);
-        copyComponent<SpotLightComponent>(entity, newEntity);
+        copyComponent<SkyAtmosphereComponent>(entity, newEntity);
       }
 
       if (ImGui::MenuItem("Register as PreFab"))
@@ -593,13 +551,9 @@ namespace Strontium
     {
       ImGui::TreeNodeEx("Point Light Componenet", leafFlag);
     }
-    if (entity.hasComponent<SpotLightComponent>())
+    if (entity.hasComponent<SkyAtmosphereComponent>())
     {
-      ImGui::TreeNodeEx("Spot Light Componenet", leafFlag);
-    }
-    if (entity.hasComponent<AmbientComponent>())
-    {
-      ImGui::TreeNodeEx("Ambient Light Componenet", leafFlag);
+      ImGui::TreeNodeEx("Sky and Atmosphere Component", leafFlag);
     }
   }
 
@@ -920,6 +874,77 @@ namespace Strontium
         camera.fov = glm::radians(degFOV);
       });
 
+      drawComponentProperties<SkyAtmosphereComponent>("Sky-Atmosphere Component", 
+                                                      this->selectedEntity, 
+                                                      [this](auto& component)
+      {
+        ImGui::Text("Renderer handle: %i", component.handle);
+        ImGui::Checkbox("Use Primary Light", &component.usePrimaryLight);
+        ImGui::Indent();
+        if (ImGui::CollapsingHeader("Scattering Parameters##UE4Atmo"))
+        {
+          Styles::drawFloatControl("Rayleigh Density", 8.0f, component.rayleighScat.w,
+                                   0.0f, 0.01f, 0.0f, 10.0f);
+
+          auto rayleighScattering = glm::vec3(component.rayleighScat);
+          Styles::drawVec3Controls("Rayleigh Scattering", glm::vec3(5.802f, 13.558f, 33.1f),
+                                   rayleighScattering, 0.0f, 0.1f,
+                                   0.0f, 100.0f);
+          component.rayleighScat.x = rayleighScattering.x;
+          component.rayleighScat.y = rayleighScattering.y;
+          component.rayleighScat.z = rayleighScattering.z;
+
+          auto rayleighAbsorption = glm::vec3(component.rayleighAbs);
+          Styles::drawVec3Controls("Rayleigh Absorption", glm::vec3(0.0f),
+                                   rayleighAbsorption, 0.0f, 0.1f,
+                                   0.0f, 100.0f);
+          component.rayleighAbs.x = rayleighAbsorption.x;
+          component.rayleighAbs.y = rayleighAbsorption.y;
+          component.rayleighAbs.z = rayleighAbsorption.z;
+          component.rayleighAbs.w = component.rayleighScat.w;
+
+          Styles::drawFloatControl("Mie Density", 1.2f, component.mieScat.w,
+                                   0.0f, 0.01f, 0.0f, 10.0f);
+
+          auto mieScat = glm::vec3(component.mieScat);
+          Styles::drawVec3Controls("Mie Scattering", glm::vec3(3.996f), mieScat,
+                                   0.0f, 0.1f, 0.0f, 100.0f);
+          component.mieScat.x = mieScat.x;
+          component.mieScat.y = mieScat.y;
+          component.mieScat.z = mieScat.z;
+
+          auto mieAbs = glm::vec3(component.mieAbs);
+          Styles::drawVec3Controls("Mie Absorption", glm::vec3(4.4f), mieAbs,
+                                   0.0f, 0.1f, 0.0f, 100.0f);
+          component.mieAbs.x = mieAbs.x;
+          component.mieAbs.y = mieAbs.y;
+          component.mieAbs.z = mieAbs.z;
+          component.mieAbs.w = component.mieScat.w;
+
+          Styles::drawFloatControl("Ozone Strength", 0.002f, component.ozoneAbs.w,
+                                   0.0f, 0.001f, 0.0f, 1.0f);
+
+          auto ozone = glm::vec3(component.ozoneAbs);
+          Styles::drawVec3Controls("Ozone Absorption", glm::vec3(0.650f, 1.881f, 0.085f),
+                                   ozone, 0.0f, 0.1f,  0.0f, 100.0f);
+          component.ozoneAbs.x = ozone.x;
+          component.ozoneAbs.y = ozone.y;
+          component.ozoneAbs.z = ozone.z;
+        }
+
+        if (ImGui::CollapsingHeader("Planetary Parameters##UE4Atmo"))
+        {
+          ImGui::ColorEdit3("Planet Albedo", &component.planetAlbedo.x);
+          Styles::drawFloatControl("Planet Radius (Km)",
+                                   6360.0f, component.planetAtmRadius.x,
+                                   0.0f, 1.0f, 0.0f, component.planetAtmRadius.y);
+          Styles::drawFloatControl("Atmosphere Radius (Km)",
+                                   6460.0f, component.planetAtmRadius.y,
+                                   0.0f, 1.0f, component.planetAtmRadius.x, 10000.0f);
+        }
+        ImGui::Unindent();
+      });
+
       drawComponentProperties<DirectionalLightComponent>("Directional Light Component",
         this->selectedEntity, [this, activeScene](auto& component)
       {
@@ -940,8 +965,8 @@ namespace Strontium
         }
 
         ImGui::Checkbox("Cast Shadows", &component.light.castShadows);
-        ImGui::ColorEdit3("Colour", &component.light.colour.r);
-        Styles::drawFloatControl("Intensity", 0.0f, component.light.intensity,
+        ImGui::ColorEdit3("Colour", &(component.light.colourIntensity.r));
+        Styles::drawFloatControl("Intensity", 0.0f, component.light.colourIntensity.a,
                                  0.0f, 0.01f, 0.0f, 100.0f);
         ImGui::PopID();
 
@@ -949,7 +974,8 @@ namespace Strontium
       });
 
       drawComponentProperties<PointLightComponent>("Point Light Component",
-        this->selectedEntity, [this](auto& component)
+                                                   this->selectedEntity, 
+                                                   [this](auto& component)
       {
         ImGui::PushID("PointLight");
         ImGui::Checkbox("Cast Shadows", &component.castShadows);
@@ -958,220 +984,6 @@ namespace Strontium
         Styles::drawFloatControl("Intensity", 0.0f, component.light.colourIntensity.w,
                                  0.0f, 0.01f, 0.0f, 100.0f);
         ImGui::PopID();
-      });
-
-      drawComponentProperties<SpotLightComponent>("Spot Light Component",
-        this->selectedEntity, [this](auto& component)
-      {
-        ImGui::PushID("SpotLight");
-        ImGui::Checkbox("Cast Shadows", &component.light.castShadows);
-        ImGui::ColorEdit3("Colour", &component.light.colour.r);
-        Styles::drawFloatControl("Radius", 0.0f, component.light.radius, 0.0f, 0.1f, 0.0f, 100.0f);
-        Styles::drawFloatControl("Intensity", 0.0f, component.light.intensity,
-                                 0.0f, 0.1f, 0.0f, 100.0f);
-        float innerAngle = glm::degrees(std::acos(component.light.innerCutoff));
-        Styles::drawFloatControl("Inner Cutoff", 45.0f, innerAngle,
-                                 0.0f, 0.1f, 0.0f, 360.0f);
-        component.light.innerCutoff = std::cos(glm::radians(innerAngle));
-        float outerAngle = glm::degrees(std::acos(component.light.outerCutoff));
-        Styles::drawFloatControl("Outer Cutoff", 90.0f, outerAngle,
-                                 0.0f, 0.1f, 0.0f, 360.0f);
-        component.light.outerCutoff = std::cos(glm::radians(outerAngle));
-        ImGui::PopID();
-      });
-
-      drawComponentProperties<AmbientComponent>("Ambient Light Component",
-        this->selectedEntity, [this](auto& component)
-      {
-        if (ImGui::Button("Load New Environment"))
-        {
-          EventDispatcher* dispatcher = EventDispatcher::getInstance();
-          dispatcher->queueEvent(new OpenDialogueEvent(DialogueEventType::FileOpen, ".hdr"));
-
-          this->fileTargets = FileLoadTargets::TargetEnvironment;
-        }
-
-        EnvironmentMap* env = component.ambient;
-
-        auto drawingType = env->getDrawingType();
-        static uint mapTypes[] = { 0, 1, 2, 3 };
-        static uint skyTypes[] = { 0, 1 };
-
-        if (ImGui::BeginCombo("##ambientType", EnvironmentMap::mapEnumToString(drawingType).c_str()))
-        {
-          for (uint i = 0; i < IM_ARRAYSIZE(mapTypes); i++)
-          {
-            bool isSelected = (i == static_cast<uint>(drawingType));
-            auto mapTypeString = EnvironmentMap::mapEnumToString(static_cast<MapType>(mapTypes[i]));
-
-            if (ImGui::Selectable(mapTypeString.c_str(), isSelected))
-            {
-              auto drawingType = static_cast<MapType>(i);
-              env->setDrawingType(drawingType);
-              if (drawingType == MapType::DynamicSky)
-                env->setDynamicSkyIBL();
-              else
-                env->setStaticIBL();
-            }
-            if (isSelected)
-              ImGui::SetItemDefaultFocus();
-          }
-          ImGui::EndCombo();
-        }
-        ImGui::Separator();
-
-        if (env->getDrawingType() == MapType::DynamicSky)
-        {
-          auto dynamicSkyType = env->getDynamicSkyType();
-
-          if (this->selectedEntity.hasComponent<TransformComponent>())
-          {
-            ImGui::Checkbox("Animate Dynamic Sky", &component.animate);
-            if (component.animate)
-            {
-              ImGui::DragFloat("Animation Speed", &component.animationSpeed, 0.001f);
-            }
-          }
-
-          ImGui::Text("");
-          if (ImGui::BeginCombo("##dynamicSkyType", EnvironmentMap::skyEnumToString(dynamicSkyType).c_str()))
-          {
-            for (uint i = 0; i < IM_ARRAYSIZE(skyTypes); i++)
-            {
-              bool isSelected = (i == static_cast<uint>(dynamicSkyType));
-              auto skyTypeString = EnvironmentMap::skyEnumToString(static_cast<DynamicSkyType>(skyTypes[i]));
-
-              if (ImGui::Selectable(skyTypeString.c_str(), isSelected))
-                env->setDynamicSkyType(static_cast<DynamicSkyType>(i));
-              if (isSelected)
-                ImGui::SetItemDefaultFocus();
-            }
-            ImGui::EndCombo();
-          }
-
-          if (env->getDynamicSkyType() == DynamicSkyType::Preetham)
-          {
-            auto preethamParams = env->getSkyParams<PreethamSkyParams>(DynamicSkyType::Preetham);
-
-            ImGui::Indent();
-            if (ImGui::CollapsingHeader("Common Sky Parameters##PreethamAtmo"))
-            {
-              Styles::drawFloatControl("Sun Size", 1.5f, preethamParams.sunSize, 0.0f, 0.1f, 0.0f, 10.0f);
-              Styles::drawFloatControl("Sun Intensity", 1.0f, preethamParams.sunIntensity, 0.0f, 0.1f, 0.0f, 10.0f);
-              Styles::drawFloatControl("Sky Intensity", 1.0f, preethamParams.skyIntensity, 0.0f, 0.1f, 0.0f, 10.0f);
-            }
-
-            if (ImGui::CollapsingHeader("Preetham Parameters##PreethamAtmo"))
-            {
-              Styles::drawFloatControl("Turbidity", 2.0f, preethamParams.turbidity, 0.0f, 0.1f, 2.0f, 10.0f);
-            }
-            ImGui::Unindent();
-
-            env->setSkyModelParams<PreethamSkyParams>(preethamParams);
-          }
-
-          if (env->getDynamicSkyType() == DynamicSkyType::Hillaire)
-          {
-            auto hillaireParams = env->getSkyParams<HillaireSkyParams>(DynamicSkyType::Hillaire);
-
-            ImGui::Indent();
-            ImGui::Checkbox("Enable Aerial Perspective", &Renderer3D::getState()->useAerialPersp);
-            if (ImGui::CollapsingHeader("Common Sky Parameters##PreethamAtmo"))
-            {
-              Styles::drawFloatControl("Sun Size", 1.5f, hillaireParams.sunSize, 0.0f, 0.1f, 0.0f, 10.0f);
-              Styles::drawFloatControl("Sun Intensity", 1.0f, hillaireParams.sunIntensity, 0.0f, 0.1f, 0.0f, 10.0f);
-              Styles::drawFloatControl("Sky Intensity", 1.0f, hillaireParams.skyIntensity, 0.0f, 0.1f, 0.0f, 10.0f);
-            }
-
-            if (ImGui::CollapsingHeader("Scattering Parameters##UE4Atmo"))
-            {
-              Styles::drawFloatControl("Rayleigh Density", 8.0f, hillaireParams.rayleighScat.w, 
-                                       0.0f, 0.01f, 0.0f, 10.0f);
-
-              auto rayleighScattering = glm::vec3(hillaireParams.rayleighScat);
-              Styles::drawVec3Controls("Rayleigh Scattering", glm::vec3(5.802f, 13.558f, 33.1f),
-                                       rayleighScattering, 0.0f, 0.1f,
-                                       0.0f, 100.0f);
-              hillaireParams.rayleighScat.x = rayleighScattering.x;
-              hillaireParams.rayleighScat.y = rayleighScattering.y;
-              hillaireParams.rayleighScat.z = rayleighScattering.z;
-
-              auto rayleighAbsorption = glm::vec3(hillaireParams.rayleighAbs);
-              Styles::drawVec3Controls("Rayleigh Absorption", glm::vec3(0.0f),
-                                       rayleighAbsorption, 0.0f, 0.1f,
-                                       0.0f, 100.0f);
-              hillaireParams.rayleighAbs.x = rayleighAbsorption.x;
-              hillaireParams.rayleighAbs.y = rayleighAbsorption.y;
-              hillaireParams.rayleighAbs.z = rayleighAbsorption.z;
-              hillaireParams.rayleighAbs.w = hillaireParams.rayleighScat.w;
-
-              Styles::drawFloatControl("Mie Density", 1.2f, hillaireParams.mieScat.w, 
-                                       0.0f, 0.01f, 0.0f, 10.0f);
-
-              auto mieScat = glm::vec3(hillaireParams.mieScat);
-              Styles::drawVec3Controls("Mie Scattering", glm::vec3(3.996f), mieScat,
-                                       0.0f, 0.1f, 0.0f, 100.0f);
-              hillaireParams.mieScat.x = mieScat.x;
-              hillaireParams.mieScat.y = mieScat.y;
-              hillaireParams.mieScat.z = mieScat.z;
-
-              auto mieAbs = glm::vec3(hillaireParams.mieAbs);
-              Styles::drawVec3Controls("Mie Absorption", glm::vec3(4.4f), mieAbs,
-                                       0.0f, 0.1f, 0.0f, 100.0f);
-              hillaireParams.mieAbs.x = mieAbs.x;
-              hillaireParams.mieAbs.y = mieAbs.y;
-              hillaireParams.mieAbs.z = mieAbs.z;
-              hillaireParams.mieAbs.w = hillaireParams.mieScat.w;
-
-              Styles::drawFloatControl("Ozone Strength", 0.002f, hillaireParams.ozoneAbs.w,
-                                       0.0f, 0.001f, 0.0f, 1.0f);
-
-              auto ozone = glm::vec3(hillaireParams.ozoneAbs);
-              Styles::drawVec3Controls("Ozone Absorption", glm::vec3(0.650f, 1.881f, 0.085f),
-                                       ozone, 0.0f, 0.1f,  0.0f, 100.0f);
-              hillaireParams.ozoneAbs.x = ozone.x;
-              hillaireParams.ozoneAbs.y = ozone.y;
-              hillaireParams.ozoneAbs.z = ozone.z;
-            }
-
-            if (ImGui::CollapsingHeader("Planetary Parameters##UE4Atmo"))
-            {
-              float planetRadiusKM = hillaireParams.planetAlbedoRadius.w * 1000.0f;
-              float atmosphereRadiusKM = hillaireParams.sunDirAtmRadius.w * 1000.0f;
-              glm::vec3 viewPosKM = glm::vec3(hillaireParams.viewPos) * 1000.0f;
-              glm::vec3 planetAlbedo = glm::vec3(hillaireParams.planetAlbedoRadius);
-              ImGui::ColorEdit3("Planet Albedo", &planetAlbedo.x);
-              Styles::drawFloatControl("Planet Radius (Km)",
-                                       6360.0f, planetRadiusKM,
-                                       0.0f, 1.0f, 0.0f, atmosphereRadiusKM);
-              Styles::drawFloatControl("Atmosphere Radius (Km)",
-                                       6460.0f, atmosphereRadiusKM,
-                                       0.0f, 1.0f, planetRadiusKM, 10000.0f);
-              Styles::drawFloatControl("View Height", 6360.0f + 0.2f,
-                                       viewPosKM.y, 0.0f, 0.1f,
-                                       planetRadiusKM,
-                                       atmosphereRadiusKM);
-              hillaireParams.planetAlbedoRadius.x = planetAlbedo.x;
-              hillaireParams.planetAlbedoRadius.y = planetAlbedo.y;
-              hillaireParams.planetAlbedoRadius.z = planetAlbedo.z;
-              hillaireParams.planetAlbedoRadius.w = planetRadiusKM / 1000.0f;
-              hillaireParams.sunDirAtmRadius.w = atmosphereRadiusKM / 1000.0f;
-              hillaireParams.viewPos.x = viewPosKM.x / 1000.0f;
-              hillaireParams.viewPos.y = viewPosKM.y / 1000.0f;
-              hillaireParams.viewPos.z = viewPosKM.z / 1000.0f;
-            }
-            ImGui::Unindent();
-
-            env->setSkyModelParams<HillaireSkyParams>(hillaireParams);
-          }
-        }
-
-        if (env->getDrawingType() == MapType::Prefilter)
-          ImGui::SliderFloat("Roughness", &env->getRoughness(), 0.0f, 1.0f);
-
-        ImGui::Separator();
-        ImGui::Text("");
-        Styles::drawFloatControl("Ambient Intensity", 0.5f, env->getIntensity(), 0.0f, 0.1f, 0.0f, 100.0f);
       });
     }
 

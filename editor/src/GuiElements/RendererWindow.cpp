@@ -2,6 +2,11 @@
 
 // Project includes.
 #include "Graphics/Renderer.h"
+#include "Graphics/RenderPasses/GeometryPass.h"
+#include "Graphics/RenderPasses/ShadowPass.h"
+#include "Graphics/RenderPasses/HiZPass.h"
+#include "Graphics/RenderPasses/HBAOPass.h"
+#include "Graphics/RenderPasses/SkyAtmospherePass.h"
 
 // ImGui includes.
 #include "imgui/imgui.h"
@@ -12,6 +17,9 @@ namespace Strontium
 {
   RendererWindow::RendererWindow(EditorLayer* parentLayer)
     : GuiWindow(parentLayer)
+    , transmittanceLUTView("Transmittance LUT")
+    , multiscatteringLUTView("Multiscattering LUT")
+    , skyviewLUTView("Skyview LUT")
   { }
 
   RendererWindow::~RendererWindow()
@@ -20,76 +28,64 @@ namespace Strontium
   void
   RendererWindow::onImGuiRender(bool &isOpen, Shared<Scene> activeScene)
   {
-    auto storage = Renderer3D::getStorage();
-    auto state = Renderer3D::getState();
-    auto stats = Renderer3D::getStats();
-
     ImGui::Begin("Renderer Settings", &isOpen);
-
-    ImGui::Text("Geometry pass frametime: %f ms", stats->geoFrametime);
-    ImGui::Text("Shadow pass frametime: %f ms", stats->shadowFrametime);
-    ImGui::Text("Lighting pass frametime: %f ms", stats->lightFrametime);
-    ImGui::Text("Post-processing pass frametime: %f ms", stats->postFramtime);
-    ImGui::Text("");
-
-    ImGui::Text("Drawcalls: %u", stats->drawCalls);
-    ImGui::Text("Total vertices: %u", stats->numVertices);
-    ImGui::Text("Total triangles: %u", stats->numTriangles);
-    ImGui::Text("Total lights: D: %u, P: %u, S: %u", stats->numDirLights,
-                stats->numPointLights, stats->numSpotLights);
-
-    ImGui::Checkbox("Frustum Cull", &state->frustumCull);
-    ImGui::Checkbox("Enable FXAA", &state->enableFXAA);
-
-    // TODO: Soft shadow quality settings (Hard shadows, Low, medium, high, ultra). 
-    // Low is a simple box blur, medium->ultra are gaussian with different number 
-    // of taps.Hard shadows are regular shadow maps with zero prefiltering.
-    if (ImGui::CollapsingHeader("Shadows"))
+    if (ImGui::CollapsingHeader("Shadow Pass"))
     {
-      const char* shadowQualities[] = { "Hard Shadows", "Medium Quality (PCF)", "High Quality (EVSM)", "Ultra Quality (PCSS)" };
+      auto& renderPassManger = Renderer3D::getPassManager();
+      auto shadowPass = renderPassManger.getRenderPass<ShadowPass>();
+      auto shadowBlock = shadowPass->getInternalDataBlock<ShadowPassDataBlock>();
 
-      if (ImGui::BeginCombo("##dirSettings", shadowQualities[state->directionalSettings.x]))
+      ImGui::Text("CPU Side Frametime: %f ms", shadowBlock->cpuTime);
+      ImGui::Text("Number of Draw Calls: %u", shadowBlock->numDrawCalls);
+      ImGui::Text("Number of Instances: %u", shadowBlock->numInstances);
+      ImGui::Text("Number of Triangles Submitted: %u", shadowBlock->numTrianglesSubmitted);
+      ImGui::Text("Number of Triangles Drawn: %u", shadowBlock->numTrianglesDrawn);
+      ImGui::Text("Number of Triangles Culled: %u", shadowBlock->numTrianglesSubmitted - shadowBlock->numTrianglesDrawn);
+
+      ImGui::Separator();
+
+      const char* shadowQualities[] = { "Hard Shadows", "Medium Quality (PCF)", "Ultra Quality (PCSS)" };
+
+      if (ImGui::BeginCombo("##dirSettings", shadowQualities[shadowBlock->shadowQuality]))
       {
-          for (unsigned int i = 0; i < IM_ARRAYSIZE(shadowQualities); i++)
-          {
-              bool isSelected = (shadowQualities[i] == shadowQualities[state->directionalSettings.x]);
-              if (ImGui::Selectable(shadowQualities[i], isSelected))
-                  state->directionalSettings.x = i;
+        for (uint i = 0; i < IM_ARRAYSIZE(shadowQualities); i++)
+        {
+          bool isSelected = (shadowQualities[i] == shadowQualities[shadowBlock->shadowQuality]);
+          if (ImGui::Selectable(shadowQualities[i], isSelected))
+            shadowBlock->shadowQuality = i;
 
-              if (isSelected)
-                  ImGui::SetItemDefaultFocus();
-          }
+          if (isSelected)
+            ImGui::SetItemDefaultFocus();
+        }
 
-          ImGui::EndCombo();
+        ImGui::EndCombo();
       }
 
-      ImGui::DragFloat("Cascade Lambda", &state->cascadeLambda, 0.01f, 0.5f, 1.0f);
+      ImGui::DragFloat("Cascade Lambda", &shadowBlock->cascadeLambda, 0.01f, 0.5f, 1.0f);
 
-      int shadowWidth = state->cascadeSize;
+      int shadowWidth = static_cast<int>(shadowBlock->shadowMapRes);
       if (ImGui::InputInt("Shadowmap Size", &shadowWidth))
       {
         shadowWidth = shadowWidth > 4096 ? 4096 : shadowWidth;
         shadowWidth = shadowWidth < 512 ? 512 : shadowWidth;
 
         // Compute the next or previous power of 2 and set the int to that.
-        if (shadowWidth - (int) state->cascadeSize < 0)
+        if (shadowWidth - static_cast<int>(shadowBlock->shadowMapRes) < 0)
         {
           shadowWidth = std::pow(2, std::floor(std::log2(shadowWidth)));
         }
-        else if (shadowWidth - (int) state->cascadeSize > 0)
+        else if (shadowWidth - static_cast<int>(shadowBlock->shadowMapRes) > 0)
         {
           shadowWidth = std::pow(2, std::floor(std::log2(shadowWidth)) + 1);
         }
 
         shadowWidth = std::pow(2, std::floor(std::log2(shadowWidth)));
-        state->cascadeSize = shadowWidth;
+        shadowBlock->shadowMapRes = static_cast<uint>(shadowWidth);
 
-        for (unsigned int i = 0; i < NUM_CASCADES; i++)
-          storage->shadowBuffer[i].resize(state->cascadeSize, state->cascadeSize);
-
-        storage->shadowEffectsBuffer.resize(state->cascadeSize, state->cascadeSize);
+        shadowPass->updatePassData();
       }
 
+      /*
       ImGui::Text("");
 
       if (state->directionalSettings.x == 0)
@@ -125,9 +121,6 @@ namespace Strontium
       }
 
       if (state->directionalSettings.x == 2)
-        ImGui::DragFloat("Bleed Reduction", &(state->shadowParams[0].x), 0.01f, 0.0f, 0.9f);
-
-      if (state->directionalSettings.x == 3)
       {
         if (ImGui::DragFloat("Light Size", &(state->shadowParams[0].y), 0.01f))
         {
@@ -148,6 +141,7 @@ namespace Strontium
           state->shadowParams[1].x = glm::max(constBias, 0.0f);
         }
       }
+      */
 
       static bool showMaps = false;
       ImGui::Checkbox("Show shadow maps", &showMaps);
@@ -157,75 +151,12 @@ namespace Strontium
         static int cascadeIndex = 0;
         ImGui::SliderInt("Cascade Index", &cascadeIndex, 0, NUM_CASCADES - 1);
         ImGui::Text("Depth");
-        ImGui::Image((ImTextureID) (unsigned long) storage->shadowBuffer[(unsigned int) cascadeIndex].getAttachID(FBOTargetParam::Depth),
-                     ImVec2(128.0f, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
-        ImGui::Text("Moments");
-        ImGui::Image((ImTextureID) (unsigned long) storage->shadowBuffer[(unsigned int) cascadeIndex].getAttachID(FBOTargetParam::Colour0),
+        ImGui::Image(reinterpret_cast<ImTextureID>(shadowBlock->shadowBuffers[static_cast<uint>(cascadeIndex)].getAttachID(FBOTargetParam::Depth)),
                      ImVec2(128.0f, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
       }
     }
 
-    if (ImGui::CollapsingHeader("Volumetric Lights"))
-    {
-      auto bufferSize = storage->gBuffer.getSize();
-      float ratio = bufferSize.x / bufferSize.y;
-
-      ImGui::Checkbox("Enable Godrays", &state->enableSkyshafts);
-
-      Styles::drawFloatControl("Volumetric Intensity", 1.0f, state->mieScatIntensity.w,
-                               0.0f, 0.1f, 0.0f, 100.0f);
-      Styles::drawFloatControl("Particle Density", 1.0f, state->mieAbsDensity.w,
-                               0.0f, 0.1f, 0.0f, 1000.0f);
-
-      glm::vec3 mieAbs = glm::vec3(state->mieAbsDensity);
-      Styles::drawVec3Controls("Mie Absorption", glm::vec3(4.4f),
-                               mieAbs,  0.0f, 0.01f,
-                               0.0f, 10.0f);
-      state->mieAbsDensity.x = mieAbs.x;
-      state->mieAbsDensity.y = mieAbs.y;
-      state->mieAbsDensity.z = mieAbs.z;
-
-      glm::vec3 mieScat = glm::vec3(state->mieScatIntensity);
-      Styles::drawVec3Controls("Mie Scattering", glm::vec3(4.0f),
-                               mieScat, 0.0f, 0.01f,
-                               0.0f, 10.0f);
-      state->mieScatIntensity.x = mieScat.x;
-      state->mieScatIntensity.y = mieScat.y;
-      state->mieScatIntensity.z = mieScat.z;
-
-      static bool showLightTexture = false;
-      ImGui::Checkbox("Show Volumetric Light Texture", &showLightTexture);
-
-      if (showLightTexture)
-      {
-        ImGui::Text("Volumetric Light Texture");
-        ImGui::Image((ImTextureID) (unsigned long) storage->downsampleLightshaft.getID(),
-                     ImVec2(128.0f * ratio, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
-      }
-    }
-
-    if (ImGui::CollapsingHeader("HBAO"))
-    {
-      ImGui::Checkbox("Enable HBAO", &state->enableAO);
-
-      ImGui::SliderFloat("Radius", &(state->aoSettings.x), 0.0f, 0.1f);
-      ImGui::SliderFloat("Multiplier", &(state->aoSettings.y), 0.0f, 10.0f);
-      ImGui::SliderFloat("Power", &(state->aoSettings.z), 0.0f, 10.0f);
-
-      static bool showHBAOTexture = false;
-      ImGui::Checkbox("Show HBAO Texture", &showHBAOTexture);
-
-      if (showHBAOTexture)
-      {
-        auto bufferSize = storage->gBuffer.getSize();
-        float ratio = bufferSize.x / bufferSize.y;
-
-        ImGui::Text("HBAO Texture");
-        ImGui::Image((ImTextureID) (unsigned long) storage->downsampleAO.getID(),
-                     ImVec2(128.0f * ratio, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
-      }
-    }
-
+    /*
     if (ImGui::CollapsingHeader("Bloom"))
     {
       auto bufferSize = storage->gBuffer.getSize();
@@ -283,158 +214,110 @@ namespace Strontium
         ImGui::EndCombo();
       }
     }
+    */
 
-    if (ImGui::CollapsingHeader("Environment Map"))
+    if (ImGui::CollapsingHeader("Geometry Pass"))
     {
-      auto ambient = Renderer3D::getStorage()->currentEnvironment.get();
+      auto& renderPassManger = Renderer3D::getPassManager();
+      auto geometryPass = renderPassManger.getRenderPass<GeometryPass>();
+      auto geometryBlock = geometryPass->getInternalDataBlock<GeometryPassDataBlock>();
+      auto& gBuffer = geometryBlock->gBuffer;
 
-      int skyboxWidth = state->skyboxWidth;
-      int irradianceWidth = state->irradianceWidth;
-      int prefilterWidth = state->prefilterWidth;
-      int prefilterSamples = state->prefilterSamples;
-
-      if (ambient->getDrawingType() != MapType::DynamicSky)
-      {
-          if (ImGui::Button("Recompute Environment Map"))
-          {
-              ambient->unloadComputedMaps();
-              ambient->equiToCubeMap(true, state->skyboxWidth, state->skyboxWidth);
-              ambient->precomputeIrradiance(state->irradianceWidth, state->irradianceWidth, true);
-              ambient->precomputeSpecular(state->prefilterWidth, state->prefilterWidth, true);
-          }
-
-          if (ImGui::InputInt("Skybox Size", &skyboxWidth))
-          {
-              skyboxWidth = skyboxWidth > 2048 ? 2048 : skyboxWidth;
-              skyboxWidth = skyboxWidth < 512 ? 512 : skyboxWidth;
-
-              // Compute the next or previous power of 2 and set the int to that.
-              if (skyboxWidth - (int)state->skyboxWidth < 0)
-              {
-                  skyboxWidth = std::pow(2, std::floor(std::log2(skyboxWidth)));
-              }
-              else if (skyboxWidth - (int)state->skyboxWidth > 0)
-              {
-                  skyboxWidth = std::pow(2, std::floor(std::log2(skyboxWidth)) + 1);
-              }
-
-              skyboxWidth = std::pow(2, std::floor(std::log2(skyboxWidth)));
-              state->skyboxWidth = skyboxWidth;
-          }
-
-          if (ImGui::InputInt("Irradiance Map Quality", &irradianceWidth))
-          {
-              irradianceWidth = irradianceWidth > 512 ? 512 : irradianceWidth;
-              irradianceWidth = irradianceWidth < 64 ? 64 : irradianceWidth;
-
-              // Compute the next or previous power of 2 and set the int to that.
-              if (irradianceWidth - (int)state->irradianceWidth < 0)
-              {
-                  irradianceWidth = std::pow(2, std::floor(std::log2(irradianceWidth)));
-              }
-              else if (irradianceWidth - (int)state->irradianceWidth > 0)
-              {
-                  irradianceWidth = std::pow(2, std::floor(std::log2(irradianceWidth)) + 1);
-              }
-
-              irradianceWidth = std::pow(2, std::floor(std::log2(irradianceWidth)));
-              state->irradianceWidth = irradianceWidth;
-          }
-
-          if (ImGui::InputInt("IBL Prefilter Quality", &prefilterWidth))
-          {
-              prefilterWidth = prefilterWidth > 2048 ? 2048 : prefilterWidth;
-              prefilterWidth = prefilterWidth < 512 ? 512 : prefilterWidth;
-
-              // Compute the next or previous power of 2 and set the int to that.
-              if (prefilterWidth - (int)state->prefilterWidth < 0)
-              {
-                  prefilterWidth = std::pow(2, std::floor(std::log2(prefilterWidth)));
-              }
-              else if (prefilterWidth - (int)state->prefilterWidth > 0)
-              {
-                  prefilterWidth = std::pow(2, std::floor(std::log2(prefilterWidth)) + 1);
-              }
-
-              prefilterWidth = std::pow(2, std::floor(std::log2(prefilterWidth)));
-              state->prefilterWidth = prefilterWidth;
-          }
-
-          if (ImGui::InputInt("IBL Prefilter Samples", &prefilterSamples))
-          {
-              prefilterSamples = prefilterSamples > 2048 ? 2048 : prefilterSamples;
-              prefilterSamples = prefilterSamples < 512 ? 512 : prefilterSamples;
-
-              // Compute the next or previous power of 2 and set the int to that.
-              if (prefilterSamples - (int)state->prefilterSamples < 0)
-              {
-                  prefilterSamples = std::pow(2, std::floor(std::log2(prefilterSamples)));
-              }
-              else if (prefilterSamples - (int)state->prefilterSamples > 0)
-              {
-                  prefilterSamples = std::pow(2, std::floor(std::log2(prefilterSamples)) + 1);
-              }
-
-              prefilterSamples = std::pow(2, std::floor(std::log2(prefilterSamples)));
-              state->prefilterSamples = prefilterSamples;
-          }
-      }
-
-      if (ambient->getDrawingType() == MapType::DynamicSky)
-      {
-          if (ambient->getDynamicSkyType() == DynamicSkyType::Preetham)
-          {
-              ImGui::Text("");
-              ImGui::Separator();
-              ImGui::Text("Preetham LUT");
-              ImGui::Image((ImTextureID)(unsigned long)ambient->getTexID(MapType::DynamicSky),
-                  ImVec2(256.0f, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
-          }
-          if (ambient->getDynamicSkyType() == DynamicSkyType::Hillaire)
-          {
-              ImGui::Text("");
-              ImGui::Separator();
-              ImGui::Text("Transmittance and Multi-Scatter LUTs");
-              ImGui::Image((ImTextureID)(unsigned long)ambient->getTransmittanceLUTID(),
-                  ImVec2(256.0f, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
-              ImGui::SameLine();
-              ImGui::Image((ImTextureID)(unsigned long)ambient->getMultiScatteringLUTID(),
-                  ImVec2(128.0f, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
-              ImGui::Text("Skyview LUT");
-              ImGui::Image((ImTextureID)(unsigned long)ambient->getTexID(MapType::DynamicSky),
-                  ImVec2(256.0f, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
-          }
-      }
-    }
-
-    if (ImGui::CollapsingHeader("Render Passes"))
-    {
-      auto bufferSize = storage->gBuffer.getSize();
+      auto bufferSize = gBuffer.getSize();
       float ratio = bufferSize.x / bufferSize.y;
 
-      ImGui::Separator();
-      ImGui::Text("Lighting:");
-      ImGui::Separator();
-      ImGui::Image((ImTextureID) (unsigned long) storage->lightingPass.getAttachID(FBOTargetParam::Colour0),
-      ImVec2(128.0f * ratio, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
+      ImGui::Text("CPU Side Frametime: %f ms", geometryBlock->cpuTime);
+      ImGui::Text("Number of Draw Calls: %u", geometryBlock->numDrawCalls);
+      ImGui::Text("Number of Instances: %u", geometryBlock->numInstances);
+      ImGui::Text("Number of Triangles Submitted: %u", geometryBlock->numTrianglesSubmitted);
+      ImGui::Text("Number of Triangles Drawn: %u", geometryBlock->numTrianglesDrawn);
+      ImGui::Text("Number of Triangles Culled: %u", geometryBlock->numTrianglesSubmitted - geometryBlock->numTrianglesDrawn);
+
       ImGui::Separator();
       ImGui::Text("GBuffer:");
       ImGui::Separator();
       ImGui::Text("Normals:");
-      ImGui::Image((ImTextureID) (unsigned long) storage->gBuffer.getAttachmentID(FBOTargetParam::Colour0),
-      ImVec2(128.0f * ratio, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
+      ImGui::Image(reinterpret_cast<ImTextureID>(gBuffer.getAttachmentID(FBOTargetParam::Colour0)),
+                   ImVec2(128.0f * ratio, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
       ImGui::Text("Albedo:");
-      ImGui::Image((ImTextureID) (unsigned long) storage->gBuffer.getAttachmentID(FBOTargetParam::Colour1),
-      ImVec2(128.0f * ratio, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
+      ImGui::Image(reinterpret_cast<ImTextureID>(gBuffer.getAttachmentID(FBOTargetParam::Colour1)),
+                   ImVec2(128.0f * ratio, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
       ImGui::Text("Materials:");
-      ImGui::Image((ImTextureID) (unsigned long) storage->gBuffer.getAttachmentID(FBOTargetParam::Colour2),
-      ImVec2(128.0f * ratio, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
+      ImGui::Image(reinterpret_cast<ImTextureID>(gBuffer.getAttachmentID(FBOTargetParam::Colour2)),
+                   ImVec2(128.0f * ratio, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
       ImGui::Text("Entity Mask:");
-      ImGui::Image((ImTextureID) (unsigned long) storage->gBuffer.getAttachmentID(FBOTargetParam::Colour3),
-      ImVec2(128.0f * ratio, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
+      ImGui::Image(reinterpret_cast<ImTextureID>(gBuffer.getAttachmentID(FBOTargetParam::Colour3)),
+                   ImVec2(128.0f * ratio, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
       ImGui::Text("Depth:");
-      ImGui::Image((ImTextureID) (unsigned long) storage->gBuffer.getAttachmentID(FBOTargetParam::Depth),
-      ImVec2(128.0f * ratio, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
+      ImGui::Image(reinterpret_cast<ImTextureID>(gBuffer.getAttachmentID(FBOTargetParam::Depth)),
+                   ImVec2(128.0f * ratio, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
+    }
+
+    if (ImGui::CollapsingHeader("Hi-Z Reduction Pass"))
+    {
+      auto& renderPassManger = Renderer3D::getPassManager();
+      auto hiZPass = renderPassManger.getRenderPass<HiZPass>();
+      auto hiZBlock = hiZPass->getInternalDataBlock<HiZPassDataBlock>();
+      float width = static_cast<float>(hiZBlock->hierarchicalDepth.getWidth());
+      float height = static_cast<float>(hiZBlock->hierarchicalDepth.getHeight());
+      float ratio = width / height;
+
+      ImGui::Text("CPU Side Frametime: %f ms", hiZBlock->cpuTime);
+
+      ImGui::Separator();
+      ImGui::Text("Hi-Z Buffer:");
+      ImGui::Image(reinterpret_cast<ImTextureID>(hiZBlock->hierarchicalDepth.getID()),
+                   ImVec2(128.0f * ratio, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
+    }
+
+    if (ImGui::CollapsingHeader("HBAO Pass"))
+    {
+      auto& renderPassManger = Renderer3D::getPassManager();
+      auto hbaoPass = renderPassManger.getRenderPass<HBAOPass>();
+      auto hbaoBlock = hbaoPass->getInternalDataBlock<HBAOPassDataBlock>();
+      float width = static_cast<float>(hbaoBlock->downsampleAO.getWidth());
+      float height = static_cast<float>(hbaoBlock->downsampleAO.getHeight());
+      float ratio = width / height;
+
+      ImGui::Checkbox("Enable HBAO", &hbaoBlock->enableAO);
+
+      ImGui::Separator();
+      ImGui::Text("CPU Side Frametime: %f ms", hbaoBlock->cpuTime);
+      ImGui::Separator();
+
+      ImGui::SliderFloat("Radius", &hbaoBlock->aoRadius, 0.0f, 0.1f);
+      ImGui::SliderFloat("Multiplier", &hbaoBlock->aoMultiplier, 0.0f, 10.0f);
+      ImGui::SliderFloat("Power", &hbaoBlock->aoExponent, 0.0f, 10.0f);
+
+      static bool showHBAOTexture = false;
+      ImGui::Checkbox("Show HBAO Texture", &showHBAOTexture);
+
+      if (showHBAOTexture)
+      {
+        ImGui::Text("HBAO Texture");
+        ImGui::Image(reinterpret_cast<ImTextureID>(hbaoBlock->downsampleAO.getID()),
+                     ImVec2(128.0f * ratio, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
+      }
+    }
+
+    if (ImGui::CollapsingHeader("Sky Atmosphere Pass"))
+    {
+      auto& renderPassManger = Renderer3D::getPassManager();
+      auto skyAtmoPass = renderPassManger.getRenderPass<SkyAtmospherePass>();
+      auto skyAtmoBlock = skyAtmoPass->getInternalDataBlock<SkyAtmospherePassDataBlock>();
+
+      ImGui::Text("CPU Side Frametime: %f ms", skyAtmoBlock->cpuTime);
+
+      ImGui::Checkbox("Use Fast Atmosphere", &(skyAtmoBlock->useFastAtmosphere));
+
+      static bool showLUTs = false;
+      ImGui::Checkbox("Show Hillaire LUTs", &showLUTs);
+      if (showLUTs)
+      {
+        transmittanceLUTView.arrayImage(skyAtmoBlock->transmittanceLUTs, ImVec2(256.0f, 64.0f));
+        multiscatteringLUTView.arrayImage(skyAtmoBlock->multiscatterLUTS, ImVec2(64.0f, 64.0f));
+        skyviewLUTView.arrayImage(skyAtmoBlock->skyviewLUTs, ImVec2(256.0f, 128.0f));
+      }
     }
 
     ImGui::End();

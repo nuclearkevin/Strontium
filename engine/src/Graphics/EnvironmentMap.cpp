@@ -57,7 +57,7 @@ namespace Strontium
       params.internal = TextureInternalFormats::RG16f;
       params.dataType = TextureDataType::Floats;
 
-      this->brdfIntLUT.setSize(32, 32, 2);
+      this->brdfIntLUT.setSize(32, 32);
       this->brdfIntLUT.setParams(params);
       this->brdfIntLUT.initNullTexture();
 
@@ -84,17 +84,17 @@ namespace Strontium
     params.dataType = TextureDataType::Floats;
 
     // The transmittance LUT.
-    this->transmittanceLUT.setSize(256, 64, 4);
+    this->transmittanceLUT.setSize(256, 64);
     this->transmittanceLUT.setParams(params);
     this->transmittanceLUT.initNullTexture();
 
     // The multi-scattering LUT.
-    this->multiScatLUT.setSize(32, 32, 4);
+    this->multiScatLUT.setSize(32, 32);
     this->multiScatLUT.setParams(params);
     this->multiScatLUT.initNullTexture();
 
     // The sky-view LUT.
-    this->skyViewLUT.setSize(256, 128, 4);
+    this->skyViewLUT.setSize(256, 128);
     params.minFilter = TextureMinFilterParams::LinearMipMapLinear;
     this->skyViewLUT.setParams(params);
     this->skyViewLUT.initNullTexture();
@@ -107,7 +107,7 @@ namespace Strontium
     params3D.sWrap = TextureWrapParams::ClampEdges;
     params3D.tWrap = TextureWrapParams::ClampEdges;
     params3D.rWrap = TextureWrapParams::ClampEdges;
-    this->aerialPerspectiveLUT.setSize(32, 32, 32, 4);
+    this->aerialPerspectiveLUT.setSize(32, 32, 32);
     this->aerialPerspectiveLUT.setParams(params3D);
     this->aerialPerspectiveLUT.initNullTexture();
 
@@ -160,51 +160,16 @@ namespace Strontium
     this->specPrefilter.clearTexture();
   }
 
-  // Bind/unbind a specific cubemap.
-  void
-  EnvironmentMap::bind(const MapType &type)
+  void 
+  EnvironmentMap::bindIrradiance(uint bindPoint)
   {
-    switch (type)
-    {
-      case MapType::Skybox:
-      {
-        this->skybox.bind();
-        break;
-      }
-      case MapType::Irradiance:
-      {
-        this->irradiance.bind();
-        break;
-      }
-      case MapType::Prefilter:
-      {
-        this->specPrefilter.bind();
-        break;
-      }
-    }
+    this->irradiance.bind(bindPoint);
   }
 
-  void
-  EnvironmentMap::bind(const MapType &type, uint bindPoint)
+  void 
+  EnvironmentMap::bindSpecularRadiance(uint bindPoint)
   {
-    switch (type)
-    {
-      case MapType::Skybox:
-      {
-        this->skybox.bind(bindPoint);
-        break;
-      }
-      case MapType::Irradiance:
-      {
-        this->irradiance.bind(bindPoint);
-        break;
-      }
-      case MapType::Prefilter:
-      {
-        this->specPrefilter.bind(bindPoint);
-        break;
-      }
-    }
+    this->specPrefilter.bind(bindPoint);
   }
 
   void
@@ -287,8 +252,6 @@ namespace Strontium
     this->skyboxParamBuffer.setData(2 * sizeof(glm::vec4), sizeof(glm::vec4), &(params2.x));
     this->skyboxParamBuffer.setData(3 * sizeof(glm::vec4), sizeof(glm::ivec4),
                                     &(this->skyboxParameters.x));
-
-    this->bind(this->currentEnvironment, 0);
   }
 
   // Update the dynamic sky.
@@ -385,11 +348,11 @@ namespace Strontium
     params.internal = TextureInternalFormats::RGBA16f;
     params.dataType = TextureDataType::Floats;
 
-    this->irradiance.setSize(32, 32, 4);
+    this->irradiance.setSize(32, 32);
     this->irradiance.setParams(params);
     this->irradiance.initNullTexture();
 
-    this->specPrefilter.setSize(64, 64, 4);
+    this->specPrefilter.setSize(64, 64);
     params.minFilter = TextureMinFilterParams::LinearMipMapLinear;
     this->specPrefilter.setParams(params);
     this->specPrefilter.initNullTexture();
@@ -404,12 +367,14 @@ namespace Strontium
 
     this->staticIBL = true;
 
+    /*
     auto state = Renderer3D::getState();
 
     this->unloadComputedMaps();
     this->equiToCubeMap(true, state->skyboxWidth, state->skyboxWidth);
     this->precomputeIrradiance(state->irradianceWidth, state->irradianceWidth, true);
     this->precomputeSpecular(state->prefilterWidth, state->prefilterWidth, true);
+    */
   }
 
   // Getters.
@@ -459,7 +424,7 @@ namespace Strontium
         params.internal = TextureInternalFormats::RGBA16f;
         params.dataType = TextureDataType::Floats;
       }
-      this->skybox.setSize(width, height, 4);
+      this->skybox.setSize(width, height);
       this->skybox.setParams(params);
       this->skybox.initNullTexture();
 
@@ -498,7 +463,7 @@ namespace Strontium
           params.dataType = TextureDataType::Floats;
       }
 
-      this->irradiance.setSize(width, height, 4);
+      this->irradiance.setSize(width, height);
       this->irradiance.setParams(params);
       this->irradiance.initNullTexture();
 
@@ -560,7 +525,7 @@ namespace Strontium
           params.dataType = TextureDataType::Floats;
       }
 
-      this->specPrefilter.setSize(width, height, 4);
+      this->specPrefilter.setSize(width, height);
       this->specPrefilter.setParams(params);
       this->specPrefilter.initNullTexture();
       this->specPrefilter.generateMips();
@@ -568,7 +533,8 @@ namespace Strontium
       if (this->erMap)
       {
         Logger* logs = Logger::getInstance();
-        auto state = Renderer3D::getState();
+        
+        //auto state = Renderer3D::getState();
         
         //--------------------------------------------------------------------------
         // The pre-filtered environment map component.
@@ -595,7 +561,7 @@ namespace Strontium
         
           // Roughness.
           params0.x = static_cast<float>(i) / 4.0f;
-          params1.x = static_cast<int>(state->prefilterSamples);
+          params1.x = static_cast<int>(1024);
           this->iblParams.setData(0, sizeof(glm::vec4), &params0.x);
           this->iblParams.setData(sizeof(glm::vec4), sizeof(glm::ivec4), &params1.x);
         

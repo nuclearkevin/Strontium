@@ -77,65 +77,11 @@ namespace Strontium
   Scene::onUpdateRuntime(float dt)
   {
     this->updateAnimations(dt);
-
-    auto ambLight = this->sceneECS.group<AmbientComponent>(entt::get<TransformComponent>);
-    for (auto entity : ambLight)
-    {
-      auto [ambient, transform] = ambLight.get<AmbientComponent, TransformComponent>(entity);
-
-      if (ambient.animate)
-      {
-        transform.rotation.z += glm::radians(ambient.animationSpeed) * dt;
-        if (transform.rotation.z > glm::radians(360.0f))
-        {
-          transform.rotation.z = 0.0f;
-        }
-        if (transform.rotation.z < glm::radians(-360.0f))
-        {
-          transform.rotation.z = 0.0f;
-        }
-      }
-    }
   }
 
   void
   Scene::onRenderEditor(Entity selectedEntity)
   {
-    // Prepare the ambient component.
-    auto ambLight = this->sceneECS.group<AmbientComponent>(entt::get<TransformComponent>);
-    for (auto entity : ambLight)
-    {
-      auto [ambient, transform] = ambLight.get<AmbientComponent, TransformComponent>(entity);
-
-      EnvironmentMap* env = ambient.ambient;
-      if (env->getDrawingType() == MapType::DynamicSky)
-      {
-        if (env->getDynamicSkyType() == DynamicSkyType::Preetham)
-        {
-          auto preethamSkyParams = env->getSkyParams<PreethamSkyParams>(DynamicSkyType::Preetham);
-
-          glm::mat4 rotation = glm::transpose(glm::inverse((glm::mat4) transform));
-          preethamSkyParams.sunPos = glm::vec3(rotation * glm::vec4(0.0, 1.0, 0.0, 0.0f));
-          preethamSkyParams.sunPos.z *= -1.0f;
-
-          env->setSkyModelParams<PreethamSkyParams>(preethamSkyParams);
-        }
-        else if (env->getDynamicSkyType() == DynamicSkyType::Hillaire)
-        {
-          auto hillaireSkyParams = env->getSkyParams<HillaireSkyParams>(DynamicSkyType::Hillaire);
-
-          glm::mat4 rotation = glm::transpose(glm::inverse((glm::mat4) transform));
-          hillaireSkyParams.sunPos = glm::vec3(rotation * glm::vec4(0.0, 1.0, 0.0, 0.0f));
-          hillaireSkyParams.sunPos *= -1.0f;
-
-          env->setSkyModelParams<HillaireSkyParams>(hillaireSkyParams);
-        }
-
-        env->precomputeIrradiance();
-        env->precomputeSpecular();
-      }
-    }
-
     // Group together the lights and submit them to the renderer.
     auto dirLight = this->sceneECS.group<DirectionalLightComponent>(entt::get<TransformComponent>);
     for (auto entity : dirLight)
@@ -143,6 +89,7 @@ namespace Strontium
       auto [directional, transform] = dirLight.get<DirectionalLightComponent, TransformComponent>(entity);
       Renderer3D::submit(directional.light, transform);
     }
+
     auto pointLight = this->sceneECS.group<PointLightComponent>(entt::get<TransformComponent>);
     for (auto entity : pointLight)
     {
@@ -156,20 +103,6 @@ namespace Strontium
         transformMatrix = computeGlobalTransform(currentEntity);
 
       Renderer3D::submit(point, transformMatrix);
-    }
-    auto spotLight = this->sceneECS.group<SpotLightComponent>(entt::get<TransformComponent>);
-    for (auto entity : spotLight)
-    {
-      auto [spot, transform] = spotLight.get<SpotLightComponent, TransformComponent>(entity);
-      glm::mat4 transformMatrix = (glm::mat4) transform;
-
-      // If a drawable item has a transform hierarchy, compute the global
-      // transforms from local transforms.
-      auto currentEntity = Entity(entity, this);
-      if (currentEntity.hasComponent<ParentEntityComponent>())
-        transformMatrix = computeGlobalTransform(currentEntity);
-
-      Renderer3D::submit(spot, transformMatrix);
     }
 
     // Group together the transform and renderable components.
@@ -197,46 +130,25 @@ namespace Strontium
         Renderer3D::submit(renderable, &renderable.animator, renderable,
                            transformMatrix, static_cast<float>(entity), selected);
     }
+
+    // Group together the transform, sky-atmosphere and directional light components.
+    auto atmospheres = this->sceneECS.group<SkyAtmosphereComponent>(entt::get<TransformComponent>);
+    for (auto entity : atmospheres)
+    {
+      auto [transform, atmosphere] = atmospheres.get<TransformComponent, SkyAtmosphereComponent>(entity);
+      if(this->sceneECS.has<DirectionalLightComponent>(entity) && !atmosphere.usePrimaryLight)
+        Renderer3D::submit(atmosphere, atmosphere, this->sceneECS.get<DirectionalLightComponent>(entity), 
+                           transform);
+      else if (atmosphere.usePrimaryLight)
+        Renderer3D::submit(atmosphere, atmosphere, 
+                           this->sceneECS.get<DirectionalLightComponent>(entity), 
+                           transform);
+    }
   }
 
   void
   Scene::onRenderRuntime()
   {
-    // Prepare the ambient component.
-    auto ambLight = this->sceneECS.group<AmbientComponent>(entt::get<TransformComponent>);
-    for (auto entity : ambLight)
-    {
-      auto [ambient, transform] = ambLight.get<AmbientComponent, TransformComponent>(entity);
-
-      EnvironmentMap* env = ambient.ambient;
-      if (env->getDrawingType() == MapType::DynamicSky)
-      {
-        if (env->getDynamicSkyType() == DynamicSkyType::Preetham)
-        {
-          auto preethamSkyParams = env->getSkyParams<PreethamSkyParams>(DynamicSkyType::Preetham);
-
-          glm::mat4 rotation = glm::transpose(glm::inverse((glm::mat4)transform));
-          preethamSkyParams.sunPos = glm::vec3(rotation * glm::vec4(0.0, 1.0, 0.0, 0.0f));
-          preethamSkyParams.sunPos.z *= -1.0f;
-
-          env->setSkyModelParams<PreethamSkyParams>(preethamSkyParams);
-        }
-        else if (env->getDynamicSkyType() == DynamicSkyType::Hillaire)
-        {
-          auto hillaireSkyParams = env->getSkyParams<HillaireSkyParams>(DynamicSkyType::Hillaire);
-
-          glm::mat4 rotation = glm::transpose(glm::inverse((glm::mat4)transform));
-          hillaireSkyParams.sunPos = glm::vec3(rotation * glm::vec4(0.0, 1.0, 0.0, 0.0f));
-          hillaireSkyParams.sunPos *= -1.0f;
-
-          env->setSkyModelParams<HillaireSkyParams>(hillaireSkyParams);
-        }
-
-        env->precomputeIrradiance();
-        env->precomputeSpecular();
-      }
-    }
-
     // Group together the lights and submit them to the renderer.
     auto dirLight = this->sceneECS.group<DirectionalLightComponent>(entt::get<TransformComponent>);
     for (auto entity : dirLight)
@@ -244,6 +156,7 @@ namespace Strontium
       auto [directional, transform] = dirLight.get<DirectionalLightComponent, TransformComponent>(entity);
       Renderer3D::submit(directional.light, transform);
     }
+
     auto pointLight = this->sceneECS.group<PointLightComponent>(entt::get<TransformComponent>);
     for (auto entity : pointLight)
     {
@@ -257,20 +170,6 @@ namespace Strontium
         transformMatrix = computeGlobalTransform(currentEntity);
 
       Renderer3D::submit(point, transformMatrix);
-    }
-    auto spotLight = this->sceneECS.group<SpotLightComponent>(entt::get<TransformComponent>);
-    for (auto entity : spotLight)
-    {
-      auto [spot, transform] = spotLight.get<SpotLightComponent, TransformComponent>(entity);
-      glm::mat4 transformMatrix = (glm::mat4) transform;
-
-      // If a drawable item has a transform hierarchy, compute the global
-      // transforms from local transforms.
-      auto currentEntity = Entity(entity, this);
-      if (currentEntity.hasComponent<ParentEntityComponent>())
-        transformMatrix = computeGlobalTransform(currentEntity);
-
-      Renderer3D::submit(spot, transformMatrix);
     }
 
     // Group together the transform and renderable components.
@@ -295,6 +194,20 @@ namespace Strontium
       else if (renderable && renderable.animator.animationRenderable())
         Renderer3D::submit(renderable, &renderable.animator, renderable,
                            transformMatrix, static_cast<float>(entity));
+    }
+
+    // Group together the transform, sky-atmosphere and directional light components.
+    auto atmospheres = this->sceneECS.group<SkyAtmosphereComponent>(entt::get<TransformComponent>);
+    for (auto entity : atmospheres)
+    {
+      auto [transform, atmosphere] = atmospheres.get<TransformComponent, SkyAtmosphereComponent>(entity);
+      if(this->sceneECS.has<DirectionalLightComponent>(entity) && !atmosphere.usePrimaryLight)
+        Renderer3D::submit(atmosphere, atmosphere, this->sceneECS.get<DirectionalLightComponent>(entity), 
+                           transform);
+      else if (atmosphere.usePrimaryLight)
+        Renderer3D::submit(atmosphere, atmosphere, 
+                           this->sceneECS.get<DirectionalLightComponent>(entity), 
+                           transform);
     }
   }
 
@@ -325,7 +238,6 @@ namespace Strontium
   }
 
   // Compute the global transform given a parent-child transform hierarchy.
-  // Only rotations and translation transforms.
   glm::mat4
   Scene::computeGlobalTransform(Entity entity)
   {
@@ -335,7 +247,7 @@ namespace Strontium
       if (entity.hasComponent<TransformComponent>())
       {
         auto& localTransform = entity.getComponent<TransformComponent>();
-        return computeGlobalTransform(parent) * (glm::mat4) localTransform;
+        return computeGlobalTransform(parent) * static_cast<glm::mat4>(localTransform);
       }
       else
         return computeGlobalTransform(parent);
@@ -345,7 +257,7 @@ namespace Strontium
       if (entity.hasComponent<TransformComponent>())
       {
         auto& localTransform = entity.getComponent<TransformComponent>();
-        return (glm::mat4) localTransform;
+        return static_cast<glm::mat4>(localTransform);
       }
       else
         return glm::mat4(1.0f);

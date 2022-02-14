@@ -338,7 +338,7 @@ namespace Strontium
         }
 
         image.params.minFilter = TextureMinFilterParams::LinearMipMapLinear;
-        Texture2D* outTex = new Texture2D(image.width, image.height, image.n, image.params);
+        Texture2D* outTex = new Texture2D(image.width, image.height, image.params);
         outTex->bind();
         outTex->getFilepath() = image.filepath;
 

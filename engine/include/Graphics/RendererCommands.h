@@ -60,6 +60,8 @@ namespace Strontium
 
     void drawElements(PrimativeType primative, uint count, const void* indices = nullptr);
     void drawArrays(PrimativeType primative, uint start, uint count);
+    void drawElementsInstanced(PrimativeType primative, uint count, uint numInstances = 1, 
+                               const void* indices = nullptr);
     void cullType(FaceType face);
   };
 }

@@ -6,12 +6,16 @@
 // Project includes.
 #include "Core/ApplicationBase.h"
 #include "Assets/AssetManager.h"
+
 #include "Graphics/Renderer.h"
+#include "Graphics/RenderPasses/RenderPass.h"
+#include "Graphics/RenderPasses/SkyAtmospherePass.h"
+
 #include "Graphics/Model.h"
 #include "Graphics/Material.h"
 #include "Graphics/Animations.h"
-#include "Graphics/EnvironmentMap.h"
 #include "Graphics/ShadingPrimatives.h"
+
 #include "Scenes/Entity.h"
 
 namespace Strontium
@@ -177,37 +181,48 @@ namespace Strontium
     { }
   };
 
-  // This is an IBL ambient light component. TODO: Finish and overhaul environment maps.
-  struct AmbientComponent
+  // All falloffs are in km.
+  struct SkyAtmosphereComponent
   {
-    EnvironmentMap* ambient;
+    // Bunch all of the atmospheric scattering parameters together.
+    glm::vec4 rayleighScat; // Rayleigh scattering base (x, y, z) and height falloff (w).
+    glm::vec4 rayleighAbs; // Rayleigh absorption base (x, y, z) and height falloff (w).
+    glm::vec4 mieScat; // Mie scattering base (x, y, z) and height falloff (w).
+    glm::vec4 mieAbs; // Mie absorption base (x, y, z) and height falloff (w).
+    glm::vec4 ozoneAbs; // Ozone absorption base (x, y, z) and scale (w).
+    glm::vec3 planetAlbedo; // Planet albedo (x, y, z).
+    glm::vec2 planetAtmRadius; // Planet radius (x) and the atmosphere radius (y).
 
-    // Parameters for animating the skybox.
-    bool animate;
-    float animationSpeed; // Degrees.
+    // Other parameters which won't be sent to the shader.
+    // Couple with the primary light for volumetric shadows and godrays.
+    bool usePrimaryLight;
 
-    AmbientComponent(const AmbientComponent&) = default;
+    // Internal renderer handle.
+    RendererDataHandle handle;
 
-    AmbientComponent()
-      : animate(false)
-      , animationSpeed(0.01f)
+    SkyAtmosphereComponent(const SkyAtmosphereComponent&) = default;
+
+    SkyAtmosphereComponent()
+      : rayleighScat(5.802f, 13.558f, 33.1f, 8.0f)
+      , rayleighAbs(0.0f, 0.0f, 0.0f, 8.0f)
+      , mieScat(3.996f, 3.996f, 3.996f, 1.2f)
+      , mieAbs(4.4f, 4.4f, 4.4f, 1.2f)
+      , ozoneAbs(0.650f, 1.881f, 0.085f, 0.002f)
+      , planetAlbedo(0.0f, 0.0f, 0.0f)
+      , planetAtmRadius(6.360f, 6.460f) // In MM.
+      , usePrimaryLight(false)
+      , handle(Renderer3D::getPassManager().getRenderPass<SkyAtmospherePass>()->requestRendererData())
+    { }
+
+    operator Atmosphere()
     {
-      ambient = Renderer3D::getStorage()->currentEnvironment.get();
+      return Atmosphere(rayleighScat, rayleighAbs, mieScat, 
+                        mieAbs, ozoneAbs, glm::vec4(planetAlbedo, planetAtmRadius.x), 
+                        glm::vec4(0.0f, 0.0f, 0.0f, planetAtmRadius.y), 
+                        glm::vec4(0.0f), glm::vec4(0.0f));
     }
 
-    AmbientComponent(const std::string &iblImagePath)
-      : animate(false)
-      , animationSpeed(0.01f)
-    {
-      ambient = Renderer3D::getStorage()->currentEnvironment.get();
-      auto state = Renderer3D::getState();
-
-      if (iblImagePath != "")
-      {
-        ambient->loadEquirectangularMap(iblImagePath);
-        ambient->equiToCubeMap(true, state->skyboxWidth, state->skyboxWidth);
-      }
-    }
+    operator RendererDataHandle() { return this->handle; }
   };
 
   // TODO: Finish these.
@@ -241,22 +256,6 @@ namespace Strontium
     { }
 
     operator PointLight()
-    {
-      return light;
-    }
-  };
-
-  struct SpotLightComponent
-  {
-    SpotLight light;
-
-    SpotLightComponent(const SpotLightComponent&) = default;
-
-    SpotLightComponent()
-      : light()
-    { }
-
-    operator SpotLight()
     {
       return light;
     }

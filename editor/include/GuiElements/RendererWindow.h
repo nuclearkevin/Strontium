@@ -11,6 +11,8 @@
 #include "GuiElements/GuiWindow.h"
 #include "Scenes/Scene.h"
 
+#include "Widgets/ImageWidgets.h"
+
 namespace Strontium
 {
   // A window for displaying and modifying renderer settings.
@@ -24,6 +26,8 @@ namespace Strontium
     void onUpdate(float dt, Shared<Scene> activeScene);
     void onEvent(Event &event);
   private:
-
+    TextureWidget transmittanceLUTView;
+    TextureWidget multiscatteringLUTView;
+    TextureWidget skyviewLUTView;
   };
 }

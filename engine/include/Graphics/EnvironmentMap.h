@@ -154,8 +154,8 @@ namespace Strontium
     void precomputeSpecular(const uint& width = 512, const uint& height = 512, bool isHDR = true);
 
     // Bind a specific map.
-    void bind(const MapType &type);
-    void bind(const MapType &type, uint bindPoint);
+    void bindIrradiance(uint bindPoint);
+    void bindSpecularRadiance(uint bindPoint);
     void bindBRDFLUT(uint bindPoint);
     void bindAerialPerspectiveLUT(uint bindPoint);
 
@@ -213,6 +213,7 @@ namespace Strontium
     }
 
     std::string& getFilepath() { return this->filepath; }
+    bool isStaticIBL() { return this->staticIBL; }
   protected:
     Unique<Texture2D> erMap;
 

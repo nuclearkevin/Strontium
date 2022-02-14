@@ -59,7 +59,6 @@ namespace Strontium
     bool isStationary() { return this->currentType == EditorCameraType::Stationary; }
 
     float& getSpeed() { return this->scalarSpeed; }
-    float& getSens() { return this->sensitivity; }
 
     operator Camera()
     {
@@ -97,14 +96,11 @@ namespace Strontium
     bool firstClick;
 
     // FPS/free camera variables.
-    float yaw;
-    float pitch;
     float horFOV;
     float near;
     float far;
     float aspect;
-    float scalarSpeed = 2.5f;
-    float sensitivity = 0.1f;
+    float scalarSpeed;
 
     EditorCameraType currentType;
   };

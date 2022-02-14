@@ -28,11 +28,11 @@ namespace Strontium
   Mesh::~Mesh()
   { }
 
-  void
+  VertexArray*
   Mesh::generateVAO()
   {
     if (!this->isLoaded())
-      return;
+      return nullptr;
 
     this->vArray = createUnique<VertexArray>(this->data.data(), this->data.size() * sizeof(Vertex), BufferType::Dynamic);
     this->vArray->addIndexBuffer(this->indices.data(), this->indices.size(), BufferType::Dynamic);
@@ -45,5 +45,11 @@ namespace Strontium
 
     this->vArray->addAttribute(5, AttribType::Vec4, false, sizeof(Vertex), offsetof(Vertex, boneWeights));
     this->vArray->addAttribute(6, AttribType::IVec4, false, sizeof(Vertex), offsetof(Vertex, boneIDs));
+
+    // Don't need vertices and indices anymore, they've uploaded to the GPU.
+    this->data.clear();
+    this->indices.clear();
+
+    return this->vArray.get();
   }
 }

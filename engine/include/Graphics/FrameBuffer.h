@@ -6,7 +6,7 @@
 // Project includes.
 #include "Core/ApplicationBase.h"
 #include "Graphics/Textures.h"
-#include "Graphics/Buffers.h"
+#include "Graphics/RenderBuffer.h"
 
 namespace Strontium
 {

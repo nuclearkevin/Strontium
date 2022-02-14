@@ -38,7 +38,7 @@ namespace Strontium
     virtual void onUpdate(float dt) override;
 
     EditorCamera& getEditorCamera() { return this->editorCam; }
-    Shared<FrameBuffer> getFrontBuffer() { return this->drawBuffer; }
+    FrameBuffer& getFrontBuffer() { return this->drawBuffer; }
     Shared<Scene> getActiveScene() { return this->currentScene; }
     ImVec2& getEditorSize() { return this->editorSize; }
     Entity getSelectedEntity();
@@ -55,7 +55,7 @@ namespace Strontium
     // The current scene.
     Shared<Scene> currentScene;
     // The framebuffer for the scene.
-    Shared<FrameBuffer> drawBuffer;
+    FrameBuffer drawBuffer;
     // Editor camera.
     EditorCamera editorCam;
 

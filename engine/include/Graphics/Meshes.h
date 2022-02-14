@@ -34,6 +34,16 @@ namespace Strontium
     { }
   };
 
+  struct MeshBlock
+  {
+	uint indexOffset;
+	uint vertexOffset;
+	uint numIndices;
+	uint numVertices;
+
+	uint meshID;
+  };
+
   // Material info from assimp.
   struct UnloadedMaterialInfo
   {
@@ -66,7 +76,7 @@ namespace Strontium
     Mesh(Mesh&&) = default;
 
     // Generate/delete the vertex array object.
-    void generateVAO();
+    VertexArray* generateVAO();
 
     // Set the loaded state.
     void setLoaded(bool isLoaded) { this->loaded = isLoaded; }
@@ -77,7 +87,7 @@ namespace Strontium
     glm::vec3& getMinPos() { return this->minPos; }
     glm::vec3& getMaxPos() { return this->maxPos; }
     glm::mat4& getTransform() { return this->localTransform; }
-    VertexArray*  getVAO() { return this->vArray.get(); }
+    VertexArray* getVAO() { return this->vArray.get(); }
     std::string& getFilepath() { return this->filepath; }
     std::string& getName() { return this->name; }
     UnloadedMaterialInfo& getMaterialInfo() { return this->materialInfo; }

@@ -30,7 +30,7 @@ namespace Strontium
     {
       if (!textureCache->hasAsset("Monocolour texture: " + Utilities::colourToHex(colour)))
       {
-        outTex = new Texture2D(1, 1, 4, params);
+        outTex = new Texture2D(1, 1, params);
         textureCache->attachAsset("Monocolour texture: "
                                   + Utilities::colourToHex(colour), outTex);
 
@@ -46,7 +46,7 @@ namespace Strontium
       }
     }
     else
-      outTex = new Texture2D(1, 1, 4, params);
+      outTex = new Texture2D(1, 1, params);
 
     outName = "Monocolour texture: " + Utilities::colourToHex(colour);
 
@@ -75,7 +75,7 @@ namespace Strontium
     {
       if (!textureCache->hasAsset("Monocolour texture: " + Utilities::colourToHex(colour)))
       {
-        outTex = new Texture2D(1, 1, 4, params);
+        outTex = new Texture2D(1, 1, params);
         textureCache->attachAsset("Monocolour texture: "
                                   + Utilities::colourToHex(colour), outTex);
 
@@ -90,7 +90,7 @@ namespace Strontium
       }
     }
     else
-      outTex = new Texture2D(1, 1, 4, params);
+      outTex = new Texture2D(1, 1, params);
 
     outTex->bind();
 
@@ -150,7 +150,7 @@ namespace Strontium
     {
       if (!textureCache->hasAsset(filepath))
       {
-        outTex = new Texture2D(width, height, n, params);
+        outTex = new Texture2D(width, height, params);
         textureCache->attachAsset(name, outTex);
       }
       else
@@ -161,12 +161,12 @@ namespace Strontium
       }
     }
     else
-      outTex = new Texture2D(width, height, n, params);
+      outTex = new Texture2D(width, height, params);
     outTex->bind();
 
     // Generate a 2D texture. Currently supports both bytes and floating point
     // HDR images!
-    if (outTex->n == 1)
+    if (n == 1)
     {
       if (isHDR)
       {
@@ -185,7 +185,7 @@ namespace Strontium
       }
       glGenerateMipmap(GL_TEXTURE_2D);
     }
-    else if (outTex->n == 2)
+    else if (n == 2)
     {
       if (isHDR)
       {
@@ -204,7 +204,7 @@ namespace Strontium
       }
       glGenerateMipmap(GL_TEXTURE_2D);
     }
-    else if (outTex->n == 3)
+    else if (n == 3)
     {
       // If its HDR, needs to be GL_RGBA16F instead of GL_RGB16F. Thanks OpenGL....
       if (isHDR)
@@ -239,7 +239,7 @@ namespace Strontium
       }
       glGenerateMipmap(GL_TEXTURE_2D);
     }
-    else if (outTex->n == 4)
+    else if (n == 4)
     {
       if (isHDR)
       {
@@ -276,8 +276,8 @@ namespace Strontium
   Texture2D::getDefaultColourParams()
   {
     Texture2DParams defaultColour = Texture2DParams();
-    defaultColour.internal = TextureInternalFormats::RGB;
-    defaultColour.format = TextureFormats::RGB;
+    defaultColour.internal = TextureInternalFormats::RGBA;
+    defaultColour.format = TextureFormats::RGBA;
     defaultColour.dataType = TextureDataType::Bytes;
     defaultColour.sWrap = TextureWrapParams::Repeat;
     defaultColour.tWrap = TextureWrapParams::Repeat;
@@ -318,17 +318,14 @@ namespace Strontium
     : filepath("")
     , width(0)
     , height(0)
-    , n(0)
   {
     glGenTextures(1, &this->textureID);
     glBindTexture(GL_TEXTURE_2D, this->textureID);
   }
 
-  Texture2D::Texture2D(const uint &width, const uint &height, const uint &n,
-                       const Texture2DParams &params)
+  Texture2D::Texture2D(uint width, uint height, const Texture2DParams &params)
     : width(width)
     , height(height)
-    , n(n)
     , params(params)
     , filepath("")
   {
@@ -401,57 +398,18 @@ namespace Strontium
   void
   Texture2D::clearTexture()
   {
-    switch (this->n)
-    {
-      case 1:
-      {
-        float clearElement = 0.0f;
-        glClearTexSubImage(this->textureID, 0, 0, 0, 0, this->width, this->height, 0,
-                           static_cast<GLenum>(this->params.internal),
-                           static_cast<GLenum>(this->params.dataType),
-                           &clearElement);
-        break;
-      }
-      case 2:
-      {
-        glm::vec2 clearElement = glm::vec2(0.0f);
-        glClearTexSubImage(this->textureID, 0, 0, 0, 0, this->width, this->height, 0,
-                           static_cast<GLenum>(this->params.internal),
-                           static_cast<GLenum>(this->params.dataType),
-                           &clearElement.x);
-        break;
-      }
-      case 3:
-      {
-        glm::vec3 clearElement = glm::vec3(0.0f);
-        glClearTexSubImage(this->textureID, 0, 0, 0, 0, this->width, this->height, 0,
-                           static_cast<GLenum>(this->params.internal),
-                           static_cast<GLenum>(this->params.dataType),
-                           &clearElement.x);
-        break;
-      }
-      case 4:
-      {
-        glm::vec4 clearElement = glm::vec4(0.0f);
-        glClearTexSubImage(this->textureID, 0, 0, 0, 0, this->width, this->height, 0,
-                           static_cast<GLenum>(this->params.internal),
-                           static_cast<GLenum>(this->params.dataType),
-                           &clearElement.x);
-        break;
-      }
-      default:
-      {
-        return;
-      }
-    }
+    float maxClearElements[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+    glClearTexSubImage(this->textureID, 0, 0, 0, 0, this->width, this->height, 0,
+                       static_cast<GLenum>(this->params.internal),
+                       static_cast<GLenum>(this->params.dataType),
+                       maxClearElements);
   }
 
   void
-  Texture2D::setSize(uint width, uint height, uint n)
+  Texture2D::setSize(uint width, uint height)
   {
     this->width = width;
     this->height = height;
-    this->n = n;
   }
 
   // Set the parameters after generating the texture.
@@ -510,17 +468,15 @@ namespace Strontium
   Texture2DArray::Texture2DArray()
     : width(0)
     , height(0)
-    , n(0)
     , numLayers(0)
   {
     glGenTextures(1, &this->textureID);
   }
 
-  Texture2DArray::Texture2DArray(uint width, uint height, uint n, 
-                                 uint numLayers, const Texture2DParams& params)
+  Texture2DArray::Texture2DArray(uint width, uint height, uint numLayers, 
+                                 const Texture2DParams& params)
     : width(width)
     , height(height)
-    , n(n)
     , numLayers(numLayers)
     , params(params)
   {
@@ -547,18 +503,20 @@ namespace Strontium
   Texture2DArray::initNullTexture()
   {
     glBindTexture(GL_TEXTURE_2D_ARRAY, this->textureID);
-    glTexStorage3D(GL_TEXTURE_2D_ARRAY, 0, static_cast<GLenum>(this->params.internal), 
-                   this->width, this->height, this->numLayers);
+    glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, static_cast<GLenum>(this->params.internal),
+                 this->width, this->height, this->numLayers, 0, 
+                 static_cast<GLenum>(this->params.format), 
+                 static_cast<GLenum>(this->params.dataType), 
+                 nullptr);
     glBindTexture(GL_TEXTURE_2D_ARRAY, 0);
   }
 
   // Set the parameters after generating the texture.
   void 
-  Texture2DArray::setSize(uint width, uint height, uint n, uint numLayers)
+  Texture2DArray::setSize(uint width, uint height, uint numLayers)
   {
     this->width = width;
     this->height = height;
-    this->n = n;
     this->numLayers = numLayers;
   }
 
@@ -597,27 +555,27 @@ namespace Strontium
   void 
   Texture2DArray::bind()
   {
-    glBindTexture(GL_TEXTURE_2D, this->textureID);
+    glBindTexture(GL_TEXTURE_2D_ARRAY, this->textureID);
   }
 
   void 
   Texture2DArray::bind(uint bindPoint)
   {
     glActiveTexture(GL_TEXTURE0 + bindPoint);
-    glBindTexture(GL_TEXTURE_2D, this->textureID);
+    glBindTexture(GL_TEXTURE_2D_ARRAY, this->textureID);
   }
 
   void 
   Texture2DArray::unbind()
   {
-    glBindTexture(GL_TEXTURE_2D, 0);
+    glBindTexture(GL_TEXTURE_2D_ARRAY, 0);
   }
 
   void 
   Texture2DArray::unbind(uint bindPoint)
   {
     glActiveTexture(GL_TEXTURE0 + bindPoint);
-    glBindTexture(GL_TEXTURE_2D, 0);
+    glBindTexture(GL_TEXTURE_2D_ARRAY, 0);
   }
 
   // Bind the texture as an image unit.
@@ -637,25 +595,21 @@ namespace Strontium
   CubeMap::CubeMap()
   {
     glGenTextures(1, &this->textureID);
-    glBindTexture(GL_TEXTURE_CUBE_MAP, this->textureID);
 
     for (uint i = 0; i < 6; i++)
     {
       this->width[i] = 0;
       this->height[i] = 0;
-      this->n[i] = 0;
     }
   }
 
-  CubeMap::CubeMap(const uint &width, const uint &height, const uint &n,
-                   const TextureCubeMapParams &params)
+  CubeMap::CubeMap(uint width, uint height, const TextureCubeMapParams &params)
     : params(params)
   {
     for (uint i = 0; i < 6; i++)
     {
       this->width[i] = width;
       this->height[i] = height;
-      this->n[i] = n;
     }
 
     glGenTextures(1, &this->textureID);
@@ -704,59 +658,20 @@ namespace Strontium
   void
   CubeMap::clearTexture()
   {
-    switch (this->n[0])
-    {
-      case 1:
-      {
-        float clearElement = 0.0f;
-        glClearTexSubImage(this->textureID, 0, 0, 0, 0, this->width[0], this->height[0], 6,
+    float maxClearElement[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
+    glClearTexSubImage(this->textureID, 0, 0, 0, 0, this->width[0], this->height[0], 6,
                            static_cast<GLenum>(this->params.internal),
                            static_cast<GLenum>(this->params.dataType),
-                           &clearElement);
-        break;
-      }
-      case 2:
-      {
-        glm::vec2 clearElement = glm::vec2(0.0f);
-        glClearTexSubImage(this->textureID, 0, 0, 0, 0, this->width[0], this->height[0], 6,
-                           static_cast<GLenum>(this->params.internal),
-                           static_cast<GLenum>(this->params.dataType),
-                           &clearElement.x);
-        break;
-      }
-      case 3:
-      {
-        glm::vec3 clearElement = glm::vec3(0.0f);
-        glClearTexSubImage(this->textureID, 0, 0, 0, 0, this->width[0], this->height[0], 6,
-                           static_cast<GLenum>(this->params.internal),
-                           static_cast<GLenum>(this->params.dataType),
-                           &clearElement.x);
-        break;
-      }
-      case 4:
-      {
-        glm::vec4 clearElement = glm::vec4(0.0f);
-        glClearTexSubImage(this->textureID, 0, 0, 0, 0, this->width[0], this->height[0], 6,
-                           static_cast<GLenum>(this->params.internal),
-                           static_cast<GLenum>(this->params.dataType),
-                           &clearElement.x);
-        break;
-      }
-      default:
-      {
-        return;
-      }
-    }
+                           maxClearElement);
   }
 
   void
-  CubeMap::setSize(uint width, uint height, uint n)
+  CubeMap::setSize(uint width, uint height)
   {
     for (unsigned int i = 0; i < 6; i++)
     {
       this->width[i] = width;
       this->height[i] = height;
-      this->n[i] = n;
     }
   }
 
@@ -817,22 +732,163 @@ namespace Strontium
                        static_cast<GLenum>(this->params.internal));
   }
 
+  //----------------------------------------------------------------------------
+  // Cubemap array textures.
+  //----------------------------------------------------------------------------
+  CubeMapArrayTexture::CubeMapArrayTexture()
+  {
+    glGenTextures(1, &this->textureID);
+
+    for (uint i = 0; i < 6; i++)
+    {
+      this->width[i] = 0;
+      this->height[i] = 0;
+    }
+    this->numLayers = 0;
+  }
+
+  CubeMapArrayTexture::CubeMapArrayTexture(uint width, uint height, uint numLayers,
+                                           const TextureCubeMapParams& params)
+  {
+    glGenTextures(1, &this->textureID);
+    glBindTexture(GL_TEXTURE_CUBE_MAP_ARRAY, this->textureID);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP_ARRAY, GL_TEXTURE_WRAP_S,
+                    static_cast<GLenum>(params.sWrap));
+    glTexParameteri(GL_TEXTURE_CUBE_MAP_ARRAY, GL_TEXTURE_WRAP_T,
+                    static_cast<GLenum>(params.tWrap));
+    glTexParameteri(GL_TEXTURE_CUBE_MAP_ARRAY, GL_TEXTURE_WRAP_R,
+                    static_cast<GLenum>(params.rWrap));
+    glTexParameteri(GL_TEXTURE_CUBE_MAP_ARRAY, GL_TEXTURE_MIN_FILTER,
+                    static_cast<GLenum>(params.minFilter));
+    glTexParameteri(GL_TEXTURE_CUBE_MAP_ARRAY, GL_TEXTURE_MAG_FILTER,
+                    static_cast<GLenum>(params.maxFilter));
+    glBindTexture(GL_TEXTURE_CUBE_MAP_ARRAY, 0);
+
+    for (uint i = 0; i < 6; i++)
+    {
+      this->width[i] = width;
+      this->height[i] = height;
+    }
+    this->numLayers = numLayers;
+  }
+
+  CubeMapArrayTexture::~CubeMapArrayTexture()
+  {
+    glDeleteTextures(1, &this->textureID);
+  }
+
+  // Init the texture using given data and stored params.
+  void 
+  CubeMapArrayTexture::initNullTexture()
+  {
+    glBindTexture(GL_TEXTURE_CUBE_MAP_ARRAY, this->textureID);
+    glTexImage3D(GL_TEXTURE_CUBE_MAP_ARRAY, 0, static_cast<GLenum>(this->params.internal),
+                 this->width[0], this->height[0], 6 * this->numLayers, 0, 
+                 static_cast<GLenum>(this->params.format), 
+                 static_cast<GLenum>(this->params.dataType), 
+                 nullptr);
+    glBindTexture(GL_TEXTURE_CUBE_MAP_ARRAY, 0);
+  }
+
+  // TODO: Generate mipmaps.
+  void 
+  CubeMapArrayTexture::generateMips()
+  {
+
+  }
+
+  // TODO: Clear the texture.
+  void 
+  CubeMapArrayTexture::clearTexture()
+  {
+
+  }
+
+  // Set the parameters after generating the texture.
+  void 
+  CubeMapArrayTexture::setSize(uint width, uint height, uint numLayers)
+  {
+    for (uint i = 0; i < 6; i++)
+    {
+      this->width[i] = width;
+      this->height[i] = height;
+    }
+    this->numLayers = numLayers;
+  }
+
+  void 
+  CubeMapArrayTexture::setParams(const TextureCubeMapParams& newParams)
+  {
+    glBindTexture(GL_TEXTURE_CUBE_MAP_ARRAY, this->textureID);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP_ARRAY, GL_TEXTURE_WRAP_S,
+                    static_cast<GLenum>(params.sWrap));
+    glTexParameteri(GL_TEXTURE_CUBE_MAP_ARRAY, GL_TEXTURE_WRAP_T,
+                    static_cast<GLenum>(params.tWrap));
+    glTexParameteri(GL_TEXTURE_CUBE_MAP_ARRAY, GL_TEXTURE_WRAP_R,
+                    static_cast<GLenum>(params.rWrap));
+    glTexParameteri(GL_TEXTURE_CUBE_MAP_ARRAY, GL_TEXTURE_MIN_FILTER,
+                    static_cast<GLenum>(params.minFilter));
+    glTexParameteri(GL_TEXTURE_CUBE_MAP_ARRAY, GL_TEXTURE_MAG_FILTER,
+                    static_cast<GLenum>(params.maxFilter));
+    glBindTexture(GL_TEXTURE_CUBE_MAP_ARRAY, 0);
+    this->params = newParams;
+  }
+
+  // Bind/unbind the texture.
+  void 
+  CubeMapArrayTexture::bind()
+  {
+    glBindTexture(GL_TEXTURE_CUBE_MAP_ARRAY, this->textureID);
+  }
+
+  void 
+  CubeMapArrayTexture::bind(uint bindPoint)
+  {
+    glActiveTexture(GL_TEXTURE0 + bindPoint);
+    glBindTexture(GL_TEXTURE_CUBE_MAP_ARRAY, this->textureID);
+  }
+
+  void 
+  CubeMapArrayTexture::unbind()
+  {
+    glBindTexture(GL_TEXTURE_CUBE_MAP_ARRAY, 0);
+  }
+
+  void 
+  CubeMapArrayTexture::unbind(uint bindPoint)
+  {
+    glActiveTexture(GL_TEXTURE0 + bindPoint);
+    glBindTexture(GL_TEXTURE_CUBE_MAP_ARRAY, 0);
+  }
+
+  // Bind the texture as an image unit.
+  void 
+  CubeMapArrayTexture::bindAsImage(uint bindPoint, uint miplevel, bool isLayered,
+                                   uint layer, ImageAccessPolicy policy)
+  {
+    glBindImageTexture(bindPoint, this->textureID, miplevel,
+                       static_cast<GLenum>(isLayered), layer,
+                       static_cast<GLenum>(policy),
+                       static_cast<GLenum>(this->params.internal));
+  }
+
+  //----------------------------------------------------------------------------
+  // 3D textures.
+  //----------------------------------------------------------------------------
   Texture3D::Texture3D()
     : width(0)
     , height(0)
     , depth(0)
-    , n(4)
     , params()
   {
     glGenTextures(1, &this->textureID);
   }
 
-  Texture3D::Texture3D(uint width, uint height, uint depth, uint n,
+  Texture3D::Texture3D(uint width, uint height, uint depth,
                        const Texture3DParams& params)
     : width(0)
     , height(0)
     , depth(0)
-    , n(4)
     , params(params)
   {
     glGenTextures(1, &this->textureID);
@@ -881,12 +937,11 @@ namespace Strontium
 
   // Set the parameters after generating the texture.
   void 
-  Texture3D::setSize(uint width, uint height, uint depth, uint n)
+  Texture3D::setSize(uint width, uint height, uint depth)
   {
     this->width = width;
     this->height = height;
     this->depth = depth;
-    this->n = n;
   }
 
   void 

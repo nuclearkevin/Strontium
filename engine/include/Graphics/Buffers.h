@@ -1,7 +1,5 @@
-// Include guard.
 #pragma once
 
-// Macro include file.
 #include "StrontiumPCH.h"
 
 // Project includes.
@@ -16,6 +14,20 @@ namespace Strontium
     Dynamic = 0x88E8 // GL_DYNAMIC_DRAW
   };
 
+  enum class MapBufferAccess
+  {
+    Read = 0x0001, // GL_MAP_READ_BIT
+    Write = 0x0002 // GL_MAP_WRITE_BIT
+  };
+
+  enum class MapBufferSynch
+  {
+    Persistent = 0x0040, // GL_MAP_PERSISTENT_BIT
+    Coherent = 0x0080, // GL_MAP_COHERENT_BIT
+    PersistentCoherent = 0x0040 | 0x0080, // GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT
+    None = 0x0000 // No access parameter specified.
+  };
+
   //----------------------------------------------------------------------------
   // Vertex buffer here.
   //----------------------------------------------------------------------------
@@ -23,7 +35,7 @@ namespace Strontium
   {
   public:
     // Constructor and destructor.
-    VertexBuffer(const void* bufferData, const unsigned &dataSize,
+    VertexBuffer(const void* bufferData, uint dataSize,
                  BufferType bufferType);
     ~VertexBuffer();
 
@@ -33,23 +45,21 @@ namespace Strontium
     VertexBuffer& operator=(const VertexBuffer&) = delete;
 
     // Bind/unbind the buffer.
-    auto bind()   -> void;
-    auto unbind() -> void;
+    void bind();
+    void unbind();
 
     uint getID() { return this->bufferID; }
-  protected:
+  private:
     // OpenGL buffer ID.
-    uint      bufferID;
+    uint bufferID;
 
     // If the buffer has data or not.
-    bool        hasData;
+    bool hasData;
 
     // Type of the buffer to prevent mismatching.
-    BufferType  type;
+    BufferType type;
 
-    // The data currently in the buffer.
-    const void* bufferData;
-    unsigned    dataSize;
+    unsigned dataSize;
   };
 
   //----------------------------------------------------------------------------
@@ -59,7 +69,7 @@ namespace Strontium
   {
   public:
     // Constructor and destructor.
-    IndexBuffer(const uint* bufferData, unsigned numIndices, BufferType type);
+    IndexBuffer(const uint* bufferData, uint numIndices, BufferType type);
     ~IndexBuffer();
 
     // Delete the copy constructor and the assignment operator. Prevents
@@ -68,26 +78,24 @@ namespace Strontium
     IndexBuffer& operator=(const IndexBuffer&) = delete;
 
     // Bind/unbind the buffer.
-    auto bind()     -> void;
-    auto unbind()   -> void;
+    void bind();
+    void unbind();
 
     // Getters.
-    auto getCount() -> unsigned;
+    uint getCount();
 
     uint getID() { return this->bufferID; }
   protected:
     // OpenGL buffer ID.
-    uint        bufferID;
+    uint bufferID;
 
     // If the buffer has data or not.
-    bool          hasData;
+    bool hasData;
 
     // Type of the buffer to prevent mismatching.
-    BufferType    type;
+    BufferType type;
 
-    // The data currently in the buffer.
-    const uint* bufferData;
-    unsigned      count;
+    uint count;
   };
 
   //----------------------------------------------------------------------------
@@ -96,9 +104,9 @@ namespace Strontium
   class UniformBuffer
   {
   public:
-    UniformBuffer(const void* bufferData, const unsigned &dataSize,
+    UniformBuffer(const void* bufferData, uint dataSize,
                   BufferType bufferType);
-    UniformBuffer(const unsigned &bufferSize, BufferType bufferType);
+    UniformBuffer(uint bufferSize, BufferType bufferType);
     UniformBuffer();
     ~UniformBuffer();
 
@@ -111,6 +119,9 @@ namespace Strontium
     void bind();
     void bindToPoint(const uint bindPoint);
     void unbind();
+
+    // Resize the buffer.
+    void resize(uint bufferSize, BufferType bufferType);
 
     // Set a specific part of the buffer data.
     void setData(uint start, uint newDataSize, const void* newData);
@@ -132,59 +143,13 @@ namespace Strontium
   };
 
   //----------------------------------------------------------------------------
-  // Render buffer here.
-  //----------------------------------------------------------------------------
-  enum class RBOInternalFormat
-  {
-    Depth24 = 0x81A6, // GL_DEPTH_COMPONENT24
-    Depth32f = 0x8CAC, // GL_DEPTH_COMPONENT32F
-    Stencil = 0x8D48, // GL_STENCIL_INDEX8
-    DepthStencil = 0x88F0 // GL_DEPTH24_STENCIL8
-  };
-
-  class RenderBuffer
-  {
-  public:
-    // Default constructor generates a generic render buffer with just a depth
-    // attachment.
-    RenderBuffer();
-    RenderBuffer(uint width, uint height);
-    RenderBuffer(uint width, uint height, const RBOInternalFormat &format);
-    ~RenderBuffer();
-
-    // Delete the copy constructor and the assignment operator. Prevents
-    // issues related to the underlying API.
-    RenderBuffer(const RenderBuffer&) = delete;
-    RenderBuffer& operator=(const RenderBuffer&) = delete;
-
-    // Reset the renderbuffer.
-    void reset(uint newWidth, uint newHeight);
-    void reset(uint newWidth, uint newHeight, const RBOInternalFormat& newFormat);
-
-    // Bind/unbind the buffer.
-    void bind();
-    void unbind();
-
-    uint getID() { return this->bufferID; }
-    RBOInternalFormat getFormat() { return this->format; }
-    glm::vec2 getSize() { return glm::vec2(this->width, this->height); }
-  protected:
-    uint bufferID;
-
-    RBOInternalFormat format;
-
-    uint width, height;
-  };
-
-  //----------------------------------------------------------------------------
   // Shader storage buffer here.
   //----------------------------------------------------------------------------
   class ShaderStorageBuffer
   {
   public:
-    ShaderStorageBuffer(const void* bufferData, const unsigned &dataSize,
-                        BufferType bufferType);
-    ShaderStorageBuffer(const unsigned &bufferSize, BufferType bufferType);
+    ShaderStorageBuffer(const void* bufferData, uint bufferSize, BufferType bufferType);
+    ShaderStorageBuffer(uint bufferSize, BufferType bufferType);
     ~ShaderStorageBuffer();
 
     // Delete the copy constructor and the assignment operator. Prevents
@@ -197,8 +162,15 @@ namespace Strontium
     void bindToPoint(const uint bindPoint);
     void unbind();
 
+    // Resize the buffer.
+    void resize(uint bufferSize, BufferType bufferType);
+
     // Set the data in a region of the buffer.
     void setData(uint start, uint newDataSize, const void* newData);
+
+    // Map and unmap the buffer to client memory.
+    void* mapBuffer(uint offset, uint length, MapBufferAccess access, MapBufferSynch sych);
+    void unmapBuffer();
 
     uint getID() { return this->bufferID; }
     bool hasData() { return this->filled; }
