@@ -44,11 +44,11 @@ void main()
   vec3 totalRadiance = imageLoad(lightingBuffer, invoke).rgb;
 
   // Bit 1 is set, apply haze.
-  if (u_volumetricSettings1.x & 1)
+  if (bool(u_volumetricSettings1.x & 1))
     totalRadiance += getHaze(vHaze, gDepth, gBufferUVs, u_nearFar.xy);
 
   // Bit 2 is set, apply screen-space godrays.
-  if (u_volumetricSettings1.x & 2)
+  if (bool(u_volumetricSettings1.x & 2))
     totalRadiance += getGodrays(vGodrays, gDepth, gBufferUVs, u_nearFar.xy);
 
   imageStore(lightingBuffer, invoke, vec4(totalRadiance, 1.0));

@@ -2,7 +2,7 @@
 
 // Project includes.
 #include "Core/Events.h"
-#include "Core/ThreadPool.h"
+#include "Core/JobSystem.h"
 #include "Graphics/Material.h"
 #include "Scenes/Entity.h"
 #include "Scenes/Components.h"
@@ -191,9 +191,6 @@ namespace Strontium
         return;
       }
 
-      // Fetch the thread pool.
-      auto workerGroup = ThreadPool::getInstance(2);
-
       auto loaderImpl = [](const std::string &filepath, const std::string &name,
                            uint entityID, Scene* activeScene)
       {
@@ -218,7 +215,7 @@ namespace Strontium
         }
       };
 
-      workerGroup->push(loaderImpl, filepath, name, entityID, activeScene);
+      JobSystem::push(loaderImpl, filepath, name, entityID, activeScene);
     }
 
     //--------------------------------------------------------------------------
@@ -378,9 +375,6 @@ namespace Strontium
       }
 
       std::filesystem::path fsPath(filepath);
-      
-      // Fetch the thread pool and event dispatcher.
-      auto workerGroup = ThreadPool::getInstance(2);
 
       auto loaderImpl = [](const std::filesystem::path& path, const Texture2DParams &params)
       {
@@ -415,7 +409,7 @@ namespace Strontium
         eventDispatcher->queueEvent(new GuiEvent(GuiEventType::EndSpinnerEvent, ""));
       };
 
-      workerGroup->push(loaderImpl, fsPath, params);
+      JobSystem::push(loaderImpl, fsPath, params);
     }
   }
 }

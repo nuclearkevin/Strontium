@@ -10,6 +10,7 @@
 #include "Graphics/Renderer.h"
 #include "Graphics/RenderPasses/RenderPass.h"
 #include "Graphics/RenderPasses/SkyAtmospherePass.h"
+#include "Graphics/RenderPasses/DynamicSkyIBLPass.h"
 
 #include "Graphics/Model.h"
 #include "Graphics/Material.h"
@@ -200,7 +201,68 @@ namespace Strontium
     // Internal renderer handle.
     RendererDataHandle handle;
 
-    SkyAtmosphereComponent(const SkyAtmosphereComponent&) = default;
+    SkyAtmosphereComponent(const SkyAtmosphereComponent& other)
+      : rayleighScat(other.rayleighScat)
+      , rayleighAbs(other.rayleighAbs)
+      , mieScat(other.mieScat)
+      , mieAbs(other.mieAbs)
+      , ozoneAbs(other.ozoneAbs)
+      , planetAlbedo(other.planetAlbedo)
+      , planetAtmRadius(other.planetAtmRadius)
+      , usePrimaryLight(other.usePrimaryLight)
+    {
+      this->handle = Renderer3D::getPassManager().getRenderPass<SkyAtmospherePass>()->requestRendererData();
+    }
+
+    SkyAtmosphereComponent operator=(const SkyAtmosphereComponent& other)
+    {
+      this->rayleighScat = other.rayleighScat;
+      this->rayleighAbs = other.rayleighAbs;
+      this->mieScat = other.mieScat;
+      this->mieAbs = other.mieAbs;
+      this->ozoneAbs = other.ozoneAbs;
+      this->planetAlbedo = other.planetAlbedo;
+      this->planetAtmRadius = other.planetAtmRadius;
+      this->usePrimaryLight = other.usePrimaryLight;
+
+      this->handle = Renderer3D::getPassManager().getRenderPass<SkyAtmospherePass>()->requestRendererData();
+
+      return *this;
+    }
+
+    SkyAtmosphereComponent(SkyAtmosphereComponent&& other) noexcept
+      : rayleighScat(other.rayleighScat)
+      , rayleighAbs(other.rayleighAbs)
+      , mieScat(other.mieScat)
+      , mieAbs(other.mieAbs)
+      , ozoneAbs(other.ozoneAbs)
+      , planetAlbedo(other.planetAlbedo)
+      , planetAtmRadius(other.planetAtmRadius)
+      , usePrimaryLight(other.usePrimaryLight)
+    {
+      this->handle = other.handle;
+      other.handle = -1;
+    }
+
+    SkyAtmosphereComponent& operator=(SkyAtmosphereComponent&& other) noexcept
+    {
+      if (this != &other)
+      {
+        this->rayleighScat = other.rayleighScat;
+        this->rayleighAbs = other.rayleighAbs;
+        this->mieScat = other.mieScat;
+        this->mieAbs = other.mieAbs;
+        this->ozoneAbs = other.ozoneAbs;
+        this->planetAlbedo = other.planetAlbedo;
+        this->planetAtmRadius = other.planetAtmRadius;
+        this->usePrimaryLight = other.usePrimaryLight;
+        
+        this->handle = other.handle;
+        other.handle = -1;
+      }
+
+      return *this;
+    }
 
     SkyAtmosphereComponent()
       : rayleighScat(5.802f, 13.558f, 33.1f, 8.0f)
@@ -213,6 +275,11 @@ namespace Strontium
       , usePrimaryLight(false)
       , handle(Renderer3D::getPassManager().getRenderPass<SkyAtmospherePass>()->requestRendererData())
     { }
+
+    ~SkyAtmosphereComponent()
+    {
+      Renderer3D::getPassManager().getRenderPass<SkyAtmospherePass>()->deleteRendererData(this->handle);
+    }
 
     operator Atmosphere()
     {
@@ -258,6 +325,58 @@ namespace Strontium
     operator PointLight()
     {
       return light;
+    }
+  };
+
+  struct DynamicSkylightComponent
+  {
+    float intensity;
+
+    RendererDataHandle handle;
+
+    DynamicSkylightComponent(const DynamicSkylightComponent& other)
+      : intensity(other.intensity)
+    {
+      this->handle = Renderer3D::getPassManager().getRenderPass<DynamicSkyIBLPass>()->requestRendererData();
+    }
+
+    DynamicSkylightComponent operator=(const DynamicSkylightComponent& other)
+    {
+      this->intensity = other.intensity;
+
+      this->handle = Renderer3D::getPassManager().getRenderPass<DynamicSkyIBLPass>()->requestRendererData();
+
+      return *this;
+    }
+
+    DynamicSkylightComponent(DynamicSkylightComponent&& other) noexcept
+      : intensity(other.intensity)
+    {
+      this->handle = other.handle;
+      other.handle = -1;
+    }
+
+    DynamicSkylightComponent& operator=(DynamicSkylightComponent&& other) noexcept
+    {
+      if (this != &other)
+      {
+        this->intensity = other.intensity;
+        
+        this->handle = other.handle;
+        other.handle = -1;
+      }
+
+      return *this;
+    }
+
+    DynamicSkylightComponent()
+      : intensity(1.0f)
+      , handle(Renderer3D::getPassManager().getRenderPass<DynamicSkyIBLPass>()->requestRendererData())
+    { }
+
+    ~DynamicSkylightComponent()
+    {
+      Renderer3D::getPassManager().getRenderPass<DynamicSkyIBLPass>()->deleteRendererData(handle);
     }
   };
 }

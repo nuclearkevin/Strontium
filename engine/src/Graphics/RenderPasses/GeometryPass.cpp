@@ -7,6 +7,7 @@ namespace Strontium
 {
   GeometryPass::GeometryPass(Renderer3D::GlobalRendererData* globalRendererData)
 	: RenderPass(&this->passData, globalRendererData, { nullptr })
+    , timer(5)
   { }
 
   GeometryPass::~GeometryPass()
@@ -30,7 +31,7 @@ namespace Strontium
   }
 
   void 
-  GeometryPass::deleteRendererData(const RendererDataHandle& handle)
+  GeometryPass::deleteRendererData(RendererDataHandle& handle)
   { }
 
   void 
@@ -55,7 +56,8 @@ namespace Strontium
   void 
   GeometryPass::onRender()
   {
-	auto start = std::chrono::steady_clock::now();
+    // Time the entire scope.
+    ScopedTimer<AsynchTimer> profiler(this->timer);
 
 	// Setup the camera uniforms.
 	struct CameraBlockData
@@ -307,16 +309,12 @@ namespace Strontium
     this->passData.dynamicGeometry->unbind();
 
     this->passData.gBuffer.endGeoPass();
-
-    auto end = std::chrono::steady_clock::now();
-    std::chrono::duration<float> elapsed = end - start;
-    this->passData.cpuTime = elapsed.count() * 1000.0f;
   }
 
   void 
   GeometryPass::onRendererEnd(FrameBuffer& frontBuffer)
   {
-
+    this->timer.msRecordTime(this->passData.frameTime);
   }
 
   void 

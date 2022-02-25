@@ -8,6 +8,7 @@
 #include "Graphics/RenderPasses/RenderPass.h"
 #include "Graphics/Model.h"
 #include "Graphics/Animations.h"
+#include "Graphics/GPUTimers.h"
 
 namespace Strontium
 {
@@ -76,7 +77,7 @@ namespace Strontium
 	uint shadowQuality;
 
 	// Some statistics to display.
-	float cpuTime;
+	float frameTime;
 	uint numInstances;
 	uint numDrawCalls;
 	uint numTrianglesSubmitted;
@@ -93,7 +94,7 @@ namespace Strontium
 	  , transformBuffer(0, BufferType::Dynamic)
 	  , boneBuffer(MAX_BONES_PER_MODEL * sizeof(glm::mat4), BufferType::Dynamic)
 	  , shadowQuality(0)
-	  , cpuTime(0.0f)
+	  , frameTime(0.0f)
 	  , numInstances(0u)
 	  , numDrawCalls(0u)
 	  , numTrianglesSubmitted(0u)
@@ -110,7 +111,7 @@ namespace Strontium
 	void onInit() override;
 	void updatePassData() override;
 	RendererDataHandle requestRendererData() override;
-	void deleteRendererData(const RendererDataHandle& handle) override;
+	void deleteRendererData(RendererDataHandle& handle) override;
 	void onRendererBegin(uint width, uint height) override;
 	void onRender() override;
 	void onRendererEnd(FrameBuffer& frontBuffer) override;
@@ -119,5 +120,7 @@ namespace Strontium
 	void computeShadowData();
 
 	ShadowPassDataBlock passData;
+
+	AsynchTimer timer;
   };
 }

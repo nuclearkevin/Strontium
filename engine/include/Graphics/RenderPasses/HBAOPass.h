@@ -6,6 +6,7 @@
 #include "Graphics/Shaders.h"
 #include "Graphics/Textures.h"
 #include "Graphics/Buffers.h"
+#include "Graphics/GPUTimers.h"
 
 namespace Strontium
 {
@@ -27,7 +28,7 @@ namespace Strontium
 	float aoExponent;
 
 	// Some statistics to display.
-    float cpuTime;
+    float frameTime;
 
 	HBAOPassDataBlock()
 	  : aoCompute(nullptr)
@@ -37,7 +38,7 @@ namespace Strontium
 	  , aoRadius(0.005f)
 	  , aoMultiplier(1.0f)
 	  , aoExponent(1.0f)
-	  , cpuTime(0.0f)
+	  , frameTime(0.0f)
 	{ }
   };
 
@@ -51,7 +52,7 @@ namespace Strontium
 	void onInit() override;
 	void updatePassData() override;
 	RendererDataHandle requestRendererData() override;
-	void deleteRendererData(const RendererDataHandle& handle) override;
+	void deleteRendererData(RendererDataHandle& handle) override;
 	void onRendererBegin(uint width, uint height) override;
 	void onRender() override;
 	void onRendererEnd(FrameBuffer& frontBuffer) override;
@@ -61,5 +62,7 @@ namespace Strontium
 
 	GeometryPass* previousGeoPass;
 	HiZPass* previousHiZPass;
+
+	AsynchTimer timer;
   };
 }

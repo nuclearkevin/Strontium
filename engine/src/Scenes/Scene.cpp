@@ -4,6 +4,8 @@
 #include "Scenes/Components.h"
 #include "Scenes/Entity.h"
 
+#include "Graphics/Renderer.h"
+
 namespace Strontium
 {
   Scene::Scene(const std::string &filepath)
@@ -132,17 +134,33 @@ namespace Strontium
     }
 
     // Group together the transform, sky-atmosphere and directional light components.
+    auto skyAtm = Renderer3D::getPassManager().getRenderPass<SkyAtmospherePass>();
+    auto dynIBL = Renderer3D::getPassManager().getRenderPass<DynamicSkyIBLPass>();
     auto atmospheres = this->sceneECS.group<SkyAtmosphereComponent>(entt::get<TransformComponent>);
     for (auto entity : atmospheres)
     {
       auto [transform, atmosphere] = atmospheres.get<TransformComponent, SkyAtmosphereComponent>(entity);
-      if(this->sceneECS.has<DirectionalLightComponent>(entity) && !atmosphere.usePrimaryLight)
-        Renderer3D::submit(atmosphere, atmosphere, this->sceneECS.get<DirectionalLightComponent>(entity), 
-                           transform);
+
+      bool canComputeIBL = false;
+
+      if (this->sceneECS.has<DirectionalLightComponent>(entity) && !atmosphere.usePrimaryLight)
+      {
+        canComputeIBL = true;
+        skyAtm->submit(atmosphere, atmosphere, this->sceneECS.get<DirectionalLightComponent>(entity),
+                       transform);
+      }
       else if (atmosphere.usePrimaryLight)
-        Renderer3D::submit(atmosphere, atmosphere, 
-                           this->sceneECS.get<DirectionalLightComponent>(entity), 
-                           transform);
+      {
+        canComputeIBL = true;
+        skyAtm->submit(atmosphere, atmosphere, transform);
+      }
+
+      // Check to see if this entity has a dynamic sky light component for dynamic IBL.
+      if (this->sceneECS.has<DynamicSkylightComponent>(entity) && canComputeIBL)
+      {
+        auto& iblComponent = this->sceneECS.get<DynamicSkylightComponent>(entity);
+        dynIBL->submit(DynamicIBL(iblComponent.intensity, atmosphere.handle), iblComponent.handle);
+      }
     }
   }
 
@@ -172,42 +190,34 @@ namespace Strontium
       Renderer3D::submit(point, transformMatrix);
     }
 
-    // Group together the transform and renderable components.
-    auto drawables = this->sceneECS.group<RenderableComponent>(entt::get<TransformComponent>);
-    for (auto entity : drawables)
-    {
-      // Draw all the renderables with transforms.
-      auto [transform, renderable] = drawables.get<TransformComponent, RenderableComponent>(entity);
-      glm::mat4 transformMatrix = (glm::mat4) transform;
-
-      // If a drawable item has a transform hierarchy, compute the global
-      // transforms from local transforms.
-      auto currentEntity = Entity(entity, this);
-      if (currentEntity.hasComponent<ParentEntityComponent>())
-        transformMatrix = computeGlobalTransform(currentEntity);
-
-      // Submit the mesh + material + transform to the static deferred renderer queue.
-      if (renderable && !renderable.animator.animationRenderable())
-        Renderer3D::submit(renderable, renderable, transformMatrix,
-                           static_cast<float>(entity));
-      // If it has a valid animation, instead submit it to the dynamic deferred renderer queue.
-      else if (renderable && renderable.animator.animationRenderable())
-        Renderer3D::submit(renderable, &renderable.animator, renderable,
-                           transformMatrix, static_cast<float>(entity));
-    }
-
     // Group together the transform, sky-atmosphere and directional light components.
+    auto skyAtm = Renderer3D::getPassManager().getRenderPass<SkyAtmospherePass>();
+    auto dynIBL = Renderer3D::getPassManager().getRenderPass<DynamicSkyIBLPass>();
     auto atmospheres = this->sceneECS.group<SkyAtmosphereComponent>(entt::get<TransformComponent>);
     for (auto entity : atmospheres)
     {
       auto [transform, atmosphere] = atmospheres.get<TransformComponent, SkyAtmosphereComponent>(entity);
-      if(this->sceneECS.has<DirectionalLightComponent>(entity) && !atmosphere.usePrimaryLight)
-        Renderer3D::submit(atmosphere, atmosphere, this->sceneECS.get<DirectionalLightComponent>(entity), 
-                           transform);
+
+      bool canComputeIBL = false;
+
+      if (this->sceneECS.has<DirectionalLightComponent>(entity) && !atmosphere.usePrimaryLight)
+      {
+        canComputeIBL = true;
+        skyAtm->submit(atmosphere, atmosphere, this->sceneECS.get<DirectionalLightComponent>(entity),
+                       transform);
+      }
       else if (atmosphere.usePrimaryLight)
-        Renderer3D::submit(atmosphere, atmosphere, 
-                           this->sceneECS.get<DirectionalLightComponent>(entity), 
-                           transform);
+      {
+        canComputeIBL = true;
+        skyAtm->submit(atmosphere, atmosphere, transform);
+      }
+
+      // Check to see if this entity has a dynamic sky light component for dynamic IBL.
+      if (this->sceneECS.has<DynamicSkylightComponent>(entity) && canComputeIBL)
+      {
+        auto& iblComponent = this->sceneECS.get<DynamicSkylightComponent>(entity);
+        dynIBL->submit(DynamicIBL(iblComponent.intensity, atmosphere.handle), iblComponent.handle);
+      }
     }
   }
 

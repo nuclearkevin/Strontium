@@ -3,6 +3,8 @@
 // A series of packed primatives for shading.
 namespace Strontium
 {
+  using RendererDataHandle = int;
+
   struct Camera
   {
     glm::mat4 view;
@@ -129,5 +131,21 @@ namespace Strontium
     {
       return !((*this) == other);
     }
+  };
+
+  struct DynamicIBL
+  {
+    float intensity;
+    RendererDataHandle attachedSkyAtmoHandle;
+
+    DynamicIBL()
+      : intensity(0.0f)
+      , attachedSkyAtmoHandle(-1)
+    { }
+
+    DynamicIBL(float intensity, RendererDataHandle attachedSkyAtmoHandle)
+      : intensity(intensity)
+      , attachedSkyAtmoHandle(attachedSkyAtmoHandle)
+    { }
   };
 }

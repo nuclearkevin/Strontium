@@ -28,7 +28,9 @@ namespace Strontium
     // Delete the copy constructor and the assignment operator. Prevents
     // issues related to the underlying API.
     RenderBuffer(const RenderBuffer&) = delete;
+    RenderBuffer(RenderBuffer&&) = delete;
     RenderBuffer& operator=(const RenderBuffer&) = delete;
+    RenderBuffer& operator=(RenderBuffer&&) = delete;
 
     // Reset the renderbuffer.
     void reset(uint newWidth, uint newHeight);

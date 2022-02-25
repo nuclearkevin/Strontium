@@ -12,7 +12,7 @@ namespace Strontium
     struct GlobalRendererData;
   }
 
-  typedef int RendererDataHandle;
+  using RendererDataHandle = int;
 
   class RenderPassManager;
 
@@ -33,7 +33,7 @@ namespace Strontium
     virtual void onInit() = 0;
     virtual void updatePassData() = 0;
     virtual RendererDataHandle requestRendererData() = 0;
-    virtual void deleteRendererData(const RendererDataHandle& handle) = 0;
+    virtual void deleteRendererData(RendererDataHandle& handle) = 0;
     virtual void onRendererBegin(uint width, uint height) = 0;
     virtual void onRender() = 0;
     virtual void onRendererEnd(FrameBuffer& frontBuffer) = 0;

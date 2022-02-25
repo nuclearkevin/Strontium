@@ -935,12 +935,16 @@ namespace Strontium
         if (ImGui::CollapsingHeader("Planetary Parameters##UE4Atmo"))
         {
           ImGui::ColorEdit3("Planet Albedo", &component.planetAlbedo.x);
+          float planetRadiusKM = component.planetAtmRadius.x * 1000.0f;
+          float atmoRadiusKM = component.planetAtmRadius.y * 1000.0f;
           Styles::drawFloatControl("Planet Radius (Km)",
-                                   6360.0f, component.planetAtmRadius.x,
-                                   0.0f, 1.0f, 0.0f, component.planetAtmRadius.y);
+                                   6360.0f, planetRadiusKM,
+                                   0.0f, 1.0f, 0.0f, atmoRadiusKM);
           Styles::drawFloatControl("Atmosphere Radius (Km)",
-                                   6460.0f, component.planetAtmRadius.y,
-                                   0.0f, 1.0f, component.planetAtmRadius.x, 10000.0f);
+                                   6460.0f, atmoRadiusKM,
+                                   0.0f, 1.0f, planetRadiusKM, 10000.0f);
+          component.planetAtmRadius.x = planetRadiusKM / 1000.0f;
+          component.planetAtmRadius.y = atmoRadiusKM / 1000.0f;
         }
         ImGui::Unindent();
       });

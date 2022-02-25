@@ -12,9 +12,8 @@ namespace Strontium
     : RenderPass(&this->passData, globalRendererData, { previousGeoPass, previousHiZPass })
     , previousGeoPass(previousGeoPass)
     , previousHiZPass(previousHiZPass)
-  {
-
-  }
+    , timer(5)
+  { }
 
   HBAOPass::~HBAOPass()
   { }
@@ -45,7 +44,7 @@ namespace Strontium
   }
 
   void 
-  HBAOPass::deleteRendererData(const RendererDataHandle& handle)
+  HBAOPass::deleteRendererData(RendererDataHandle& handle)
   { }
 
   void HBAOPass::onRendererBegin(uint width, uint height)
@@ -63,7 +62,7 @@ namespace Strontium
 
   void HBAOPass::onRender()
   {
-    auto start = std::chrono::steady_clock::now();
+    ScopedTimer<AsynchTimer> profiler(this->timer);
 
     if (this->passData.enableAO)
     {
@@ -113,15 +112,11 @@ namespace Strontium
       this->passData.aoBlur->launchCompute(iWidth, iHeight, 1);
       Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
     }
-
-    auto end = std::chrono::steady_clock::now();
-    std::chrono::duration<float> elapsed = end - start;
-    this->passData.cpuTime = elapsed.count() * 1000.0f;
   }
 
   void HBAOPass::onRendererEnd(FrameBuffer& frontBuffer)
   {
-
+    this->timer.msRecordTime(this->passData.frameTime);
   }
 
   void HBAOPass::onShutdown()

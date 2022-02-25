@@ -114,7 +114,7 @@ namespace Strontium
     // Prepare parameters for dynamic sky models.
     this->dynamicSkyParams.emplace(DynamicSkyType::Preetham, new PreethamSkyParams());
     this->dynamicSkyParams.emplace(DynamicSkyType::Hillaire, new HillaireSkyParams());
-
+    
     this->updateDynamicSky();
   }
 

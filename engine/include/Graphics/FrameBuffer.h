@@ -84,7 +84,9 @@ namespace Strontium
     // Delete the copy constructor and the assignment operator. Prevents
     // issues related to the underlying API.
     FrameBuffer(const FrameBuffer&) = delete;
+    FrameBuffer(FrameBuffer&&) = delete;
     FrameBuffer& operator=(const FrameBuffer&) = delete;
+    FrameBuffer& operator=(FrameBuffer&&) = delete;
 
     // Bind/unbind the FBO or its attachments.
     void bind();

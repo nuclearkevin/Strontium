@@ -1,6 +1,7 @@
 #include "Core/Application.h"
 
 // Project includes.
+#include "Core/JobSystem.h"
 #include "Core/Events.h"
 #include "Core/Logs.h"
 #include "Utils/AsyncAssetLoading.h"
@@ -9,7 +10,7 @@ namespace Strontium
 {
   Application* Application::appInstance = nullptr;
 
-  // Singleton application class for everything that happens in SciRender.
+  // Singleton application class for everything that happens in Strontium.
   Application::Application(const std::string &name)
     : name(name)
     , running(true)
@@ -33,7 +34,7 @@ namespace Strontium
     this->appWindow = Window::getNewInstance(this->name);
 
     // Initialize the thread pool.
-    workerGroup = Unique<ThreadPool>(ThreadPool::getInstance(4));
+    JobSystem::init(4);
 
     // Init the shader cache.
     ShaderCache::init("./assets/shaders/shaderManifest.yaml");
@@ -65,13 +66,16 @@ namespace Strontium
   {
     // Detach each layer and delete it.
     for (auto layer : this->layerStack)
-		{
-  		layer->onDetach();
-  		delete layer;
-		}
+	{
+  	  layer->onDetach();
+  	  delete layer;
+	}
 
     // Shutdown the renderer.
     Renderer3D::shutdown();
+
+    // Terminate the spawned threads.
+    JobSystem::shutdown();
 
     // Delete the application event dispatcher and logs.
     delete EventDispatcher::getInstance();

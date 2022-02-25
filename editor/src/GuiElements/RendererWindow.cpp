@@ -35,7 +35,7 @@ namespace Strontium
       auto shadowPass = renderPassManger.getRenderPass<ShadowPass>();
       auto shadowBlock = shadowPass->getInternalDataBlock<ShadowPassDataBlock>();
 
-      ImGui::Text("CPU Side Frametime: %f ms", shadowBlock->cpuTime);
+      ImGui::Text("Frametime: %f ms", shadowBlock->frameTime);
       ImGui::Text("Number of Draw Calls: %u", shadowBlock->numDrawCalls);
       ImGui::Text("Number of Instances: %u", shadowBlock->numInstances);
       ImGui::Text("Number of Triangles Submitted: %u", shadowBlock->numTrianglesSubmitted);
@@ -226,7 +226,7 @@ namespace Strontium
       auto bufferSize = gBuffer.getSize();
       float ratio = bufferSize.x / bufferSize.y;
 
-      ImGui::Text("CPU Side Frametime: %f ms", geometryBlock->cpuTime);
+      ImGui::Text("Frametime: %f ms", geometryBlock->frameTime);
       ImGui::Text("Number of Draw Calls: %u", geometryBlock->numDrawCalls);
       ImGui::Text("Number of Instances: %u", geometryBlock->numInstances);
       ImGui::Text("Number of Triangles Submitted: %u", geometryBlock->numTrianglesSubmitted);
@@ -262,7 +262,7 @@ namespace Strontium
       float height = static_cast<float>(hiZBlock->hierarchicalDepth.getHeight());
       float ratio = width / height;
 
-      ImGui::Text("CPU Side Frametime: %f ms", hiZBlock->cpuTime);
+      ImGui::Text("Frametime: %f ms", hiZBlock->frameTime);
 
       ImGui::Separator();
       ImGui::Text("Hi-Z Buffer:");
@@ -282,7 +282,7 @@ namespace Strontium
       ImGui::Checkbox("Enable HBAO", &hbaoBlock->enableAO);
 
       ImGui::Separator();
-      ImGui::Text("CPU Side Frametime: %f ms", hbaoBlock->cpuTime);
+      ImGui::Text("Frametime: %f ms", hbaoBlock->frameTime);
       ImGui::Separator();
 
       ImGui::SliderFloat("Radius", &hbaoBlock->aoRadius, 0.0f, 0.1f);
@@ -306,7 +306,7 @@ namespace Strontium
       auto skyAtmoPass = renderPassManger.getRenderPass<SkyAtmospherePass>();
       auto skyAtmoBlock = skyAtmoPass->getInternalDataBlock<SkyAtmospherePassDataBlock>();
 
-      ImGui::Text("CPU Side Frametime: %f ms", skyAtmoBlock->cpuTime);
+      ImGui::Text("Frametime: %f ms", skyAtmoBlock->frameTime);
 
       ImGui::Checkbox("Use Fast Atmosphere", &(skyAtmoBlock->useFastAtmosphere));
 

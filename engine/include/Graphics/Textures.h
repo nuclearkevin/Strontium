@@ -196,7 +196,9 @@ namespace Strontium
     // Delete the copy constructor and the assignment operator. Prevents
     // issues related to the underlying API.
     Texture2D(const Texture2D&) = delete;
+    Texture2D(Texture2D&&) = delete;
     Texture2D& operator=(const Texture2D&) = delete;
+    Texture2D& operator=(Texture2D&&) = delete;
 
     // Init the texture using given data and stored params.
     void initNullTexture();
@@ -248,7 +250,9 @@ namespace Strontium
     // Delete the copy constructor and the assignment operator. Prevents
     // issues related to the underlying API.
     Texture2DArray(const Texture2DArray&) = delete;
+    Texture2DArray(Texture2DArray&&) = delete;
     Texture2DArray& operator=(const Texture2DArray&) = delete;
+    Texture2DArray& operator=(Texture2DArray&&) = delete;
 
     // Init the texture using given data and stored params.
     void initNullTexture();
@@ -300,7 +304,9 @@ namespace Strontium
     // Delete the copy constructor and the assignment operator. Prevents
     // issues related to the underlying API.
     CubeMap(const CubeMap&) = delete;
+    CubeMap(CubeMap&&) = delete;
     CubeMap& operator=(const CubeMap&) = delete;
+    CubeMap& operator=(CubeMap&&) = delete;
 
     // Init the texture using given data and stored params.
     void initNullTexture();
@@ -351,7 +357,9 @@ namespace Strontium
     // Delete the copy constructor and the assignment operator. Prevents
     // issues related to the underlying API.
     CubeMapArrayTexture(const CubeMapArrayTexture&) = delete;
+    CubeMapArrayTexture(CubeMapArrayTexture&&) = delete;
     CubeMapArrayTexture& operator=(const CubeMapArrayTexture&) = delete;
+    CubeMapArrayTexture& operator=(CubeMapArrayTexture&&) = delete;
 
     // Init the texture using given data and stored params.
     void initNullTexture();
@@ -400,7 +408,9 @@ namespace Strontium
     // Delete the copy constructor and the assignment operator. Prevents
     // issues related to the underlying API.
     Texture3D(const Texture3D&) = delete;
+    Texture3D(Texture3D&&) = delete;
     Texture3D& operator=(const Texture3D&) = delete;
+    Texture3D& operator=(Texture3D&&) = delete;
     
     // Init the texture using given data and stored params.
     void initNullTexture();

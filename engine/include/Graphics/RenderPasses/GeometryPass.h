@@ -9,6 +9,7 @@
 #include "Graphics/Animations.h"
 #include "Graphics/Material.h"
 #include "Graphics/GeometryBuffer.h"
+#include "Graphics/GPUTimers.h"
 
 namespace Strontium
 {
@@ -84,12 +85,12 @@ namespace Strontium
 	std::vector<GeomDynamicDrawData> dynamicDrawList;
 
 	// Some statistics to display.
-	float cpuTime;
+	float frameTime;
 	uint numInstances;
 	uint numDrawCalls;
 	uint numTrianglesSubmitted;
 	uint numTrianglesDrawn;
-
+	
 	GeometryPassDataBlock()
 	  : gBuffer(RuntimeType::Editor, 1600, 900)
 	  , staticGeometry(nullptr)
@@ -98,7 +99,7 @@ namespace Strontium
 	  , perDrawUniforms(sizeof(int), BufferType::Dynamic)
 	  , entityDataBuffer(0, BufferType::Dynamic)
 	  , boneBuffer(MAX_BONES_PER_MODEL * sizeof(glm::mat4), BufferType::Dynamic)
-	  , cpuTime(0.0f)
+	  , frameTime(0.0f)
 	  , numInstances(0u)
 	  , numDrawCalls(0u)
 	  , numTrianglesSubmitted(0u)
@@ -115,12 +116,14 @@ namespace Strontium
 	void onInit() override;
 	void updatePassData() override;
 	RendererDataHandle requestRendererData() override;
-	void deleteRendererData(const RendererDataHandle& handle) override;
+	void deleteRendererData(RendererDataHandle& handle) override;
 	void onRendererBegin(uint width, uint height) override;
 	void onRender() override;
 	void onRendererEnd(FrameBuffer& frontBuffer) override;
 	void onShutdown() override;
   private:
 	GeometryPassDataBlock passData;
+
+	AsynchTimer timer;
   };
 }

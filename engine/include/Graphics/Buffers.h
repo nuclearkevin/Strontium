@@ -40,9 +40,10 @@ namespace Strontium
     ~VertexBuffer();
 
     // Delete the copy constructor and the assignment operator. Prevents
-    // issues related to the underlying API.
     VertexBuffer(const VertexBuffer&) = delete;
+    VertexBuffer(VertexBuffer&&) = delete;
     VertexBuffer& operator=(const VertexBuffer&) = delete;
+    VertexBuffer& operator=(VertexBuffer&&) = delete;
 
     // Bind/unbind the buffer.
     void bind();
@@ -75,7 +76,9 @@ namespace Strontium
     // Delete the copy constructor and the assignment operator. Prevents
     // issues related to the underlying API.
     IndexBuffer(const IndexBuffer&) = delete;
+    IndexBuffer(IndexBuffer&&) = delete;
     IndexBuffer& operator=(const IndexBuffer&) = delete;
+    IndexBuffer& operator=(IndexBuffer&&) = delete;
 
     // Bind/unbind the buffer.
     void bind();
@@ -113,7 +116,9 @@ namespace Strontium
     // Delete the copy constructor and the assignment operator. Prevents
     // issues related to the underlying API.
     UniformBuffer(const UniformBuffer&) = delete;
+    UniformBuffer(UniformBuffer&&) = delete;
     UniformBuffer& operator=(const UniformBuffer&) = delete;
+    UniformBuffer& operator=(UniformBuffer&&) = delete;
 
     // Bind/unbind the buffer.
     void bind();
@@ -155,7 +160,9 @@ namespace Strontium
     // Delete the copy constructor and the assignment operator. Prevents
     // issues related to the underlying API.
     ShaderStorageBuffer(const ShaderStorageBuffer&) = delete;
+    ShaderStorageBuffer(ShaderStorageBuffer&&) = delete;
     ShaderStorageBuffer& operator=(const ShaderStorageBuffer&) = delete;
+    ShaderStorageBuffer& operator=(ShaderStorageBuffer&&) = delete;
 
     // Bind/unbind the buffer.
     void bind();

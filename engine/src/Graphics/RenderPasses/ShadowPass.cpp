@@ -7,6 +7,7 @@ namespace Strontium
 {
   ShadowPass::ShadowPass(Renderer3D::GlobalRendererData* globalRendererData)
 	: RenderPass(&this->passData, globalRendererData, { nullptr })
+    , timer(5)
   { }
   
   ShadowPass::~ShadowPass()
@@ -50,7 +51,7 @@ namespace Strontium
   }
 
   void 
-  ShadowPass::deleteRendererData(const RendererDataHandle& handle)
+  ShadowPass::deleteRendererData(RendererDataHandle& handle)
   { }
 
   void 
@@ -70,13 +71,13 @@ namespace Strontium
   void 
   ShadowPass::onRender()
   {
+    ScopedTimer<AsynchTimer> profiler(this->timer);
+
     // Compute the cascade data.
     this->computeShadowData();
 
     if (!this->passData.hasCascades)
       return;
-
-    auto start = std::chrono::steady_clock::now();
 
     // Run the Strontium render pipeline for each shadow cascade.
     for (uint i = 0; i < NUM_CASCADES; i++)
@@ -300,15 +301,13 @@ namespace Strontium
     }
     this->passData.dynamicShadow->unbind();
     this->passData.shadowBuffers[NUM_CASCADES - 1].unbind();
-
-    auto end = std::chrono::steady_clock::now();
-    std::chrono::duration<float> elapsed = end - start;
-    this->passData.cpuTime = elapsed.count() * 1000.0f;
   }
   
   void 
   ShadowPass::onRendererEnd(FrameBuffer& frontBuffer)
-  { }
+  {
+    this->timer.msRecordTime(this->passData.frameTime);
+  }
   
   void 
   ShadowPass::onShutdown()

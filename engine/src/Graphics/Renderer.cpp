@@ -6,6 +6,7 @@
 #include "Graphics/RenderPasses/HiZPass.h"
 #include "Graphics/RenderPasses/HBAOPass.h"
 #include "Graphics/RenderPasses/SkyAtmospherePass.h"
+#include "Graphics/RenderPasses/DynamicSkyIBLPass.h"
 
 //----------------------------------------------------------------------------
 // 3D renderer starts here.
@@ -49,6 +50,7 @@ namespace Strontium::Renderer3D
     auto hiZ = passManager->insertRenderPass<HiZPass>(rendererData, geomet);
     auto hbao = passManager->insertRenderPass<HBAOPass>(rendererData, geomet, hiZ);
     auto skyatmo = passManager->insertRenderPass<SkyAtmospherePass>(rendererData, geomet);
+    auto dynIBL = passManager->insertRenderPass<DynamicSkyIBLPass>(rendererData, skyatmo);
 
     // Init the render passes.
     passManager->onInit();
@@ -173,64 +175,5 @@ namespace Strontium::Renderer3D
 
     rendererData->spotLightQueue[rendererData->spotLightCount] = temp;
     rendererData->spotLightCount++;
-  }
-  
-  void
-  submit(const Atmosphere& atmo, const RendererDataHandle &handle, 
-         const DirectionalLight &directional, const glm::mat4& model)
-  {
-    auto skyAtmoPass = passManager->getRenderPass<SkyAtmospherePass>();
-    auto skyAtmoBlock = skyAtmoPass->getInternalDataBlock<SkyAtmospherePassDataBlock>();
-
-    Atmosphere temp = atmo;
-    
-    // TODO: Camera position.
-    temp.viewPos = glm::vec4(0.0f, 6.360f + 0.0002f, 0.0f, 0.0f);
-
-    // Fetch the light direction from either the primary light or the 
-    // light attached with the accompanying entity.
-    auto invTrans = glm::transpose(glm::inverse(model));
-    auto dir = glm::vec3(invTrans * glm::vec4(0.0f, -1.0f, 0.0f, 0.0f));
-    temp.sunDirAtmRadius = glm::vec4(dir, atmo.sunDirAtmRadius.w);
-    temp.lightColourIntensity = directional.colourIntensity;
-
-    if (temp != skyAtmoBlock->atmosphereQueue[handle])
-    {
-      skyAtmoBlock->atmosphereQueue[handle] = temp;
-      skyAtmoBlock->updateAtmosphere[handle] = true;
-    }
-  }
-
-  void submit(const Atmosphere& atmo, const RendererDataHandle& handle, const glm::mat4& model)
-  {
-    auto skyAtmoPass = passManager->getRenderPass<SkyAtmospherePass>();
-    auto skyAtmoBlock = skyAtmoPass->getInternalDataBlock<SkyAtmospherePassDataBlock>();
-
-    Atmosphere temp = atmo;
-    
-    // TODO: Camera position.
-    temp.viewPos = glm::vec4(0.0f, 6.360f + 0.0002f, 0.0f, 0.0f);
-
-    // Fetch the light direction from either the primary light or the 
-    // light attached with the accompanying entity.
-    auto invTrans = glm::transpose(glm::inverse(model));
-    if (rendererData->primaryLightIndex > -1)
-    {
-      auto dir = glm::vec3(-rendererData->directionalLightQueue[rendererData->primaryLightIndex].direction);
-      temp.sunDirAtmRadius = glm::vec4(dir, atmo.sunDirAtmRadius.w);
-      temp.lightColourIntensity = rendererData->directionalLightQueue[rendererData->primaryLightIndex].colourIntensity;
-    }
-    else
-    {
-      auto dir = glm::vec3(invTrans * glm::vec4(0.0f, -1.0f, 0.0f, 0.0f));
-      temp.sunDirAtmRadius = glm::vec4(dir, atmo.sunDirAtmRadius.w);
-      temp.lightColourIntensity = glm::vec4(1.0f);
-    }
-
-    if (temp != skyAtmoBlock->atmosphereQueue[handle])
-    {
-      skyAtmoBlock->atmosphereQueue[handle] = temp;
-      skyAtmoBlock->updateAtmosphere[handle] = true;
-    }
   }
 }

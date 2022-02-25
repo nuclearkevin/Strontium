@@ -7,6 +7,7 @@
 #include "Graphics/Shaders.h"
 #include "Graphics/Textures.h"
 #include "Graphics/Buffers.h"
+#include "Graphics/GPUTimers.h"
 
 #include "Graphics/ShadingPrimatives.h"
 
@@ -33,16 +34,11 @@ namespace Strontium
     std::bitset<MAX_NUM_ATMOSPHERES> updateAtmosphere;
     std::array<Atmosphere, MAX_NUM_ATMOSPHERES> atmosphereQueue;
 
-    // Stacks for the inactive and active atmospheres.
-    std::stack<RendererDataHandle> availableHandles;
-    std::vector<RendererDataHandle> activeHandles;
-    std::vector<RendererDataHandle> updatableHandles;
-
     // Use the skyview and aerial perspective LUTS instead of half-resolution raymarching.
     bool useFastAtmosphere;
 
     // Some statistics to display.
-    float cpuTime;
+    float frameTime;
 
     SkyAtmospherePassDataBlock()
       : transmittanceCompute(nullptr)
@@ -52,7 +48,7 @@ namespace Strontium
       , atmosphereIndices(8 * sizeof(int), BufferType::Dynamic)
       , atmosphereQueue()
       , useFastAtmosphere(true)
-      , cpuTime(0.0f)
+      , frameTime(0.0f)
     { }
   };
 
@@ -66,12 +62,25 @@ namespace Strontium
     void onInit() override;
     void updatePassData() override;
     RendererDataHandle requestRendererData() override;
-    void deleteRendererData(const RendererDataHandle& handle) override;
+    void deleteRendererData(RendererDataHandle& handle) override;
     void onRendererBegin(uint width, uint height) override;
     void onRender() override;
     void onRendererEnd(FrameBuffer& frontBuffer) override;
     void onShutdown() override;
+
+    void submit(const Atmosphere& atmo, const RendererDataHandle& handle, 
+                const DirectionalLight &light, const glm::mat4& model);
+    void submit(const Atmosphere& atmo, const RendererDataHandle& handle, 
+                const glm::mat4& model);
+
   private:
     SkyAtmospherePassDataBlock passData;
+
+    // Stacks for the inactive and active atmospheres.
+    std::stack<RendererDataHandle> availableHandles;
+    std::vector<RendererDataHandle> activeHandles;
+    std::vector<RendererDataHandle> updatableHandles;
+
+    AsynchTimer timer;
   };
 }

@@ -9,6 +9,7 @@ namespace Strontium
 				   GeometryPass* previousGeoPass)
 	: RenderPass(&this->passData, globalRendererData, { previousGeoPass })
 	, previousGeoPass(previousGeoPass)
+	, timer(5)
   { }
 
   HiZPass::~HiZPass()
@@ -25,7 +26,7 @@ namespace Strontium
   }
 
   void 
-  HiZPass::deleteRendererData(const RendererDataHandle& handle)
+  HiZPass::deleteRendererData(RendererDataHandle& handle)
   { }
 
   void 
@@ -65,7 +66,7 @@ namespace Strontium
   void 
   HiZPass::onRender()
   {
-	auto start = std::chrono::steady_clock::now();
+	ScopedTimer<AsynchTimer> profiler(this->timer);
 
 	// Copy the depth from the depth buffer to the hi-z texture.
 	this->previousGeoPass->getInternalDataBlock<GeometryPassDataBlock>()->gBuffer.bindAttachment(FBOTargetParam::Depth, 0);
@@ -90,15 +91,13 @@ namespace Strontium
 	  Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
 	  powerOfTwo *= 2.0f;
 	}
-
-	auto end = std::chrono::steady_clock::now();
-    std::chrono::duration<float> elapsed = end - start;
-    this->passData.cpuTime = elapsed.count() * 1000.0f;
   }
 
   void 
   HiZPass::onRendererEnd(FrameBuffer& frontBuffer)
-  { }
+  {
+	this->timer.msRecordTime(this->passData.frameTime);
+  }
 
   void 
   HiZPass::onShutdown()

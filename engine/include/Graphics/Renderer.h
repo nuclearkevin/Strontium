@@ -72,8 +72,4 @@ namespace Strontium::Renderer3D
   void submit(const DirectionalLight &light, const glm::mat4 &model);
   void submit(const PointLight &light, const glm::mat4 &model);
   void submit(const SpotLight &light, const glm::mat4 &model);
-  void submit(const Atmosphere& atmo, const RendererDataHandle& handle, 
-              const DirectionalLight &light, const glm::mat4& model);
-  void submit(const Atmosphere& atmo, const RendererDataHandle& handle, 
-              const glm::mat4& model);
 }
