@@ -92,15 +92,25 @@ namespace Strontium
     ScopedTimer<AsynchTimer> profiler(this->timer);
 
     this->updatableHandles.clear();
+    this->updatedSkyHandles.clear();
     this->updatableHandles.reserve(this->passData.updateIBL.count());
+    this->updatedSkyHandles.reserve(this->passData.updateIBL.count());
     for (auto& handle : this->activeHandles)
     {
-      if (this->passData.updateIBL[handle])
+      // Error handle if the sky-atmosphere handle isn't valid.
+      if (this->passData.updateIBL[handle] 
+          && this->passData.iblQueue[handle].attachedSkyAtmoHandle >= 0)
       {
         this->updatableHandles.emplace_back(handle);
+        this->updatedSkyHandles.emplace_back(this->passData.iblQueue[handle].attachedSkyAtmoHandle);
         this->passData.updateIBL[handle] = false;
       }
+      else
+        this->passData.updateIBL[handle] = false;
     }
+
+    if (!(this->updatableHandles.size() > 0u))
+      return;
 
 
   }

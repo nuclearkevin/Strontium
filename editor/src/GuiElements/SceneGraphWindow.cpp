@@ -406,6 +406,7 @@ namespace Strontium
         {
           drawComponentAdd<DirectionalLightComponent>("Directional Light Component", entity);
           drawComponentAdd<PointLightComponent>("Point Light Component", entity);
+          drawComponentAdd<DynamicSkylightComponent>("Dynamic Sky Light Component", entity);
 
           ImGui::EndMenu();
         }
@@ -425,6 +426,7 @@ namespace Strontium
         {
           drawComponentRemove<DirectionalLightComponent>("Directional Light Component", entity);
           drawComponentRemove<PointLightComponent>("Point Light Component", entity);
+          drawComponentRemove<DynamicSkylightComponent>("Dynamic Sky Light Component", entity);
 
           ImGui::EndMenu();
         }
@@ -987,6 +989,17 @@ namespace Strontium
         Styles::drawFloatControl("Radius", 0.0f, component.light.positionRadius.w, 0.0f, 0.1f, 0.0f, 100.0f);
         Styles::drawFloatControl("Intensity", 0.0f, component.light.colourIntensity.w,
                                  0.0f, 0.01f, 0.0f, 100.0f);
+        ImGui::PopID();
+      });
+
+      drawComponentProperties<DynamicSkylightComponent>("Dynamic Sky Light Component", 
+                                                        this->selectedEntity, 
+                                                        [this](auto& component)
+      {
+        ImGui::PushID("DynamicSkyLight");
+        ImGui::Text("Renderer handle: %i", component.handle);
+        Styles::drawFloatControl("Intensity", 0.0f, component.intensity, 
+                                 0.0f, 0.1f, 0.0f, 100.0f);
         ImGui::PopID();
       });
     }

@@ -6,15 +6,15 @@
 
 // Project includes.
 #include "Graphics/RenderPasses/RenderPass.h"
+#include "Graphics/RenderPasses/SkyAtmospherePass.h"
 #include "Graphics/Shaders.h"
 #include "Graphics/Textures.h"
+#include "Graphics/Buffers.h"
 #include "Graphics/GPUTimers.h"
 #include "Graphics/ShadingPrimatives.h"
 
 namespace Strontium
 {
-  class SkyAtmospherePass;
-
   struct DynamicSkyIBLPassDataBlock
   {
     Shader* dynamicSkyIrradiance;
@@ -23,7 +23,10 @@ namespace Strontium
     CubeMapArrayTexture irradianceCubemaps;
     CubeMapArrayTexture radianceCubemaps;
 
-    // The IBL maps.
+    UniformBuffer iblParamsBuffer;
+    ShaderStorageBuffer iblIndices;
+
+    // The IBL map parameters.
     std::bitset<MAX_NUM_DYNAMIC_IBL> updateIBL;
     std::array<DynamicIBL, MAX_NUM_DYNAMIC_IBL> iblQueue;
 
@@ -33,6 +36,8 @@ namespace Strontium
     DynamicSkyIBLPassDataBlock()
       : dynamicSkyIrradiance(nullptr)
       , dynamicSkyRadiance(nullptr)
+      , iblParamsBuffer(sizeof(glm::ivec2), BufferType::Dynamic)
+      , iblIndices((MAX_NUM_ATMOSPHERES + MAX_NUM_DYNAMIC_IBL) * sizeof(int), BufferType::Dynamic)
       , frameTime(0.0f)
     { }
   };
@@ -62,6 +67,8 @@ namespace Strontium
     std::stack<RendererDataHandle> availableHandles;
     std::vector<RendererDataHandle> activeHandles;
     std::vector<RendererDataHandle> updatableHandles;
+
+    std::vector<RendererDataHandle> updatedSkyHandles;
 
     SkyAtmospherePass* previousSkyAtmoPass;
 

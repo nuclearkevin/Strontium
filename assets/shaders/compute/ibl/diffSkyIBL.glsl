@@ -6,31 +6,63 @@
  * Hillaire2020.
 */
 
+#define MAX_NUM_ATMOSPHERES 8
+#define MAX_NUM_DYN_SKY_IBL 8
 #define TWO_PI 6.283185308
 #define PI 3.141592654
 #define PI_OVER_TWO 1.570796327
 
 layout(local_size_x = 8, local_size_y = 8) in;
 
+//------------------------------------------------------------------------------
+// Params from the sky atmosphere pass to read the sky-view LUT.
+// Atmospheric scattering coefficients are expressed per unit km.
+struct ScatteringParams
+{
+  vec4 rayleighScat; //  Rayleigh scattering base (x, y, z) and height falloff (w).
+  vec4 rayleighAbs; //  Rayleigh absorption base (x, y, z) and height falloff (w).
+  vec4 mieScat; //  Mie scattering base (x, y, z) and height falloff (w).
+  vec4 mieAbs; //  Mie absorption base (x, y, z) and height falloff (w).
+  vec4 ozoneAbs; //  Ozone absorption base (x, y, z) and scale (w).
+};
+
+// Radii are expressed in megameters (MM).
+struct AtmosphereParams
+{
+  ScatteringParams sParams;
+  vec4 planetAlbedoRadius; // Planet albedo (x, y, z) and radius.
+  vec4 sunDirAtmRadius; // Sun direction (x, y, z) and atmosphere radius (w).
+  vec4 lightColourIntensity; // Light colour (x, y, z) and intensity (w).
+  vec4 viewPos; // View position (x, y, z). w is unused.
+};
+//------------------------------------------------------------------------------
+
 // The skyview LUT to convolve.
-layout(binding = 0) uniform sampler2D skyviewLUT;
+layout(binding = 0) uniform sampler2DArray skyViewLUT;
 
 // The output irradiance map.
-layout(rgba16f, binding = 1) restrict writeonly uniform imageCube irradianceMap;
+layout(rgba16f, binding = 0) restrict writeonly uniform imageCubeArray irradianceMap;
 
-// Skybox specific uniforms
-layout(std140, binding = 2) uniform SkyboxBlock
+layout(std140, binding = 0) uniform HillaireParams
 {
-  vec4 u_lodDirection; // IBL lod (x), sun direction (y, z, w).
-  vec4 u_sunIntensitySizeGRadiusARadius; // Sun intensity (x), size (y), ground radius (z) and atmosphere radius (w).
-  vec4 u_viewPosSkyIntensity; // View position (x, y, z) and sky intensity (w).
-  ivec4 u_skyboxParams2; // The skybox to use (x). y, z and w are unused.
+  AtmosphereParams u_atmoParams[MAX_NUM_ATMOSPHERES];
+};
+
+layout(std140, binding = 1) uniform IBLParams
+{
+  vec4 u_iblParams; // Roughness (x), number of diffuse importance samples (y),
+};                  // number of specular importance samples (z). w is unused.
+
+layout(std430, binding = 0) readonly buffer Indices
+{
+  int atmosphereIndices[MAX_NUM_ATMOSPHERES];
+  int iblIndices[MAX_NUM_DYN_SKY_IBL];
 };
 
 // Function for converting between image coordiantes and world coordiantes.
 vec3 cubeToWorld(ivec3 cubeCoord, vec2 cubeSize);
 // Sample the sky view LUT.
-vec3 sampleSkyViewLUT(sampler2D lut, vec3 viewPos, vec3 viewDir,
+vec3 sampleSkyViewLUT(float atmIndex, sampler2DArray lut, vec3 viewPos, vec3 viewDir,
                       vec3 sunDir, float groundRadiusMM);
 
 // Importance sample a cosine lobe.
@@ -38,28 +70,37 @@ vec3 importanceSampleCos(uint i, uint N, vec3 normal);
 
 void main()
 {
-  vec2 cubemapSize = vec2(imageSize(irradianceMap).xy);
-  vec3 worldPos = cubeToWorld(ivec3(gl_GlobalInvocationID), cubemapSize);
+  const ivec3 invoke = ivec3(gl_GlobalInvocationID.xyz);
 
-  vec3 sunPos = normalize(u_lodDirection.yzw);
-  vec3 viewPos = u_viewPosSkyIntensity.xyz;
-  float groundRadiusMM =  u_sunIntensitySizeGRadiusARadius.z;
+  const int slice = int(invoke.z) / 6;
+  const int cubeFace = int(invoke.z) - (6 * slice);
+  const int iblIndex = iblIndices[slice];
+  const int atmoIndex = atmosphereIndices[slice];
+  const AtmosphereParams params = u_atmoParams[atmoIndex];
+
+  vec2 cubemapSize = vec2(imageSize(irradianceMap).xy);
+  vec3 worldPos = cubeToWorld(ivec3(invoke.xy, cubeFace), cubemapSize);
+
+  vec3 sunDir = normalize(-params.sunDirAtmRadius.xyz);
+  vec3 viewPos = vec3(params.viewPos.xyz);
+  float groundRadiusMM = params.planetAlbedoRadius.w;
 
   // The normal is the same as the worldspace position.
   vec3 normal = normalize(worldPos);
   normal.xz *= -1.0;
 
   vec3 irradiance = vec3(0.0);
-  const uint numSamples = 512;
+  const uint numSamples = uint(u_iblParams.y);
 
   for (uint i = 0; i < numSamples; i++)
   {
     vec3 sampleDir = importanceSampleCos(i, numSamples, normal);
-    irradiance += sampleSkyViewLUT(skyviewLUT, viewPos, sampleDir, sunPos, groundRadiusMM);
+    irradiance += sampleSkyViewLUT(float(atmoIndex), skyViewLUT, viewPos, sampleDir,
+                                   sunDir, groundRadiusMM);
   }
 
-  irradiance = PI * irradiance * (1.0 / float(numSamples)) * u_viewPosSkyIntensity.w;
-  imageStore(irradianceMap, ivec3(gl_GlobalInvocationID), vec4(irradiance, 1.0));
+  irradiance = PI * irradiance * (1.0 / float(numSamples));
+  imageStore(irradianceMap, ivec3(invoke.xy, iblIndex), vec4(irradiance, 1.0));
 }
 
 // I need to figure out how to make these branchless one of these days...
@@ -84,7 +125,7 @@ float safeACos(float x)
   return acos(clamp(x, -1.0, 1.0));
 }
 
-vec3 sampleSkyViewLUT(sampler2D lut, vec3 viewPos, vec3 viewDir,
+vec3 sampleSkyViewLUT(float atmIndex, sampler2DArray lut, vec3 viewPos, vec3 viewDir,
                       vec3 sunDir, float groundRadiusMM)
 {
   float height = length(viewPos);
@@ -104,11 +145,11 @@ vec3 sampleSkyViewLUT(sampler2D lut, vec3 viewPos, vec3 viewDir,
   float u = azimuthAngle / (TWO_PI);
   float v = 0.5 + 0.5 * sign(altitudeAngle) * sqrt(abs(altitudeAngle) / PI_OVER_TWO);
 
-  return texture(lut, vec2(u, v)).rgb;
+  return texture(lut, vec3(u, v, atmIndex)).rgb;
 }
 
 // Hammersley sequence, generates a low discrepancy pseudorandom number.
-vec2 Hammersley(uint i, uint N)
+vec2 hammersley(uint i, uint N)
 {
   float fbits;
   uint bits = i;
@@ -126,7 +167,7 @@ vec2 Hammersley(uint i, uint N)
 // Importance sample a cosine lobe.
 vec3 importanceSampleCos(uint i, uint N, vec3 normal)
 {
-  vec2 xi = Hammersley(i, N);
+  vec2 xi = hammersley(i, N);
 
   float phi = TWO_PI * xi.x;
   float theta = safeACos(sqrt(xi.y));
