@@ -13,9 +13,7 @@ namespace Strontium
   { }
 
   DynamicSkyIBLPass::~DynamicSkyIBLPass()
-  {
-
-  }
+  { }
 
   void 
   DynamicSkyIBLPass::onInit()
@@ -38,6 +36,8 @@ namespace Strontium
     this->passData.radianceCubemaps.setSize(64, 64, 8);
     this->passData.radianceCubemaps.setParams(params);
     this->passData.radianceCubemaps.initNullTexture();
+    this->passData.radianceCubemaps.generateMips();
+    this->passData.radianceCubemaps.setParams(params);
 
     // Fill the stack with available atmosphere slots.
     for (RendererDataHandle i = 7; i > -1; i--)
@@ -112,7 +112,55 @@ namespace Strontium
     if (!(this->updatableHandles.size() > 0u))
       return;
 
+    auto skyData = this->previousSkyAtmoPass->getInternalDataBlock<SkyAtmospherePassDataBlock>();
 
+    // Bind the atmosphere data.
+    skyData->atmosphereBuffer.bindToPoint(0);
+
+    // Send over IBL parameters.
+    this->passData.iblParamsBuffer.bindToPoint(1);
+    struct IBLParamData
+    {
+      glm::vec4 params;
+    } 
+      iblParamBlock
+    {
+      { 0.0f, static_cast<float>(this->passData.numIrradSamples), 
+        static_cast<float>(this->passData.numRadSamples), 0.0f }
+    };
+    this->passData.iblParamsBuffer.setData(0, sizeof(IBLParamData), &iblParamBlock);
+
+    // Send over the updatable atmosphere and IBL handles.
+    // TODO: Better batching scheme?
+    this->passData.iblIndices.bindToPoint(0);
+    this->passData.iblIndices.setData(0, sizeof(int) * this->updatedSkyHandles.size(), this->updatedSkyHandles.data());
+    this->passData.iblIndices.setData(8 * sizeof(int), sizeof(int) * this->updatableHandles.size(), this->updatableHandles.data());
+
+    // Sky-view LUTs.
+    skyData->skyviewLUTs.bind(0);
+
+    // Irradiance pass first.
+    this->passData.irradianceCubemaps.bindAsImage(0, 0, true, 0, ImageAccessPolicy::Write);
+    this->passData.dynamicSkyIrradiance->launchCompute(4, 4, 6 * this->updatableHandles.size());
+
+    // Radiance pass. This is more complicated...
+    for (uint i = 0; i < 7; i++)
+    {
+      // Bind the storage mip.
+      this->passData.radianceCubemaps.bindAsImage(0, i, true, 0, ImageAccessPolicy::Write);
+
+      // Roughness.
+      iblParamBlock.params.x = static_cast<float>(i) / 4.0f;
+      this->passData.iblParamsBuffer.setData(0, sizeof(float), &(iblParamBlock.params.x));
+
+      // Launch groups.
+      uint mipWidthHeight = static_cast<uint>(64.0f * std::pow(0.5f, i));
+      uint groupXY = static_cast<uint>(glm::ceil(static_cast<float>(mipWidthHeight) / 8.0f));
+      this->passData.dynamicSkyRadiance->launchCompute(groupXY, groupXY, 6 * this->updatableHandles.size());
+    }
+
+    // This should work since there are no dependancies between the compute passes.
+    Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
   }
 
   void 
@@ -128,12 +176,12 @@ namespace Strontium
   }
 
   void 
-  DynamicSkyIBLPass::submit(const DynamicIBL& iblParams, RendererDataHandle handle)
+  DynamicSkyIBLPass::submit(const DynamicIBL& iblParams, bool skyUpdated)
   {
-    if (iblParams.attachedSkyAtmoHandle != this->passData.iblQueue[handle].attachedSkyAtmoHandle)
+    if (this->passData.iblQueue[iblParams.handle].attachedSkyAtmoHandle != iblParams.attachedSkyAtmoHandle || skyUpdated)
     {
-      this->passData.iblQueue[handle] = iblParams;
-      this->passData.updateIBL[handle] = true;
+      this->passData.iblQueue[iblParams.handle] = iblParams;
+      this->passData.updateIBL[iblParams.handle] = true;
     }
   }
 }

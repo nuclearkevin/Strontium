@@ -8,91 +8,119 @@
  * code here was adapted from their excellent article.
 */
 
+#define MAX_NUM_ATMOSPHERES 8
+#define MAX_NUM_DYN_SKY_IBL 8
 #define TWO_PI 6.283185308
 #define PI 3.141592654
 #define PI_OVER_TWO 1.570796327
 
 layout(local_size_x = 8, local_size_y = 8) in;
 
-// The environment map to prefilter.
-layout(binding = 0) uniform sampler2D skyviewLUT;
-
-// The output prefilter map.
-layout(rgba16f, binding = 1) restrict writeonly uniform imageCube prefilterMap;
-
-// The required parameters.
-layout(std140, binding = 2) buffer ParamBuff
+//------------------------------------------------------------------------------
+// Params from the sky atmosphere pass to read the sky-view LUT.
+// Atmospheric scattering coefficients are expressed per unit km.
+struct ScatteringParams
 {
-  vec4 u_iblParams; // Roughness (x). y, z and w are unused.
-  ivec4 u_iblParams1; // Number of samples (x). y, z and w are unused.
+  vec4 rayleighScat; //  Rayleigh scattering base (x, y, z) and height falloff (w).
+  vec4 rayleighAbs; //  Rayleigh absorption base (x, y, z) and height falloff (w).
+  vec4 mieScat; //  Mie scattering base (x, y, z) and height falloff (w).
+  vec4 mieAbs; //  Mie absorption base (x, y, z) and height falloff (w).
+  vec4 ozoneAbs; //  Ozone absorption base (x, y, z) and scale (w).
 };
 
-// Skybox specific uniforms
-layout(std140, binding = 3) uniform SkyboxBlock
+// Radii are expressed in megameters (MM).
+struct AtmosphereParams
 {
-  vec4 u_lodDirection; // IBL lod (x), sun direction (y, z, w).
-  vec4 u_sunIntensitySizeGRadiusARadius; // Sun intensity (x), size (y), ground radius (z) and atmosphere radius (w).
-  vec4 u_viewPosSkyIntensity; // View position (x, y, z) and sky intensity (w).
-  ivec4 u_skyboxParams2; // The skybox to use (x). y, z and w are unused.
+  ScatteringParams sParams;
+  vec4 planetAlbedoRadius; // Planet albedo (x, y, z) and radius.
+  vec4 sunDirAtmRadius; // Sun direction (x, y, z) and atmosphere radius (w).
+  vec4 lightColourIntensity; // Light colour (x, y, z) and intensity (w).
+  vec4 viewPos; // View position (x, y, z). w is unused.
+};
+//------------------------------------------------------------------------------
+
+// The skyview LUT to convolve.
+layout(binding = 0) uniform sampler2DArray skyViewLUT;
+
+// The output irradiance map.
+layout(rgba16f, binding = 0) restrict writeonly uniform imageCubeArray radianceMap;
+
+layout(std140, binding = 0) uniform HillaireParams
+{
+  AtmosphereParams u_atmoParams[MAX_NUM_ATMOSPHERES];
+};
+
+layout(std140, binding = 1) uniform IBLParams
+{
+  vec4 u_iblParams; // Roughness (x), number of diffuse importance samples (y),
+};                  // number of specular importance samples (z). w is unused.
+
+layout(std430, binding = 0) readonly buffer Indices
+{
+  int atmosphereIndices[MAX_NUM_ATMOSPHERES];
+  int iblIndices[MAX_NUM_DYN_SKY_IBL];
 };
 
 // Function for converting between image coordiantes and world coordiantes.
 vec3 cubeToWorld(ivec3 cubeCoord, vec2 cubeSize);
+
 // Sample the sky view LUT.
-vec3 sampleSkyViewLUT(sampler2D lut, vec3 viewPos, vec3 viewDir,
-                      vec3 sunDir, float groundRadiusMM, float mipLevel);
+vec3 sampleSkyViewLUT(float atmIndex, sampler2DArray lut, vec3 viewPos, vec3 viewDir,
+                      vec3 sunDir, float groundRadiusMM);
+
 // Smith-Schlick-Beckmann geometry function.
 float SSBGeometry(vec3 N, vec3 H, float roughness);
+
 // Hammersley sequence, generates a low discrepancy pseudorandom number.
 vec2 Hammersley(uint i, uint N);
+
 // Importance sampling of the Smith-Schlick-Beckmann geometry function.
 vec3 SSBImportance(vec2 Xi, vec3 N, float roughness);
 
 void main()
 {
-  const uint sampleCount = u_iblParams1.x;
-  vec2 mipSize = vec2(imageSize(prefilterMap).xy);
-  ivec3 cubeCoord = ivec3(gl_GlobalInvocationID);
+  const ivec3 invoke = ivec3(gl_GlobalInvocationID.xyz);
 
-  vec3 sunPos = normalize(u_lodDirection.yzw);
-  vec3 viewPos = u_viewPosSkyIntensity.xyz;
-  float groundRadiusMM =  u_sunIntensitySizeGRadiusARadius.z;
+  const int slice = int(invoke.z) / 6;
+  const int cubeFace = int(invoke.z) - (6 * slice);
+  const int iblIndex = iblIndices[slice];
+  const int atmoIndex = atmosphereIndices[slice];
+  const AtmosphereParams params = u_atmoParams[atmoIndex];
 
-  vec3 worldPos = cubeToWorld(cubeCoord, mipSize);
-  vec3 N = normalize(worldPos);
+  vec2 mipSize = vec2(imageSize(radianceMap).xy);
+  ivec3 cubeCoord = ivec3(invoke.xy, cubeFace);
+  vec3 worldPos = cubeToWorld(ivec3(invoke.xy, cubeFace), mipSize);
+
+  vec3 sunDir = normalize(-params.sunDirAtmRadius.xyz);
+  vec3 viewPos = vec3(params.viewPos.xyz);
+  float groundRadiusMM = params.planetAlbedoRadius.w;
+
+  // The normal is the same as the worldspace position.
+  vec3 normal = normalize(worldPos);
 
   vec3 prefilteredColor = vec3(0.0);
   float totalWeight = 0.0;
-
-  for (uint i = 0u; i < sampleCount; ++i)
+  const uint sampleCount = uint(u_iblParams.z);
+  for (uint i = 0u; i < sampleCount; i++)
   {
     vec2 Xi = Hammersley(i, sampleCount);
-    vec3 H = SSBImportance(Xi, N, u_iblParams.x);
-    vec3 L  = normalize(2.0 * dot(N, H) * H - N);
+    vec3 H = SSBImportance(Xi, normal, u_iblParams.x);
+    vec3 L  = normalize(2.0 * dot(normal, H) * H - normal);
 
-    float NdotL = max(dot(N, L), 0.0);
+    float NdotL = max(dot(normal, L), 0.0);
     if (NdotL > 0.0)
     {
-      float D = SSBGeometry(N, H, u_iblParams.x);
-      float NdotH = max(dot(N, H), 0.0);
-      float HdotV = max(dot(H, N), 0.0);
-      float pdf = D * NdotH / (4.0 * HdotV + 0.0001);
-
-      float saTexel  = 4.0 * PI / (6.0 * 256.0 * 128.0);
-      float saSample = 1.0 / (float(sampleCount) * pdf + 0.0001);
-
-      float mipLevel = u_iblParams.x == 0.0 ? 0.0 : 0.5 * log2(saSample / saTexel);
-
-      vec3 skySample = sampleSkyViewLUT(skyviewLUT, viewPos, L, sunPos,
-                                        groundRadiusMM, mipLevel);
-      prefilteredColor += u_viewPosSkyIntensity.w * skySample * NdotL;
+      //L *= -1.0; // I do not know why this is necessary...
+      vec3 skySample = sampleSkyViewLUT(float(atmoIndex), skyViewLUT, viewPos,
+                                        L, sunDir, groundRadiusMM);
+      prefilteredColor += skySample * NdotL;
       totalWeight += NdotL;
     }
   }
 
   prefilteredColor = prefilteredColor / totalWeight;
 
-  imageStore(prefilterMap, cubeCoord, vec4(prefilteredColor, 1.0));
+  imageStore(radianceMap, ivec3(invoke.xy, iblIndex + cubeFace), vec4(prefilteredColor, 1.0));
 }
 
 // I need to figure out how to make these branchless one of these days...
@@ -117,10 +145,9 @@ float safeACos(float x)
   return acos(clamp(x, -1.0, 1.0));
 }
 
-vec3 sampleSkyViewLUT(sampler2D lut, vec3 viewPos, vec3 viewDir,
-                      vec3 sunDir, float groundRadiusMM, float mipLevel)
+vec3 sampleSkyViewLUT(float atmIndex, sampler2DArray lut, vec3 viewPos, vec3 viewDir,
+                      vec3 sunDir, float groundRadiusMM)
 {
-  viewDir.xz *= -1.0;
   float height = length(viewPos);
   vec3 up = viewPos / height;
 
@@ -138,9 +165,8 @@ vec3 sampleSkyViewLUT(sampler2D lut, vec3 viewPos, vec3 viewDir,
   float u = azimuthAngle / (TWO_PI);
   float v = 0.5 + 0.5 * sign(altitudeAngle) * sqrt(abs(altitudeAngle) / PI_OVER_TWO);
 
-  return textureLod(lut, vec2(u, v), mipLevel).rgb;
+  return texture(lut, vec3(u, v, atmIndex)).rgb;
 }
-
 
 // Smith-Schlick-Beckmann geometry function.
 float SSBGeometry(vec3 N, vec3 H, float roughness)

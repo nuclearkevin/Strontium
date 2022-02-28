@@ -5,6 +5,10 @@
 #include "Scenes/Entity.h"
 
 #include "Graphics/Renderer.h"
+#include "Graphics/RenderPasses/RenderPassManager.h"
+#include "Graphics/RenderPasses/SkyAtmospherePass.h"
+#include "Graphics/RenderPasses/DynamicSkyIBLPass.h"
+#include "Graphics/RenderPasses/IBLApplicationPass.h"
 
 namespace Strontium
 {
@@ -136,30 +140,32 @@ namespace Strontium
     // Group together the transform, sky-atmosphere and directional light components.
     auto skyAtm = Renderer3D::getPassManager().getRenderPass<SkyAtmospherePass>();
     auto dynIBL = Renderer3D::getPassManager().getRenderPass<DynamicSkyIBLPass>();
+    auto iblApp = Renderer3D::getPassManager().getRenderPass<IBLApplicationPass>();
     auto atmospheres = this->sceneECS.group<SkyAtmosphereComponent>(entt::get<TransformComponent>);
     for (auto entity : atmospheres)
     {
       auto [transform, atmosphere] = atmospheres.get<TransformComponent, SkyAtmosphereComponent>(entity);
 
       bool canComputeIBL = false;
-
+      bool skyUpdated = false;
       if (this->sceneECS.has<DirectionalLightComponent>(entity) && !atmosphere.usePrimaryLight)
       {
         canComputeIBL = true;
-        skyAtm->submit(atmosphere, atmosphere, this->sceneECS.get<DirectionalLightComponent>(entity),
-                       transform);
+        skyUpdated = skyAtm->submit(atmosphere, atmosphere, this->sceneECS.get<DirectionalLightComponent>(entity),
+                                       transform);
       }
       else if (atmosphere.usePrimaryLight)
       {
         canComputeIBL = true;
-        skyAtm->submit(atmosphere, atmosphere, transform);
+        skyUpdated = skyAtm->submit(atmosphere, atmosphere, transform);
       }
 
       // Check to see if this entity has a dynamic sky light component for dynamic IBL.
       if (this->sceneECS.has<DynamicSkylightComponent>(entity) && canComputeIBL)
       {
         auto& iblComponent = this->sceneECS.get<DynamicSkylightComponent>(entity);
-        dynIBL->submit(DynamicIBL(iblComponent.intensity, atmosphere.handle), iblComponent.handle);
+        dynIBL->submit(DynamicIBL(iblComponent.intensity, iblComponent.handle, atmosphere.handle), skyUpdated);
+        iblApp->submitDynamicSkyIBL(DynamicIBL(iblComponent.intensity, iblComponent.handle, atmosphere.handle));
       }
     }
   }
@@ -193,30 +199,32 @@ namespace Strontium
     // Group together the transform, sky-atmosphere and directional light components.
     auto skyAtm = Renderer3D::getPassManager().getRenderPass<SkyAtmospherePass>();
     auto dynIBL = Renderer3D::getPassManager().getRenderPass<DynamicSkyIBLPass>();
+    auto iblApp = Renderer3D::getPassManager().getRenderPass<IBLApplicationPass>();
     auto atmospheres = this->sceneECS.group<SkyAtmosphereComponent>(entt::get<TransformComponent>);
     for (auto entity : atmospheres)
     {
       auto [transform, atmosphere] = atmospheres.get<TransformComponent, SkyAtmosphereComponent>(entity);
 
       bool canComputeIBL = false;
-
+      bool skyUpdated = false;
       if (this->sceneECS.has<DirectionalLightComponent>(entity) && !atmosphere.usePrimaryLight)
       {
         canComputeIBL = true;
-        skyAtm->submit(atmosphere, atmosphere, this->sceneECS.get<DirectionalLightComponent>(entity),
-                       transform);
+        skyUpdated = skyAtm->submit(atmosphere, atmosphere, this->sceneECS.get<DirectionalLightComponent>(entity),
+                                       transform);
       }
       else if (atmosphere.usePrimaryLight)
       {
         canComputeIBL = true;
-        skyAtm->submit(atmosphere, atmosphere, transform);
+        skyUpdated = skyAtm->submit(atmosphere, atmosphere, transform);
       }
 
       // Check to see if this entity has a dynamic sky light component for dynamic IBL.
       if (this->sceneECS.has<DynamicSkylightComponent>(entity) && canComputeIBL)
       {
         auto& iblComponent = this->sceneECS.get<DynamicSkylightComponent>(entity);
-        dynIBL->submit(DynamicIBL(iblComponent.intensity, atmosphere.handle), iblComponent.handle);
+        dynIBL->submit(DynamicIBL(iblComponent.intensity, iblComponent.handle, atmosphere.handle), skyUpdated);
+        iblApp->submitDynamicSkyIBL(DynamicIBL(iblComponent.intensity, iblComponent.handle, atmosphere.handle));
       }
     }
   }

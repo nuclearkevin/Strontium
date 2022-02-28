@@ -386,6 +386,7 @@ namespace Strontium
 
     int getWidth(uint face) { return this->width[face]; }
     int getHeight(uint face) { return this->height[face]; }
+    int getLayers() { return this->numLayers; }
 
     uint& getID() { return this->textureID; }
   private:

@@ -68,9 +68,9 @@ namespace Strontium
     void onRendererEnd(FrameBuffer& frontBuffer) override;
     void onShutdown() override;
 
-    void submit(const Atmosphere& atmo, const RendererDataHandle& handle, 
+    bool submit(const Atmosphere& atmo, const RendererDataHandle& handle, 
                 const DirectionalLight &light, const glm::mat4& model);
-    void submit(const Atmosphere& atmo, const RendererDataHandle& handle, 
+    bool submit(const Atmosphere& atmo, const RendererDataHandle& handle, 
                 const glm::mat4& model);
 
   private:

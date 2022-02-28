@@ -34,7 +34,7 @@ namespace Strontium
 	  : aoCompute(nullptr)
 	  , aoBlur(nullptr)
 	  , aoParamsBuffer(2 * sizeof(glm::vec4), BufferType::Dynamic)
-	  , enableAO(true)
+	  , enableAO(false)
 	  , aoRadius(0.005f)
 	  , aoMultiplier(1.0f)
 	  , aoExponent(1.0f)

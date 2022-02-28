@@ -104,11 +104,15 @@ ShaderCache:
     Filepath: ./assets/shaders/post/gaussianVert.glsl
   - Handle: bilateral_blur
     Filepath: ./assets/shaders/compute/bilatBlur.glsl
+  - Handle: clear_tex_2D
+    Filepath: ./assets/shaders/compute/clearTex2D.glsl
     #
     # Widgets
     #
   - Handle: cubemap_tex_2D
     Filepath: ./assets/shaders/widgets/texCubemapTex2D.glsl
+  - Handle: cubemap_array_tex_2D
+    Filepath: ./assets/shaders/widgets/texCubemapArrayTex2D.glsl
   - Handle: tex_2D_array_tex_2D
     Filepath: ./assets/shaders/widgets/tex2DArrayTex2D.glsl
   - Handle: tex_3D_tex_2D

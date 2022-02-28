@@ -7,6 +7,11 @@
 #include "Graphics/RenderPasses/HiZPass.h"
 #include "Graphics/RenderPasses/HBAOPass.h"
 #include "Graphics/RenderPasses/SkyAtmospherePass.h"
+#include "Graphics/RenderPasses/DynamicSkyIBLPass.h"
+
+#include "Graphics/RenderPasses/IBLApplicationPass.h"
+
+#include "Graphics/RenderPasses/PostProcessingPass.h"
 
 // ImGui includes.
 #include "imgui/imgui.h"
@@ -20,6 +25,8 @@ namespace Strontium
     , transmittanceLUTView("Transmittance LUT")
     , multiscatteringLUTView("Multiscattering LUT")
     , skyviewLUTView("Skyview LUT")
+    , irradianceView("Dynamic Sky Irradiance")
+    , radianceView("Dynamic Sky Radiance")
   { }
 
   RendererWindow::~RendererWindow()
@@ -192,28 +199,6 @@ namespace Strontium
                      ImVec2(128.0f * ratio, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
       }
     }
-
-    if (ImGui::CollapsingHeader("Tone Mapping"))
-    {
-      ImGui::DragFloat("Gamma", &state->gamma, 0.01f, 1.0f, 10.0f);
-
-      const char* toneMapOps[] = { "Reinhard", "Enhanced Reinhard", "Reinhard-Jodie", "Uncharted 2", "Fast ACES", "ACES", "None" };
-
-      if (ImGui::BeginCombo("##toneMapCombo", toneMapOps[state->postProcessSettings.x]))
-      {
-        for (unsigned int i = 0; i < IM_ARRAYSIZE(toneMapOps); i++)
-        {
-          bool isSelected = (toneMapOps[i] == toneMapOps[state->postProcessSettings.x]);
-          if (ImGui::Selectable(toneMapOps[i], isSelected))
-            state->postProcessSettings.x = i;
-
-          if (isSelected)
-            ImGui::SetItemDefaultFocus();
-        }
-
-        ImGui::EndCombo();
-      }
-    }
     */
 
     if (ImGui::CollapsingHeader("Geometry Pass"))
@@ -314,10 +299,90 @@ namespace Strontium
       ImGui::Checkbox("Show Hillaire LUTs", &showLUTs);
       if (showLUTs)
       {
-        transmittanceLUTView.arrayImage(skyAtmoBlock->transmittanceLUTs, ImVec2(256.0f, 64.0f));
-        multiscatteringLUTView.arrayImage(skyAtmoBlock->multiscatterLUTS, ImVec2(64.0f, 64.0f));
-        skyviewLUTView.arrayImage(skyAtmoBlock->skyviewLUTs, ImVec2(256.0f, 128.0f));
+        this->transmittanceLUTView.arrayImage(skyAtmoBlock->transmittanceLUTs, ImVec2(256.0f, 64.0f));
+        this->multiscatteringLUTView.arrayImage(skyAtmoBlock->multiscatterLUTS, ImVec2(64.0f, 64.0f));
+        this->skyviewLUTView.arrayImage(skyAtmoBlock->skyviewLUTs, ImVec2(256.0f, 128.0f));
       }
+    }
+
+    if (ImGui::CollapsingHeader("Dynamic Sky IBL Pass"))
+    {
+      auto& renderPassManger = Renderer3D::getPassManager();
+      auto dynSkyIBLPass = renderPassManger.getRenderPass<DynamicSkyIBLPass>();
+      auto dynIBLBlock = dynSkyIBLPass->getInternalDataBlock<DynamicSkyIBLPassDataBlock>();
+
+      ImGui::Text("Frametime: %f ms", dynIBLBlock->frameTime);
+
+      int irradSamples = static_cast<int>(dynIBLBlock->numIrradSamples);
+      ImGui::SliderInt("Irradiance Samples", &irradSamples, 32, 1024, "%d", ImGuiSliderFlags_AlwaysClamp);
+      dynIBLBlock->numIrradSamples = static_cast<uint>(irradSamples);
+
+      int radSamples = static_cast<int>(dynIBLBlock->numRadSamples);
+      ImGui::SliderInt("Radiance Samples", &radSamples, 32, 1024, "%d", ImGuiSliderFlags_AlwaysClamp);
+      dynIBLBlock->numRadSamples = static_cast<uint>(radSamples);
+
+      static bool showIBLMaps = false;
+      ImGui::Checkbox("Show Irradiance and Radiance Maps", &showIBLMaps);
+      if (showIBLMaps)
+      {
+        this->irradianceView.cubemapArrayImage(dynIBLBlock->irradianceCubemaps, ImVec2(192.0f, 128.0f));
+        this->radianceView.cubemapArrayImage(dynIBLBlock->radianceCubemaps, ImVec2(192.0f, 128.0f), true);
+      }
+    }
+
+    if (ImGui::CollapsingHeader("Lighting Pass"))
+    {
+      auto& globalBlock = Renderer3D::getStorage();
+      auto& renderPassManger = Renderer3D::getPassManager();
+      auto iblAppPass = renderPassManger.getRenderPass<IBLApplicationPass>();
+      auto iblAppBlock = iblAppPass->getInternalDataBlock<IBLApplicationPassDataBlock>();
+
+      ImGui::Text("IBL Frametime: %f ms", iblAppBlock->frameTime);
+
+      ImGui::Text("Lighting Buffer");
+      float ratio = static_cast<float>(globalBlock.lightingBuffer.getWidth()) 
+                  / static_cast<float>(globalBlock.lightingBuffer.getHeight());
+      ImGui::Image(reinterpret_cast<ImTextureID>(globalBlock.lightingBuffer.getID()),
+                   ImVec2(128.0f * ratio, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
+
+      static bool showBRDFLUT = false;
+      ImGui::Checkbox("Show BRDF LUT", &showBRDFLUT);
+      if (showBRDFLUT)
+      {
+        ImGui::Image(reinterpret_cast<ImTextureID>(iblAppBlock->brdfLUT.getID()),
+                     ImVec2(64.0f, 64.0f), ImVec2(0, 1), ImVec2(1, 0));
+      }
+    }
+
+    if (ImGui::CollapsingHeader("General Post-Processing Pass"))
+    {
+      auto& globalBlock = Renderer3D::getStorage();
+      auto& renderPassManger = Renderer3D::getPassManager();
+      auto postPass = renderPassManger.getRenderPass<PostProcessingPass>();
+      auto postBlock = postPass->getInternalDataBlock<PostProcessingPassDataBlock>();
+
+      ImGui::Text("General Post-Processing Frametime: %f ms", postBlock->frameTime);
+
+      ImGui::DragFloat("Gamma", &globalBlock.gamma, 0.01f, 1.0f, 10.0f);
+
+      const char* toneMapOps[] = { "Reinhard", "Enhanced Reinhard", "Reinhard-Jodie", "Uncharted 2", "Fast ACES", "ACES", "None" };
+
+      if (ImGui::BeginCombo("##toneMapCombo", toneMapOps[postBlock->toneMapOp]))
+      {
+        for (unsigned int i = 0; i < IM_ARRAYSIZE(toneMapOps); i++)
+        {
+          bool isSelected = (toneMapOps[i] == toneMapOps[postBlock->toneMapOp]);
+          if (ImGui::Selectable(toneMapOps[i], isSelected))
+              postBlock->toneMapOp = i;
+
+          if (isSelected)
+            ImGui::SetItemDefaultFocus();
+        }
+
+        ImGui::EndCombo();
+      }
+
+      ImGui::Checkbox("Use FXAA", &postBlock->useFXAA);
     }
 
     ImGui::End();

@@ -22,7 +22,7 @@ layout(std140, binding = 0) uniform CameraBlock
   mat4 u_projMatrix;
   mat4 u_invViewProjMatrix;
   vec3 u_camPosition;
-  vec4 u_nearFar; // Near plane (x), far plane (y). z and w are unused.
+  vec4 u_nearFarGamma; // Near plane (x), far plane (y), gamma correction factor (z). w is unused.
 };
 
 layout(std140, binding = 1) uniform AOBlock
@@ -61,7 +61,7 @@ void main()
   vec2 uvs = (vec2(invoke) + 0.5.xx) * texelSize;
 
   float center = texture(inTexture, uvs).r;
-  float centerDepth = linearizeDepth(textureLod(gDepth, uvs, 1.0).r, u_nearFar.x, u_nearFar.y);
+  float centerDepth = linearizeDepth(textureLod(gDepth, uvs, 1.0).r, u_nearFarGamma.x, u_nearFarGamma.y);
 
   float cTotal = center;
   float wTotal = 1.0;
@@ -69,13 +69,13 @@ void main()
   for (uint r = 1; r <= KERNEL_RADIUS; r++)
   {
     vec2 uv = uvs + (texelSize * float(r) * u_aoParams2.xy);
-    cTotal += blurFunction(uv, r, centerDepth, gDepth, inTexture, u_nearFar.xy, wTotal);
+    cTotal += blurFunction(uv, r, centerDepth, gDepth, inTexture, u_nearFarGamma.xy, wTotal);
   }
 
   for (uint r = 1; r <= KERNEL_RADIUS; r++)
   {
     vec2 uv = uvs - (texelSize * float(r) * u_aoParams2.xy);
-    cTotal += blurFunction(uv, r, centerDepth, gDepth, inTexture, u_nearFar.xy, wTotal);
+    cTotal += blurFunction(uv, r, centerDepth, gDepth, inTexture, u_nearFarGamma.xy, wTotal);
   }
 
   float result = cTotal / wTotal;

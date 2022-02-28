@@ -43,15 +43,8 @@ namespace Strontium
         ImGui::Selectable("##editorselectable", false, ImGuiSelectableFlags_Disabled, this->parentLayer->getEditorSize());
         this->DNDTarget(activeScene);
         ImGui::SetCursorPos(cursorPos);
-        /*
-        auto& drawBuffer = this->parentLayer->getFrontBuffer();
-        ImGui::Image((ImTextureID) (unsigned long) drawBuffer.getAttachID(FBOTargetParam::Colour0),
-                     this->parentLayer->getEditorSize(), ImVec2(0, 1), ImVec2(1, 0));
-        */
-        auto& renderPassManger = Renderer3D::getPassManager();
-        auto hbaoPass = renderPassManger.getRenderPass<HBAOPass>();
-        auto hbaoBlock = hbaoPass->getInternalDataBlock<HBAOPassDataBlock>();
-        ImGui::Image((ImTextureID) (unsigned long) hbaoBlock->downsampleAO.getID(),
+        auto& globalBlock = Renderer3D::getStorage();
+        ImGui::Image(reinterpret_cast<ImTextureID>(this->parentLayer->getFrontBuffer().getAttachID(FBOTargetParam::Colour0)),
                      this->parentLayer->getEditorSize(), ImVec2(0, 1), ImVec2(1, 0));
 
         this->manipulateEntity(this->parentLayer->getSelectedEntity());

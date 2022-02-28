@@ -34,7 +34,7 @@ layout(std140, binding = 0) uniform CameraBlock
   mat4 u_projMatrix;
   mat4 u_invViewProjMatrix;
   vec3 u_camPosition;
-  vec4 u_nearFar; // Near plane (x), far plane (y). z and w are unused.
+  vec4 u_nearFarGamma; // Near plane (x), far plane (y), gamma correction factor (z). w is unused.
 };
 
 // Planetary radii are in Mm. Height falloffs are in km.
@@ -101,7 +101,7 @@ void main()
   slice *= tex.z;
 
   // Cover the entire view frustum.
-  float planeDelta = (u_nearFar.y - u_nearFar.x) * texelSize.z * 1e-6;
+  float planeDelta = (u_nearFarGamma.y - u_nearFarGamma.x) * texelSize.z * 1e-6;
 
   float tMax = planeDelta * slice;
   vec3 newWorldPos = camPos + (tMax * worlDir);

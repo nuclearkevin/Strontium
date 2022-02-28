@@ -24,7 +24,7 @@ layout(std140, binding = 0) uniform CameraBlock
   mat4 u_projMatrix;
   mat4 u_invViewProjMatrix;
   vec3 u_camPosition;
-  vec4 u_nearFar; // Near plane (x), far plane (y). z and w are unused.
+  vec4 u_nearFarGamma; // Near plane (x), far plane (y), gamma correction factor (z). w is unused.
 };
 
 // An index for fetching data from the transform and editor SSBOs.
@@ -131,7 +131,7 @@ void main()
   if (albedo.a < 1e-4)
     discard;
 
-  gAlbedo = vec4(pow(albedo.rgb * albedoReflectance.rgb, vec3(2.2)), 1.0);
+  gAlbedo = vec4(pow(albedo.rgb * albedoReflectance.rgb, vec3(u_nearFarGamma.z)), 1.0);
   gAlbedo.a = texture(specF0Map, fragIn.fTexCoords).r * albedoReflectance.a;
   gNormal.rg = encodeNormal(getNormal(normalMap, fragIn.fTBN, fragIn.fTexCoords));
   gNormal.ba = 1.0.xx;

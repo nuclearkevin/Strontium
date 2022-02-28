@@ -156,7 +156,7 @@ namespace Strontium
 
   }
 
-  void 
+  bool 
   SkyAtmospherePass::submit(const Atmosphere& atmo, const RendererDataHandle& handle, 
                             const DirectionalLight &light, const glm::mat4& model)
   {
@@ -176,10 +176,13 @@ namespace Strontium
     {
       this->passData.atmosphereQueue[handle] = temp;
       this->passData.updateAtmosphere[handle] = true;
+      return true;
     }
+
+    return false;
   }
 
-  void 
+  bool 
   SkyAtmospherePass::submit(const Atmosphere& atmo, const RendererDataHandle& handle, 
                             const glm::mat4& model)
   {
@@ -208,6 +211,9 @@ namespace Strontium
     {
       this->passData.atmosphereQueue[handle] = temp;
       this->passData.updateAtmosphere[handle] = true;
+      return true;
     }
+
+    return false;
   }
 }

@@ -66,7 +66,7 @@ namespace Strontium
       glm::mat4 projMatrix;
       glm::mat4 invViewProjMatrix;
       glm::vec4 camPosition; // w unused
-      glm::vec4 nearFar; // Near plane (x), far plane (y). z and w are unused.
+      glm::vec4 nearFar; // Near plane (x), far plane (y), gamma correction factor (z). w is unused.
 	} 
 	  cameraBlock 
 	{ 
@@ -75,7 +75,7 @@ namespace Strontium
 	  this->globalBlock->sceneCam.invViewProj,
       { this->globalBlock->sceneCam.position, 0.0 },
       { this->globalBlock->sceneCam.near,
-        this->globalBlock->sceneCam.far, 0.0, 0.0 }
+        this->globalBlock->sceneCam.far, this->globalBlock->gamma, 0.0 }
 	};
 	this->passData.cameraBuffer.setData(0, sizeof(CameraBlockData), &cameraBlock);
 

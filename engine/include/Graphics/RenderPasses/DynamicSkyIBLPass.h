@@ -30,14 +30,20 @@ namespace Strontium
     std::bitset<MAX_NUM_DYNAMIC_IBL> updateIBL;
     std::array<DynamicIBL, MAX_NUM_DYNAMIC_IBL> iblQueue;
 
+    // Global IBL parameters.
+    uint numIrradSamples;
+    uint numRadSamples;
+
     // Some statistics.
     float frameTime;
 
     DynamicSkyIBLPassDataBlock()
       : dynamicSkyIrradiance(nullptr)
       , dynamicSkyRadiance(nullptr)
-      , iblParamsBuffer(sizeof(glm::ivec2), BufferType::Dynamic)
+      , iblParamsBuffer(sizeof(glm::ivec4), BufferType::Dynamic)
       , iblIndices((MAX_NUM_ATMOSPHERES + MAX_NUM_DYNAMIC_IBL) * sizeof(int), BufferType::Dynamic)
+      , numIrradSamples(512)
+      , numRadSamples(64)
       , frameTime(0.0f)
     { }
   };
@@ -58,7 +64,7 @@ namespace Strontium
     void onRendererEnd(FrameBuffer& frontBuffer) override;
     void onShutdown() override;
 
-    void submit(const DynamicIBL &iblParams, RendererDataHandle handle);
+    void submit(const DynamicIBL &iblParams, bool skyUpdated);
 
   private:
     DynamicSkyIBLPassDataBlock passData;

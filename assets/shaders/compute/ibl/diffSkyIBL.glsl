@@ -61,6 +61,7 @@ layout(std430, binding = 0) readonly buffer Indices
 
 // Function for converting between image coordiantes and world coordiantes.
 vec3 cubeToWorld(ivec3 cubeCoord, vec2 cubeSize);
+
 // Sample the sky view LUT.
 vec3 sampleSkyViewLUT(float atmIndex, sampler2DArray lut, vec3 viewPos, vec3 viewDir,
                       vec3 sunDir, float groundRadiusMM);
@@ -87,7 +88,7 @@ void main()
 
   // The normal is the same as the worldspace position.
   vec3 normal = normalize(worldPos);
-  normal.xz *= -1.0;
+  //normal.xz *= -1.0; // I do not know why this is necessary...
 
   vec3 irradiance = vec3(0.0);
   const uint numSamples = uint(u_iblParams.y);
@@ -100,7 +101,7 @@ void main()
   }
 
   irradiance = PI * irradiance * (1.0 / float(numSamples));
-  imageStore(irradianceMap, ivec3(invoke.xy, iblIndex), vec4(irradiance, 1.0));
+  imageStore(irradianceMap, ivec3(invoke.xy, iblIndex + cubeFace), vec4(irradiance, 1.0));
 }
 
 // I need to figure out how to make these branchless one of these days...

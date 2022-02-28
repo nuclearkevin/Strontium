@@ -8,6 +8,10 @@
 #include "Graphics/RenderPasses/SkyAtmospherePass.h"
 #include "Graphics/RenderPasses/DynamicSkyIBLPass.h"
 
+#include "Graphics/RenderPasses/IBLApplicationPass.h"
+
+#include "Graphics/RenderPasses/PostProcessingPass.h"
+
 //----------------------------------------------------------------------------
 // 3D renderer starts here.
 //----------------------------------------------------------------------------
@@ -31,6 +35,20 @@ namespace Strontium::Renderer3D
     // Setup global storage which gets used by multiple passes.
     rendererData = new GlobalRendererData();
 
+    rendererData->gamma = 2.2f;
+
+    // The lighting pass buffer.
+    Texture2DParams lightingParams = Texture2DParams();
+    lightingParams.sWrap = TextureWrapParams::ClampEdges;
+    lightingParams.tWrap = TextureWrapParams::ClampEdges;
+    lightingParams.internal = TextureInternalFormats::RGBA16f;
+    lightingParams.format = TextureFormats::RGBA;
+    lightingParams.dataType = TextureDataType::Floats;
+    rendererData->lightingBuffer.setSize(1600, 900);
+    rendererData->lightingBuffer.setParams(lightingParams);
+    rendererData->lightingBuffer.initNullTexture();
+
+    // A half-res buffer for half-resolution effects.
     Texture2DParams halfRes1Params = Texture2DParams();
     halfRes1Params.sWrap = TextureWrapParams::ClampEdges;
     halfRes1Params.tWrap = TextureWrapParams::ClampEdges;
@@ -45,12 +63,19 @@ namespace Strontium::Renderer3D
     passManager = new RenderPassManager();
 
     // Insert the render passes.
+    // Pre-lighting passes.
     auto geomet = passManager->insertRenderPass<GeometryPass>(rendererData);
     auto shadow = passManager->insertRenderPass<ShadowPass>(rendererData);
     auto hiZ = passManager->insertRenderPass<HiZPass>(rendererData, geomet);
     auto hbao = passManager->insertRenderPass<HBAOPass>(rendererData, geomet, hiZ);
     auto skyatmo = passManager->insertRenderPass<SkyAtmospherePass>(rendererData, geomet);
     auto dynIBL = passManager->insertRenderPass<DynamicSkyIBLPass>(rendererData, skyatmo);
+
+    // Lighting passes.
+    auto iblApp = passManager->insertRenderPass<IBLApplicationPass>(rendererData, geomet, hbao, dynIBL);
+
+    // Post processing passes
+    auto post = passManager->insertRenderPass<PostProcessingPass>(rendererData, geomet);
 
     // Init the render passes.
     passManager->onInit();
@@ -87,6 +112,18 @@ namespace Strontium::Renderer3D
     rendererData->spotLightCount = 0u;
 
     // Resize the global buffers.
+    if (static_cast<uint>(rendererData->lightingBuffer.getWidth()) != width ||
+        static_cast<uint>(rendererData->lightingBuffer.getHeight()) != height)
+    {
+      rendererData->lightingBuffer.setSize(width, height);
+      rendererData->lightingBuffer.initNullTexture();
+    }
+    uint groupX = static_cast<uint>(glm::ceil(static_cast<float>(width) / 8.0f));
+    uint groupY = static_cast<uint>(glm::ceil(static_cast<float>(height) / 8.0f));
+    rendererData->lightingBuffer.bindAsImage(0, 0, ImageAccessPolicy::Write);
+    ShaderCache::getShader("clear_tex_2D")->launchCompute(groupX, groupY, 1);
+    Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
+
     uint hWidth = static_cast<uint>(glm::ceil(static_cast<float>(width) / 2.0f));
     uint hHeight = static_cast<uint>(glm::ceil(static_cast<float>(height) / 2.0f));
     if (static_cast<uint>(rendererData->halfResBuffer1.getWidth()) != hWidth ||

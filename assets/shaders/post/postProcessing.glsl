@@ -24,15 +24,14 @@ layout(std140, binding = 0) uniform CameraBlock
   mat4 u_projMatrix;
   mat4 u_invViewProjMatrix;
   vec3 u_camPosition;
-  vec4 u_nearFar; // Near plane (x), far plane (y). z and w are unused.
+  vec4 u_nearFarGamma; // Near plane (x), far plane (y), gamma correction factor (z). w is unused.
 };
 
 // The post processing properties.
 layout(std140, binding = 1) uniform PostProcessBlock
 {
-  vec4 u_camPosScreenSize; // Camera position (x, y, z) and the screen width (w).
-  vec4 u_screenSizeGammaBloom;  // Screen height (x), gamma (y) and bloom intensity (z). w is unused.
-  ivec4 u_postProcessingPasses; // Tone mapping operator (x), using bloom (y), using FXAA (z) and using sunshafts (w).
+  vec4 u_bloom;  // Bloom intensity (x). y, z and w are unused.
+  ivec2 u_postSettings; // Using FXAA (bit 1), using bloom (bit 2) (x). Tone mapping operator (y). z and w are unused.
 };
 
 layout(binding = 0) uniform sampler2D screenColour;
@@ -64,16 +63,16 @@ void main()
   vec2 fTexCoords = gl_FragCoord.xy / screenSize;
 
   vec3 colour;
-  if (u_postProcessingPasses.z != 0)
+  if ((u_postSettings.x & 1) == 1)
     colour = applyFXAA(screenSize, fTexCoords, screenColour);
   else
     colour = texture(screenColour, fTexCoords).rgb;
 
-  if (u_postProcessingPasses.y != 0)
-    colour += blendBloom(fTexCoords, bloomColour, u_screenSizeGammaBloom.z);
+  if ((u_postSettings.x & 2) == 2)
+    colour += blendBloom(fTexCoords, bloomColour, u_bloom.y);
 
-  colour = toneMap(colour, uint(u_postProcessingPasses.x));
-  colour = applyGamma(colour, u_screenSizeGammaBloom.y);
+  colour = toneMap(colour, uint(u_postSettings.y));
+  colour = applyGamma(colour, u_nearFarGamma.z);
 
   fragColour = vec4(colour, 1.0);
   fragID = texture(entityIDs, fTexCoords).a;

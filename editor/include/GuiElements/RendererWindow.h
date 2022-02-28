@@ -29,5 +29,8 @@ namespace Strontium
     TextureWidget transmittanceLUTView;
     TextureWidget multiscatteringLUTView;
     TextureWidget skyviewLUTView;
+
+    TextureWidget irradianceView;
+    TextureWidget radianceView;
   };
 }

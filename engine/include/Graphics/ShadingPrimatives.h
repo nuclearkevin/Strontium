@@ -136,15 +136,19 @@ namespace Strontium
   struct DynamicIBL
   {
     float intensity;
+    RendererDataHandle handle;
     RendererDataHandle attachedSkyAtmoHandle;
 
     DynamicIBL()
       : intensity(0.0f)
+      , handle(-1)
       , attachedSkyAtmoHandle(-1)
     { }
 
-    DynamicIBL(float intensity, RendererDataHandle attachedSkyAtmoHandle)
+    DynamicIBL(float intensity, RendererDataHandle handle, 
+               RendererDataHandle attachedSkyAtmoHandle)
       : intensity(intensity)
+      , handle(handle)
       , attachedSkyAtmoHandle(attachedSkyAtmoHandle)
     { }
   };

@@ -794,7 +794,9 @@ namespace Strontium
   void 
   CubeMapArrayTexture::generateMips()
   {
-
+    glBindTexture(GL_TEXTURE_CUBE_MAP_ARRAY, this->textureID);
+    glGenerateMipmap(GL_TEXTURE_CUBE_MAP_ARRAY);
+    glBindTexture(GL_TEXTURE_CUBE_MAP_ARRAY, 0);
   }
 
   // TODO: Clear the texture.

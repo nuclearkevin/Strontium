@@ -5,7 +5,7 @@
  */
 
 #define PI 3.141592654
-#define MAX_MIP 4.0
+#define MAX_MIP 6.0
 
 layout(local_size_x = 8, local_size_y = 8) in;
 
@@ -23,6 +23,21 @@ struct SurfaceProperties
   vec3 view;
 };
 
+// GBuffer.
+layout(binding = 0) uniform sampler2D gDepth;
+layout(binding = 1) uniform sampler2D gNormal;
+layout(binding = 2) uniform sampler2D gAlbedo;
+layout(binding = 3) uniform sampler2D gMatProp;
+
+// TODO: Spherical harmonics instead of a cubemap.
+layout(binding = 4) uniform samplerCubeArray irradianceMap;
+layout(binding = 5) uniform samplerCubeArray radianceMap;
+layout(binding = 6) uniform sampler2D brdfLookUp;
+layout(binding = 7) uniform sampler2D hbaoTexture;
+
+// The lighting buffer.
+layout(rgba16f, binding = 0) restrict uniform image2D lightingBuffer;
+
 // Camera specific uniforms.
 layout(std140, binding = 0) uniform CameraBlock
 {
@@ -36,27 +51,14 @@ layout(std140, binding = 0) uniform CameraBlock
 // Ambient lighting specific uniforms.
 layout(std140, binding = 1) uniform IBLBlock
 {
-  vec4 u_iblParams; // Use HBAO (x), ibl intensity (y). Z and w are unused.
+  vec4 u_iblParams; // IBL index (x), IBL intensity (y), use HBAO (z). w is unused.
 };
-
-layout(rgba16f, binding = 0) restrict uniform image2D lightingBuffer;
-
-// Uniforms for the geometry buffer.
-layout(binding = 0) uniform sampler2D gDepth;
-layout(binding = 1) uniform sampler2D gNormal;
-layout(binding = 2) uniform sampler2D gAlbedo;
-layout(binding = 3) uniform sampler2D gMatProp;
-// TODO: Spherical harmonics instead of a cubemap.
-layout(binding = 4) uniform samplerCube irradianceMap;
-layout(binding = 5) uniform samplerCube reflectanceMap;
-layout(binding = 6) uniform sampler2D brdfLookUp;
-layout(binding = 7) uniform sampler2D hbaoTexture;
 
 // Decode the g-buffer.
 SurfaceProperties decodeGBuffer(vec2 gBufferUVs);
 
 // Compute the static IBL contribution.
-vec3 evaluateIBL(SurfaceProperties gBuffer, float diffAO);
+vec3 evaluateIBL(float iblIndex, SurfaceProperties gBuffer, float diffAO);
 
 // Fetches and upsamples the horizon-based ambient occlusion.
 float getHBAO(sampler2D gDepth, sampler2D hbaoTexture, vec2 gBufferCoords, vec2 nearFar);
@@ -65,19 +67,21 @@ void main()
 {
   ivec2 invoke = ivec2(gl_GlobalInvocationID.xy);
   vec2 gBufferUVs = (vec2(invoke) + 0.5.xx) / vec2(textureSize(gDepth, 0).xy);
+
+  if (texture(gDepth, gBufferUVs).r >= 1.0)
+    return;
+
   SurfaceProperties gBuffer = decodeGBuffer(gBufferUVs);
 
   vec3 totalRadiance = imageLoad(lightingBuffer, invoke).rgb;
 
   float ao = gBuffer.ao;
-  if (u_iblParams.x > 0.0)
+  if (u_iblParams.z > 0.0)
     ao = min(getHBAO(gDepth, hbaoTexture, gBufferUVs, u_nearFar.xy), ao);
 
-  totalRadiance += evaluateIBL(gBuffer, ao) * u_iblParams.y;
+  totalRadiance += evaluateIBL(u_iblParams.x, gBuffer, ao) * u_iblParams.y;
 
-  // Hack until I fix IBL.
-  //imageStore(lightingBuffer, invoke, vec4(totalRadiance, 1.0));
-  imageStore(lightingBuffer, invoke, vec4(gBuffer.albedo * 0.1 * ao, 1.0));
+  imageStore(lightingBuffer, invoke, vec4(totalRadiance, 1.0));
 }
 
 // Decodes the worldspace position of the fragment from depth.
@@ -131,16 +135,17 @@ float computeSpecularAO(float nDotV, float ao, float roughness)
 }
 
 // Compute the static IBL contribution.
-vec3 evaluateIBL(SurfaceProperties gBuffer, float diffAO)
+vec3 evaluateIBL(float iblIndex, SurfaceProperties gBuffer, float diffAO)
 {
-  float nDotV = max(dot(gBuffer.normal, -(gBuffer.view)), 0.0);
-  vec3 r = normalize(reflect(gBuffer.view, gBuffer.normal));
+  float nDotV = max(dot(gBuffer.normal, gBuffer.view), 0.0);
+  vec3 r = normalize(reflect(-gBuffer.view, gBuffer.normal));
   vec3 diffuseAlbedo = gBuffer.albedo * (1.0 - gBuffer.metalness);
 
-  vec3 irradiance = texture(irradianceMap, gBuffer.normal).rgb * diffuseAlbedo * diffAO;
+  vec3 irradiance = texture(irradianceMap, vec4(gBuffer.normal, iblIndex)).rgb
+                    * diffuseAlbedo * diffAO;
 
   float lod = MAX_MIP * gBuffer.roughness;
-  vec3 specularDecomp = textureLod(reflectanceMap, r, lod).rgb;
+  vec3 specularDecomp = textureLod(radianceMap, vec4(r, iblIndex), lod).rgb;
   vec2 splitSums = texture(brdfLookUp, vec2(nDotV, gBuffer.roughness)).rg;
 
   vec3 mappedF0 = mix(gBuffer.dielectricF0, gBuffer.metallicF0, gBuffer.metalness);

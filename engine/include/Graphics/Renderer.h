@@ -15,7 +15,6 @@
 #include "Graphics/FrameBuffer.h"
 #include "Graphics/GeometryBuffer.h"
 
-#include "Graphics/EnvironmentMap.h"
 #include "Graphics/Meshes.h"
 #include "Graphics/Model.h"
 #include "Graphics/Animations.h"
@@ -30,6 +29,7 @@ namespace Strontium::Renderer3D
   struct GlobalRendererData
   {
     Camera sceneCam;
+    float gamma;
     Frustum camFrustum;
 
     uint numTransforms;
@@ -44,9 +44,16 @@ namespace Strontium::Renderer3D
     uint spotLightCount;
     std::array<SpotLight, 1024> spotLightQueue;
 
+    VertexArray blankVAO;
+
+    Texture2D lightingBuffer;
     Texture2D halfResBuffer1;
 
     bool drawEdge;
+
+    GlobalRendererData()
+      : blankVAO()
+    { }
   };
 
   // Init the renderer for drawing.

@@ -11,7 +11,7 @@
 layout(local_size_x = 8, local_size_y = 8) in;
 
 // The output BRDF integration LUT.
-layout(rg16f, binding = 3) restrict writeonly uniform image2D brdfIntMap;
+layout(rg16f, binding = 0) restrict writeonly uniform image2D brdfIntMap;
 
 // Schlick-Beckmann geometry function.
 float SBGeometry(float NdotV, float roughness);

@@ -23,7 +23,7 @@ layout(std140, binding = 0) uniform CameraBlock
   mat4 u_projMatrix;
   mat4 u_invViewProjMatrix;
   vec3 u_camPosition;
-  vec4 u_nearFar; // Near plane (x), far plane (y). z and w are unused.
+  vec4 u_nearFarGamma; // Near plane (x), far plane (y), gamma correction factor (z). w is unused.
 };
 
 // https://stackoverflow.com/questions/51108596/linearize-depth
@@ -37,7 +37,7 @@ vec4 blurFunction(vec2 uv, float r, float centerDepth, sampler2D depthMap,
                   sampler2D blurMap, vec2 nearFar, inout float totalWeight)
 {
   vec4 volumetric = texture(blurMap, uv);
-  float d = linearizeDepth(textureLod(depthMap, uv, 1.0).r, nearFar.x, nearFar.y);
+  float d = linearizeDepth(textureLod(depthMap, uv, 1.0).r, u_nearFarGamma.x, u_nearFarGamma.y);
 
   const float blurSigma = float(KERNEL_RADIUS) * 0.5;
   const float blurFalloff = 1.0 / (2.0 * blurSigma * blurSigma);
@@ -56,7 +56,7 @@ void main()
   vec2 uvs = (vec2(invoke) + 0.5.xx) * texelSize;
 
   vec4 center = texture(inTexture, uvs);
-  float centerDepth = linearizeDepth(textureLod(gDepth, uvs, 1.0).r, u_nearFar.x, u_nearFar.y);
+  float centerDepth = linearizeDepth(textureLod(gDepth, uvs, 1.0).r, u_nearFarGamma.x, u_nearFarGamma.y);
 
   vec4 cTotal = center;
   float wTotal = 1.0;
@@ -64,13 +64,13 @@ void main()
   for (uint r = 1; r <= KERNEL_RADIUS; r++)
   {
     vec2 uv = uvs + (texelSize * float(r) * u_direction);
-    cTotal += blurFunction(uv, r, centerDepth, gDepth, inTexture, u_nearFar.xy, wTotal);
+    cTotal += blurFunction(uv, r, centerDepth, gDepth, inTexture, u_nearFarGamma.xy, wTotal);
   }
 
   for (uint r = 1; r <= KERNEL_RADIUS; r++)
   {
     vec2 uv = uvs - (texelSize * float(r) * u_direction);
-    cTotal += blurFunction(uv, r, centerDepth, gDepth, inTexture, u_nearFar.xy, wTotal);
+    cTotal += blurFunction(uv, r, centerDepth, gDepth, inTexture, u_nearFarGamma.xy, wTotal);
   }
 
   imageStore(outImage, invoke, cTotal / wTotal);
