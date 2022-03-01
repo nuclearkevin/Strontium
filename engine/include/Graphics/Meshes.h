@@ -34,14 +34,21 @@ namespace Strontium
     { }
   };
 
-  struct MeshBlock
+  struct PackedVertex
   {
-	uint indexOffset;
-	uint vertexOffset;
-	uint numIndices;
-	uint numVertices;
+    glm::vec4 position;
+    glm::quat tangentFrame; 
+    glm::vec4 boneWeights;
+    glm::ivec4 boneIndices;
+    glm::vec2 texCoords;
 
-	uint meshID;
+    PackedVertex()
+      : position(0.0f)
+      , tangentFrame()
+      , boneWeights(0.0f)
+      , boneIndices(-1)
+      , texCoords(0.0f)
+    { }
   };
 
   // Material info from assimp.

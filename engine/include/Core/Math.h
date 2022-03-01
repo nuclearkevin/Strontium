@@ -50,4 +50,7 @@ namespace Strontium
   bool boundingBoxInFrustum(const Frustum &frustum, const glm::vec3 min, const glm::vec3 max);
   bool boundingBoxInFrustum(const Frustum& frustum, const glm::vec3 min, const glm::vec3 max, 
                             const glm::mat4 &transform);
+
+  // Convert a tangent frame to a qTangent quaternion.
+  glm::quat compressTangentFrame(const glm::vec3 &normal, const glm::vec3 &tangent, const glm::vec3 &bitangent);
 }

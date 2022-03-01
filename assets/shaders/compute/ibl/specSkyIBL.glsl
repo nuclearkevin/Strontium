@@ -14,7 +14,7 @@
 #define PI 3.141592654
 #define PI_OVER_TWO 1.570796327
 
-layout(local_size_x = 8, local_size_y = 8) in;
+layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 
 //------------------------------------------------------------------------------
 // Params from the sky atmosphere pass to read the sky-view LUT.
@@ -120,7 +120,7 @@ void main()
 
   prefilteredColor = prefilteredColor / totalWeight;
 
-  imageStore(radianceMap, ivec3(invoke.xy, iblIndex + cubeFace), vec4(prefilteredColor, 1.0));
+  imageStore(radianceMap, ivec3(invoke.xy, 6 * iblIndex + cubeFace), vec4(prefilteredColor, 1.0));
 }
 
 // I need to figure out how to make these branchless one of these days...
