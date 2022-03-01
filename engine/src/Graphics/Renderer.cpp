@@ -12,6 +12,8 @@
 
 #include "Graphics/RenderPasses/PostProcessingPass.h"
 
+#include "Graphics/RenderPasses/SkyboxPass.h"
+
 //----------------------------------------------------------------------------
 // 3D renderer starts here.
 //----------------------------------------------------------------------------
@@ -73,6 +75,9 @@ namespace Strontium::Renderer3D
 
     // Lighting passes.
     auto iblApp = passManager->insertRenderPass<IBLApplicationPass>(rendererData, geomet, hbao, dynIBL);
+
+    // Skybox pass. This should be applied last.
+    auto skyboxApp = passManager->insertRenderPass<SkyboxPass>(rendererData, geomet, skyatmo);
 
     // Post processing passes
     auto post = passManager->insertRenderPass<PostProcessingPass>(rendererData, geomet);

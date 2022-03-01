@@ -64,8 +64,8 @@ ShaderCache:
     Filepath: ./assets/shaders/compute/lighting/ibLightEval.glsl
   - Handle: volumetric_evaluation
     Filepath: ./assets/shaders/compute/lighting/volumetricEval.glsl
-  - Handle: sky_evaluation
-    Filepath: ./assets/shaders/compute/lighting/skyboxEval.glsl
+  - Handle: dynamic_sky_evaluation
+    Filepath: ./assets/shaders/compute/lighting/dynamicSkyboxEval.glsl
     #
     # Screen-space effects
     #

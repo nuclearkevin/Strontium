@@ -11,6 +11,8 @@
 
 #include "Graphics/RenderPasses/IBLApplicationPass.h"
 
+#include "Graphics/RenderPasses/SkyboxPass.h"
+
 #include "Graphics/RenderPasses/PostProcessingPass.h"
 
 // ImGui includes.
@@ -334,24 +336,23 @@ namespace Strontium
     {
       auto& globalBlock = Renderer3D::getStorage();
       auto& renderPassManger = Renderer3D::getPassManager();
-      auto iblAppPass = renderPassManger.getRenderPass<IBLApplicationPass>();
-      auto iblAppBlock = iblAppPass->getInternalDataBlock<IBLApplicationPassDataBlock>();
-
-      ImGui::Text("IBL Frametime: %f ms", iblAppBlock->frameTime);
+      
+      {
+        auto iblAppPass = renderPassManger.getRenderPass<IBLApplicationPass>();
+        auto iblAppBlock = iblAppPass->getInternalDataBlock<IBLApplicationPassDataBlock>();
+        ImGui::Text("IBL Frametime: %f ms", iblAppBlock->frameTime);
+      }
+      {
+        auto skyboxAppPass = renderPassManger.getRenderPass<SkyboxPass>();
+        auto skyboxAppBlock = skyboxAppPass->getInternalDataBlock<SkyboxPassDataBlock>();
+        ImGui::Text("Skybox Frametime: %f ms", skyboxAppBlock->frameTime);
+      }
 
       ImGui::Text("Lighting Buffer");
       float ratio = static_cast<float>(globalBlock.lightingBuffer.getWidth()) 
                   / static_cast<float>(globalBlock.lightingBuffer.getHeight());
       ImGui::Image(reinterpret_cast<ImTextureID>(globalBlock.lightingBuffer.getID()),
                    ImVec2(128.0f * ratio, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
-
-      static bool showBRDFLUT = false;
-      ImGui::Checkbox("Show BRDF LUT", &showBRDFLUT);
-      if (showBRDFLUT)
-      {
-        ImGui::Image(reinterpret_cast<ImTextureID>(iblAppBlock->brdfLUT.getID()),
-                     ImVec2(64.0f, 64.0f), ImVec2(0, 1), ImVec2(1, 0));
-      }
     }
 
     if (ImGui::CollapsingHeader("General Post-Processing Pass"))

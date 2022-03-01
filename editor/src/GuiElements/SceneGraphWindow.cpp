@@ -401,6 +401,7 @@ namespace Strontium
         drawComponentAdd<RenderableComponent>("Renderable Component", entity);
         drawComponentAdd<CameraComponent>("Camera Component", entity);
         drawComponentAdd<SkyAtmosphereComponent>("Sky and Atmosphere Component", entity);
+        drawComponentAdd<DynamicSkyboxComponent>("Dynamic Skybox Component", entity);
 
         if (ImGui::BeginMenu("Light Components"))
         {
@@ -421,6 +422,7 @@ namespace Strontium
         drawComponentRemove<RenderableComponent>("Renderable Component", entity);
         drawComponentRemove<CameraComponent>("Camera Component", entity);
         drawComponentRemove<SkyAtmosphereComponent>("Sky and Atmosphere Component", entity);
+        drawComponentRemove<DynamicSkyboxComponent>("Dynamic Skybox Component", entity);
 
         if (ImGui::BeginMenu("Light Components"))
         {
@@ -475,9 +477,11 @@ namespace Strontium
         copyComponent<NameComponent>(entity, newEntity);
         copyComponent<TransformComponent>(entity, newEntity);
         copyComponent<RenderableComponent>(entity, newEntity);
+        copyComponent<SkyAtmosphereComponent>(entity, newEntity);
+        copyComponent<DynamicSkyboxComponent>(entity, newEntity);
         copyComponent<DirectionalLightComponent>(entity, newEntity);
         copyComponent<PointLightComponent>(entity, newEntity);
-        copyComponent<SkyAtmosphereComponent>(entity, newEntity);
+        copyComponent<DynamicSkylightComponent>(entity, newEntity);
       }
 
       if (ImGui::MenuItem("Register as PreFab"))
@@ -880,6 +884,7 @@ namespace Strontium
                                                       this->selectedEntity, 
                                                       [this](auto& component)
       {
+        ImGui::PushID("SkyAtmosphere");
         ImGui::Text("Renderer handle: %i", component.handle);
         ImGui::Checkbox("Use Primary Light", &component.usePrimaryLight);
         ImGui::Indent();
@@ -949,6 +954,17 @@ namespace Strontium
           component.planetAtmRadius.y = atmoRadiusKM / 1000.0f;
         }
         ImGui::Unindent();
+        ImGui::PopID();
+      });
+
+      drawComponentProperties<DynamicSkyboxComponent>("Dynamic Skybox Component",
+        this->selectedEntity, [this, activeScene](auto& component)
+      {
+        ImGui::PushID("DynamicSkybox");
+        Styles::drawFloatControl("Sun Size", 1.0f, component.sunSize, 0.0f, 0.01f, 0.0f, 100.0f);
+        Styles::drawFloatControl("Intensity", 1.0f, component.intensity, 
+                                 0.0f, 0.1f, 0.0f, 100.0f);
+        ImGui::PopID();
       });
 
       drawComponentProperties<DirectionalLightComponent>("Directional Light Component",
@@ -998,7 +1014,7 @@ namespace Strontium
       {
         ImGui::PushID("DynamicSkyLight");
         ImGui::Text("Renderer handle: %i", component.handle);
-        Styles::drawFloatControl("Intensity", 0.0f, component.intensity, 
+        Styles::drawFloatControl("Intensity", 1.0f, component.intensity, 
                                  0.0f, 0.1f, 0.0f, 100.0f);
         ImGui::PopID();
       });

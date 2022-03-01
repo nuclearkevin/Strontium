@@ -9,6 +9,7 @@
 #include "Graphics/RenderPasses/SkyAtmospherePass.h"
 #include "Graphics/RenderPasses/DynamicSkyIBLPass.h"
 #include "Graphics/RenderPasses/IBLApplicationPass.h"
+#include "Graphics/RenderPasses/SkyboxPass.h"
 
 namespace Strontium
 {
@@ -138,9 +139,11 @@ namespace Strontium
     }
 
     // Group together the transform, sky-atmosphere and directional light components.
-    auto skyAtm = Renderer3D::getPassManager().getRenderPass<SkyAtmospherePass>();
-    auto dynIBL = Renderer3D::getPassManager().getRenderPass<DynamicSkyIBLPass>();
-    auto iblApp = Renderer3D::getPassManager().getRenderPass<IBLApplicationPass>();
+    auto& passManager = Renderer3D::getPassManager();
+    auto skyAtm = passManager.getRenderPass<SkyAtmospherePass>();
+    auto dynIBL = passManager.getRenderPass<DynamicSkyIBLPass>();
+    auto iblApp = passManager.getRenderPass<IBLApplicationPass>();
+    auto skyboxApp = passManager.getRenderPass<SkyboxPass>();
     auto atmospheres = this->sceneECS.group<SkyAtmosphereComponent>(entt::get<TransformComponent>);
     for (auto entity : atmospheres)
     {
@@ -166,6 +169,13 @@ namespace Strontium
         auto& iblComponent = this->sceneECS.get<DynamicSkylightComponent>(entity);
         dynIBL->submit(DynamicIBL(iblComponent.intensity, iblComponent.handle, atmosphere.handle), skyUpdated);
         iblApp->submitDynamicSkyIBL(DynamicIBL(iblComponent.intensity, iblComponent.handle, atmosphere.handle));
+      }
+
+      // Check to see if this entity has a dynamic skybox component.
+      if (this->sceneECS.has<DynamicSkyboxComponent>(entity))
+      {
+        auto& dynSkybox = this->sceneECS.get<DynamicSkyboxComponent>(entity);
+        skyboxApp->submit(atmosphere.handle, dynSkybox.sunSize, dynSkybox.intensity);
       }
     }
   }
@@ -197,9 +207,11 @@ namespace Strontium
     }
 
     // Group together the transform, sky-atmosphere and directional light components.
-    auto skyAtm = Renderer3D::getPassManager().getRenderPass<SkyAtmospherePass>();
-    auto dynIBL = Renderer3D::getPassManager().getRenderPass<DynamicSkyIBLPass>();
-    auto iblApp = Renderer3D::getPassManager().getRenderPass<IBLApplicationPass>();
+    auto& passManager = Renderer3D::getPassManager();
+    auto skyAtm = passManager.getRenderPass<SkyAtmospherePass>();
+    auto dynIBL = passManager.getRenderPass<DynamicSkyIBLPass>();
+    auto iblApp = passManager.getRenderPass<IBLApplicationPass>();
+    auto skyboxApp = passManager.getRenderPass<SkyboxPass>();
     auto atmospheres = this->sceneECS.group<SkyAtmosphereComponent>(entt::get<TransformComponent>);
     for (auto entity : atmospheres)
     {
@@ -225,6 +237,13 @@ namespace Strontium
         auto& iblComponent = this->sceneECS.get<DynamicSkylightComponent>(entity);
         dynIBL->submit(DynamicIBL(iblComponent.intensity, iblComponent.handle, atmosphere.handle), skyUpdated);
         iblApp->submitDynamicSkyIBL(DynamicIBL(iblComponent.intensity, iblComponent.handle, atmosphere.handle));
+      }
+
+      // Check to see if this entity has a dynamic skybox component.
+      if (this->sceneECS.has<DynamicSkyboxComponent>(entity))
+      {
+        auto& dynSkybox = this->sceneECS.get<DynamicSkyboxComponent>(entity);
+        skyboxApp->submit(atmosphere.handle, dynSkybox.sunSize, dynSkybox.intensity);
       }
     }
   }

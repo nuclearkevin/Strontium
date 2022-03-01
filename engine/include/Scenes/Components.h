@@ -292,6 +292,20 @@ namespace Strontium
     operator RendererDataHandle() { return this->handle; }
   };
 
+  // The dynamic skybox component.
+  struct DynamicSkyboxComponent
+  {
+    float sunSize;
+    float intensity;
+
+    DynamicSkyboxComponent(const DynamicSkyboxComponent&) = default;
+
+    DynamicSkyboxComponent()
+      : sunSize(1.0f)
+      , intensity(1.0f)
+    { }
+  };
+
   // TODO: Finish these.
   // Various light components for rendering the scene.
   struct DirectionalLightComponent
