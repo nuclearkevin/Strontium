@@ -196,9 +196,9 @@ namespace Strontium
     auto invTrans = glm::transpose(glm::inverse(model));
     if (this->globalBlock->primaryLightIndex > -1)
     {
-      auto dir = glm::vec3(-this->globalBlock->directionalLightQueue[this->globalBlock->primaryLightIndex].direction);
+      auto dir = glm::vec3(-this->globalBlock->directionalLightQueue[this->globalBlock->primaryLightIndex].first.direction);
       temp.sunDirAtmRadius = glm::vec4(dir, atmo.sunDirAtmRadius.w);
-      temp.lightColourIntensity = this->globalBlock->directionalLightQueue[this->globalBlock->primaryLightIndex].colourIntensity;
+      temp.lightColourIntensity = this->globalBlock->directionalLightQueue[this->globalBlock->primaryLightIndex].first.colourIntensity;
     }
     else
     {

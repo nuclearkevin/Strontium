@@ -185,15 +185,17 @@ namespace Strontium::Renderer3D
   }
 
   void
-  submit(const DirectionalLight &light, const glm::mat4 &model)
+  submit(const DirectionalLight &light, bool primaryLight, bool castShadows, const glm::mat4 &model)
   {
     auto invTrans = glm::transpose(glm::inverse(model));
     DirectionalLight temp = light;
     temp.direction = glm::vec4(-1.0f * glm::vec3(invTrans * glm::vec4(0.0f, -1.0f, 0.0f, 0.0f)), 0.0f);
 
-    rendererData->directionalLightQueue[rendererData->directionalLightCount] = temp;
-    rendererData->primaryLightIndex = temp.primaryLight ? rendererData->directionalLightCount 
-                                                        : rendererData->primaryLightIndex;
+    rendererData->directionalLightQueue[rendererData->directionalLightCount].first = temp;
+    rendererData->directionalLightQueue[rendererData->directionalLightCount].second[0] = primaryLight;
+    rendererData->directionalLightQueue[rendererData->directionalLightCount].second[1] = castShadows;
+    rendererData->primaryLightIndex = primaryLight ? rendererData->directionalLightCount
+                                                   : rendererData->primaryLightIndex;
     rendererData->directionalLightCount++;
   }
 

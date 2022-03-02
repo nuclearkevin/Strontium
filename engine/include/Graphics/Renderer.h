@@ -38,7 +38,7 @@ namespace Strontium::Renderer3D
 
     int primaryLightIndex;
     uint directionalLightCount;
-    std::array<DirectionalLight, 8> directionalLightQueue;
+    std::array<std::pair<DirectionalLight, std::bitset<2>>, 8> directionalLightQueue;
     uint pointLightCount;
     std::array<PointLight, 1024> pointLightQueue;
     uint spotLightCount;
@@ -76,7 +76,7 @@ namespace Strontium::Renderer3D
   void submit(Model* data, Animator* animation, ModelMaterial &materials,
               const glm::mat4 &model, float id = 0.0f,
               bool drawSelectionMask = false);
-  void submit(const DirectionalLight &light, const glm::mat4 &model);
+  void submit(const DirectionalLight &light, bool primaryLight, bool castShadows, const glm::mat4 &model);
   void submit(const PointLight &light, const glm::mat4 &model);
   void submit(const SpotLight &light, const glm::mat4 &model);
 }

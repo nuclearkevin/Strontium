@@ -367,11 +367,11 @@ namespace Strontium
     for (uint i = 0; i < this->globalBlock->directionalLightCount; i++)
     {
       auto& dirLight = this->globalBlock->directionalLightQueue[i];
-      if (!dirLight.castShadows || !dirLight.primaryLight)
+      if (!dirLight.second[1] || !dirLight.second[0]) // 0 == primary light, 1 == cast shadows
         continue;
 
       this->passData.hasCascades = true;
-      lightDir = glm::normalize(dirLight.direction);
+      lightDir = glm::normalize(dirLight.first.direction);
     }
 
     if (this->passData.hasCascades)
@@ -379,7 +379,7 @@ namespace Strontium
       float previousCascadeDistance = 0.0f;
 
       glm::mat4 cascadeViewMatrix[NUM_CASCADES];
-      glm::mat4 cascadeProjMatrix[NUM_CASCADES];
+      glm::mat4 cascadeProjMatrix[NUM_CASCADES];    
 
       for (unsigned int i = 0; i < NUM_CASCADES; i++)
       {

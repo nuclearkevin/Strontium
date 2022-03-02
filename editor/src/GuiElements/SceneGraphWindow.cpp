@@ -972,23 +972,23 @@ namespace Strontium
       {
         ImGui::PushID("DirectionalLight");
 
-        bool isPrimaryLight = component.light.primaryLight;
-        ImGui::Checkbox("Primary Light", &component.light.primaryLight);
-        if (component.light.primaryLight && !isPrimaryLight)
+        bool isPrimaryLight = component.primaryLight;
+        ImGui::Checkbox("Primary Light", &component.primaryLight);
+        if (component.primaryLight && !isPrimaryLight)
         {
           auto dirLight = activeScene->sceneECS.view<DirectionalLightComponent>();
 
           for (auto entity : dirLight)
           {
             auto& directional = dirLight.get<DirectionalLightComponent>(entity);
-            if (this->selectedEntity != entity && directional.light.primaryLight)
-              directional.light.primaryLight;
+            if (this->selectedEntity != entity && directional.primaryLight)
+              directional.primaryLight;
           }
         }
 
-        ImGui::Checkbox("Cast Shadows", &component.light.castShadows);
-        ImGui::ColorEdit3("Colour", &(component.light.colourIntensity.r));
-        Styles::drawFloatControl("Intensity", 0.0f, component.light.colourIntensity.a,
+        ImGui::Checkbox("Cast Shadows", &component.castShadows);
+        ImGui::ColorEdit3("Colour", &(component.colour.r));
+        Styles::drawFloatControl("Intensity", 0.0f, component.intensity,
                                  0.0f, 0.01f, 0.0f, 100.0f);
         ImGui::PopID();
 

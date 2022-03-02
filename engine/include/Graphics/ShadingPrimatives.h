@@ -34,14 +34,16 @@ namespace Strontium
   {
     glm::vec4 colourIntensity;
     glm::vec4 direction;
-    bool castShadows;
-    bool primaryLight;
 
     DirectionalLight()
       : direction(0.0f, 1.0f, 0.0f, 0.0f)
       , colourIntensity(1.0f)
-      , castShadows(false)
-      , primaryLight(false)
+    { }
+
+    DirectionalLight(const glm::vec3 colour, float intensity, 
+                     const glm::vec3 &direction)
+      : colourIntensity(colour, intensity)
+      , direction(direction, 0.0f)
     { }
   };
 

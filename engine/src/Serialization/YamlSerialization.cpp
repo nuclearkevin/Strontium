@@ -328,17 +328,47 @@ namespace Strontium
         out << YAML::EndMap;
       }
 
+      if (entity.hasComponent<SkyAtmosphereComponent>())
+      {
+        out << YAML::Key << "SkyAtmosphereComponent";
+        out << YAML::BeginMap;
+
+        auto& component = entity.getComponent<SkyAtmosphereComponent>();
+        out << YAML::Key << "RayleighScatteringFunction" << YAML::Value << component.rayleighScat;
+        out << YAML::Key << "RayleighAbsorptionFunction" << YAML::Value << component.rayleighAbs;
+        out << YAML::Key << "MieScatteringFunction" << YAML::Value << component.mieScat;
+        out << YAML::Key << "MieAbsorptionFunction" << YAML::Value << component.mieAbs;
+        out << YAML::Key << "OzoneAbsorptionFunction" << YAML::Value << component.ozoneAbs;
+        out << YAML::Key << "PlanetAlbedo" << YAML::Value << component.planetAlbedo;
+        out << YAML::Key << "PlanetAndAtmosphereRadius" << YAML::Value << component.planetAtmRadius;
+        out << YAML::Key << "UsePrimaryLight" << YAML::Value << component.usePrimaryLight;
+
+        out << YAML::EndMap;
+      }
+
+      if (entity.hasComponent<DynamicSkyboxComponent>())
+      {
+        out << YAML::Key << "DynamicSkyboxComponent";
+        out << YAML::BeginMap;
+
+        auto& component = entity.getComponent<DynamicSkyboxComponent>();
+        out << YAML::Key << "SunSize" << YAML::Value << component.sunSize;
+        out << YAML::Key << "Intensity" << YAML::Value << component.intensity;
+
+        out << YAML::EndMap;
+      }
+
       if (entity.hasComponent<DirectionalLightComponent>())
       {
         out << YAML::Key << "DirectionalLightComponent";
         out << YAML::BeginMap;
 
         auto& component = entity.getComponent<DirectionalLightComponent>();
-        out << YAML::Key << "Direction" << YAML::Value << component.light.direction;
-        out << YAML::Key << "Colour" << YAML::Value << glm::vec3(component.light.colourIntensity);
-        out << YAML::Key << "Intensity" << YAML::Value << component.light.colourIntensity.w;
-        out << YAML::Key << "CastShadows" << YAML::Value << component.light.castShadows;
-        out << YAML::Key << "PrimaryLight" << YAML::Value << component.light.primaryLight;
+        out << YAML::Key << "Direction" << YAML::Value << component.direction;
+        out << YAML::Key << "Colour" << YAML::Value << component.colour;
+        out << YAML::Key << "Intensity" << YAML::Value << component.intensity;
+        out << YAML::Key << "CastShadows" << YAML::Value << component.castShadows;
+        out << YAML::Key << "PrimaryLight" << YAML::Value << component.primaryLight;
 
         out << YAML::EndMap;
       }
@@ -358,74 +388,16 @@ namespace Strontium
         out << YAML::EndMap;
       }
 
-      /*
-      if (entity.hasComponent<AmbientComponent>())
+      if (entity.hasComponent<DynamicSkylightComponent>())
       {
-        out << YAML::Key << "AmbientComponent";
+        out << YAML::Key << "DynamicSkylightComponent";
         out << YAML::BeginMap;
 
-        auto& component = entity.getComponent<AmbientComponent>();
-        auto state = Renderer3D::getState();
-        out << YAML::Key << "IBLPath" << YAML::Value << component.ambient->getFilepath();
-        out << YAML::Key << "EnviRes" << YAML::Value << state->skyboxWidth;
-        out << YAML::Key << "IrraRes" << YAML::Value << state->irradianceWidth;
-        out << YAML::Key << "FiltRes" << YAML::Value << state->prefilterWidth;
-        out << YAML::Key << "FiltSam" << YAML::Value << state->prefilterSamples;
-        out << YAML::Key << "IBLRough" << YAML::Value << component.ambient->getRoughness();
-        out << YAML::Key << "Intensity" << YAML::Value << component.ambient->getIntensity();
-        out << YAML::Key << "SkyboxType" << YAML::Value << static_cast<uint>(component.ambient->getDrawingType());
-
-        auto dynamicSkyType = component.ambient->getDynamicSkyType();
-        out << YAML::Key << "DynamicSkyType" << YAML::Value << static_cast<uint>(dynamicSkyType);
-
-        out << YAML::Key << "DynamicSkyParams";
-        out << YAML::BeginMap;
-
-        EnvironmentMap* env = component.ambient;
-        switch (dynamicSkyType)
-        {
-          case DynamicSkyType::Preetham:
-          {
-            auto& preethamSkyParams = env->getSkyParams<PreethamSkyParams>(DynamicSkyType::Preetham);
-
-            out << YAML::Key << "SunPosition" << YAML::Value << preethamSkyParams.sunPos;
-            out << YAML::Key << "SunSize" << YAML::Value << preethamSkyParams.sunSize;
-            out << YAML::Key << "SunIntensity" << YAML::Value << preethamSkyParams.sunIntensity;
-            out << YAML::Key << "SkyIntensity" << YAML::Value << preethamSkyParams.skyIntensity;
-            out << YAML::Key << "Turbidity" << YAML::Value << preethamSkyParams.turbidity;
-            break;
-          }
-
-          case DynamicSkyType::Hillaire:
-          {
-            auto& hillaireSkyParams = env->getSkyParams<HillaireSkyParams>(DynamicSkyType::Hillaire);
-
-            out << YAML::Key << "SunPosition" << YAML::Value << hillaireSkyParams.sunPos;
-            out << YAML::Key << "SunSize" << YAML::Value << hillaireSkyParams.sunSize;
-            out << YAML::Key << "SunIntensity" << YAML::Value << hillaireSkyParams.sunIntensity;
-            out << YAML::Key << "SkyIntensity" << YAML::Value << hillaireSkyParams.skyIntensity;
-            out << YAML::Key << "RayleighScatteringBase" << YAML::Value << glm::vec3(hillaireSkyParams.rayleighScat);
-            out << YAML::Key << "RayleighScatteringDist" << YAML::Value << hillaireSkyParams.rayleighScat.w;
-            out << YAML::Key << "RayleighAbsorptionBase" << YAML::Value << glm::vec3(hillaireSkyParams.rayleighAbs);
-            out << YAML::Key << "RayleighAbsorptionDist" << YAML::Value << hillaireSkyParams.rayleighAbs.w;
-            out << YAML::Key << "MieScatteringBase" << YAML::Value << glm::vec3(hillaireSkyParams.mieScat);
-            out << YAML::Key << "MieScatteringDist" << YAML::Value << hillaireSkyParams.mieScat.w;
-            out << YAML::Key << "MieAbsorptionBase" << YAML::Value << glm::vec3(hillaireSkyParams.mieAbs);
-            out << YAML::Key << "MieAbsorptionDist" << YAML::Value << hillaireSkyParams.mieAbs.w;
-            out << YAML::Key << "OzoneAbsorptionBase" << YAML::Value << glm::vec3(hillaireSkyParams.ozoneAbs);
-            out << YAML::Key << "OzoneAbsorptionDist" << YAML::Value << hillaireSkyParams.ozoneAbs.w;
-            out << YAML::Key << "PlanetAlbedo" << YAML::Value << glm::vec3(hillaireSkyParams.planetAlbedoRadius);
-            out << YAML::Key << "PlanetRadius" << YAML::Value << hillaireSkyParams.planetAlbedoRadius.w;
-            out << YAML::Key << "AtmosphereRadius" << YAML::Value << hillaireSkyParams.sunDirAtmRadius.w;
-            out << YAML::Key << "ViewPosition" << YAML::Value << glm::vec3(hillaireSkyParams.viewPos);
-            break;
-          }
-        }
-        out << YAML::EndMap;
+        auto& component = entity.getComponent<DynamicSkylightComponent>();
+        out << YAML::Key << "Intensity" << YAML::Value << component.intensity;
 
         out << YAML::EndMap;
       }
-      */
 
       out << YAML::EndMap;
     }
@@ -455,54 +427,6 @@ namespace Strontium
       });
 
       out << YAML::EndSeq;
-
-      /*
-      out << YAML::Key << "RendererSettings";
-      out << YAML::BeginMap;
-      out << YAML::Key << "BasicSettings";
-      out << YAML::BeginMap;
-      out << YAML::Key << "FrustumCull" << YAML::Value << state->frustumCull;
-      out << YAML::Key << "UseFXAA" << YAML::Value << state->enableFXAA;
-      out << YAML::EndMap;
-
-      out << YAML::Key << "ShadowSettings";
-      out << YAML::BeginMap;
-      out << YAML::Key << "ShadowQuality" << YAML::Value << state->directionalSettings.x;
-      out << YAML::Key << "CascadeLambda" << YAML::Value << state->cascadeLambda;
-      out << YAML::Key << "CascadeSize" << YAML::Value << state->cascadeSize;
-      out << YAML::Key << "CascadeLightBleed" << YAML::Value << state->shadowParams[0].x;
-      out << YAML::Key << "LightSize" << YAML::Value << state->shadowParams[0].y;
-      out << YAML::Key << "PCFRadius" << YAML::Value << state->shadowParams[0].z;
-      out << YAML::Key << "NormalDepthBias" << YAML::Value << state->shadowParams[0].w;
-      out << YAML::Key << "ConstDepthBias" << YAML::Value << state->shadowParams[1].x;
-      out << YAML::EndMap;
-
-      out << YAML::Key << "VolumetricLightSettings";
-      out << YAML::BeginMap;
-      out << YAML::Key << "EnableVolumetricPrimaryLight" << YAML::Value << state->enableSkyshafts;
-      out << YAML::Key << "VolumetricIntensity" << YAML::Value << state->mieScatIntensity.w;
-      out << YAML::Key << "ParticleDensity" << YAML::Value << state->mieAbsDensity.w;
-      out << YAML::Key << "MieScattering" << YAML::Value << glm::vec3(state->mieScatIntensity);
-      out << YAML::Key << "MieAbsorption" << YAML::Value << glm::vec3(state->mieAbsDensity);
-      out << YAML::EndMap;
-
-      out << YAML::Key << "BloomSettings";
-      out << YAML::BeginMap;
-      out << YAML::Key << "EnableBloom" << YAML::Value << state->enableBloom;
-      out << YAML::Key << "Threshold" << YAML::Value << state->bloomThreshold;
-      out << YAML::Key << "Knee" << YAML::Value << state->bloomKnee;
-      out << YAML::Key << "Intensity" << YAML::Value << state->bloomIntensity;
-      out << YAML::Key << "Radius" << YAML::Value << state->bloomRadius;
-      out << YAML::EndMap;
-
-      out << YAML::Key << "ToneMapSettings";
-      out << YAML::BeginMap;
-      out << YAML::Key << "ToneMapType" << YAML::Value << state->postProcessSettings.x;
-      out << YAML::Key << "Gamma" << YAML::Value << state->gamma;
-      out << YAML::EndMap;
-
-      out << YAML::EndMap;
-      */
 
       out << YAML::Key << "Materials";
       out << YAML::BeginSeq;
@@ -753,15 +677,37 @@ namespace Strontium
         camera.entCamera.fov = camComponent["FOV"].as<float>();
       }
 
+      auto skyAtmosphereComponent = entity["SkyAtmosphereComponent"];
+      if (skyAtmosphereComponent)
+      {
+        auto& saComponent = newEntity.addComponent<SkyAtmosphereComponent>();
+        saComponent.rayleighScat = skyAtmosphereComponent["RayleighScatteringFunction"].as<glm::vec4>();
+        saComponent.rayleighAbs = skyAtmosphereComponent["RayleighAbsorptionFunction"].as<glm::vec4>();
+        saComponent.mieScat = skyAtmosphereComponent["MieScatteringFunction"].as<glm::vec4>();
+        saComponent.mieAbs = skyAtmosphereComponent["MieAbsorptionFunction"].as<glm::vec4>();
+        saComponent.ozoneAbs = skyAtmosphereComponent["OzoneAbsorptionFunction"].as<glm::vec4>();
+        saComponent.planetAlbedo = skyAtmosphereComponent["PlanetAlbedo"].as<glm::vec3>();
+        saComponent.planetAtmRadius = skyAtmosphereComponent["PlanetAndAtmosphereRadius"].as<glm::vec2>();
+        saComponent.usePrimaryLight = skyAtmosphereComponent["UsePrimaryLight"].as<bool>();
+      }
+
+      auto dynamicSkyboxComponent = entity["DynamicSkyboxComponent"];
+      if (dynamicSkyboxComponent)
+      {
+        auto& dsComponent = newEntity.addComponent<DynamicSkyboxComponent>();
+        dsComponent.sunSize = dynamicSkyboxComponent["SunSize"].as<float>();
+        dsComponent.intensity = dynamicSkyboxComponent["Intensity"].as<float>();
+      }
+
       auto directionalComponent = entity["DirectionalLightComponent"];
       if (directionalComponent)
       {
         auto& dComponent = newEntity.addComponent<DirectionalLightComponent>();
-        dComponent.light.direction = glm::vec4(directionalComponent["Direction"].as<glm::vec3>(), 0.0f);
-        dComponent.light.colourIntensity = glm::vec4(directionalComponent["Colour"].as<glm::vec3>(), 
-                                                     directionalComponent["Intensity"].as<float>());
-        dComponent.light.castShadows = directionalComponent["CastShadows"].as<bool>();
-        dComponent.light.primaryLight = directionalComponent["PrimaryLight"].as<bool>();
+        dComponent.direction = directionalComponent["Direction"].as<glm::vec3>();
+        dComponent.colour = directionalComponent["Colour"].as<glm::vec3>();
+        dComponent.intensity = directionalComponent["Intensity"].as<float>();
+        dComponent.castShadows = directionalComponent["CastShadows"].as<bool>();
+        dComponent.primaryLight = directionalComponent["PrimaryLight"].as<bool>();
       }
 
       auto pointComponent = entity["PointLightComponent"];
@@ -775,126 +721,12 @@ namespace Strontium
         pComponent.castShadows = pointComponent["CastShadows"].as<bool>();
       }
 
-      /*
-      auto ambientComponent = entity["AmbientComponent"];
-      if (ambientComponent)
+      auto dynamicSkyLightComponent = entity["DynamicSkylightComponent"];
+      if (dynamicSkyLightComponent)
       {
-        auto state = Renderer3D::getState();
-        auto storage = Renderer3D::getStorage();
-
-        std::string iblImagePath = ambientComponent["IBLPath"].as<std::string>();
-        state->skyboxWidth = ambientComponent["EnviRes"].as<uint>();
-        state->irradianceWidth = ambientComponent["IrraRes"].as<uint>();
-        state->prefilterWidth = ambientComponent["FiltRes"].as<uint>();
-        state->prefilterSamples = ambientComponent["FiltSam"].as<uint>();
-        storage->currentEnvironment->unloadEnvironment();
-
-        auto& aComponent = newEntity.addComponent<AmbientComponent>(iblImagePath);
-        if (iblImagePath != "")
-        {
-          storage->currentEnvironment->equiToCubeMap(true, state->skyboxWidth, state->skyboxWidth);
-          storage->currentEnvironment->precomputeIrradiance(state->irradianceWidth, state->irradianceWidth, true);
-          storage->currentEnvironment->precomputeSpecular(state->prefilterWidth, state->prefilterWidth, true);
-        }
-        aComponent.ambient->getRoughness() = ambientComponent["IBLRough"].as<float>();
-        aComponent.ambient->getIntensity() = ambientComponent["Intensity"].as<float>();
-
-        uint skyboxType = ambientComponent["SkyboxType"].as<uint>();
-        auto drawingType = static_cast<MapType>(skyboxType);
-        aComponent.ambient->setDrawingType(drawingType);
-
-        auto dynamicSkyType = static_cast<DynamicSkyType>(ambientComponent["DynamicSkyType"].as<uint>());
-        aComponent.ambient->setDynamicSkyType(dynamicSkyType);
-
-        if (ambientComponent["DynamicSkyParams"])
-        {
-          auto dynamicSkyParams = ambientComponent["DynamicSkyParams"];
-
-          EnvironmentMap* env = aComponent.ambient;
-          switch (dynamicSkyType)
-          {
-            case DynamicSkyType::Preetham:
-            {
-              auto preethamSkyParams = env->getSkyParams<PreethamSkyParams>(DynamicSkyType::Preetham);
-
-              preethamSkyParams.sunPos = dynamicSkyParams["SunPosition"].as<glm::vec3>();
-              preethamSkyParams.sunSize = dynamicSkyParams["SunSize"].as<float>();
-              preethamSkyParams.sunIntensity = dynamicSkyParams["SunIntensity"].as<float>();
-              preethamSkyParams.skyIntensity = dynamicSkyParams["SkyIntensity"].as<float>();
-              preethamSkyParams.turbidity = dynamicSkyParams["Turbidity"].as<float>();
-
-              env->setSkyModelParams<PreethamSkyParams>(preethamSkyParams);
-              break;
-            }
-
-            case DynamicSkyType::Hillaire:
-            {
-              auto hillaireSkyParams = env->getSkyParams<HillaireSkyParams>(DynamicSkyType::Hillaire);
-
-              hillaireSkyParams.sunPos = dynamicSkyParams["SunPosition"].as<glm::vec3>();
-              hillaireSkyParams.sunSize = dynamicSkyParams["SunSize"].as<float>();
-              hillaireSkyParams.sunIntensity = dynamicSkyParams["SunIntensity"].as<float>();
-              hillaireSkyParams.skyIntensity = dynamicSkyParams["SkyIntensity"].as<float>();
-
-              auto rayleighScatBase = dynamicSkyParams["RayleighScatteringBase"].as<glm::vec3>();
-              auto rayleighScatDist = dynamicSkyParams["RayleighScatteringDist"].as<float>();
-              hillaireSkyParams.rayleighScat.x = rayleighScatBase.x;
-              hillaireSkyParams.rayleighScat.y = rayleighScatBase.y;
-              hillaireSkyParams.rayleighScat.z = rayleighScatBase.z;
-              hillaireSkyParams.rayleighScat.w = rayleighScatDist;
-
-              auto rayleighAbsBase = dynamicSkyParams["RayleighAbsorptionBase"].as<glm::vec3>();
-              auto rayleighAbsDist = dynamicSkyParams["RayleighAbsorptionDist"].as<float>();
-              hillaireSkyParams.rayleighAbs.x = rayleighAbsBase.x;
-              hillaireSkyParams.rayleighAbs.y = rayleighAbsBase.y;
-              hillaireSkyParams.rayleighAbs.z = rayleighAbsBase.z;
-              hillaireSkyParams.rayleighAbs.w = rayleighAbsDist;
-
-              auto miewScatBase = dynamicSkyParams["MieScatteringBase"].as<glm::vec3>();
-              auto miewScatDist = dynamicSkyParams["MieScatteringDist"].as<float>();
-              hillaireSkyParams.mieScat.x = miewScatBase.x;
-              hillaireSkyParams.mieScat.y = miewScatBase.y;
-              hillaireSkyParams.mieScat.z = miewScatBase.z;
-              hillaireSkyParams.mieScat.w = miewScatDist;
-
-              auto miewAbsBase = dynamicSkyParams["MieAbsorptionBase"].as<glm::vec3>();
-              auto miewAbsDist = dynamicSkyParams["MieAbsorptionDist"].as<float>();
-              hillaireSkyParams.mieAbs.x = miewAbsBase.x;
-              hillaireSkyParams.mieAbs.y = miewAbsBase.y;
-              hillaireSkyParams.mieAbs.z = miewAbsBase.z;
-              hillaireSkyParams.mieAbs.w = miewAbsDist;
-
-              auto ozoneAbsBase = dynamicSkyParams["OzoneAbsorptionBase"].as<glm::vec3>();
-              auto ozoneAbsScale = dynamicSkyParams["OzoneAbsorptionDist"].as<float>();
-              hillaireSkyParams.ozoneAbs.x = ozoneAbsBase.x;
-              hillaireSkyParams.ozoneAbs.y = ozoneAbsBase.y;
-              hillaireSkyParams.ozoneAbs.z = ozoneAbsBase.z;
-              hillaireSkyParams.ozoneAbs.w = ozoneAbsScale;
-
-              auto planetAlbedo = dynamicSkyParams["PlanetAlbedo"].as<glm::vec3>();
-              auto planetRadius = dynamicSkyParams["PlanetRadius"].as<float>();
-              hillaireSkyParams.planetAlbedoRadius.x = planetAlbedo.x;
-              hillaireSkyParams.planetAlbedoRadius.y = planetAlbedo.y;
-              hillaireSkyParams.planetAlbedoRadius.z = planetAlbedo.z;
-              hillaireSkyParams.planetAlbedoRadius.w = planetRadius;
-
-              hillaireSkyParams.sunDirAtmRadius.w = dynamicSkyParams["AtmosphereRadius"].as<float>();
-
-              auto viewPosition = dynamicSkyParams["ViewPosition"].as<glm::vec3>();
-              hillaireSkyParams.viewPos.x = viewPosition.x;
-              hillaireSkyParams.viewPos.y = viewPosition.y;
-              hillaireSkyParams.viewPos.z = viewPosition.z;
-
-              env->setSkyModelParams<HillaireSkyParams>(hillaireSkyParams);
-              break;
-            }
-          }
-        }
-
-        if (drawingType == MapType::DynamicSky)
-            aComponent.ambient->setDynamicSkyIBL();
+        auto& dsComponent = newEntity.addComponent<DynamicSkylightComponent>();
+        dsComponent.intensity = dynamicSkyLightComponent["Intensity"].as<float>();
       }
-      */
 
       return newEntity;
     }

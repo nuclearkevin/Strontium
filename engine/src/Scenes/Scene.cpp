@@ -94,7 +94,7 @@ namespace Strontium
     for (auto entity : dirLight)
     {
       auto [directional, transform] = dirLight.get<DirectionalLightComponent, TransformComponent>(entity);
-      Renderer3D::submit(directional.light, transform);
+      Renderer3D::submit(directional, directional.primaryLight, directional.castShadows, transform);
     }
 
     auto pointLight = this->sceneECS.group<PointLightComponent>(entt::get<TransformComponent>);
@@ -188,7 +188,7 @@ namespace Strontium
     for (auto entity : dirLight)
     {
       auto [directional, transform] = dirLight.get<DirectionalLightComponent, TransformComponent>(entity);
-      Renderer3D::submit(directional.light, transform);
+      Renderer3D::submit(directional, directional.primaryLight, directional.castShadows, transform);
     }
 
     auto pointLight = this->sceneECS.group<PointLightComponent>(entt::get<TransformComponent>);

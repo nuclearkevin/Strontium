@@ -310,17 +310,26 @@ namespace Strontium
   // Various light components for rendering the scene.
   struct DirectionalLightComponent
   {
-    DirectionalLight light;
+    glm::vec3 colour;
+    float intensity;
+    glm::vec3 direction;
+
+    bool castShadows;
+    bool primaryLight;
 
     DirectionalLightComponent(const DirectionalLightComponent&) = default;
 
     DirectionalLightComponent()
-      : light()
+      : colour(1.0f)
+      , intensity(1.0f)
+      , direction(0.0f, -1.0f, 0.0f)
+      , castShadows(false)
+      , primaryLight(false)
     { }
 
     operator DirectionalLight()
     {
-      return light;
+      return DirectionalLight(this->colour, this->intensity, this->direction);
     }
   };
 
