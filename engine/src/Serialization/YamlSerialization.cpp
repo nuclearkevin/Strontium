@@ -3,8 +3,15 @@
 // Project includes.
 #include "Scenes/Components.h"
 #include "Scenes/Entity.h"
-#include "Graphics/Renderer.h"
 #include "Utils/AsyncAssetLoading.h"
+
+#include "Graphics/RenderPasses/RenderPassManager.h"
+#include "Graphics/RenderPasses/ShadowPass.h"
+#include "Graphics/RenderPasses/HBAOPass.h"
+#include "Graphics/RenderPasses/SkyAtmospherePass.h"
+#include "Graphics/RenderPasses/DynamicSkyIBLPass.h"
+#include "Graphics/RenderPasses/PostProcessingPass.h"
+#include "Graphics/Renderer.h"
 
 // YAML includes.
 #include "yaml-cpp/yaml.h"
@@ -406,7 +413,6 @@ namespace Strontium
     serializeScene(Shared<Scene> scene, const std::string &filepath,
                    const std::string &name)
     {
-      //auto state = Renderer3D::getState();
       auto materialAssets = AssetManager<Material>::getManager();
 
       YAML::Emitter out;
@@ -427,6 +433,90 @@ namespace Strontium
       });
 
       out << YAML::EndSeq;
+
+      // Serialize renderer settings.
+      out << YAML::Key << "RendererSettings" << YAML::BeginMap;
+      {
+        auto& rendererStorage = Renderer3D::getStorage();
+        auto& passManager = Renderer3D::getPassManager();
+
+        // General renderer settings.
+        {
+          out << YAML::Key << "GeneralSettings" << YAML::BeginMap;
+
+          out << YAML::Key << "Gamma" << YAML::Value << rendererStorage.gamma;
+
+          out << YAML::EndMap;
+        }
+
+        // Shadow settings.
+        {
+          auto shadowPass = passManager.getRenderPass<ShadowPass>();
+          auto shadowPassData = shadowPass->getInternalDataBlock<ShadowPassDataBlock>();
+
+          out << YAML::Key << "ShadowSettings" << YAML::BeginMap;
+
+          out << YAML::Key << "ShadowQuality" << YAML::Value << shadowPassData->shadowQuality;
+          out << YAML::Key << "CascadeLambda" << YAML::Value << shadowPassData->cascadeLambda;
+          out << YAML::Key << "ShadowMapResolution" << YAML::Value << shadowPassData->shadowMapRes;
+
+          out << YAML::EndMap;
+        }
+
+        // AO settings.
+        {
+          auto aoPass = passManager.getRenderPass<HBAOPass>();
+          auto aoPassData = aoPass->getInternalDataBlock<HBAOPassDataBlock>();
+
+          out << YAML::Key << "HBAOSettings" << YAML::BeginMap;
+
+          out << YAML::Key << "UseHBAO" << YAML::Value << aoPassData->enableAO;
+          out << YAML::Key << "AORadius" << YAML::Value << aoPassData->aoRadius;
+          out << YAML::Key << "AOMultiplier" << YAML::Value << aoPassData->aoMultiplier;
+          out << YAML::Key << "AOExponent" << YAML::Value << aoPassData->aoExponent;
+
+          out << YAML::EndMap;
+        }
+
+        // Sky-atmosphere settings.
+        {
+          auto skyAtmoPass = passManager.getRenderPass<SkyAtmospherePass>();
+          auto skyAtmoPassData = skyAtmoPass->getInternalDataBlock<SkyAtmospherePassDataBlock>();
+
+          out << YAML::Key << "SkyAtmosphereSettings" << YAML::BeginMap;
+
+          out << YAML::Key << "UseFastAtmosphere" << YAML::Value << skyAtmoPassData->useFastAtmosphere;
+
+          out << YAML::EndMap;
+        }
+
+        // Dynamic sky IBL settings.
+        {
+          auto dynSkyIBLPass = passManager.getRenderPass<DynamicSkyIBLPass>();
+          auto dynSkyIBLPassData = dynSkyIBLPass->getInternalDataBlock<DynamicSkyIBLPassDataBlock>();
+
+          out << YAML::Key << "DynamicSkyIBLSettings" << YAML::BeginMap;
+
+          out << YAML::Key << "IrradianceSamples" << YAML::Value << dynSkyIBLPassData->numIrradSamples;
+          out << YAML::Key << "RadianceSamples" << YAML::Value << dynSkyIBLPassData->numRadSamples;
+
+          out << YAML::EndMap;
+        }
+
+        // General post-processing settings.
+        {
+          auto postPass = passManager.getRenderPass<PostProcessingPass>();
+          auto postPassData = postPass->getInternalDataBlock<PostProcessingPassDataBlock>();
+
+          out << YAML::Key << "GeneralPostProcessingSettings" << YAML::BeginMap;
+
+          out << YAML::Key << "UseFXAA" << YAML::Value << postPassData->useFXAA;
+          out << YAML::Key << "ToneMapFunction" << YAML::Value << postPassData->toneMapOp;
+
+          out << YAML::EndMap;
+        }
+      }
+      out << YAML::EndMap;
 
       out << YAML::Key << "Materials";
       out << YAML::BeginSeq;
@@ -746,67 +836,84 @@ namespace Strontium
       for (auto entity : entities)
         deserializeEntity(entity, scene);
 
-      /*
       auto rendererSettings = data["RendererSettings"];
       if (rendererSettings)
       {
-        auto state = Renderer3D::getState();
+        auto& rendererStorage = Renderer3D::getStorage();
+        auto& passManager = Renderer3D::getPassManager();
 
-        auto basicSettings = rendererSettings["BasicSettings"];
-        if (basicSettings)
         {
-          state->frustumCull = basicSettings["FrustumCull"].as<bool>();
-          state->enableFXAA = basicSettings["UseFXAA"].as<bool>();
+          auto generalRendererSettings = rendererSettings["GeneralSettings"];
+          if (generalRendererSettings)
+          {
+            rendererStorage.gamma = generalRendererSettings["Gamma"].as<float>();
+          }
         }
 
-        auto shadowSettings = rendererSettings["ShadowSettings"];
-        if (shadowSettings)
         {
-          state->directionalSettings.x = shadowSettings["ShadowQuality"].as<int>();
-          state->cascadeLambda = shadowSettings["CascadeLambda"].as<float>();
-          state->cascadeSize = shadowSettings["CascadeSize"].as<uint>();
-          state->shadowParams[0].x = shadowSettings["CascadeLightBleed"].as<float>();
-          state->shadowParams[0].y = shadowSettings["LightSize"].as<float>();
-          state->shadowParams[0].z = shadowSettings["PCFRadius"].as<float>();
-          state->shadowParams[0].w = shadowSettings["NormalDepthBias"].as<float>();
-          state->shadowParams[1].x = shadowSettings["ConstDepthBias"].as<float>();
+          auto shadowSettings = rendererSettings["ShadowSettings"];
+          if (shadowSettings)
+          {
+            auto shadowPass = passManager.getRenderPass<ShadowPass>();
+            auto shadowPassData = shadowPass->getInternalDataBlock<ShadowPassDataBlock>();
+
+            shadowPassData->shadowQuality = shadowSettings["ShadowQuality"].as<uint>();
+            shadowPassData->cascadeLambda = shadowSettings["CascadeLambda"].as<float>();
+            shadowPassData->shadowMapRes = shadowSettings["ShadowMapResolution"].as<uint>();
+            shadowPass->updatePassData();
+          }
         }
 
-        auto volumetricSettings = rendererSettings["VolumetricLightSettings"];
-        if (volumetricSettings)
         {
-          state->enableSkyshafts = volumetricSettings["EnableVolumetricPrimaryLight"].as<bool>();
-          state->mieScatIntensity.w = volumetricSettings["VolumetricIntensity"].as<float>();
-          state->mieAbsDensity.w = volumetricSettings["ParticleDensity"].as<float>();
-          glm::vec3 mieScattering = volumetricSettings["MieScattering"].as<glm::vec3>();
-          state->mieScatIntensity.x = mieScattering.x;
-          state->mieScatIntensity.y = mieScattering.y;
-          state->mieScatIntensity.z = mieScattering.z;
+          auto hbaoSettings = rendererSettings["HBAOSettings"];
+          if (hbaoSettings)
+          {
+            auto aoPass = passManager.getRenderPass<HBAOPass>();
+            auto aoPassData = aoPass->getInternalDataBlock<HBAOPassDataBlock>();
 
-          glm::vec3 mieAbsorption = volumetricSettings["MieAbsorption"].as<glm::vec3>();
-          state->mieAbsDensity.x = mieAbsorption.x;
-          state->mieAbsDensity.y = mieAbsorption.y;
-          state->mieAbsDensity.z = mieAbsorption.z;
+            aoPassData->enableAO = hbaoSettings["UseHBAO"].as<bool>();
+            aoPassData->aoRadius = hbaoSettings["AORadius"].as<float>();
+            aoPassData->aoMultiplier = hbaoSettings["AOMultiplier"].as<float>();
+            aoPassData->aoExponent = hbaoSettings["AOExponent"].as<float>();
+          }
         }
 
-        auto bloomSettings = rendererSettings["BloomSettings"];
-        if (bloomSettings)
         {
-          state->enableBloom = bloomSettings["EnableBloom"].as<bool>();
-          state->bloomThreshold = bloomSettings["Threshold"].as<float>();
-          state->bloomKnee = bloomSettings["Knee"].as<float>();
-          state->bloomIntensity = bloomSettings["Intensity"].as<float>();
-          state->bloomRadius = bloomSettings["Radius"].as<float>();
+          auto skyAtmoSettings = rendererSettings["SkyAtmosphereSettings"];
+          if (skyAtmoSettings)
+          {
+            auto skyAtmoPass = passManager.getRenderPass<SkyAtmospherePass>();
+            auto skyAtmoPassData = skyAtmoPass->getInternalDataBlock<SkyAtmospherePassDataBlock>();
+
+            skyAtmoPassData->useFastAtmosphere = skyAtmoSettings["UseFastAtmosphere"].as<bool>();
+          }
         }
 
-        auto tonemapSettings = rendererSettings["ToneMapSettings"];
-        if (tonemapSettings)
         {
-          state->postProcessSettings.x = tonemapSettings["ToneMapType"].as<uint>();
-          state->gamma = tonemapSettings["Gamma"].as<float>();
+          auto dynSkyIBLSettings = rendererSettings["DynamicSkyIBLSettings"];
+          if (dynSkyIBLSettings)
+          {
+            auto dynSkyIBLPass = passManager.getRenderPass<DynamicSkyIBLPass>();
+            auto dynSkyIBLPassData = dynSkyIBLPass->getInternalDataBlock<DynamicSkyIBLPassDataBlock>();
+
+            dynSkyIBLPassData->numIrradSamples = dynSkyIBLSettings["IrradianceSamples"].as<uint>();
+            dynSkyIBLPassData->numRadSamples = dynSkyIBLSettings["RadianceSamples"].as<uint>();
+          }
+        }
+
+        {
+          auto generalPostSettings = rendererSettings["GeneralPostProcessingSettings"];
+          if (generalPostSettings)
+          {
+            auto postPass = passManager.getRenderPass<PostProcessingPass>();
+            auto postPassData = postPass->getInternalDataBlock<PostProcessingPassDataBlock>();
+
+            postPassData->useFXAA = generalPostSettings["UseFXAA"].as<bool>();
+            postPassData->toneMapOp = generalPostSettings["ToneMapFunction"].as<uint>();
+          }
         }
       }
-      */
+
       auto materials = data["Materials"];
       if (materials)
       {

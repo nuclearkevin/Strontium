@@ -27,8 +27,6 @@ ShaderCache:
     #
     # Sky
     #
-  - Handle: preetham_lut
-    Filepath: ./assets/shaders/compute/sky/preethamLUT.glsl
   - Handle: hillaire_transmittance
     Filepath: ./assets/shaders/compute/sky/transCompute.glsl
   - Handle: hillaire_multiscat
@@ -37,8 +35,6 @@ ShaderCache:
     Filepath: ./assets/shaders/compute/sky/skyviewCompute.glsl
   - Handle: hillaire_aerial
     Filepath: ./assets/shaders/compute/sky/aerialCompute.glsl
-  - Handle: skybox
-    Filepath: ./assets/shaders/forward/skybox.glsl
     #
     # IBL
     #
@@ -99,10 +95,6 @@ ShaderCache:
     #
     # Utility
     #
-  - Handle: gaussian_hori
-    Filepath: ./assets/shaders/post/gaussianHori.glsl
-  - Handle: gaussian_vert
-    Filepath: ./assets/shaders/post/gaussianVert.glsl
   - Handle: bilateral_blur
     Filepath: ./assets/shaders/compute/bilatBlur.glsl
   - Handle: clear_tex_2D

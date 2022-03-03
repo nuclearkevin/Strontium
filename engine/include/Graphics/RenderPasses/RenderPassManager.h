@@ -3,6 +3,7 @@
 #include "StrontiumPCH.h"
 
 // Project includes.
+#include "Core/ApplicationBase.h"
 #include "Graphics/RenderPasses/RenderPass.h"
 #include "Graphics/FrameBuffer.h"
 
@@ -22,15 +23,14 @@ namespace Strontium
 	  RenderPass* retPass = nullptr;
 	  for (auto& pass : this->renderPasses)
 	  {
-		retPass = dynamic_cast<T*>(pass);
+		retPass = dynamic_cast<T*>(pass.get());
 		assert((!retPass, " Cannot have multiples of the same type of renderpass!"));
 	  }
 
 	  this->renderPasses.emplace_back(new T(std::forward<Args>(args)...));
 	  this->renderPasses.back()->manager = this;
-	  this->traverseAndFlatten();
 
-	  return static_cast<T*>(this->renderPasses.back());
+	  return static_cast<T*>(this->renderPasses.back().get());
 	}
 
 	template <typename T>
@@ -41,7 +41,7 @@ namespace Strontium
 	  T* retPass = nullptr;
 	  for (auto& pass : this->renderPasses)
 	  {
-		retPass = dynamic_cast<T*>(pass);
+		retPass = dynamic_cast<T*>(pass.get());
 		if (retPass)
 		  break;
 	  }
@@ -56,9 +56,6 @@ namespace Strontium
 	void onShutdown();
 
   private:
-	void traverseAndFlatten();
-
-	std::vector<RenderPass*> renderPasses;
-	std::vector<RenderPass*> flattenedRenderGraph;
+	std::vector<Unique<RenderPass>> renderPasses;
   };
 }

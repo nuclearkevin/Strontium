@@ -3,9 +3,7 @@
 namespace Strontium
 {
   RenderPassManager::~RenderPassManager()
-  {
-
-  }
+  { }
 
   void 
   RenderPassManager::onInit()
@@ -40,11 +38,5 @@ namespace Strontium
   {
 	for (auto& pass : this->renderPasses)
 	  pass->onShutdown();
-  }
-
-  void 
-  RenderPassManager::traverseAndFlatten()
-  {
-
   }
 }
