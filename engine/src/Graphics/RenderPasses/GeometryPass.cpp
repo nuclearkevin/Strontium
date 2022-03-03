@@ -262,21 +262,20 @@ namespace Strontium
       // Set the index offset. 
       this->passData.perDrawUniforms.setData(0, sizeof(int), &bufferOffset);
 
-      static_cast<Material*>(drawable)->configureTextures();
+      drawable.technique->configureTextures();
 
-      auto vao = static_cast<VertexArray*>(drawable);
-      vao->bind();
+      drawable.primatives->bind();
       RendererCommands::drawElementsInstanced(PrimativeType::Triangle, 
-                                              vao->numToRender(), 
+                                              drawable.primatives->numToRender(), 
                                               drawable.instancedData.size());
-      vao->unbind();
+      drawable.primatives->unbind();
       
       bufferOffset += drawable.instancedData.size();
 
       // Record some statistics.
       this->passData.numDrawCalls++;
       this->passData.numInstances += drawable.instancedData.size();
-      this->passData.numTrianglesDrawn += (drawable.instancedData.size() * vao->numToRender()) / 3;
+      this->passData.numTrianglesDrawn += (drawable.instancedData.size() * drawable.primatives->numToRender()) / 3;
     }
 
     // Dynamic geometry pass for skinned objects.
@@ -290,21 +289,23 @@ namespace Strontium
       this->passData.boneBuffer.setData(0, bones.size() * sizeof(glm::mat4),
                                         bones.data());
       
-      static_cast<Material*>(drawable)->configureTextures();
+      // Set the index offset. 
+      this->passData.perDrawUniforms.setData(0, sizeof(int), &bufferOffset);
+
+      drawable.technique->configureTextures();
       
-      auto vao = static_cast<VertexArray*>(drawable);
-      vao->bind();
+      drawable.primatives->bind();
       RendererCommands::drawElementsInstanced(PrimativeType::Triangle, 
-                                              vao->numToRender(), 
+                                              drawable.primatives->numToRender(), 
                                               drawable.instanceCount);
-      vao->unbind();
+      drawable.primatives->unbind();
 
       bufferOffset += drawable.instanceCount;
 
       // Record some statistics.
       this->passData.numDrawCalls++;
       this->passData.numInstances += drawable.instanceCount;
-      this->passData.numTrianglesDrawn += (drawable.instanceCount * vao->numToRender()) / 3;
+      this->passData.numTrianglesDrawn += (drawable.instanceCount * drawable.primatives->numToRender()) / 3;
     }
     this->passData.dynamicGeometry->unbind();
 

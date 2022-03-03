@@ -205,6 +205,16 @@ namespace Strontium
         model.addComponent<RenderableComponent>();
       }
 
+      if (ImGui::MenuItem("New Dynamic Sky"))
+      {
+        auto dynamicSky = activeScene->createEntity("New Dynamic Sky");
+        dynamicSky.addComponent<TransformComponent>();
+        dynamicSky.addComponent<SkyAtmosphereComponent>();
+        dynamicSky.addComponent<DynamicSkyboxComponent>();
+        dynamicSky.addComponent<DirectionalLightComponent>();
+        dynamicSky.addComponent<DynamicSkylightComponent>();
+      }
+
       if (ImGui::BeginMenu("New Light"))
       {
         if (ImGui::MenuItem("Directional Light"))
