@@ -386,10 +386,9 @@ namespace Strontium
         out << YAML::BeginMap;
 
         auto& component = entity.getComponent<PointLightComponent>();
-        out << YAML::Key << "Position" << YAML::Value << glm::vec3(component.light.positionRadius);
-        out << YAML::Key << "Colour" << YAML::Value << glm::vec3(component.light.colourIntensity);
-        out << YAML::Key << "Intensity" << YAML::Value << component.light.colourIntensity.w;
-        out << YAML::Key << "Radius" << YAML::Value << component.light.positionRadius.w;
+        out << YAML::Key << "Colour" << YAML::Value << component.colour;
+        out << YAML::Key << "Intensity" << YAML::Value << component.intensity;
+        out << YAML::Key << "Radius" << YAML::Value << component.radius;
         out << YAML::Key << "CastShadows" << YAML::Value << component.castShadows;
 
         out << YAML::EndMap;
@@ -804,10 +803,9 @@ namespace Strontium
       if (pointComponent)
       {
         auto& pComponent = newEntity.addComponent<PointLightComponent>();
-        pComponent.light.positionRadius = glm::vec4(pointComponent["Position"].as<glm::vec3>(), 0.0f);
-        pComponent.light.colourIntensity = glm::vec4(pointComponent["Colour"].as<glm::vec3>(), 0.0f);
-        pComponent.light.colourIntensity.w = pointComponent["Intensity"].as<float>();
-        pComponent.light.positionRadius.w = pointComponent["Radius"].as<float>();
+        pComponent.colour = pointComponent["Colour"].as<glm::vec3>();
+        pComponent.intensity = pointComponent["Intensity"].as<float>();
+        pComponent.radius = pointComponent["Radius"].as<float>();
         pComponent.castShadows = pointComponent["CastShadows"].as<bool>();
       }
 

@@ -53,8 +53,13 @@ namespace Strontium
     glm::vec4 colourIntensity;
 
     PointLight()
-      : positionRadius(glm::vec4(0.0f))
+      : positionRadius(0.0f)
       , colourIntensity(1.0f, 1.0f, 1.0f, 0.0f)
+    { }
+
+    PointLight(const glm::vec4 &positionRadius, const glm::vec4 &colourIntensity)
+      : positionRadius(positionRadius)
+      , colourIntensity(colourIntensity)
     { }
   };
 

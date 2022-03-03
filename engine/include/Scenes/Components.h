@@ -335,19 +335,24 @@ namespace Strontium
 
   struct PointLightComponent
   {
-    PointLight light;
+    float radius;
+    glm::vec3 colour;
+    float intensity;
+
     bool castShadows;
 
     PointLightComponent(const PointLightComponent&) = default;
 
     PointLightComponent()
-      : light()
+      : radius(1.0f)
+      , colour(1.0f)
+      , intensity(1.0f)
       , castShadows(false)
     { }
 
     operator PointLight()
     {
-      return light;
+      return PointLight({ 0.0f, 0.0f, 0.0f, this->radius }, { this->colour, this->intensity });
     }
   };
 
