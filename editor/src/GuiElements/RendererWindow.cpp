@@ -10,6 +10,7 @@
 #include "Graphics/RenderPasses/DynamicSkyIBLPass.h"
 
 #include "Graphics/RenderPasses/IBLApplicationPass.h"
+#include "Graphics/RenderPasses/DirectionalLightPass.h"
 
 #include "Graphics/RenderPasses/SkyboxPass.h"
 
@@ -70,6 +71,35 @@ namespace Strontium
         ImGui::EndCombo();
       }
 
+      if (shadowBlock->shadowQuality == 1)
+      {
+        if (ImGui::DragFloat("Filter Radius", &(shadowBlock->minRadius), 0.01f))
+        {
+          shadowBlock->minRadius = glm::max(shadowBlock->minRadius, 0.0f);
+        }
+      }
+
+      if (shadowBlock->shadowQuality == 2)
+      {
+        if (ImGui::DragFloat("Minimum Radius", &(shadowBlock->minRadius), 0.01f))
+        {
+          shadowBlock->minRadius = glm::max(shadowBlock->minRadius, 0.0f);
+        }
+      }
+
+      float constBias = shadowBlock->constBias;
+      if (ImGui::DragFloat("Constant Bias", &(constBias), 0.01f))
+      {
+        shadowBlock->constBias = glm::max(constBias, 0.0f);
+      }
+      float normalBias = shadowBlock->normalBias;
+      if (ImGui::DragFloat("Normal Bias", &(normalBias), 0.01f))
+      {
+        shadowBlock->normalBias = glm::max(normalBias, 0.0f);
+      }
+
+      ImGui::Text("");
+
       ImGui::DragFloat("Cascade Lambda", &shadowBlock->cascadeLambda, 0.01f, 0.5f, 1.0f);
 
       int shadowWidth = static_cast<int>(shadowBlock->shadowMapRes);
@@ -93,64 +123,6 @@ namespace Strontium
 
         shadowPass->updatePassData();
       }
-
-      /*
-      ImGui::Text("");
-
-      if (state->directionalSettings.x == 0)
-      {
-        float normalBias = state->shadowParams[0].w;
-        if (ImGui::DragFloat("Normal Bias", &(normalBias), 0.01f))
-        {
-          state->shadowParams[0].w = glm::max(normalBias, 0.0f);
-        }
-        float constBias = state->shadowParams[1].x;
-        if (ImGui::DragFloat("Constant Bias", &(constBias), 0.01f))
-        {
-          state->shadowParams[1].x = glm::max(constBias, 0.0f);
-        }
-      }
-
-      if (state->directionalSettings.x == 1)
-      {
-        if (ImGui::DragFloat("Filter Radius", &(state->shadowParams[0].z), 0.01f))
-        {
-          state->shadowParams[0].z = glm::max(state->shadowParams[0].z, 0.0f);
-        }
-        float normalBias = state->shadowParams[0].w;
-        if (ImGui::DragFloat("Normal Bias", &(normalBias), 0.01f))
-        {
-          state->shadowParams[0].w = glm::max(normalBias, 0.0f);
-        }
-        float constBias = state->shadowParams[1].x;
-        if (ImGui::DragFloat("Constant Bias", &(constBias), 0.01f))
-        {
-          state->shadowParams[1].x = glm::max(constBias, 0.0f);
-        }
-      }
-
-      if (state->directionalSettings.x == 2)
-      {
-        if (ImGui::DragFloat("Light Size", &(state->shadowParams[0].y), 0.01f))
-        {
-          state->shadowParams[0].y = glm::max(state->shadowParams[0].y, 0.0f);
-        }
-        if (ImGui::DragFloat("Minimum Radius", &(state->shadowParams[0].z), 0.01f))
-        {
-          state->shadowParams[0].z = glm::max(state->shadowParams[0].z, 0.0f);
-        }
-        float normalBias = state->shadowParams[0].w;
-        if (ImGui::DragFloat("Normal Bias", &(normalBias), 0.01f))
-        {
-          state->shadowParams[0].w = glm::max(normalBias, 0.0f);
-        }
-        float constBias = state->shadowParams[1].x;
-        if (ImGui::DragFloat("Constant Bias", &(constBias), 0.01f))
-        {
-          state->shadowParams[1].x = glm::max(constBias, 0.0f);
-        }
-      }
-      */
 
       static bool showMaps = false;
       ImGui::Checkbox("Show shadow maps", &showMaps);
@@ -341,6 +313,11 @@ namespace Strontium
         auto iblAppPass = renderPassManger.getRenderPass<IBLApplicationPass>();
         auto iblAppBlock = iblAppPass->getInternalDataBlock<IBLApplicationPassDataBlock>();
         ImGui::Text("IBL Frametime: %f ms", iblAppBlock->frameTime);
+      }
+      {
+        auto dirAppPass = renderPassManger.getRenderPass<DirectionalLightPass>();
+        auto dirAppBlock = dirAppPass->getInternalDataBlock<DirectionalLightPassDataBlock>();
+        ImGui::Text("Directional Light Frametime: %f ms", dirAppBlock->frameTime);
       }
       {
         auto skyboxAppPass = renderPassManger.getRenderPass<SkyboxPass>();

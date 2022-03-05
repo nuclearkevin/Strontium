@@ -172,13 +172,11 @@ namespace Strontium
   struct CameraComponent
   {
     Camera entCamera;
-    bool isPrimary;
 
     CameraComponent(const CameraComponent&) = default;
 
     CameraComponent()
       : entCamera()
-      , isPrimary(false)
     { }
   };
 
@@ -315,7 +313,7 @@ namespace Strontium
     glm::vec3 direction;
 
     bool castShadows;
-    bool primaryLight;
+    float size;
 
     DirectionalLightComponent(const DirectionalLightComponent&) = default;
 
@@ -324,12 +322,12 @@ namespace Strontium
       , intensity(1.0f)
       , direction(0.0f, -1.0f, 0.0f)
       , castShadows(false)
-      , primaryLight(false)
+      , size(10.f)
     { }
 
     operator DirectionalLight()
     {
-      return DirectionalLight(this->colour, this->intensity, this->direction);
+      return DirectionalLight(this->colour, this->intensity, this->direction, this->size);
     }
   };
 

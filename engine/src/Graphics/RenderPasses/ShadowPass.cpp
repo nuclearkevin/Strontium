@@ -61,6 +61,15 @@ namespace Strontium
     for (uint i = 0; i < NUM_CASCADES; i++)
       this->passData.shadowBuffers[i].clear();
 
+    this->passData.castShadows = false;
+    this->passData.hasCascades = false;
+
+    this->passData.numUniqueEntities = 0u;
+    this->passData.staticDrawList.clear();
+    this->passData.dynamicDrawList.clear();
+    this->passData.minPos = glm::vec3(std::numeric_limits<float>::max());
+    this->passData.maxPos = glm::vec3(std::numeric_limits<float>::min());
+
 	// Clear the statistics.
     this->passData.numDrawCalls = 0u;
     this->passData.numInstances = 0u;
@@ -79,155 +88,27 @@ namespace Strontium
     if (!this->passData.hasCascades)
       return;
 
+    // Upload the cached data for both static and dynamic geometry.
+    if (this->passData.transformBuffer.size() != (sizeof(glm::mat4) * this->passData.numUniqueEntities))
+      this->passData.transformBuffer.resize(sizeof(glm::mat4) * this->passData.numUniqueEntities, BufferType::Dynamic);
+    
+    uint bufferPointer = 0;
+    for (auto& drawCommand : this->passData.staticDrawList)
+    {
+      this->passData.transformBuffer.setData(bufferPointer, sizeof(glm::mat4) * drawCommand.instancedTransforms.size(),
+                                              drawCommand.instancedTransforms.data());
+      bufferPointer += sizeof(glm::mat4) * drawCommand.instancedTransforms.size();
+    }
+    for (auto& drawCommand : this->passData.dynamicDrawList)
+    {
+      this->passData.transformBuffer.setData(bufferPointer, sizeof(glm::mat4),
+                                             &drawCommand.transform);
+      bufferPointer += sizeof(glm::mat4);
+    }
+
     // Run the Strontium render pipeline for each shadow cascade.
     for (uint i = 0; i < NUM_CASCADES; i++)
     {
-      uint numUniqueEntities = 0;
-      // Loop over static and non-skinned dynamic models + meshes to:
-      // - Perform frustum culling.
-      // - Compute and cache transforms. TODO: Handle skinned meshes better.
-      // - Populate the draw lists.
-      // Static meshes.
-      for (auto& drawable : this->globalBlock->staticRenderQueue)
-	  {
-	    auto& [data, materials, transform, id, drawSelectionMask] = drawable;
-        this->globalBlock->drawEdge = drawSelectionMask || this->globalBlock->drawEdge;
-      
-	    for (auto& submesh : data->getSubmeshes())
-	    {
-          auto material = materials->getMaterial(submesh.getName());
-          if (!material)
-            continue;
-      
-          VertexArray* vao = submesh.hasVAO() ? submesh.getVAO() : submesh.generateVAO();
-          if (!vao)
-            continue;
-      
-          // Record some statistics.
-          this->passData.numTrianglesSubmitted += vao->numToRender() / 3;
-      
-          auto localTransform = transform * submesh.getTransform();
-          if (!boundingBoxInFrustum(this->passData.lightCullingFrustums[i], submesh.getMinPos(),
-	  							  submesh.getMaxPos(), localTransform))
-            continue;
-      
-          // Populate the draw list.
-          numUniqueEntities++;
-          auto drawData = std::find_if(this->passData.staticDrawList.begin(), 
-                                       this->passData.staticDrawList.end(),
-                                       [vao](const ShadowStaticDrawData& data)
-          {
-            return data.primatives == vao;
-          });
-      
-          if (drawData != this->passData.staticDrawList.end())
-          {   
-            // Cache the per-entity data.
-            drawData->instancedTransforms.emplace_back(localTransform);
-          }
-          else 
-          {
-            this->passData.staticDrawList.emplace_back(vao);
-            this->passData.staticDrawList.back().instancedTransforms.emplace_back(localTransform);
-          }
-	    }
-	  }
-
-      // Dynamic meshes, skinned or rigged.
-	  for (auto& drawable : this->globalBlock->dynamicRenderQueue)
-	  {
-	    auto& [data, animations, materials, transform, id, drawSelectionMask] = drawable;
-        this->globalBlock->drawEdge = drawSelectionMask || this->globalBlock->drawEdge;
-      
-        if (data->hasSkins())
-        {
-          // Skinned animated mesh, store the static transform.
-          for (auto& submesh : data->getSubmeshes())
-	      {
-            auto material = materials->getMaterial(submesh.getName());
-            if (!material)
-              continue;
-      
-            VertexArray* vao = submesh.hasVAO() ? submesh.getVAO() : submesh.generateVAO();
-            if (!vao)
-              continue;
-      
-            // Record some statistics.
-            this->passData.numTrianglesSubmitted += vao->numToRender() / 3;
-      
-            if (!boundingBoxInFrustum(this->passData.lightCullingFrustums[i], data->getMinPos(),
-	  	  						    data->getMaxPos(), transform))
-              continue;
-      
-            // Populate the dynamic draw list.
-            numUniqueEntities++;
-            this->passData.dynamicDrawList.emplace_back(vao, animations, transform);
-	      }
-        }
-        else
-        {
-          // Unskinned animated mesh, store the rigged transform.
-	      auto& bones = animations->getFinalUnSkinnedTransforms();
-	      for (auto& submesh : data->getSubmeshes())
-	      {
-            auto material = materials->getMaterial(submesh.getName());
-            if (!material)
-              continue;
-      
-            VertexArray* vao = submesh.hasVAO() ? submesh.getVAO() : submesh.generateVAO();
-            if (!vao)
-              continue;
-      
-            // Record some statistics.
-            this->passData.numTrianglesSubmitted += vao->numToRender() / 3;
-      
-            auto localTransform = transform * bones[submesh.getName()];
-	  	    if (!boundingBoxInFrustum(this->passData.lightCullingFrustums[i], submesh.getMinPos(),
-	  	  						      submesh.getMaxPos(), localTransform))
-              continue;
-      
-            // Populate the draw list.
-            numUniqueEntities++;
-            auto drawData = std::find_if(this->passData.staticDrawList.begin(), 
-                                         this->passData.staticDrawList.end(),
-                                         [vao](const ShadowStaticDrawData& data)
-            {
-              return data.primatives == vao;
-            });
-            
-            if (drawData != this->passData.staticDrawList.end())
-            {
-              // Cache the per-entity data.
-              drawData->instancedTransforms.emplace_back(localTransform);
-            }
-            else 
-            {
-              // Cache the per-entity data.
-              this->passData.staticDrawList.emplace_back(vao);
-              this->passData.staticDrawList.back().instancedTransforms.emplace_back(localTransform);
-            }
-	      }
-        }
-	  }
-
-      // Upload the cached data for both static and dynamic geometry.
-      if (this->passData.transformBuffer.size() != (sizeof(glm::mat4) * numUniqueEntities))
-        this->passData.transformBuffer.resize(sizeof(glm::mat4) * numUniqueEntities, BufferType::Dynamic);
-      
-      uint bufferPointer = 0;
-      for (auto& drawCommand : this->passData.staticDrawList)
-      {
-        this->passData.transformBuffer.setData(bufferPointer, sizeof(glm::mat4) * drawCommand.instancedTransforms.size(),
-                                                drawCommand.instancedTransforms.data());
-        bufferPointer += sizeof(glm::mat4) * drawCommand.instancedTransforms.size();
-      }
-      for (auto& drawCommand : this->passData.dynamicDrawList)
-      {
-        this->passData.transformBuffer.setData(bufferPointer, sizeof(glm::mat4),
-                                               &drawCommand.transform);
-        bufferPointer += sizeof(glm::mat4);
-      }
-
       // Set the light-space data.
       struct LightSpaceBlockData
       {
@@ -247,13 +128,13 @@ namespace Strontium
 
       this->passData.transformBuffer.bindToPoint(0);
 
-      uint bufferOffset = 0;
+      bufferPointer = 0;
       // Static geometry pass.
       this->passData.staticShadow->bind();
       for (auto& drawable : this->passData.staticDrawList)
       {
         // Set the index offset. 
-        this->passData.perDrawUniforms.setData(0, sizeof(int), &bufferOffset);
+        this->passData.perDrawUniforms.setData(0, sizeof(int), &bufferPointer);
       
         auto vao = static_cast<VertexArray*>(drawable);
         vao->bind();
@@ -262,7 +143,7 @@ namespace Strontium
                                                 drawable.instancedTransforms.size());
         vao->unbind();
         
-        bufferOffset += drawable.instancedTransforms.size();
+        bufferPointer += drawable.instancedTransforms.size();
       
         // Record some statistics.
         this->passData.numDrawCalls++;
@@ -281,6 +162,9 @@ namespace Strontium
         this->passData.boneBuffer.setData(0, bones.size() * sizeof(glm::mat4),
                                           bones.data());
         
+        // Set the index offset. 
+        this->passData.perDrawUniforms.setData(0, sizeof(int), &bufferPointer);
+
         auto vao = static_cast<VertexArray*>(drawable);
         vao->bind();
         RendererCommands::drawElementsInstanced(PrimativeType::Triangle, 
@@ -288,16 +172,13 @@ namespace Strontium
                                                 drawable.instanceCount);
         vao->unbind();
       
-        bufferOffset += drawable.instanceCount;
+        bufferPointer += drawable.instanceCount;
       
         // Record some statistics.
         this->passData.numDrawCalls++;
         this->passData.numInstances += drawable.instanceCount;
         this->passData.numTrianglesDrawn += (drawable.instanceCount * vao->numToRender()) / 3;
       }
-
-      this->passData.staticDrawList.clear();
-      this->passData.dynamicDrawList.clear();
     }
     this->passData.dynamicShadow->unbind();
     this->passData.shadowBuffers[NUM_CASCADES - 1].unbind();
@@ -314,13 +195,136 @@ namespace Strontium
   { }
 
   void 
+  ShadowPass::submit(Model* data, const glm::mat4& model)
+  { 
+	for (auto& submesh : data->getSubmeshes())
+	{
+      VertexArray* vao = submesh.hasVAO() ? submesh.getVAO() : submesh.generateVAO();
+      if (!vao)
+        continue;
+      
+      // Compute the scene AABB.
+      auto localTransform = model * submesh.getTransform();
+      this->passData.minPos = glm::min(this->passData.minPos, glm::vec3(localTransform * glm::vec4(submesh.getMinPos(), 1.0f)));
+      this->passData.maxPos = glm::max(this->passData.maxPos, glm::vec3(localTransform * glm::vec4(submesh.getMaxPos(), 1.0f)));
+
+      // Record some statistics.
+      this->passData.numTrianglesSubmitted += vao->numToRender() / 3;
+    
+      // Populate the draw list.
+      this->passData.numUniqueEntities++;
+      auto drawData = std::find_if(this->passData.staticDrawList.begin(), 
+                                   this->passData.staticDrawList.end(),
+                                   [vao](const ShadowStaticDrawData& data)
+      {
+        return data.primatives == vao;
+      });
+    
+      if (drawData != this->passData.staticDrawList.end())
+      {   
+        // Cache the per-entity data.
+        drawData->instancedTransforms.emplace_back(localTransform);
+      }
+      else 
+      {
+        this->passData.staticDrawList.emplace_back(vao);
+        this->passData.staticDrawList.back().instancedTransforms.emplace_back(localTransform);
+      }
+	}
+  }
+
+  void 
+  ShadowPass::submit(Model* data, Animator* animation, const glm::mat4 &model)
+  {
+    if (data->hasSkins())
+    {
+      // Skinned animated mesh, store the static transform.
+      for (auto& submesh : data->getSubmeshes())
+	  {    
+        VertexArray* vao = submesh.hasVAO() ? submesh.getVAO() : submesh.generateVAO();
+        if (!vao)
+          continue;
+        
+        this->passData.minPos = glm::min(this->passData.minPos, glm::vec3(model * glm::vec4(submesh.getMinPos(), 1.0f)));
+        this->passData.maxPos = glm::max(this->passData.maxPos, glm::vec3(model * glm::vec4(submesh.getMaxPos(), 1.0f)));
+
+        // Record some statistics.
+        this->passData.numTrianglesSubmitted += vao->numToRender() / 3;
+    
+        // Populate the dynamic draw list.
+        this->passData.numUniqueEntities++;
+        this->passData.dynamicDrawList.emplace_back(vao, animation, model);
+	  }
+    }
+    else
+    {
+      // Unskinned animated mesh, store the rigged transform.
+	  auto& bones = animation->getFinalUnSkinnedTransforms();
+	  for (auto& submesh : data->getSubmeshes())
+	  {
+        VertexArray* vao = submesh.hasVAO() ? submesh.getVAO() : submesh.generateVAO();
+        if (!vao)
+          continue;
+    
+        auto localTransform = model * bones[submesh.getName()];
+        this->passData.minPos = glm::min(this->passData.minPos, glm::vec3(localTransform * glm::vec4(submesh.getMinPos(), 1.0f)));
+        this->passData.maxPos = glm::max(this->passData.maxPos, glm::vec3(localTransform * glm::vec4(submesh.getMaxPos(), 1.0f)));
+        
+        // Record some statistics.
+        this->passData.numTrianglesSubmitted += vao->numToRender() / 3;
+    
+        // Populate the draw list.
+        this->passData.numUniqueEntities++;
+        auto drawData = std::find_if(this->passData.staticDrawList.begin(), 
+                                     this->passData.staticDrawList.end(),
+                                     [vao](const ShadowStaticDrawData& data)
+        {
+          return data.primatives == vao;
+        });
+        
+        if (drawData != this->passData.staticDrawList.end())
+        {
+          // Cache the per-entity data.
+          drawData->instancedTransforms.emplace_back(localTransform);
+        }
+        else 
+        {
+          // Cache the per-entity data.
+          this->passData.staticDrawList.emplace_back(vao);
+          this->passData.staticDrawList.back().instancedTransforms.emplace_back(localTransform);
+        }
+	  }
+    }
+  }
+
+  void 
+  ShadowPass::submitPrimary(const DirectionalLight &light, bool castShadows, 
+                            const glm::mat4& model)
+  {
+    auto invTrans = glm::transpose(glm::inverse(model));
+    DirectionalLight temp = light;
+    temp.directionSize = glm::vec4(-1.0f * glm::vec3(invTrans * glm::vec4(0.0f, -1.0f, 0.0f, 0.0f)), light.directionSize.w);
+
+    this->passData.primaryLight = temp;
+    this->passData.castShadows = castShadows;
+  }
+
+  void 
   ShadowPass::computeShadowData()
   {
+    //------------------------------------------------------------------------
+    // Directional light shadow cascade calculations:
+    //------------------------------------------------------------------------
+    // https://developer.nvidia.com/gpugems/gpugems3/part-ii-light-and-shadows/chapter-10-parallel-split-shadow-maps-programmable-gpus
+    //------------------------------------------------------------------------
+    // https://docs.microsoft.com/en-us/windows/win32/dxtecharts/cascaded-shadow-maps
+    //------------------------------------------------------------------------
     const float near = this->globalBlock->sceneCam.near;
     const float far = this->globalBlock->sceneCam.far;
 
     glm::mat4 camInvVP = this->globalBlock->sceneCam.invViewProj;
 
+    Frustum lightCullingFrustums[NUM_CASCADES];
     float cascadeSplits[NUM_CASCADES];
 
     const float clipRange = far - near;
@@ -341,45 +345,22 @@ namespace Strontium
     // Compute the scene AABB in world space. This fixes issues with objects
     // not being captured if they're out of the camera frustum (since they
     // still need to cast shadows).
-    glm::vec3 minPos = glm::vec3(std::numeric_limits<float>::max());
-    glm::vec3 maxPos = glm::vec3(std::numeric_limits<float>::min());
-    for (auto& drawable : this->globalBlock->staticRenderQueue)
-    {
-      auto& [data, materials, transform, id, drawSelectionMask] = drawable;
-      auto localTransform = transform * data->getGlobalTransform();
-      minPos = glm::min(minPos, glm::vec3(localTransform * glm::vec4(data->getMinPos(), 1.0f)));
-      maxPos = glm::max(maxPos, glm::vec3(localTransform * glm::vec4(data->getMaxPos(), 1.0f)));
-    }
-    for (auto& drawable : this->globalBlock->dynamicRenderQueue)
-    {
-      auto& [data, animations, materials, transform, id, drawSelectionMask] = drawable;
-      auto localTransform = transform * data->getGlobalTransform();
-      minPos = glm::min(minPos, glm::vec3(localTransform * glm::vec4(data->getMinPos(), 1.0f)));
-      maxPos = glm::max(maxPos, glm::vec3(localTransform * glm::vec4(data->getMaxPos(), 1.0f)));
-    }
-
-    float sceneMaxRadius = glm::length(minPos);
-    sceneMaxRadius = glm::max(sceneMaxRadius, glm::length(maxPos));
+    float sceneMaxRadius = glm::length(this->passData.minPos);
+    sceneMaxRadius = glm::max(sceneMaxRadius, glm::length(this->passData.maxPos));
 
     // Compute the lightspace matrices for each light for each cascade.
-    this->passData.hasCascades = false;
-    glm::vec3 lightDir = glm::vec3(0.0f);
-    for (uint i = 0; i < this->globalBlock->directionalLightCount; i++)
-    {
-      auto& dirLight = this->globalBlock->directionalLightQueue[i];
-      if (!dirLight.second[1] || !dirLight.second[0]) // 0 == primary light, 1 == cast shadows
-        continue;
+    if (!this->passData.castShadows)
+      return;
 
-      this->passData.hasCascades = true;
-      lightDir = glm::normalize(dirLight.first.direction);
-    }
+    this->passData.hasCascades = true;
+    glm::vec3 lightDir = glm::normalize(glm::vec3(this->passData.primaryLight.directionSize));
 
     if (this->passData.hasCascades)
     {
       float previousCascadeDistance = 0.0f;
 
       glm::mat4 cascadeViewMatrix[NUM_CASCADES];
-      glm::mat4 cascadeProjMatrix[NUM_CASCADES];    
+      glm::mat4 cascadeProjMatrix[NUM_CASCADES];
 
       for (unsigned int i = 0; i < NUM_CASCADES; i++)
       {
@@ -454,11 +435,11 @@ namespace Strontium
         glm::vec4 shadowOrigin = glm::vec4(glm::vec3(0.0f), 1.0f);
         shadowOrigin = lightVP * shadowOrigin;
         float storedShadowW = shadowOrigin.w;
-        shadowOrigin = 0.5f * shadowOrigin * static_cast<float>(this->passData.shadowMapRes);
+        shadowOrigin = 0.5f * shadowOrigin * this->passData.shadowBuffers[i].getSize().x;
 
         glm::vec4 roundedShadowOrigin = glm::round(shadowOrigin);
         glm::vec4 roundedShadowOffset = roundedShadowOrigin - shadowOrigin;
-        roundedShadowOffset = 2.0f * roundedShadowOffset / static_cast<float>(this->passData.shadowMapRes);
+        roundedShadowOffset = 2.0f * roundedShadowOffset / this->passData.shadowBuffers[i].getSize().x;
         roundedShadowOffset.z = 0.0f;
         roundedShadowOffset.w = 0.0f;
 
@@ -467,7 +448,7 @@ namespace Strontium
         cascadeProjMatrix[i] = texelSpaceOrtho;
 
         this->passData.cascades[i] = cascadeProjMatrix[i] * cascadeViewMatrix[i];
-        this->passData.lightCullingFrustums[i] = buildCameraFrustum(this->passData.cascades[i], -lightDir);
+        lightCullingFrustums[i] = buildCameraFrustum(this->passData.cascades[i], -lightDir);
 
         previousCascadeDistance = cascadeSplits[i];
 

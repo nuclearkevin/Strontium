@@ -33,17 +33,17 @@ namespace Strontium
   struct DirectionalLight
   {
     glm::vec4 colourIntensity;
-    glm::vec4 direction;
+    glm::vec4 directionSize;
 
     DirectionalLight()
-      : direction(0.0f, 1.0f, 0.0f, 0.0f)
+      : directionSize(0.0f, 1.0f, 0.0f, 10.0f)
       , colourIntensity(1.0f)
     { }
 
     DirectionalLight(const glm::vec3 colour, float intensity, 
-                     const glm::vec3 &direction)
+                     const glm::vec3 &direction, float size)
       : colourIntensity(colour, intensity)
-      , direction(direction, 0.0f)
+      , directionSize(direction, size)
     { }
   };
 

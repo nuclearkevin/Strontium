@@ -32,13 +32,6 @@ namespace Strontium::Renderer3D
     float gamma;
     Frustum camFrustum;
 
-    uint numTransforms;
-    std::vector<std::tuple<Model*, ModelMaterial*, glm::mat4, uint, bool>> staticRenderQueue;
-    std::vector<std::tuple<Model*, Animator*, ModelMaterial*, glm::mat4, uint, bool>> dynamicRenderQueue;
-
-    int primaryLightIndex;
-    uint directionalLightCount;
-    std::array<std::pair<DirectionalLight, std::bitset<2>>, 8> directionalLightQueue;
     uint pointLightCount;
     std::array<PointLight, 1024> pointLightQueue;
     uint spotLightCount;
@@ -48,8 +41,6 @@ namespace Strontium::Renderer3D
 
     Texture2D lightingBuffer;
     Texture2D halfResBuffer1;
-
-    bool drawEdge;
 
     GlobalRendererData()
       : blankVAO()
@@ -71,12 +62,6 @@ namespace Strontium::Renderer3D
   void end(FrameBuffer& frontBuffer);
 
   // Deferred rendering setup.
-  void submit(Model* data, ModelMaterial &materials, const glm::mat4 &model,
-              float id = 0.0f, bool drawSelectionMask = false);
-  void submit(Model* data, Animator* animation, ModelMaterial &materials,
-              const glm::mat4 &model, float id = 0.0f,
-              bool drawSelectionMask = false);
-  void submit(const DirectionalLight &light, bool primaryLight, bool castShadows, const glm::mat4 &model);
   void submit(const PointLight &light, const glm::mat4 &model);
   void submit(const SpotLight &light, const glm::mat4 &model);
 }

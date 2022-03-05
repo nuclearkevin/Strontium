@@ -18,7 +18,7 @@ namespace Strontium
 {
   struct DirectionalLightPassDataBlock
   {
-    Shader* shadowedDirectionalEvaluation;
+    Shader* directionalEvaluationS;
     Shader* directionalEvaluation;
 
     // Pass parameters.
@@ -29,7 +29,7 @@ namespace Strontium
     uint directionalLightCount;
     std::array<DirectionalLight, MAX_NUM_DIRECTIONAL_LIGHTS> directionalLightQueue;
 
-    // The primary light and does it cast shadows or not.
+    // The primary light and if it cast shadows.
     bool castShadows;
     DirectionalLight primaryLight;
 
@@ -37,10 +37,10 @@ namespace Strontium
     float frameTime;
 
     DirectionalLightPassDataBlock()
-      : shadowedDirectionalEvaluation(nullptr)
+      : directionalEvaluationS(nullptr)
       , directionalEvaluation(nullptr)
       , lightBlock(8 * sizeof(DirectionalLight) + sizeof(glm::ivec4), BufferType::Dynamic)
-      , cascadedShadowBlock(4 * (sizeof(glm::mat4) + sizeof(glm::vec4)) + 2 * sizeof(glm::vec4),
+      , cascadedShadowBlock(4 * (sizeof(glm::mat4) + sizeof(glm::vec4)) + sizeof(glm::vec4),
                             BufferType::Dynamic)
       , directionalLightCount(0u)
       , castShadows(false)
@@ -65,8 +65,9 @@ namespace Strontium
     void onRendererEnd(FrameBuffer& frontBuffer) override;
     void onShutdown() override;
 
-    void submit(const DirectionalLight &light, bool primaryLight, 
-                bool castShadows, const glm::mat4& model);
+    void submit(const DirectionalLight &light, const glm::mat4& model);
+    void submitPrimary(const DirectionalLight &light, bool castShadows, 
+                       const glm::mat4& model);
   private:
     DirectionalLightPassDataBlock passData;
 

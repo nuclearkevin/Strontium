@@ -340,12 +340,13 @@ namespace Strontium
 
         switch (this->saveTargets)
         {
+          // TODO: Fix me!
           case FileSaveTargets::TargetPrefab:
           {
-            auto fabName = name.substr(0, name.find_last_of('.'));
-
-            this->selectedEntity.addComponent<PrefabComponent>(fabName, path);
-            YAMLSerialization::serializePrefab(this->selectedEntity, path, fabName);
+            //auto fabName = name.substr(0, name.find_last_of('.'));
+            //
+            //this->selectedEntity.addComponent<PrefabComponent>(fabName, path);
+            //YAMLSerialization::serializePrefab(this->selectedEntity, path, , fabName);
             break;
           }
 
@@ -617,7 +618,8 @@ namespace Strontium
         {
           if (ImGui::Button("Push Prefab Settings"))
           {
-            YAMLSerialization::serializePrefab(this->selectedEntity, pfComponent.prefabPath, pfComponent.prefabID);
+            YAMLSerialization::serializePrefab(this->selectedEntity, pfComponent.prefabPath, 
+                                               activeScene, pfComponent.prefabID);
 
             auto autoPrefabs = activeScene->sceneECS.view<PrefabComponent>();
             for (auto entity : autoPrefabs)
@@ -880,15 +882,43 @@ namespace Strontium
       {
         auto& camera = component.entCamera;
 
-        float degFOV = glm::degrees(camera.fov);
+        auto primaryEntity = activeScene->getPrimaryCameraEntity();
+        if (primaryEntity != this->selectedEntity)
+        {
+          if (ImGui::Button("Make Primary"))
+            activeScene->setPrimaryCameraEntity(this->selectedEntity);
+        }
+        else
+        {
+          ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+          ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
+          ImGui::Button("Make Primary");
+          ImGui::PopItemFlag();
+          ImGui::PopStyleVar();
+        }
 
-        ImGui::Checkbox("Primary Camera", &component.isPrimary);
+        ImGui::SameLine();
+        if (primaryEntity == this->selectedEntity)
+        {
+          if (ImGui::Button("Clear Primary"))
+              activeScene->clearPrimaryCameraEntity();
+        }
+        else
+        {
+          ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+          ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
+          ImGui::Button("Clear Primary");
+          ImGui::PopItemFlag();
+          ImGui::PopStyleVar();
+        }
+
         Styles::drawFloatControl("Near", 0.1f, camera.near, 0.0f, 0.1f, 0.1f, 100.0f);
         Styles::drawFloatControl("Far", 30.0f, camera.far, 0.0f, 0.1f, 30.0f, 500.0f);
-        Styles::drawFloatControl("FOV", 45.0f, degFOV, 0.0f, 0.1f, 30.0f, 180.0f);
 
+        float degFOV = glm::degrees(camera.fov);
+        Styles::drawFloatControl("FOV", 45.0f, degFOV, 0.0f, 0.1f, 30.0f, 180.0f);
         camera.fov = glm::radians(degFOV);
-      });
+       });
 
       drawComponentProperties<SkyAtmosphereComponent>("Sky-Atmosphere Component", 
                                                       this->selectedEntity, 
@@ -982,23 +1012,41 @@ namespace Strontium
       {
         ImGui::PushID("DirectionalLight");
 
-        bool isPrimaryLight = component.primaryLight;
-        ImGui::Checkbox("Primary Light", &component.primaryLight);
-        if (component.primaryLight && !isPrimaryLight)
+        auto primaryEntity = activeScene->getPrimaryDirectionalEntity();
+        if (primaryEntity != this->selectedEntity)
         {
-          auto dirLight = activeScene->sceneECS.view<DirectionalLightComponent>();
+          if (ImGui::Button("Make Primary"))
+            activeScene->setPrimaryDirectionalEntity(this->selectedEntity);
+        }
+        else
+        {
+          ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+          ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
+          ImGui::Button("Make Primary");
+          ImGui::PopItemFlag();
+          ImGui::PopStyleVar();
+        }
 
-          for (auto entity : dirLight)
-          {
-            auto& directional = dirLight.get<DirectionalLightComponent>(entity);
-            if (this->selectedEntity != entity && directional.primaryLight)
-              directional.primaryLight;
-          }
+        ImGui::SameLine();
+        if (primaryEntity == this->selectedEntity)
+        {
+          if (ImGui::Button("Clear Primary"))
+            activeScene->clearPrimaryDirectionalEntity();
+        }
+        else
+        {
+          ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+          ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
+          ImGui::Button("Clear Primary");
+          ImGui::PopItemFlag();
+          ImGui::PopStyleVar();
         }
 
         ImGui::Checkbox("Cast Shadows", &component.castShadows);
         ImGui::ColorEdit3("Colour", &(component.colour.r));
         Styles::drawFloatControl("Intensity", 0.0f, component.intensity,
+                                 0.0f, 0.01f, 0.0f, 100.0f);
+        Styles::drawFloatControl("Light Size", 10.0f, component.size,
                                  0.0f, 0.01f, 0.0f, 100.0f);
         ImGui::PopID();
 

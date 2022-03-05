@@ -57,6 +57,8 @@ ShaderCache:
     Filepath: ./assets/shaders/compute/lighting/pointLightEval.glsl
   - Handle: directional_evaluation
     Filepath: ./assets/shaders/compute/lighting/directionalLightEval.glsl
+  - Handle: directional_evaluation_s
+    Filepath: ./assets/shaders/compute/lighting/directionalLightEvalS.glsl
   - Handle: ibl_evaluation
     Filepath: ./assets/shaders/compute/lighting/ibLightEval.glsl
   - Handle: volumetric_evaluation

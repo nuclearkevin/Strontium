@@ -213,7 +213,7 @@ namespace Strontium
     }
 
     void
-    serializeEntity(YAML::Emitter &out, Entity entity)
+    serializeEntity(YAML::Emitter &out, Entity entity, Shared<Scene> scene)
     {
       if (!entity)
         return;
@@ -255,7 +255,7 @@ namespace Strontium
 
         auto& children = entity.getComponent<ChildEntityComponent>().children;
         for (auto& child : children)
-          serializeEntity(out, child);
+          serializeEntity(out, child, scene);
 
         out << YAML::EndSeq;
       }
@@ -327,7 +327,7 @@ namespace Strontium
         out << YAML::BeginMap;
 
         auto& component = entity.getComponent<CameraComponent>();
-        out << YAML::Key << "IsPrimary" << YAML::Value << component.isPrimary;
+        out << YAML::Key << "IsPrimary" << YAML::Value << static_cast<bool>(entity == scene->getPrimaryCameraEntity());
         out << YAML::Key << "Near" << YAML::Value << component.entCamera.near;
         out << YAML::Key << "Far" << YAML::Value << component.entCamera.far;
         out << YAML::Key << "FOV" << YAML::Value << component.entCamera.fov;
@@ -374,8 +374,9 @@ namespace Strontium
         out << YAML::Key << "Direction" << YAML::Value << component.direction;
         out << YAML::Key << "Colour" << YAML::Value << component.colour;
         out << YAML::Key << "Intensity" << YAML::Value << component.intensity;
+        out << YAML::Key << "Size" << YAML::Value << component.size;
         out << YAML::Key << "CastShadows" << YAML::Value << component.castShadows;
-        out << YAML::Key << "PrimaryLight" << YAML::Value << component.primaryLight;
+        out << YAML::Key << "PrimaryLight" << YAML::Value << static_cast<bool>(entity == scene->getPrimaryDirectionalEntity());
 
         out << YAML::EndMap;
       }
@@ -428,7 +429,7 @@ namespace Strontium
         if (entity.hasComponent<ParentEntityComponent>())
           return;
 
-        serializeEntity(out, entity);
+        serializeEntity(out, entity, scene);
       });
 
       out << YAML::EndSeq;
@@ -456,7 +457,10 @@ namespace Strontium
           out << YAML::Key << "ShadowSettings" << YAML::BeginMap;
 
           out << YAML::Key << "ShadowQuality" << YAML::Value << shadowPassData->shadowQuality;
+          out << YAML::Key << "MinimumRadius" << YAML::Value << shadowPassData->minRadius;
           out << YAML::Key << "CascadeLambda" << YAML::Value << shadowPassData->cascadeLambda;
+          out << YAML::Key << "ConstantBias" << YAML::Value << shadowPassData->constBias;
+          out << YAML::Key << "NormalBias" << YAML::Value << shadowPassData->normalBias;
           out << YAML::Key << "ShadowMapResolution" << YAML::Value << shadowPassData->shadowMapRes;
 
           out << YAML::EndMap;
@@ -532,14 +536,14 @@ namespace Strontium
 
     void
     serializePrefab(Entity prefab, const std::string &filepath,
-                    const std::string &name)
+                    Shared<Scene> scene, const std::string &name)
     {
       YAML::Emitter out;
       out << YAML::BeginMap;
       out << YAML::Key << "PreFab" << YAML::Value << name;
       out << YAML::Key << "EntityInfo";
 
-      serializeEntity(out, prefab);
+      serializeEntity(out, prefab, scene);
 
       out << YAML::EndMap;
 
@@ -760,10 +764,11 @@ namespace Strontium
       if (camComponent)
       {
         auto& camera = newEntity.addComponent<CameraComponent>();
-        camera.isPrimary = camComponent["IsPrimary"].as<bool>();
         camera.entCamera.near = camComponent["Near"].as<float>();
         camera.entCamera.far = camComponent["Far"].as<float>();
         camera.entCamera.fov = camComponent["FOV"].as<float>();
+        if (camComponent["IsPrimary"].as<bool>())
+          scene->setPrimaryCameraEntity(newEntity);
       }
 
       auto skyAtmosphereComponent = entity["SkyAtmosphereComponent"];
@@ -787,7 +792,7 @@ namespace Strontium
         dsComponent.sunSize = dynamicSkyboxComponent["SunSize"].as<float>();
         dsComponent.intensity = dynamicSkyboxComponent["Intensity"].as<float>();
       }
-
+      
       auto directionalComponent = entity["DirectionalLightComponent"];
       if (directionalComponent)
       {
@@ -795,8 +800,10 @@ namespace Strontium
         dComponent.direction = directionalComponent["Direction"].as<glm::vec3>();
         dComponent.colour = directionalComponent["Colour"].as<glm::vec3>();
         dComponent.intensity = directionalComponent["Intensity"].as<float>();
+        dComponent.size = directionalComponent["Size"].as<float>();
         dComponent.castShadows = directionalComponent["CastShadows"].as<bool>();
-        dComponent.primaryLight = directionalComponent["PrimaryLight"].as<bool>();
+        if (directionalComponent["PrimaryLight"])
+          scene->setPrimaryDirectionalEntity(newEntity);
       }
 
       auto pointComponent = entity["PointLightComponent"];
@@ -856,7 +863,10 @@ namespace Strontium
             auto shadowPassData = shadowPass->getInternalDataBlock<ShadowPassDataBlock>();
 
             shadowPassData->shadowQuality = shadowSettings["ShadowQuality"].as<uint>();
+            shadowPassData->minRadius = shadowSettings["MinimumRadius"].as<float>();
             shadowPassData->cascadeLambda = shadowSettings["CascadeLambda"].as<float>();
+            shadowPassData->constBias = shadowSettings["ConstantBias"].as<float>();
+            shadowPassData->normalBias = shadowSettings["NormalBias"].as<float>();
             shadowPassData->shadowMapRes = shadowSettings["ShadowMapResolution"].as<uint>();
             shadowPass->updatePassData();
           }

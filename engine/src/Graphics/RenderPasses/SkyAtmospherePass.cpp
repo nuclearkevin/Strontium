@@ -98,6 +98,9 @@ namespace Strontium
       this->passData.halfResRayMarchBuffer.setSize(hWidth, hHeight);
       this->passData.halfResRayMarchBuffer.initNullTexture();
     }
+
+    this->passData.hasPrimaryLight = false;
+    this->passData.castShadows = false;
   }
 
   void SkyAtmospherePass::onRender()
@@ -194,11 +197,10 @@ namespace Strontium
     // Fetch the light direction from either the primary light or the 
     // light attached with the accompanying entity.
     auto invTrans = glm::transpose(glm::inverse(model));
-    if (this->globalBlock->primaryLightIndex > -1)
+    if (this->passData.hasPrimaryLight)
     {
-      auto dir = glm::vec3(-this->globalBlock->directionalLightQueue[this->globalBlock->primaryLightIndex].first.direction);
-      temp.sunDirAtmRadius = glm::vec4(dir, atmo.sunDirAtmRadius.w);
-      temp.lightColourIntensity = this->globalBlock->directionalLightQueue[this->globalBlock->primaryLightIndex].first.colourIntensity;
+      temp.sunDirAtmRadius = glm::vec4(glm::vec3(-this->passData.primaryLight.directionSize), atmo.sunDirAtmRadius.w);
+      temp.lightColourIntensity = this->passData.primaryLight.colourIntensity;
     }
     else
     {
@@ -215,5 +217,18 @@ namespace Strontium
     }
 
     return false;
+  }
+
+  void 
+  SkyAtmospherePass::submitPrimary(const DirectionalLight &light, bool castShadows,
+                                   const glm::mat4 &model)
+  {
+    auto invTrans = glm::transpose(glm::inverse(model));
+    DirectionalLight temp = light;
+    temp.directionSize = glm::vec4(-1.0f * glm::vec3(invTrans * glm::vec4(0.0f, -1.0f, 0.0f, 0.0f)), light.directionSize.w);
+
+    this->passData.primaryLight = temp;
+    this->passData.castShadows = castShadows;
+    this->passData.hasPrimaryLight = true;
   }
 }

@@ -6,15 +6,20 @@
 
 #include "Graphics/Renderer.h"
 #include "Graphics/RenderPasses/RenderPassManager.h"
+#include "Graphics/RenderPasses/ShadowPass.h"
+#include "Graphics/RenderPasses/GeometryPass.h"
 #include "Graphics/RenderPasses/SkyAtmospherePass.h"
 #include "Graphics/RenderPasses/DynamicSkyIBLPass.h"
 #include "Graphics/RenderPasses/IBLApplicationPass.h"
+#include "Graphics/RenderPasses/DirectionalLightPass.h"
 #include "Graphics/RenderPasses/SkyboxPass.h"
 
 namespace Strontium
 {
   Scene::Scene(const std::string &filepath)
     : saveFilepath(filepath)
+    , primaryCameraID(entt::null)
+    , primaryDirLightID(entt::null)
   { }
 
   Scene::~Scene()
@@ -89,12 +94,32 @@ namespace Strontium
   void
   Scene::onRenderEditor(Entity selectedEntity)
   {
+    // Grab the required renderpasses for submission.
+    auto& passManager = Renderer3D::getPassManager();
+    auto shadow = passManager.getRenderPass<ShadowPass>();
+    auto geomet = passManager.getRenderPass<GeometryPass>();
+    auto dirApp = passManager.getRenderPass<DirectionalLightPass>();
+    auto skyAtm = passManager.getRenderPass<SkyAtmospherePass>();
+    auto dynIBL = passManager.getRenderPass<DynamicSkyIBLPass>();
+    auto iblApp = passManager.getRenderPass<IBLApplicationPass>();
+    auto skyboxApp = passManager.getRenderPass<SkyboxPass>();
+
     // Group together the lights and submit them to the renderer.
+    auto primaryLight = this->getPrimaryDirectionalEntity();
     auto dirLight = this->sceneECS.group<DirectionalLightComponent>(entt::get<TransformComponent>);
     for (auto entity : dirLight)
     {
       auto [directional, transform] = dirLight.get<DirectionalLightComponent, TransformComponent>(entity);
-      Renderer3D::submit(directional, directional.primaryLight, directional.castShadows, transform);
+
+      // Skip over the primary light IF it cast shadows.
+      if (primaryLight.entityID == entity && directional.castShadows)
+      {
+        dirApp->submitPrimary(directional, directional.castShadows, transform);
+        skyAtm->submitPrimary(directional, directional.castShadows, transform);
+        shadow->submitPrimary(directional, directional.castShadows, transform);
+      }
+      else
+        dirApp->submit(directional, transform);
     }
 
     auto pointLight = this->sceneECS.group<PointLightComponent>(entt::get<TransformComponent>);
@@ -130,20 +155,22 @@ namespace Strontium
 
       // Submit the mesh + material + transform to the static deferred renderer queue.
       if (renderable && !renderable.animator.animationRenderable())
-        Renderer3D::submit(renderable, renderable, transformMatrix,
-                           static_cast<float>(entity), selected);
+      {
+        geomet->submit(static_cast<Model*>(renderable), renderable.materials, transformMatrix, 
+                       static_cast<float>(entity), selected);
+        shadow->submit(static_cast<Model*>(renderable), transformMatrix);
+      }
       // If it has a valid animation, instead submit it to the dynamic deferred renderer queue.
       else if (renderable && renderable.animator.animationRenderable())
-        Renderer3D::submit(renderable, &renderable.animator, renderable,
-                           transformMatrix, static_cast<float>(entity), selected);
+      {
+        geomet->submit(static_cast<Model*>(renderable), &renderable.animator, 
+                       renderable.materials, transformMatrix, static_cast<float>(entity), 
+                       selected);
+        shadow->submit(static_cast<Model*>(renderable), &renderable.animator, transformMatrix);
+      }
     }
 
     // Group together the transform, sky-atmosphere and directional light components.
-    auto& passManager = Renderer3D::getPassManager();
-    auto skyAtm = passManager.getRenderPass<SkyAtmospherePass>();
-    auto dynIBL = passManager.getRenderPass<DynamicSkyIBLPass>();
-    auto iblApp = passManager.getRenderPass<IBLApplicationPass>();
-    auto skyboxApp = passManager.getRenderPass<SkyboxPass>();
     auto atmospheres = this->sceneECS.group<SkyAtmosphereComponent>(entt::get<TransformComponent>);
     for (auto entity : atmospheres)
     {
@@ -183,12 +210,30 @@ namespace Strontium
   void
   Scene::onRenderRuntime()
   {
+    // Grab the required renderpasses for submission.
+    auto& passManager = Renderer3D::getPassManager();
+    auto shadow = passManager.getRenderPass<ShadowPass>();
+    auto dirApp = passManager.getRenderPass<DirectionalLightPass>();
+    auto skyAtm = passManager.getRenderPass<SkyAtmospherePass>();
+    auto dynIBL = passManager.getRenderPass<DynamicSkyIBLPass>();
+    auto iblApp = passManager.getRenderPass<IBLApplicationPass>();
+    auto skyboxApp = passManager.getRenderPass<SkyboxPass>();
+
     // Group together the lights and submit them to the renderer.
     auto dirLight = this->sceneECS.group<DirectionalLightComponent>(entt::get<TransformComponent>);
     for (auto entity : dirLight)
     {
       auto [directional, transform] = dirLight.get<DirectionalLightComponent, TransformComponent>(entity);
-      Renderer3D::submit(directional, directional.primaryLight, directional.castShadows, transform);
+      dirApp->submit(directional, transform);
+    }
+
+    auto primaryLight = this->getPrimaryDirectionalEntity();
+    if (primaryLight)
+    {
+      auto [directional, transform] = this->sceneECS.get<DirectionalLightComponent, TransformComponent>(primaryLight.entityID);
+      dirApp->submitPrimary(directional, directional.castShadows, transform);
+      skyAtm->submitPrimary(directional, directional.castShadows, transform);
+      shadow->submitPrimary(directional, directional.castShadows, transform);
     }
 
     auto pointLight = this->sceneECS.group<PointLightComponent>(entt::get<TransformComponent>);
@@ -207,11 +252,6 @@ namespace Strontium
     }
 
     // Group together the transform, sky-atmosphere and directional light components.
-    auto& passManager = Renderer3D::getPassManager();
-    auto skyAtm = passManager.getRenderPass<SkyAtmospherePass>();
-    auto dynIBL = passManager.getRenderPass<DynamicSkyIBLPass>();
-    auto iblApp = passManager.getRenderPass<IBLApplicationPass>();
-    auto skyboxApp = passManager.getRenderPass<SkyboxPass>();
     auto atmospheres = this->sceneECS.group<SkyAtmosphereComponent>(entt::get<TransformComponent>);
     for (auto entity : atmospheres)
     {
@@ -248,30 +288,50 @@ namespace Strontium
     }
   }
 
-  Entity
-  Scene::getPrimaryCameraEntity()
+  void
+  Scene::setPrimaryCameraEntity(Entity entity)
   {
-    // Loop over all the cameras with transform components to find the primary camera.
-    auto cameras = this->sceneECS.group<CameraComponent>(entt::get<TransformComponent>);
+    if (!entity)
+      return;
 
-    for (auto entity : cameras)
-    {
-      auto [camera, transform] = cameras.get<CameraComponent, TransformComponent>(entity);
+    if (entity.hasComponent<CameraComponent>() 
+        && entity.hasComponent<TransformComponent>())
+      this->primaryCameraID = entity.entityID;
+  }
 
-      if (camera.isPrimary)
-      {
-        // Update the camera's attached matrices.
-        glm::mat4 tMatrix = transform;
-        camera.entCamera.front = glm::normalize(glm::vec3(tMatrix * glm::vec4(0.0f, 0.0f, -1.0f, 0.0f)));
-        camera.entCamera.position = glm::vec3(tMatrix * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
-        camera.entCamera.view = glm::lookAt(camera.entCamera.position,
-                                            camera.entCamera.position + camera.entCamera.front,
-                                            glm::vec3(0.0f, 1.0f, 0.0f));
-        return Entity(entity, this);
-      }
-    }
+  Entity 
+  Scene::getPrimaryCameraEntity() 
+  {
+    if (!this->sceneECS.valid(this->primaryCameraID))
+      return Entity();
 
-    return Entity();
+    if (this->sceneECS.has<CameraComponent, TransformComponent>(this->primaryCameraID))
+      return Entity(this->primaryCameraID, this); 
+    else
+      return Entity();
+  }
+
+  void 
+  Scene::setPrimaryDirectionalEntity(Entity entity)
+  {
+    if (!entity)
+      return;
+
+    if (entity.hasComponent<DirectionalLightComponent>() 
+        && entity.hasComponent<TransformComponent>())
+      this->primaryDirLightID = entity.entityID;
+  }
+
+  Entity 
+  Scene::getPrimaryDirectionalEntity()
+  {
+    if (!this->sceneECS.valid(this->primaryDirLightID))
+      return Entity();
+
+    if (this->sceneECS.has<DirectionalLightComponent, TransformComponent>(this->primaryDirLightID))
+      return Entity(this->primaryDirLightID, this);
+    else
+      return Entity();
   }
 
   // Compute the global transform given a parent-child transform hierarchy.

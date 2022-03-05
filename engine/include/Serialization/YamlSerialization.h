@@ -18,8 +18,8 @@ namespace Strontium
                         const std::string &name = "Untitled");
     void serializeMaterial(const AssetHandle &materialHandle,
                            const std::string &filepath);
-    void serializePrefab(Entity prefab, const std::string &filepath,
-                         const std::string &name = "Untitled Prefab");
+    void serializePrefab(Entity prefab, const std::string &filepath, 
+                         Shared<Scene> scene, const std::string &name = "Untitled Prefab");
 
     bool deserializeScene(Shared<Scene> scene, const std::string &filepath);
     bool deserializeMaterial(const std::string &filepath, AssetHandle &handle, bool override = false);

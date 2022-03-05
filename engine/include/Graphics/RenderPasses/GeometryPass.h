@@ -81,6 +81,7 @@ namespace Strontium
 	ShaderStorageBuffer entityDataBuffer;
 	ShaderStorageBuffer boneBuffer;
 
+	uint numUniqueEntities;
 	std::vector<GeomStaticDrawData> staticDrawList;
 	std::vector<GeomDynamicDrawData> dynamicDrawList;
 
@@ -99,6 +100,7 @@ namespace Strontium
 	  , perDrawUniforms(sizeof(int), BufferType::Dynamic)
 	  , entityDataBuffer(0, BufferType::Dynamic)
 	  , boneBuffer(MAX_BONES_PER_MODEL * sizeof(glm::mat4), BufferType::Dynamic)
+	  , numUniqueEntities(0u)
 	  , frameTime(0.0f)
 	  , numInstances(0u)
 	  , numDrawCalls(0u)
@@ -121,6 +123,12 @@ namespace Strontium
 	void onRender() override;
 	void onRendererEnd(FrameBuffer& frontBuffer) override;
 	void onShutdown() override;
+
+	void submit(Model* data, ModelMaterial &materials, const glm::mat4 &model,
+                float id = 0.0f, bool drawSelectionMask = false);
+    void submit(Model* data, Animator* animation, ModelMaterial& materials,
+                const glm::mat4 &model, float id = 0.0f,
+                bool drawSelectionMask = false);
   private:
 	GeometryPassDataBlock passData;
 

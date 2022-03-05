@@ -46,6 +46,8 @@ namespace Strontium
 	if (width != gBufferSize.x || height != gBufferSize.y)
 	  this->passData.gBuffer.resize(width, height);
 
+    this->passData.numUniqueEntities = 0u;
+
     // Clear the statistics.
     this->passData.numDrawCalls = 0u;
     this->passData.numInstances = 0u;
@@ -78,172 +80,23 @@ namespace Strontium
         this->globalBlock->sceneCam.far, this->globalBlock->gamma, 0.0 }
 	};
 	this->passData.cameraBuffer.setData(0, sizeof(CameraBlockData), &cameraBlock);
-
-    uint numUniqueEntities = 0;
-    // Loop over static and non-skinned dynamic models + meshes to:
-    // - Perform frustum culling.
-    // - Compute and cache transforms. TODO: Handle skinned meshes better.
-    // - Cache the entity IDs and the selection mask.
-    // - Cache the uniform material data.
-    // - Populate the draw lists.
-    // Static meshes.
-	for (auto& drawable : this->globalBlock->staticRenderQueue)
-	{
-	  auto& [data, materials, transform, id, drawSelectionMask] = drawable;
-      this->globalBlock->drawEdge = drawSelectionMask || this->globalBlock->drawEdge;
-
-	  for (auto& submesh : data->getSubmeshes())
-	  {
-        auto material = materials->getMaterial(submesh.getName());
-        if (!material)
-          continue;
-
-        VertexArray* vao = submesh.hasVAO() ? submesh.getVAO() : submesh.generateVAO();
-        if (!vao)
-          continue;
-
-        // Record some statistics.
-        this->passData.numTrianglesSubmitted += vao->numToRender() / 3;
-
-        auto localTransform = transform * submesh.getTransform();
-        if (!boundingBoxInFrustum(this->globalBlock->camFrustum, submesh.getMinPos(), 
-								  submesh.getMaxPos(), localTransform))
-          continue;
-
-        this->globalBlock->drawEdge = this->globalBlock->drawEdge || drawSelectionMask;
-
-        // Populate the draw list.
-        auto drawData = std::find_if(this->passData.staticDrawList.begin(), 
-                                     this->passData.staticDrawList.end(),
-                                     [vao, material](const GeomStaticDrawData& data)
-        {
-          return data.technique == material && data.primatives == vao;
-        });
-
-        numUniqueEntities++;
-        if (drawData != this->passData.staticDrawList.end())
-        {
-          drawData->instancedData.emplace_back(localTransform, 
-                                               glm::vec4(drawSelectionMask ? 1.0f : 0.0f, 
-                                                         id + 1.0f, 0.0f, 0.0f), 
-                                               material->getPackedUniformData());
-        }
-        else 
-        {
-          this->passData.staticDrawList.emplace_back(vao, material);
-          this->passData.staticDrawList.back().instancedData.emplace_back(localTransform, 
-                                                                          glm::vec4(drawSelectionMask ? 1.0f : 0.0f, 
-                                                                                    id + 1.0f, 0.0f, 0.0f), 
-                                                                          material->getPackedUniformData());
-        }
-	  }
-	}
-
-    // Dynamic meshes, skinned or rigged.
-	for (auto& drawable : this->globalBlock->dynamicRenderQueue)
-	{
-	  auto& [data, animations, materials, transform, id, drawSelectionMask] = drawable;
-      this->globalBlock->drawEdge = drawSelectionMask || this->globalBlock->drawEdge;
-
-      if (data->hasSkins())
-      {
-        // Skinned animated mesh, store the static transform.
-        for (auto& submesh : data->getSubmeshes())
-	    {
-          auto material = materials->getMaterial(submesh.getName());
-          if (!material)
-            continue;
-
-          VertexArray* vao = submesh.hasVAO() ? submesh.getVAO() : submesh.generateVAO();
-          if (!vao)
-            continue;
-
-          // Record some statistics.
-          this->passData.numTrianglesSubmitted += vao->numToRender() / 3;
-
-          if (!boundingBoxInFrustum(this->globalBlock->camFrustum, data->getMinPos(),
-		  						    data->getMaxPos(), transform))
-            continue;
-
-          this->globalBlock->drawEdge = this->globalBlock->drawEdge || drawSelectionMask;
-
-          // Populate the dynamic draw list.
-          numUniqueEntities++;
-          this->passData.dynamicDrawList.emplace_back(vao, material, animations,
-                                                      PerEntityData(transform,
-                                                      glm::vec4(drawSelectionMask ? 1.0f : 0.0f, 
-                                                                id + 1.0f, 0.0f, 0.0f), 
-                                                      material->getPackedUniformData()));
-	    }
-      }
-      else
-      {
-        // Unskinned animated mesh, store the rigged transform.
-	    auto& bones = animations->getFinalUnSkinnedTransforms();
-	    for (auto& submesh : data->getSubmeshes())
-	    {
-          auto material = materials->getMaterial(submesh.getName());
-          if (!material)
-            continue;
-
-          VertexArray* vao = submesh.hasVAO() ? submesh.getVAO() : submesh.generateVAO();
-          if (!vao)
-            continue;
-
-          // Record some statistics.
-          this->passData.numTrianglesSubmitted += vao->numToRender() / 3;
-
-          auto localTransform = transform * bones[submesh.getName()];
-		  if (!boundingBoxInFrustum(this->globalBlock->camFrustum, submesh.getMinPos(), 
-		  						    submesh.getMaxPos(), localTransform))
-            continue;
-
-          this->globalBlock->drawEdge = this->globalBlock->drawEdge || drawSelectionMask;
-
-          // Populate the draw list.
-          auto drawData = std::find_if(this->passData.staticDrawList.begin(), 
-                                       this->passData.staticDrawList.end(),
-                                       [vao, material](const GeomStaticDrawData& data)
-          {
-            return data.technique == material && data.primatives == vao;
-          });
-          
-          numUniqueEntities++;
-          if (drawData != this->passData.staticDrawList.end())
-          {
-            drawData->instancedData.emplace_back(localTransform, 
-                                                 glm::vec4(drawSelectionMask ? 1.0f : 0.0f, 
-                                                           id + 1.0f, 0.0f, 0.0f), 
-                                                 material->getPackedUniformData());
-          }
-          else 
-          {
-            this->passData.staticDrawList.emplace_back(vao, material);
-            this->passData.staticDrawList.back().instancedData.emplace_back(localTransform, 
-                                                                            glm::vec4(drawSelectionMask ? 1.0f : 0.0f, 
-                                                                                      id + 1.0f, 0.0f, 0.0f), 
-                                                                            material->getPackedUniformData());
-          }
-	    }
-      }
-	}
     
     // Upload the cached data for both static and dynamic geometry.
-    if (this->passData.entityDataBuffer.size() != (sizeof(PerEntityData) * numUniqueEntities))
-      this->passData.entityDataBuffer.resize(sizeof(PerEntityData) * numUniqueEntities, BufferType::Dynamic);
+    if (this->passData.entityDataBuffer.size() != (sizeof(PerEntityData) * this->passData.numUniqueEntities))
+      this->passData.entityDataBuffer.resize(sizeof(PerEntityData) * this->passData.numUniqueEntities, BufferType::Dynamic);
 
-    uint bufferPointer = 0;
+    uint bufferOffset = 0;
     for (auto& drawCommand : this->passData.staticDrawList)
     {
-      this->passData.entityDataBuffer.setData(bufferPointer, sizeof(PerEntityData) * drawCommand.instancedData.size(), 
+      this->passData.entityDataBuffer.setData(bufferOffset, sizeof(PerEntityData) * drawCommand.instancedData.size(),
                                               drawCommand.instancedData.data());
-      bufferPointer += sizeof(PerEntityData) * drawCommand.instancedData.size();
+      bufferOffset += sizeof(PerEntityData) * drawCommand.instancedData.size();
     }
     for (auto& drawCommand : this->passData.dynamicDrawList)
     {
-      this->passData.entityDataBuffer.setData(bufferPointer, sizeof(PerEntityData), 
+      this->passData.entityDataBuffer.setData(bufferOffset, sizeof(PerEntityData),
                                               &drawCommand.data);
-      bufferPointer += sizeof(PerEntityData);
+      bufferOffset += sizeof(PerEntityData);
     }
 
 	// Start the geometry pass.
@@ -254,7 +107,7 @@ namespace Strontium
 
     this->passData.entityDataBuffer.bindToPoint(0);
 
-    uint bufferOffset = 0;
+    bufferOffset = 0;
     // Static geometry pass.
     this->passData.staticGeometry->bind();
     for (auto& drawable : this->passData.staticDrawList)
@@ -320,7 +173,137 @@ namespace Strontium
 
   void 
   GeometryPass::onShutdown()
-  {
+  { }
 
+  void 
+  GeometryPass::submit(Model* data, ModelMaterial &materials, const glm::mat4 &model,
+                       float id, bool drawSelectionMask)
+  {
+	for (auto& submesh : data->getSubmeshes())
+	{
+      auto material = materials.getMaterial(submesh.getName());
+      if (!material)
+        continue;
+
+      VertexArray* vao = submesh.hasVAO() ? submesh.getVAO() : submesh.generateVAO();
+      if (!vao)
+        continue;
+
+      // Record some statistics.
+      this->passData.numTrianglesSubmitted += vao->numToRender() / 3;
+
+      auto localTransform = model * submesh.getTransform();
+      if (!boundingBoxInFrustum(this->globalBlock->camFrustum, submesh.getMinPos(), 
+						  submesh.getMaxPos(), localTransform))
+        continue;
+
+      // Populate the draw list.
+      auto drawData = std::find_if(this->passData.staticDrawList.begin(), 
+                                   this->passData.staticDrawList.end(),
+                                   [vao, material](const GeomStaticDrawData& data)
+      {
+        return data.technique == material && data.primatives == vao;
+      });
+
+      this->passData.numUniqueEntities++;
+      if (drawData != this->passData.staticDrawList.end())
+      {
+        drawData->instancedData.emplace_back(localTransform, 
+                                             glm::vec4(drawSelectionMask ? 1.0f : 0.0f, 
+                                                       id + 1.0f, 0.0f, 0.0f), 
+                                             material->getPackedUniformData());
+      }
+      else 
+      {
+        this->passData.staticDrawList.emplace_back(vao, material);
+        this->passData.staticDrawList.back().instancedData.emplace_back(localTransform, 
+                                                                        glm::vec4(drawSelectionMask ? 1.0f : 0.0f, 
+                                                                                  id + 1.0f, 0.0f, 0.0f), 
+                                                                        material->getPackedUniformData());
+      }
+	}
+  }
+
+  void 
+  GeometryPass::submit(Model* data, Animator* animation, ModelMaterial &materials,
+                       const glm::mat4 &model, float id, bool drawSelectionMask)
+  {
+    if (data->hasSkins())
+    {
+      // Skinned animated mesh, store the static transform.
+      for (auto& submesh : data->getSubmeshes())
+	  {
+        auto material = materials.getMaterial(submesh.getName());
+        if (!material)
+          continue;
+
+        VertexArray* vao = submesh.hasVAO() ? submesh.getVAO() : submesh.generateVAO();
+        if (!vao)
+          continue;
+
+        // Record some statistics.
+        this->passData.numTrianglesSubmitted += vao->numToRender() / 3;
+
+        if (!boundingBoxInFrustum(this->globalBlock->camFrustum, data->getMinPos(),
+	 						    data->getMaxPos(), model))
+          continue;
+
+        // Populate the dynamic draw list.
+        this->passData.numUniqueEntities++;
+        this->passData.dynamicDrawList.emplace_back(vao, material, animation,
+                                                    PerEntityData(model,
+                                                    glm::vec4(drawSelectionMask ? 1.0f : 0.0f, 
+                                                              id + 1.0f, 0.0f, 0.0f), 
+                                                    material->getPackedUniformData()));
+	  }
+    }
+    else
+    {
+      // Unskinned animated mesh, store the rigged transform.
+	  auto& bones = animation->getFinalUnSkinnedTransforms();
+	  for (auto& submesh : data->getSubmeshes())
+	  {
+        auto material = materials.getMaterial(submesh.getName());
+        if (!material)
+          continue;
+
+        VertexArray* vao = submesh.hasVAO() ? submesh.getVAO() : submesh.generateVAO();
+        if (!vao)
+          continue;
+
+        // Record some statistics.
+        this->passData.numTrianglesSubmitted += vao->numToRender() / 3;
+
+        auto localTransform = model * bones[submesh.getName()];
+	    if (!boundingBoxInFrustum(this->globalBlock->camFrustum, submesh.getMinPos(), 
+	 						      submesh.getMaxPos(), localTransform))
+          continue;
+
+        // Populate the draw list.
+        auto drawData = std::find_if(this->passData.staticDrawList.begin(), 
+                                     this->passData.staticDrawList.end(),
+                                     [vao, material](const GeomStaticDrawData& data)
+        {
+          return data.technique == material && data.primatives == vao;
+        });
+        
+        this->passData.numUniqueEntities++;
+        if (drawData != this->passData.staticDrawList.end())
+        {
+          drawData->instancedData.emplace_back(localTransform, 
+                                               glm::vec4(drawSelectionMask ? 1.0f : 0.0f, 
+                                                         id + 1.0f, 0.0f, 0.0f), 
+                                               material->getPackedUniformData());
+        }
+        else 
+        {
+          this->passData.staticDrawList.emplace_back(vao, material);
+          this->passData.staticDrawList.back().instancedData.emplace_back(localTransform, 
+                                                                          glm::vec4(drawSelectionMask ? 1.0f : 0.0f, 
+                                                                                    id + 1.0f, 0.0f, 0.0f), 
+                                                                          material->getPackedUniformData());
+        }
+      }  
+	}
   }
 }

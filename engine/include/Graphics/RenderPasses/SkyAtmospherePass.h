@@ -37,6 +37,11 @@ namespace Strontium
     // Use the skyview and aerial perspective LUTS instead of half-resolution raymarching.
     bool useFastAtmosphere;
 
+    // Primary light.
+    bool hasPrimaryLight;
+    bool castShadows;
+    DirectionalLight primaryLight;
+
     // Some statistics to display.
     float frameTime;
 
@@ -72,7 +77,7 @@ namespace Strontium
                 const DirectionalLight &light, const glm::mat4& model);
     bool submit(const Atmosphere& atmo, const RendererDataHandle& handle, 
                 const glm::mat4& model);
-
+    void submitPrimary(const DirectionalLight &light, bool castShadows, const glm::mat4 &model);
   private:
     SkyAtmospherePassDataBlock passData;
 

@@ -212,7 +212,7 @@ namespace Strontium
         , prefilterSamples(512)
         , cascadeLambda(0.5f)
         , cascadeSize(2048)
-        , shadowParams{glm::vec4(0.2f, 20.0f, 1.0f, 50.0f), glm::vec4(0.01f, 0.0f, 0.0f, 0.0f) }
+        , shadowParams{ glm::vec4(0.2f, 20.0f, 1.0f, 50.0f), glm::vec4(0.01f, 0.0f, 0.0f, 0.0f) }
         , directionalSettings(0)
         , enableSkyshafts(false)
         , mieScatIntensity(4.0f, 4.0f, 4.0f, 1.0f)

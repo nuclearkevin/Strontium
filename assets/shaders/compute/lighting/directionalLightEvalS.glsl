@@ -19,7 +19,7 @@ layout(local_size_x = 8, local_size_y = 8) in;
 struct DirectionalLight
 {
   vec4 colourIntensity; // Colour (x, y, z) and intensity (w).
-  vec4 direction; // Light direction (x, y, z) and if the light is the shadow caster.
+  vec4 directionSize; // Light direction (x, y, z) and light size (w).
 };
 
 struct SurfaceProperties
@@ -59,8 +59,7 @@ layout(std140, binding = 2) uniform CascadedShadowBlock
 {
   mat4 u_lightVP[NUM_CASCADES];
   vec4 u_cascadeData[NUM_CASCADES]; // Cascade split distance (x). y, z and w are unused.
-  vec4 u_shadowParams1; // Light bleed reduction (x), light size for PCSS (y), minimum PCF radius (z) and the normal bias (w).
-  vec4 u_shadowParams2; // The constant bias (x). y, z and w are unused.
+  vec4 u_shadowParams; // The constant bias (x), normal bias (y), and the minimum PCF radius (z). w is unused.
 };
 
 layout(rgba16f, binding = 0) restrict uniform image2D lightingBuffer;
@@ -80,67 +79,53 @@ SurfaceProperties decodeGBuffer(vec2 gBufferUVs);
 vec3 evaluateDirectionalLight(DirectionalLight light, SurfaceProperties props);
 
 // Shadow calculations.
-float calcShadow(uint cascadeIndex, DirectionalLight light, SurfaceProperties props,
-                 int quality, vec2 uvs);
+float calcShadow(uint cascadeIndex, vec3 position, vec3 normal, DirectionalLight light,
+                 int quality);
 
 void main()
 {
   ivec2 invoke = ivec2(gl_GlobalInvocationID.xy);
   vec2 gBufferUVs = (vec2(invoke) + 0.5.xx) / vec2(textureSize(gDepth, 0).xy);
+
+  if (texture(gDepth, gBufferUVs).r == 1.0)
+    return;
+
   SurfaceProperties gBuffer = decodeGBuffer(gBufferUVs);
-
-  // Fetch the index of the light to shadow.
-  int shadowedLightIndex = u_lightingSettings.z;
-
-  // Loop over the lights and compute the radiance contribution for everything
-  // that isn't the shadowed light.
   vec3 totalRadiance = imageLoad(lightingBuffer, invoke).rgb;
-  DirectionalLight shadowedLight;
-  for (int i = 0; i < u_lightingSettings.x; i++)
-  {
-    if (i == shadowedLightIndex)
-    {
-      shadowedLight = dLights[i];
-      continue;
-    }
 
-    totalRadiance += evaluateDirectionalLight(dLights[i], gBuffer);
-  }
+  // Cascaded shadow mapping.
+  // Make the assumption the light to shadow is at index 0.
+  const DirectionalLight shadowedLight = dLights[0];
 
-  // There's a light which needs to be shadowed.
+  vec4 clipSpacePos = u_viewMatrix * vec4(gBuffer.position, 1.0);
   float shadowFactor = 1.0;
-  if (shadowedLightIndex > -1)
+  for (uint i = 0; i < NUM_CASCADES; i++)
   {
-    // Cascaded shadow mapping.
-    vec4 clipSpacePos = u_viewMatrix * vec4(gBuffer.position, 1.0);
-    for (uint i = 0; i < NUM_CASCADES; i++)
+    if (-clipSpacePos.z <= (u_cascadeData[i].x))
     {
-      if (-clipSpacePos.z <= (u_cascadeData[i].x))
+      // Interpolate between the current and the next cascade to smooth the
+      // transition between shadows.
+      shadowFactor = calcShadow(i, gBuffer.position, gBuffer.normal, shadowedLight,
+                                u_lightingSettings.w);
+
+      float currentSplit = i == 0 ? 0.0 : u_cascadeData[i - 1].x;
+      float nextSplit = u_cascadeData[i].x;
+      float splitDelta = nextSplit - currentSplit;
+      float fadeFactor = (nextSplit + clipSpacePos.z) / splitDelta;
+
+      if (i < (NUM_CASCADES - 1))
       {
-        // Interpolate between the current and the next cascade to smooth the
-        // transition between shadows.
-        shadowFactor = calcShadow(i, shadowedLight, gBuffer, u_lightingSettings.w,
-                                  gBufferUVs);
-
-        float currentSplit = i == 0 ? 0.0 : u_cascadeData[i - 1].x;
-        float nextSplit = u_cascadeData[i].x;
-        float splitDelta = nextSplit - currentSplit;
-        float fadeFactor = (nextSplit + clipSpacePos.z) / splitDelta;
-
-        if (i < (NUM_CASCADES - 1))
-        {
-          float nextShadowFactor = calcShadow(i + 1, shadowedLight, gBuffer,
-                                              u_lightingSettings.w, gBufferUVs);
-          float lerpFactor = smoothstep(0.0, 1.0, fadeFactor);
-          shadowFactor = mix(nextShadowFactor, shadowFactor, lerpFactor);
-        }
-
-        break;
+        float nextShadowFactor = calcShadow(i + 1, gBuffer.position, gBuffer.normal, shadowedLight,
+                                            u_lightingSettings.w);
+        float lerpFactor = smoothstep(0.0, 1.0, fadeFactor);
+        shadowFactor = mix(nextShadowFactor, shadowFactor, lerpFactor);
       }
-    }
 
-    totalRadiance += shadowFactor * evaluateDirectionalLight(shadowedLight, gBuffer);
+      break;
+    }
   }
+
+  totalRadiance += shadowFactor * evaluateDirectionalLight(shadowedLight, gBuffer);
 
   imageStore(lightingBuffer, invoke, vec4(totalRadiance, 1.0));
 }
@@ -283,11 +268,11 @@ vec3 filamentBRDF(vec3 l, vec3 v, vec3 n, float roughness, float metallic,
 }
 
 //------------------------------------------------------------------------------
-// Compute an individual point light contribution.
+// Compute an individual directional light contribution.
 //------------------------------------------------------------------------------
 vec3 evaluateDirectionalLight(DirectionalLight light, SurfaceProperties props)
 {
-  vec3 lightDir = normalize(light.direction.xyz);
+  vec3 lightDir = normalize(light.directionSize.xyz);
   vec3 halfWay = normalize(props.view + lightDir);
   float nDotL = clamp(dot(props.normal, lightDir), 0.0, 1.0);
 
@@ -307,16 +292,17 @@ vec3 evaluateDirectionalLight(DirectionalLight light, SurfaceProperties props)
 //------------------------------------------------------------------------------
 // Interleaved gradient noise from:
 // http://www.iryoku.com/next-generation-post-processing-in-call-of-duty-advanced-warfare
-float interleavedGradientNoise(vec2 uvs)
+float interleavedGradientNoise()
 {
   const vec3 magic = vec3(0.06711056, 0.00583715, 52.9829189);
-  return fract(magic.z * fract(dot(uvs, magic.xy)));
+  //return fract(magic.z * fract(dot(gBufferUVs.xy, magic.xy)));
+  return fract(magic.z * fract(dot(vec2(gl_GlobalInvocationID.xy), magic.xy)));
 }
 
 // Create a rotation matrix with the noise function above.
-mat2 randomRotation(vec2 uvs)
+mat2 randomRotation()
 {
-  float theta = 2.0 * PI * interleavedGradientNoise(uvs);
+  float theta = 2.0 * PI * interleavedGradientNoise();
   float sinTheta = sin(theta);
   float cosTheta = cos(theta);
   return mat2(cosTheta, sinTheta, -sinTheta, cosTheta);
@@ -396,6 +382,9 @@ vec2 samplePoissonDisk(uint index)
 }
 
 //------------------------------------------------------------------------------
+// Shadow calculations for exponentially warped variance shadow maps.
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // Shadow calculations for PCF shadow maps.
 //------------------------------------------------------------------------------
 float offsetLookup(sampler2D map, vec2 loc, vec2 offset, float depth)
@@ -412,7 +401,7 @@ float calculateSearchWidth(float receiverDepth, float lightSize, vec2 texelSize)
   return lightSize * receiverDepth;
 }
 
-float calcBlockerDistance(sampler2D map, vec3 projCoords, float bias, float lightSize, vec2 uvs)
+float calcBlockerDistance(sampler2D map, vec3 projCoords, float bias, float lightSize)
 {
   vec2 texel = 1.0 / textureSize(map, 0).xy;
   float blockerDistances = 0.0;
@@ -420,7 +409,7 @@ float calcBlockerDistance(sampler2D map, vec3 projCoords, float bias, float ligh
   float receiverDepth = projCoords.z;
 
   float searchWidth = calculateSearchWidth(receiverDepth, lightSize, texel);
-  mat2 rotation = randomRotation(uvs);
+  mat2 rotation = randomRotation();
   for (uint i = 0; i < PCSS_SAMPLES; i++)
   {
     vec2 disk = searchWidth * samplePoissonDisk(i);
@@ -440,10 +429,10 @@ float calcBlockerDistance(sampler2D map, vec3 projCoords, float bias, float ligh
     return -1.0;
 }
 
-float calcPCFKernelSize(sampler2D map, vec3 projCoords, float bias, float lightSize, vec2 uvs)
+float calcPCFKernelSize(sampler2D map, vec3 projCoords, float bias, float lightSize)
 {
   float receiverDepth = projCoords.z;
-  float blockerDepth = calcBlockerDistance(map, projCoords, bias, lightSize, uvs);
+  float blockerDepth = calcBlockerDistance(map, projCoords, bias, lightSize);
 
   float kernelSize = 1.0;
   if (blockerDepth > 0.0)
@@ -458,8 +447,8 @@ float calcPCFKernelSize(sampler2D map, vec3 projCoords, float bias, float lightS
 //------------------------------------------------------------------------------
 // Compute the actual occlusion factor.
 //------------------------------------------------------------------------------
-float calcShadow(uint cascadeIndex, DirectionalLight light, SurfaceProperties props,
-                 int quality, vec2 uvs)
+float calcShadow(uint cascadeIndex, vec3 position, vec3 normal, DirectionalLight light,
+                 int quality)
 {
   float depthRange = 0.0;
   if (cascadeIndex == 0)
@@ -471,18 +460,17 @@ float calcShadow(uint cascadeIndex, DirectionalLight light, SurfaceProperties pr
     depthRange = u_cascadeData[cascadeIndex].x - u_cascadeData[cascadeIndex - 1].x;
   }
 
-  float bias = u_shadowParams2.x / 1000.0;
+  float bias = u_shadowParams.x / 1000.0;
 
-  float normalOffsetScale = clamp(1.0 - dot(props.normal, light.direction.xyz), 0.0, 1.0);
+  float normalOffsetScale = clamp(1.0 - dot(normal, light.directionSize.xyz), 0.0, 1.0);
   normalOffsetScale /= textureSize(cascadeMaps[cascadeIndex], 0).x;
-  normalOffsetScale *= depthRange * u_shadowParams1.w;
+  normalOffsetScale *= depthRange * u_shadowParams.y;
 
-  vec4 shadowOffset = vec4(props.position + props.normal * normalOffsetScale, 1.0);
+  vec4 shadowOffset = vec4(position + normal * normalOffsetScale, 1.0);
   shadowOffset = u_lightVP[cascadeIndex] * shadowOffset;
 
-  vec4 lightClipPos = u_lightVP[cascadeIndex] * vec4(props.position, 1.0);
-  if (quality != 2)
-    lightClipPos.xy = shadowOffset.xy;
+  vec4 lightClipPos = u_lightVP[cascadeIndex] * vec4(position, 1.0);
+  lightClipPos.xy = shadowOffset.xy;
   vec3 projCoords = lightClipPos.xyz / lightClipPos.w;
   projCoords = 0.5 * projCoords + 0.5;
 
@@ -491,9 +479,9 @@ float calcShadow(uint cascadeIndex, DirectionalLight light, SurfaceProperties pr
   if (quality == 2)
   {
     shadowFactor = 0.0;
-    float radius = calcPCFKernelSize(cascadeMaps[cascadeIndex], projCoords, bias, u_shadowParams1.y, uvs);
-    radius += u_shadowParams1.z;
-    mat2 rotation = randomRotation(uvs);
+    float radius = calcPCFKernelSize(cascadeMaps[cascadeIndex], projCoords, bias, light.directionSize.w);
+    radius += u_shadowParams.z;
+    mat2 rotation = randomRotation();
     for (uint i = 0; i < PCF_SAMPLES; i++)
     {
       vec2 disk = radius * samplePoissonDisk(i);
@@ -509,8 +497,8 @@ float calcShadow(uint cascadeIndex, DirectionalLight light, SurfaceProperties pr
   else if (quality == 1)
   {
     shadowFactor = 0.0;
-    float radius = u_shadowParams1.z;
-    mat2 rotation = randomRotation(uvs);
+    float radius = u_shadowParams.z;
+    mat2 rotation = randomRotation();
     for (uint i = 0; i < PCF_SAMPLES; i++)
     {
       vec2 disk = radius * samplePoissonDisk(i);

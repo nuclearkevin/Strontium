@@ -1,14 +1,13 @@
 #pragma once
 
-// Macro include file.
 #include "StrontiumPCH.h"
-
-// Entity component system include.
-#include "entt.hpp"
 
 // Project includes.
 #include "Core/ApplicationBase.h"
 #include "Scenes/Scene.h"
+
+// Entity component system include.
+#include "entt.hpp"
 
 namespace Strontium
 {
@@ -69,5 +68,7 @@ namespace Strontium
   private:
     entt::entity entityID;
     Scene* parentScene;
+
+    friend class Scene;
   };
 }

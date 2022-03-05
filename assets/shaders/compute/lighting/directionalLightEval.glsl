@@ -15,7 +15,7 @@ layout(local_size_x = 8, local_size_y = 8) in;
 struct DirectionalLight
 {
   vec4 colourIntensity; // Colour (x, y, z) and intensity (w).
-  vec4 direction; // Light direction (x, y, z). w is unused.
+  vec4 direction; // Light direction (x, y, z) and light size (w).
 };
 
 struct SurfaceProperties

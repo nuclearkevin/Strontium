@@ -59,6 +59,9 @@ namespace Strontium
 	bool hasCascades;
 	glm::vec4 cascadeSplits[NUM_CASCADES];
 
+	// The primary light.
+	bool castShadows;
+	DirectionalLight primaryLight;
 	// The pseudo-cameras for the shadow pass.
 	glm::mat4 cascades[NUM_CASCADES];
 	Frustum lightCullingFrustums[NUM_CASCADES];
@@ -70,11 +73,17 @@ namespace Strontium
 	ShaderStorageBuffer transformBuffer;
 	ShaderStorageBuffer boneBuffer;
 
+	uint numUniqueEntities;
+	glm::vec3 minPos;
+	glm::vec3 maxPos;
 	std::vector<ShadowStaticDrawData> staticDrawList;
 	std::vector<ShadowDynamicDrawData> dynamicDrawList;
 
 	// Shadow settings.
 	uint shadowQuality;
+	float minRadius;
+	float normalBias;
+	float constBias;
 
 	// Some statistics to display.
 	float frameTime;
@@ -89,11 +98,21 @@ namespace Strontium
 	  , cascadeLambda(0.5f)
 	  , shadowMapRes(2048)
 	  , hasCascades(false)
+	  , cascadeSplits()
+	  , cascades()
+	  , lightCullingFrustums()
+	  , castShadows(false)
 	  , lightSpaceBuffer(sizeof(glm::mat4), BufferType::Dynamic)
 	  , perDrawUniforms(sizeof(int), BufferType::Dynamic)
 	  , transformBuffer(0, BufferType::Dynamic)
 	  , boneBuffer(MAX_BONES_PER_MODEL * sizeof(glm::mat4), BufferType::Dynamic)
+	  , numUniqueEntities(0u)
+	  , minPos(std::numeric_limits<float>::max())
+	  , maxPos(std::numeric_limits<float>::min())
 	  , shadowQuality(0)
+	  , minRadius(1.0f)
+	  , normalBias(50.0f)
+	  , constBias(0.01f)
 	  , frameTime(0.0f)
 	  , numInstances(0u)
 	  , numDrawCalls(0u)
@@ -116,6 +135,10 @@ namespace Strontium
 	void onRender() override;
 	void onRendererEnd(FrameBuffer& frontBuffer) override;
 	void onShutdown() override;
+
+	void submit(Model* data, const glm::mat4 &model);
+	void submit(Model* data, Animator* animation, const glm::mat4& model);
+	void submitPrimary(const DirectionalLight &primaryLight, bool castShadows, const glm::mat4 &model);
   private:
 	void computeShadowData();
 

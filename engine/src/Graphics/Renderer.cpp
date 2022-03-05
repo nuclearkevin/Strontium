@@ -9,6 +9,7 @@
 #include "Graphics/RenderPasses/DynamicSkyIBLPass.h"
 
 #include "Graphics/RenderPasses/IBLApplicationPass.h"
+#include "Graphics/RenderPasses/DirectionalLightPass.h"
 
 #include "Graphics/RenderPasses/PostProcessingPass.h"
 
@@ -75,6 +76,7 @@ namespace Strontium::Renderer3D
 
     // Lighting passes.
     auto iblApp = passManager->insertRenderPass<IBLApplicationPass>(rendererData, geomet, hbao, dynIBL);
+    auto dirApp = passManager->insertRenderPass<DirectionalLightPass>(rendererData, geomet, shadow);
 
     // Skybox pass. This should be applied last.
     auto skyboxApp = passManager->insertRenderPass<SkyboxPass>(rendererData, geomet, skyatmo);
@@ -102,17 +104,7 @@ namespace Strontium::Renderer3D
     rendererData->sceneCam = sceneCamera;
     rendererData->camFrustum = buildCameraFrustum(sceneCamera);
 
-    // Resent per-frame counters and flags.
-    rendererData->drawEdge = false;
-    rendererData->numTransforms = 0;
-
-    // Clear the render queues.
-    rendererData->staticRenderQueue.clear();
-    rendererData->dynamicRenderQueue.clear();
-
     // Setup the lights.
-    rendererData->directionalLightCount = 0u;
-    rendererData->primaryLightIndex = -1;
     rendererData->pointLightCount = 0u;
     rendererData->spotLightCount = 0u;
 
@@ -164,39 +156,6 @@ namespace Strontium::Renderer3D
 
     data->unbind();
     program->unbind();
-  }
-
-  void
-  submit(Model* data, ModelMaterial &materials, const glm::mat4 &model,
-         float id, bool drawSelectionMask)
-  {
-    rendererData->staticRenderQueue.emplace_back(data, &materials, model, id,
-                                                 drawSelectionMask);
-    rendererData->numTransforms += data->getSubmeshes().size();
-  }
-
-  void submit(Model* data, Animator* animation, ModelMaterial &materials,
-              const glm::mat4 &model, float id, bool drawSelectionMask)
-  {
-    rendererData->dynamicRenderQueue.emplace_back(data, animation, &materials,
-                                                  model, id, drawSelectionMask);
-
-    rendererData->numTransforms += data->getSubmeshes().size();
-  }
-
-  void
-  submit(const DirectionalLight &light, bool primaryLight, bool castShadows, const glm::mat4 &model)
-  {
-    auto invTrans = glm::transpose(glm::inverse(model));
-    DirectionalLight temp = light;
-    temp.direction = glm::vec4(-1.0f * glm::vec3(invTrans * glm::vec4(0.0f, -1.0f, 0.0f, 0.0f)), 0.0f);
-
-    rendererData->directionalLightQueue[rendererData->directionalLightCount].first = temp;
-    rendererData->directionalLightQueue[rendererData->directionalLightCount].second[0] = primaryLight;
-    rendererData->directionalLightQueue[rendererData->directionalLightCount].second[1] = castShadows;
-    rendererData->primaryLightIndex = primaryLight ? rendererData->directionalLightCount
-                                                   : rendererData->primaryLightIndex;
-    rendererData->directionalLightCount++;
   }
 
   void
