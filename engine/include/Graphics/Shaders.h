@@ -56,7 +56,9 @@ namespace Strontium
     // Delete the copy constructor and the assignment operator. Prevents
     // issues related to the underlying API.
     Shader(const Shader&) = delete;
+    Shader(Shader&&) = delete;
     Shader& operator=(const Shader&) = delete;
+    Shader& operator=(Shader&&) = delete;
 
     // Reload the shader from its source on disk.
     void rebuild();

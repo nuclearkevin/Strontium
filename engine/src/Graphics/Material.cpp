@@ -9,7 +9,6 @@ namespace Strontium
     : filepath(filepath)
     , type(type)
     , pipeline(false)
-    , materialData(2 * sizeof(glm::vec4), BufferType::Dynamic)
   {
     switch (type)
     {
@@ -35,24 +34,6 @@ namespace Strontium
         this->floats.emplace_back("uEmiss", 0.0f);
         this->floats.emplace_back("uReflectance", 0.04f);
 
-        this->materialData.bindToPoint(1);
-
-        // Set the initial metallic, roughness, AO and emission parameters.
-        auto mrae = glm::vec4(0.0f);
-        mrae.x = this->getfloat("uMetallic");
-        mrae.y = this->getfloat("uRoughness");
-        mrae.z = this->getfloat("uAO");
-        mrae.w = this->getfloat("uEmiss");
-        this->materialData.setData(0, sizeof(glm::vec4), &mrae.x);
-
-        // Set the initial albedo and F0 parameters.
-        auto albedo = this->getvec3("uAlbedo");
-        auto albedoF0 = glm::vec4(0.0f);
-        albedoF0.x = albedo.x;
-        albedoF0.y = albedo.y;
-        albedoF0.z = albedo.z;
-        albedoF0.w = this->getfloat("uReflectance");
-        this->materialData.setData(sizeof(glm::vec4), sizeof(glm::vec4), &albedoF0.x);
         break;
       }
       default:
@@ -66,25 +47,12 @@ namespace Strontium
   Material::~Material()
   { }
 
-  void 
-  Material::updateUniformBuffer()
+  MaterialBlockData 
+  Material::getPackedUniformData()
   {
-      // Set the metallic, roughness, AO and emission parameters.
-      auto mrae = glm::vec4(0.0f);
-      mrae.x = this->getfloat("uMetallic");
-      mrae.y = this->getfloat("uRoughness");
-      mrae.z = this->getfloat("uAO");
-      mrae.w = this->getfloat("uEmiss");
-      this->materialData.setData(0, sizeof(glm::vec4), &mrae.x);
-
-      // Set the albedo and F0 parameters.
-      auto albedo = this->getvec3("uAlbedo");
-      auto albedoF0 = glm::vec4(0.0f);
-      albedoF0.x = albedo.x;
-      albedoF0.y = albedo.y;
-      albedoF0.z = albedo.z;
-      albedoF0.w = this->getfloat("uReflectance");
-      this->materialData.setData(sizeof(glm::vec4), sizeof(glm::vec4), &albedoF0.x);
+    return { { this->getfloat("uMetallic"), this->getfloat("uRoughness"), 
+               this->getfloat("uAO"), this->getfloat("uEmiss") },
+             { this->getvec3("uAlbedo"), this->getfloat("uReflectance") } };
   }
 
   void
@@ -113,47 +81,21 @@ namespace Strontium
   }
 
   void
-  Material::configure()
+  Material::configureTextures(bool bindOnlyAlbedo)
   {
-    auto textureCache = AssetManager<Texture2D>::getManager();
-    unsigned int samplerCount = 0;
-
-    // Loop over 2D textures and assign them.
-    // TODO: Other sampler types.
-    for (auto& pair : this->sampler2Ds)
+    // Bind the appropriate 2D textures.
+    if (bindOnlyAlbedo)
     {
-      Texture2D* sampler = textureCache->getAsset(pair.second);
-
-      this->program->addUniformSampler(pair.first.c_str(), samplerCount);
-      if (sampler != nullptr)
-        sampler->bind(samplerCount);
-
-      samplerCount++;
+      this->getSampler2D("albedoMap")->bind(0);
+      return;
     }
 
-    this->materialData.bindToPoint(1);
-  }
-
-  void
-  Material::configureDynamic(Shader* override)
-  {
-    auto textureCache = AssetManager<Texture2D>::getManager();
-    unsigned int samplerCount = 0;
-
-    // Loop over 2D textures and assign them.
-    // TODO: Other sampler types.
-    for (auto& pair : this->sampler2Ds)
-    {
-      Texture2D* sampler = textureCache->getAsset(pair.second);
-
-      override->addUniformSampler(pair.first.c_str(), samplerCount);
-      if (sampler != nullptr)
-        sampler->bind(samplerCount);
-
-      samplerCount++;
-    }
-
-    this->materialData.bindToPoint(1);
+    this->getSampler2D("albedoMap")->bind(0);
+    this->getSampler2D("normalMap")->bind(1);
+    this->getSampler2D("roughnessMap")->bind(2);
+    this->getSampler2D("metallicMap")->bind(3);
+    this->getSampler2D("aOcclusionMap")->bind(4);
+    this->getSampler2D("specF0Map")->bind(5);
   }
 
   // Search for and attach textures to a sampler.

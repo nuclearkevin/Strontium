@@ -24,7 +24,9 @@ namespace Strontium
     // Delete the copy constructor and the assignment operator. Prevents
     // issues related to the underlying API.
     VertexArray(const VertexArray&) = delete;
+    VertexArray(VertexArray&&) = delete;
     VertexArray& operator=(const VertexArray&) = delete;
+    VertexArray& operator=(VertexArray&&) = delete;
 
     // Bind/unbind the array.
     void bind();

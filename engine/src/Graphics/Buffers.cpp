@@ -9,16 +9,16 @@ namespace Strontium
   //----------------------------------------------------------------------------
   // Vertex buffer here.
   //----------------------------------------------------------------------------
-  VertexBuffer::VertexBuffer(const void* bufferData, const unsigned &dataSize,
+  VertexBuffer::VertexBuffer(const void* bufferData, uint dataSize,
                              BufferType bufferType)
     : hasData(true)
     , type(bufferType)
-    , bufferData(bufferData)
     , dataSize(dataSize)
   {
     glGenBuffers(1, &this->bufferID);
     glBindBuffer(GL_ARRAY_BUFFER, this->bufferID);
     glBufferData(GL_ARRAY_BUFFER, dataSize, bufferData, static_cast<GLenum>(bufferType));
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
   }
 
   VertexBuffer::~VertexBuffer()
@@ -44,17 +44,17 @@ namespace Strontium
   // Index buffer here.
   //----------------------------------------------------------------------------
   IndexBuffer::IndexBuffer(const uint* bufferData,
-                           unsigned numIndices,
+                           uint numIndices,
                            BufferType bufferType)
     : hasData(true)
     , type(bufferType)
-    , bufferData(bufferData)
     , count(numIndices)
   {
     glGenBuffers(1, &this->bufferID);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, this->bufferID);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(uint) * numIndices, bufferData,
                  static_cast<GLenum>(bufferType));
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
   }
 
   IndexBuffer::~IndexBuffer()
@@ -77,7 +77,7 @@ namespace Strontium
   }
 
   // Get the number of stored vertices.
-  unsigned
+  uint
   IndexBuffer::getCount()
   {
     return this->count;
@@ -86,7 +86,7 @@ namespace Strontium
   //----------------------------------------------------------------------------
   // Uniform buffer here.
   //----------------------------------------------------------------------------
-  UniformBuffer::UniformBuffer(const unsigned &bufferSize, BufferType bufferType)
+  UniformBuffer::UniformBuffer(uint bufferSize, BufferType bufferType)
     : type(bufferType)
     , dataSize(bufferSize)
     , filled(false)
@@ -97,7 +97,7 @@ namespace Strontium
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
   }
 
-  UniformBuffer::UniformBuffer(const void* bufferData, const unsigned &dataSize,
+  UniformBuffer::UniformBuffer(const void* bufferData, uint dataSize,
                                BufferType bufferType)
     : type(bufferType)
     , dataSize(dataSize)
@@ -105,8 +105,7 @@ namespace Strontium
   {
     glGenBuffers(1, &this->bufferID);
     glBindBuffer(GL_UNIFORM_BUFFER, this->bufferID);
-    glBufferData(GL_UNIFORM_BUFFER, dataSize, nullptr, static_cast<GLenum>(bufferType));
-    glBufferSubData(GL_UNIFORM_BUFFER, 0, dataSize, bufferData);
+    glBufferData(GL_UNIFORM_BUFFER, dataSize, bufferData, static_cast<GLenum>(bufferType));
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
   }
 
@@ -116,6 +115,8 @@ namespace Strontium
     , filled(false)
   {
     glGenBuffers(1, &this->bufferID);
+    glBindBuffer(GL_UNIFORM_BUFFER, this->bufferID);
+    glBindBuffer(GL_UNIFORM_BUFFER, 0);
   }
 
   UniformBuffer::~UniformBuffer()
@@ -127,7 +128,6 @@ namespace Strontium
   void
   UniformBuffer::bindToPoint(const uint bindPoint)
   {
-    glBindBuffer(GL_UNIFORM_BUFFER, this->bufferID);
     glBindBufferBase(GL_UNIFORM_BUFFER, bindPoint, this->bufferID);
   }
 
@@ -143,100 +143,32 @@ namespace Strontium
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
   }
 
+  // Resize the buffer.
+  void 
+  UniformBuffer::resize(uint bufferSize, BufferType bufferType)
+  {
+    glBindBuffer(GL_UNIFORM_BUFFER, this->bufferID);
+    glBufferData(GL_UNIFORM_BUFFER, bufferSize, nullptr, static_cast<GLenum>(bufferType));
+    glBindBuffer(GL_UNIFORM_BUFFER, 0);
+    this->dataSize = bufferSize;
+  }
+
   // Set a specific part of the buffer data.
   void
   UniformBuffer::setData(uint start, uint newDataSize, const void* newData)
   {
     assert(("New data exceeds buffer size.", !(start + newDataSize > this->dataSize)));
 
-    this->bind();
+    glBindBuffer(GL_UNIFORM_BUFFER, this->bufferID);
     glBufferSubData(GL_UNIFORM_BUFFER, start, newDataSize, newData);
-    this->unbind();
-
+    glBindBuffer(GL_UNIFORM_BUFFER, 0);
     this->filled = true;
-  }
-
-  RenderBuffer::RenderBuffer()
-    : format(RBOInternalFormat::DepthStencil)
-    , width(0)
-    , height(0)
-  {
-    glGenRenderbuffers(1, &this->bufferID);
-  }
-
-  RenderBuffer::RenderBuffer(uint width, uint height)
-    : format(RBOInternalFormat::DepthStencil)
-    , width(width)
-    , height(height)
-  {
-    glGenRenderbuffers(1, &this->bufferID);
-    glBindRenderbuffer(GL_RENDERBUFFER, this->bufferID);
-
-    glRenderbufferStorage(GL_RENDERBUFFER,
-                          static_cast<GLenum>(RBOInternalFormat::DepthStencil),
-                          width, height);
-  }
-
-  RenderBuffer::RenderBuffer(uint width, uint height,
-                             const RBOInternalFormat &format)
-    : format(format)
-    , width(width)
-    , height(height)
-  {
-    glGenRenderbuffers(1, &this->bufferID);
-    glBindRenderbuffer(GL_RENDERBUFFER, this->bufferID);
-
-    glRenderbufferStorage(GL_RENDERBUFFER, static_cast<GLenum>(format),
-                          width, height);
-  }
-
-  RenderBuffer::~RenderBuffer()
-  {
-    glDeleteRenderbuffers(1, &this->bufferID);
-  }
-
-  void 
-  RenderBuffer::reset(uint newWidth, uint newHeight)
-  {
-    this->width = newWidth;
-    this->height = newHeight;
-    glBindRenderbuffer(GL_RENDERBUFFER, this->bufferID);
-
-    glRenderbufferStorage(GL_RENDERBUFFER, static_cast<GLenum>(this->format),
-                          this->width, this->height);
-    glBindRenderbuffer(GL_RENDERBUFFER, 0);
-  }
-
-  void 
-  RenderBuffer::reset(uint newWidth, uint newHeight, const RBOInternalFormat& newFormat)
-  {
-    this->format = newFormat;
-    this->width = newWidth;
-    this->height = newHeight;
-    glBindRenderbuffer(GL_RENDERBUFFER, this->bufferID);
-
-    glRenderbufferStorage(GL_RENDERBUFFER, static_cast<GLenum>(this->format),
-                          this->width, this->height);
-    glBindRenderbuffer(GL_RENDERBUFFER, 0);
-  }
-
-  void
-  RenderBuffer::bind()
-  {
-    glBindRenderbuffer(GL_RENDERBUFFER, this->bufferID);
-  }
-
-  void
-  RenderBuffer::unbind()
-  {
-    glBindRenderbuffer(GL_RENDERBUFFER, 0);
   }
 
   //----------------------------------------------------------------------------
   // Shader storage buffer here.
   //----------------------------------------------------------------------------
-  ShaderStorageBuffer::ShaderStorageBuffer(const void* bufferData,
-                                           const unsigned &dataSize,
+  ShaderStorageBuffer::ShaderStorageBuffer(const void* bufferData, uint dataSize,
                                            BufferType bufferType)
     : filled(true)
     , type(bufferType)
@@ -244,13 +176,11 @@ namespace Strontium
   {
     glGenBuffers(1, &this->bufferID);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->bufferID);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, dataSize, bufferData,
-                 static_cast<GLenum>(bufferType));
+    glBufferData(GL_SHADER_STORAGE_BUFFER, dataSize, bufferData, static_cast<GLenum>(bufferType));
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
   }
 
-  ShaderStorageBuffer::ShaderStorageBuffer(const unsigned &bufferSize,
-                                           BufferType bufferType)
+  ShaderStorageBuffer::ShaderStorageBuffer(uint bufferSize, BufferType bufferType)
     : filled(false)
     , type(bufferType)
     , dataSize(bufferSize)
@@ -275,7 +205,6 @@ namespace Strontium
   void
   ShaderStorageBuffer::bindToPoint(const uint bindPoint)
   {
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->bufferID);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, bindPoint, this->bufferID);
   }
 
@@ -285,16 +214,38 @@ namespace Strontium
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
   }
 
+  // Resize the buffer.
+  void 
+  ShaderStorageBuffer::resize(uint bufferSize, BufferType bufferType)
+  {
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->bufferID);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, bufferSize, nullptr, static_cast<GLenum>(bufferType));
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+    this->dataSize = bufferSize;
+  }
+
   void
   ShaderStorageBuffer::setData(uint start, uint newDataSize,
                                const void* newData)
   {
     assert(("New data exceeds buffer size.", !(start + newDataSize > this->dataSize)));
 
-    this->bind();
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->bufferID);
     glBufferSubData(GL_SHADER_STORAGE_BUFFER, start, newDataSize, newData);
-    this->unbind();
-
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
     this->filled = true;
+  }
+
+  void* 
+  ShaderStorageBuffer::mapBuffer(uint offset, uint length, MapBufferAccess access, 
+                                 MapBufferSynch sych)
+  {
+    return glMapNamedBufferRange(this->bufferID, offset, length, static_cast<GLbitfield>(access) | static_cast<GLbitfield>(sych));
+  }
+
+  void 
+  ShaderStorageBuffer::unmapBuffer()
+  {
+    glUnmapNamedBuffer(this->bufferID);
   }
 }

@@ -19,6 +19,12 @@ namespace Strontium
     PBR, Unknown
   };
 
+  struct MaterialBlockData
+  {
+    glm::vec4 mRAE; // Metallic (r), roughness (g), AO (b) and emission (a);
+    glm::vec4 albedoReflectance; // Albedo (r, g, b) and reflectance (a);  
+  };
+
   // Individual material class to hold shaders and shader data.
   class Material
   {
@@ -26,11 +32,8 @@ namespace Strontium
     Material(MaterialType type = MaterialType::PBR, const std::string &filepath = "");
     ~Material();
 
-    void updateUniformBuffer();
-
     // Prepare for drawing.
-    void configure();
-    void configureDynamic(Shader* override);
+    void configureTextures(bool bindOnlyAlbedo = false);
 
     // Sampler configuration.
     bool hasSampler1D(const std::string &samplerName);
@@ -45,6 +48,8 @@ namespace Strontium
     // TODO: Implement 1D and 3D texture fetching.
     Texture2D* getSampler2D(const std::string &samplerName);
     Strontium::AssetHandle& getSampler2DHandle(const std::string &samplerName);
+
+    MaterialBlockData getPackedUniformData();
 
     // Get the filepath.
     std::string& getFilepath() { return this->filepath; }
@@ -98,7 +103,6 @@ namespace Strontium
       if (loc->second != newFloat)
       {
           loc->second = newFloat;
-          this->updateUniformBuffer();
       }
     }
 
@@ -108,7 +112,6 @@ namespace Strontium
         if (loc->second != newVec2)
         {
             loc->second = newVec2;
-            this->updateUniformBuffer();
         }
     }
 
@@ -118,7 +121,6 @@ namespace Strontium
         if (loc->second != newVec3)
         {
             loc->second = newVec3;
-            this->updateUniformBuffer();
         }
     }
 
@@ -128,7 +130,6 @@ namespace Strontium
         if (loc->second != newVec4)
         {
             loc->second = newVec4;
-            this->updateUniformBuffer();
         }
     }
 
@@ -138,7 +139,6 @@ namespace Strontium
         if (loc->second != newMat3)
         {
             loc->second = newMat3;
-            this->updateUniformBuffer();
         }
     }
 
@@ -148,7 +148,6 @@ namespace Strontium
         if (loc->second != newMat4)
         {
             loc->second = newMat4;
-            this->updateUniformBuffer();
         }
     }
 
@@ -190,9 +189,6 @@ namespace Strontium
     std::vector<std::pair<std::string, Strontium::AssetHandle>> sampler2Ds;
     std::vector<std::pair<std::string, Strontium::AssetHandle>> sampler3Ds;
     std::vector<std::pair<std::string, Strontium::AssetHandle>> samplerCubes;
-
-    // The uniform buffer to store shader data in.
-    UniformBuffer materialData;
   };
 
   // Macro material which holds all the individual material objects for each

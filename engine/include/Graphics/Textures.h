@@ -190,14 +190,15 @@ namespace Strontium
 
     // The actual 2D texture class.
     Texture2D();
-    Texture2D(const uint &width, const uint &height, const uint &n,
-              const Texture2DParams &params = Texture2DParams());
+    Texture2D(uint width, uint height, const Texture2DParams &params = Texture2DParams());
     ~Texture2D();
 
     // Delete the copy constructor and the assignment operator. Prevents
     // issues related to the underlying API.
     Texture2D(const Texture2D&) = delete;
+    Texture2D(Texture2D&&) = delete;
     Texture2D& operator=(const Texture2D&) = delete;
+    Texture2D& operator=(Texture2D&&) = delete;
 
     // Init the texture using given data and stored params.
     void initNullTexture();
@@ -205,7 +206,7 @@ namespace Strontium
     void loadData(const unsigned char* data);
 
     // Set the parameters after generating the texture.
-    void setSize(uint width, uint height, uint n);
+    void setSize(uint width, uint height);
     void setParams(const Texture2DParams &newParams);
 
     // Generate mipmaps.
@@ -225,7 +226,6 @@ namespace Strontium
 
     int getWidth() { return this->width; }
     int getHeight() { return this->height; }
-    int getN() { return this->n; }
 
     uint& getID() { return this->textureID; }
     std::string& getFilepath() { return this->filepath; }
@@ -234,7 +234,6 @@ namespace Strontium
 
     int width;
     int height;
-    int n;
     Texture2DParams params;
 
     std::string filepath;
@@ -244,20 +243,22 @@ namespace Strontium
   {
   public:
     Texture2DArray();
-    Texture2DArray(uint width, uint height, uint n, uint numLayers,
+    Texture2DArray(uint width, uint height, uint numLayers,
                    const Texture2DParams &params = Texture2DParams());
     ~Texture2DArray();
 
     // Delete the copy constructor and the assignment operator. Prevents
     // issues related to the underlying API.
     Texture2DArray(const Texture2DArray&) = delete;
+    Texture2DArray(Texture2DArray&&) = delete;
     Texture2DArray& operator=(const Texture2DArray&) = delete;
+    Texture2DArray& operator=(Texture2DArray&&) = delete;
 
     // Init the texture using given data and stored params.
     void initNullTexture();
 
     // Set the parameters after generating the texture.
-    void setSize(uint width, uint height, uint n, uint numLayers);
+    void setSize(uint width, uint height, uint numLayers);
     void setParams(const Texture2DParams& newParams);
 
     // Generate mipmaps.
@@ -276,13 +277,16 @@ namespace Strontium
     void bindAsImage(uint bindPoint, uint miplevel, bool isLayered,
                      uint layer, ImageAccessPolicy policy);
 
+    int getWidth() { return this->width; }
+    int getHeight() { return this->height; }
+    int getLayers() { return this->numLayers; }
+
     uint& getID() { return this->textureID; }
   private:
     uint textureID;
 
     uint width;
     uint height;
-    uint n;
     uint numLayers;
     Texture2DParams params;
   };
@@ -294,14 +298,15 @@ namespace Strontium
   {
   public:
     CubeMap();
-    CubeMap(const uint &width, const uint &height, const uint &n,
-            const TextureCubeMapParams &params = TextureCubeMapParams());
+    CubeMap(uint width, uint height, const TextureCubeMapParams &params = TextureCubeMapParams());
     ~CubeMap();
 
     // Delete the copy constructor and the assignment operator. Prevents
     // issues related to the underlying API.
     CubeMap(const CubeMap&) = delete;
+    CubeMap(CubeMap&&) = delete;
     CubeMap& operator=(const CubeMap&) = delete;
+    CubeMap& operator=(CubeMap&&) = delete;
 
     // Init the texture using given data and stored params.
     void initNullTexture();
@@ -313,7 +318,7 @@ namespace Strontium
     void clearTexture();
 
     // Set the parameters after generating the texture.
-    void setSize(uint width, uint height, uint n);
+    void setSize(uint width, uint height);
     void setParams(const TextureCubeMapParams &newParams);
 
     // Bind/unbind the texture.
@@ -328,7 +333,6 @@ namespace Strontium
 
     int getWidth(uint face) { return this->width[face]; }
     int getHeight(uint face) { return this->height[face]; }
-    int getN(uint face) { return this->n[face]; }
 
     uint& getID() { return this->textureID; }
     std::string& getFilepath() { return this->filepath; }
@@ -337,24 +341,77 @@ namespace Strontium
 
     int width[6];
     int height[6];
-    int n[6];
     TextureCubeMapParams params;
 
     std::string filepath;
+  };
+
+  class CubeMapArrayTexture
+  {
+  public:
+    CubeMapArrayTexture();
+    CubeMapArrayTexture(uint width, uint height, uint numLayers,
+                        const TextureCubeMapParams &params = TextureCubeMapParams());
+    ~CubeMapArrayTexture();
+
+    // Delete the copy constructor and the assignment operator. Prevents
+    // issues related to the underlying API.
+    CubeMapArrayTexture(const CubeMapArrayTexture&) = delete;
+    CubeMapArrayTexture(CubeMapArrayTexture&&) = delete;
+    CubeMapArrayTexture& operator=(const CubeMapArrayTexture&) = delete;
+    CubeMapArrayTexture& operator=(CubeMapArrayTexture&&) = delete;
+
+    // Init the texture using given data and stored params.
+    void initNullTexture();
+
+    // Generate mipmaps.
+    void generateMips();
+
+    // Clear the texture.
+    void clearTexture();
+
+    // Set the parameters after generating the texture.
+    void setSize(uint width, uint height, uint numLayers);
+    void setParams(const TextureCubeMapParams& newParams);
+
+    // Bind/unbind the texture.
+    void bind();
+    void bind(uint bindPoint);
+    void unbind();
+    void unbind(uint bindPoint);
+
+    // Bind the texture as an image unit.
+    void bindAsImage(uint bindPoint, uint miplevel, bool isLayered,
+                     uint layer, ImageAccessPolicy policy);
+
+    int getWidth(uint face) { return this->width[face]; }
+    int getHeight(uint face) { return this->height[face]; }
+    int getLayers() { return this->numLayers; }
+
+    uint& getID() { return this->textureID; }
+  private:
+    uint textureID;
+
+    int width[6];
+    int height[6];
+    int numLayers;
+    TextureCubeMapParams params;
   };
 
   class Texture3D
   {
   public:
     Texture3D();
-    Texture3D(uint width, uint height, uint depth, uint n, 
+    Texture3D(uint width, uint height, uint depth, 
               const Texture3DParams &params = Texture3DParams());
     ~Texture3D();
 
     // Delete the copy constructor and the assignment operator. Prevents
     // issues related to the underlying API.
     Texture3D(const Texture3D&) = delete;
+    Texture3D(Texture3D&&) = delete;
     Texture3D& operator=(const Texture3D&) = delete;
+    Texture3D& operator=(Texture3D&&) = delete;
     
     // Init the texture using given data and stored params.
     void initNullTexture();
@@ -366,7 +423,7 @@ namespace Strontium
     void clearTexture();
 
     // Set the parameters after generating the texture.
-    void setSize(uint width, uint height, uint depth, uint n);
+    void setSize(uint width, uint height, uint depth);
     void setParams(const Texture3DParams& newParams);
 
     // Bind/unbind the texture.
@@ -386,7 +443,6 @@ namespace Strontium
     int width;
     int height;
     int depth;
-    int n;
 
     Texture3DParams params;
   };

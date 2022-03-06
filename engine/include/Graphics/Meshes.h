@@ -34,6 +34,23 @@ namespace Strontium
     { }
   };
 
+  struct PackedVertex
+  {
+    glm::vec4 position;
+    glm::quat tangentFrame; 
+    glm::vec4 boneWeights;
+    glm::ivec4 boneIndices;
+    glm::vec2 texCoords;
+
+    PackedVertex()
+      : position(0.0f)
+      , tangentFrame()
+      , boneWeights(0.0f)
+      , boneIndices(-1)
+      , texCoords(0.0f)
+    { }
+  };
+
   // Material info from assimp.
   struct UnloadedMaterialInfo
   {
@@ -66,7 +83,7 @@ namespace Strontium
     Mesh(Mesh&&) = default;
 
     // Generate/delete the vertex array object.
-    void generateVAO();
+    VertexArray* generateVAO();
 
     // Set the loaded state.
     void setLoaded(bool isLoaded) { this->loaded = isLoaded; }
@@ -77,7 +94,7 @@ namespace Strontium
     glm::vec3& getMinPos() { return this->minPos; }
     glm::vec3& getMaxPos() { return this->maxPos; }
     glm::mat4& getTransform() { return this->localTransform; }
-    VertexArray*  getVAO() { return this->vArray.get(); }
+    VertexArray* getVAO() { return this->vArray.get(); }
     std::string& getFilepath() { return this->filepath; }
     std::string& getName() { return this->name; }
     UnloadedMaterialInfo& getMaterialInfo() { return this->materialInfo; }

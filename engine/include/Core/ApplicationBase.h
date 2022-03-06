@@ -8,6 +8,7 @@
 
 // Basic typedefs.
 typedef unsigned int uint;
+typedef long long unsigned int ulong;
 
 namespace Strontium
 {

@@ -43,14 +43,14 @@ namespace Strontium
     // Fetch the width and height of the window and create a floating point
     // framebuffer.
     glm::ivec2 wDims = Application::getInstance()->getWindow()->getSize();
-    this->drawBuffer = createShared<FrameBuffer>((uint) wDims.x, (uint) wDims.y);
+    this->drawBuffer.resize(static_cast<uint>(wDims.x), static_cast<uint>(wDims.y));
 
     // Fetch a default floating point FBO spec and attach it. Also attach a single
     // float spec for entity IDs.
     auto cSpec = Texture2D::getFloatColourParams();
     auto colourAttachment = FBOAttachment(FBOTargetParam::Colour0, FBOTextureParam::Texture2D,
                                           cSpec.internal, cSpec.format, cSpec.dataType);
-    this->drawBuffer->attach(cSpec, colourAttachment);
+    this->drawBuffer.attach(cSpec, colourAttachment);
     
     cSpec.internal = TextureInternalFormats::R32f;
     cSpec.format = TextureFormats::Red;
@@ -58,13 +58,13 @@ namespace Strontium
     cSpec.tWrap = TextureWrapParams::ClampEdges;
     colourAttachment = FBOAttachment(FBOTargetParam::Colour1, FBOTextureParam::Texture2D,
                                      cSpec.internal, cSpec.format, cSpec.dataType);
-    this->drawBuffer->attach(cSpec, colourAttachment);
-    this->drawBuffer->setDrawBuffers();
+    this->drawBuffer.attach(cSpec, colourAttachment);
+    this->drawBuffer.setDrawBuffers();
 
     auto dSpec = Texture2D::getDefaultDepthParams();
     auto depthAttachment = FBOAttachment(FBOTargetParam::Depth, FBOTextureParam::Texture2D,
                                            dSpec.internal, dSpec.format, dSpec.dataType);
-  	this->drawBuffer->attach(dSpec, depthAttachment);
+  	this->drawBuffer.attach(dSpec, depthAttachment);
 
     // Setup stuff for the scene.
     this->currentScene = createShared<Scene>();
@@ -195,7 +195,7 @@ namespace Strontium
       window->onUpdate(dt, this->currentScene);
 
     // Update the size of the framebuffer to fit the editor window.
-    glm::vec2 size = this->drawBuffer->getSize();
+    glm::vec2 size = this->drawBuffer.getSize();
     if (this->editorSize.x != size.x || this->editorSize.y != size.y)
     {
       if (this->editorSize.x >= 1.0f && this->editorSize.y >= 1.0f)
@@ -203,7 +203,7 @@ namespace Strontium
                                    this->editorSize.x / this->editorSize.y,
                                    this->editorCam.getNear(),
                                    this->editorCam.getFar());
-      this->drawBuffer->resize(this->editorSize.x, this->editorSize.y);
+      this->drawBuffer.resize(this->editorSize.x, this->editorSize.y);
     }
 
     // Update the scene.
@@ -215,7 +215,7 @@ namespace Strontium
         this->currentScene->onUpdateEditor(dt);
 
         // Draw the scene.
-        this->drawBuffer->clear();
+        this->drawBuffer.clear();
         Renderer3D::begin(this->editorSize.x, this->editorSize.y, (Camera) this->editorCam);
         this->currentScene->onRenderEditor(this->getSelectedEntity());
         Renderer3D::end(this->drawBuffer);
@@ -249,7 +249,7 @@ namespace Strontium
           this->editorCam.onUpdate(dt, glm::vec2(this->editorSize.x, this->editorSize.y));
         }
 
-        this->drawBuffer->clear();
+        this->drawBuffer.clear();
         Renderer3D::begin(this->editorSize.x, this->editorSize.y, primaryCamera);
         this->currentScene->onRenderRuntime();
         Renderer3D::end(this->drawBuffer);
@@ -315,8 +315,10 @@ namespace Strontium
     	{
        	if (ImGui::MenuItem(ICON_FA_FILE_O" New", "Ctrl+N"))
        	{
+          /*
           auto storage = Renderer3D::getStorage();
           storage->currentEnvironment->unloadEnvironment();
+          */
 
           this->currentScene = createShared<Scene>();
        	}
@@ -589,8 +591,10 @@ namespace Strontium
       {
         if (lControlHeld && keyEvent.getRepeatCount() == 0 && camStationary)
         {
+          /*
           auto storage = Renderer3D::getStorage();
           storage->currentEnvironment->unloadEnvironment();
+          */
 
           this->currentScene = createShared<Scene>();
           static_cast<SceneGraphWindow*>(this->windows[0])->setSelectedEntity(Entity());
@@ -642,22 +646,7 @@ namespace Strontium
 
   void EditorLayer::onMouseEvent(MouseClickEvent &mouseEvent)
   {
-    // Fetch the application window for input polling.
-    Shared<Window> appWindow = Application::getInstance()->getWindow();
-
-    int mouseCode = mouseEvent.getButton();
-
-    bool camStationary = this->editorCam.isStationary();
-    bool lControlHeld = appWindow->isKeyPressed(SR_KEY_LEFT_CONTROL);
-    bool lShiftHeld = appWindow->isKeyPressed(SR_KEY_LEFT_SHIFT);
-
-    switch (mouseCode)
-    {
-      default:
-      {
-        break;
-      }
-    }
+    
   }
 
   void

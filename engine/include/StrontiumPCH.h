@@ -11,15 +11,17 @@
 #include <algorithm>
 #include <fstream>
 #include <stdarg.h>
+#include <string>
 #include <string.h>
 #include <vector>
+#include <array>
 #include <unordered_map>
 #include <map>
 #include <queue>
 #include <stack>
 #include <utility>
 #include <chrono>
-#include <string>
+#include <bitset>
 
 // GLM includes. TODO: Move to Math?
 #include "glm/glm.hpp"

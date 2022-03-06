@@ -1,1233 +1,184 @@
 #include "Graphics/Renderer.h"
 
-namespace Strontium
+// Project includes.
+#include "Graphics/RenderPasses/GeometryPass.h"
+#include "Graphics/RenderPasses/ShadowPass.h"
+#include "Graphics/RenderPasses/HiZPass.h"
+#include "Graphics/RenderPasses/HBAOPass.h"
+#include "Graphics/RenderPasses/SkyAtmospherePass.h"
+#include "Graphics/RenderPasses/DynamicSkyIBLPass.h"
+
+#include "Graphics/RenderPasses/IBLApplicationPass.h"
+#include "Graphics/RenderPasses/DirectionalLightPass.h"
+
+#include "Graphics/RenderPasses/SkyboxPass.h"
+
+#include "Graphics/RenderPasses/BloomPass.h"
+#include "Graphics/RenderPasses/PostProcessingPass.h"
+
+//----------------------------------------------------------------------------
+// 3D renderer starts here.
+//----------------------------------------------------------------------------
+namespace Strontium::Renderer3D
 {
-  //----------------------------------------------------------------------------
-  // 3D renderer starts here.
-  //----------------------------------------------------------------------------
-  namespace Renderer3D
+  static RenderPassManager* passManager;
+  static GlobalRendererData* rendererData;
+
+  // Get the renderer storage, state and stats.
+  GlobalRendererData& getStorage() { return (*rendererData); }
+  RenderPassManager& getPassManager() { return (*passManager); }
+
+  // Initialize the renderer.
+  void
+  init(const uint width, const uint height)
   {
-    // Forward declaration for passes.
-    void geometryPass();
-    void shadowPass();
-    void lightingPass();
-    void postProcessPass(Shared<FrameBuffer> frontBuffer);
+    // Initialize OpenGL parameters.
+    RendererCommands::enable(RendererFunction::DepthTest);
+    RendererCommands::enable(RendererFunction::CubeMapSeamless);
 
-    RendererStorage* storage;
-    RendererState* state;
-    RendererStats* stats;
+    // Setup global storage which gets used by multiple passes.
+    rendererData = new GlobalRendererData();
 
-    // Initialize the renderer.
-    void
-    init(const uint width, const uint height)
+    rendererData->gamma = 2.2f;
+
+    // The lighting pass buffer.
+    Texture2DParams lightingParams = Texture2DParams();
+    lightingParams.sWrap = TextureWrapParams::ClampEdges;
+    lightingParams.tWrap = TextureWrapParams::ClampEdges;
+    lightingParams.internal = TextureInternalFormats::RGBA16f;
+    lightingParams.format = TextureFormats::RGBA;
+    lightingParams.dataType = TextureDataType::Floats;
+    rendererData->lightingBuffer.setSize(1600, 900);
+    rendererData->lightingBuffer.setParams(lightingParams);
+    rendererData->lightingBuffer.initNullTexture();
+
+    // A half-res buffer for half-resolution effects.
+    Texture2DParams halfRes1Params = Texture2DParams();
+    halfRes1Params.sWrap = TextureWrapParams::ClampEdges;
+    halfRes1Params.tWrap = TextureWrapParams::ClampEdges;
+    halfRes1Params.internal = TextureInternalFormats::RGBA16f;
+    halfRes1Params.format = TextureFormats::RGBA;
+    halfRes1Params.dataType = TextureDataType::Floats;
+    rendererData->halfResBuffer1.setSize(1600 / 2, 900 / 2);
+    rendererData->halfResBuffer1.setParams(halfRes1Params);
+    rendererData->halfResBuffer1.initNullTexture();
+
+    // Initialize the renderpass system.
+    passManager = new RenderPassManager();
+
+    // Insert the render passes.
+    // Pre-lighting passes.
+    auto geomet = passManager->insertRenderPass<GeometryPass>(rendererData);
+    auto shadow = passManager->insertRenderPass<ShadowPass>(rendererData);
+    auto hiZ = passManager->insertRenderPass<HiZPass>(rendererData, geomet);
+    auto hbao = passManager->insertRenderPass<HBAOPass>(rendererData, geomet, hiZ);
+    auto skyatmo = passManager->insertRenderPass<SkyAtmospherePass>(rendererData, geomet);
+    auto dynIBL = passManager->insertRenderPass<DynamicSkyIBLPass>(rendererData, skyatmo);
+
+    // Lighting passes.
+    auto iblApp = passManager->insertRenderPass<IBLApplicationPass>(rendererData, geomet, hbao, dynIBL);
+    auto dirApp = passManager->insertRenderPass<DirectionalLightPass>(rendererData, geomet, shadow);
+
+    // Skybox pass. This should be applied last.
+    auto skyboxApp = passManager->insertRenderPass<SkyboxPass>(rendererData, geomet, skyatmo);
+
+    // Post processing passes
+    auto bloom = passManager->insertRenderPass<BloomPass>(rendererData);
+    auto post = passManager->insertRenderPass<PostProcessingPass>(rendererData, geomet, bloom);
+
+    // Init the render passes.
+    passManager->onInit();
+  }
+
+  // Shutdown the renderer.
+  void
+  shutdown()
+  {
+    delete passManager;
+    delete rendererData;
+  }
+
+  // Generic begin and end for the renderer.
+  void
+  begin(uint width, uint height, const Camera &sceneCamera)
+  {
+    // Set the camera.
+    rendererData->sceneCam = sceneCamera;
+    rendererData->camFrustum = buildCameraFrustum(sceneCamera);
+
+    // Setup the lights.
+    rendererData->pointLightCount = 0u;
+    rendererData->spotLightCount = 0u;
+
+    // Resize the global buffers.
+    if (static_cast<uint>(rendererData->lightingBuffer.getWidth()) != width ||
+        static_cast<uint>(rendererData->lightingBuffer.getHeight()) != height)
     {
-      // Initialize OpenGL parameters.
-      RendererCommands::enable(RendererFunction::DepthTest);
-      RendererCommands::enable(RendererFunction::CubeMapSeamless);
-
-      // Setup the various storage structs.
-      storage = new RendererStorage();
-      state = new RendererState();
-      stats = new RendererStats();
-
-      storage->width = width;
-      storage->height = height;
-
-      // Init the bloom textures.
-      Texture2DParams bloomParams = Texture2DParams();
-      bloomParams.sWrap = TextureWrapParams::ClampEdges;
-      bloomParams.tWrap = TextureWrapParams::ClampEdges;
-      bloomParams.internal = TextureInternalFormats::RGBA16f;
-      bloomParams.dataType = TextureDataType::Floats;
-
-      storage->downscaleBloomTex.setSize(static_cast<uint>((static_cast<float>(width) / 2.0)), 
-                                         static_cast<uint>((static_cast<float>(height) / 2.0)), 4);
-      storage->downscaleBloomTex.setParams(bloomParams);
-      storage->downscaleBloomTex.initNullTexture();
-      storage->downscaleBloomTex.generateMips();
-
-      storage->upscaleBloomTex.setSize(static_cast<uint>((static_cast<float>(width) / 2.0)), 
-                                       static_cast<uint>((static_cast<float>(height) / 2.0)), 4);
-      storage->upscaleBloomTex.setParams(bloomParams);
-      storage->upscaleBloomTex.initNullTexture();
-      storage->upscaleBloomTex.generateMips();
-
-      storage->bufferBloomTex.setSize(static_cast<uint>((static_cast<float>(width) / 2.0)), 
-                                      static_cast<uint>((static_cast<float>(height) / 2.0)), 4);
-      storage->bufferBloomTex.setParams(bloomParams);
-      storage->bufferBloomTex.initNullTexture();
-      storage->bufferBloomTex.generateMips();
-
-      // Init the texture for the screen-space godrays. Use same params as bloom.
-      storage->downsampleLightshaft.setSize(width / 2, height / 2, 4);
-      storage->downsampleLightshaft.setParams(bloomParams);
-      storage->downsampleLightshaft.initNullTexture();
-      storage->halfResBuffer1.setSize(width / 2, height / 2, 4);
-      storage->halfResBuffer1.setParams(bloomParams);
-      storage->halfResBuffer1.initNullTexture();
-
-      // Init the textures for the screen-space HBAO. Use the same params as bloom.
-      bloomParams.internal = TextureInternalFormats::RG16f;
-      bloomParams.format = TextureFormats::RG;
-      bloomParams.dataType = TextureDataType::Floats;
-      storage->downsampleAO.setSize(width / 4, height / 4, 2);
-      storage->downsampleAO.setParams(bloomParams);
-      storage->downsampleAO.initNullTexture();
-
-      storage->quarterResBuffer1.setSize(width / 4, height / 4, 2);
-      storage->quarterResBuffer1.setParams(bloomParams);
-      storage->quarterResBuffer1.initNullTexture();
-
-      // Prepare the shadow buffers.
-      auto dSpec = Texture2D::getDefaultDepthParams();
-      dSpec.sWrap = TextureWrapParams::ClampEdges;
-      dSpec.tWrap = TextureWrapParams::ClampEdges;
-      auto mSpec = Texture2D::getFloatColourParams();
-      mSpec.sWrap = TextureWrapParams::ClampEdges;
-      mSpec.tWrap = TextureWrapParams::ClampEdges;
-      mSpec.internal = TextureInternalFormats::RGBA32f;
-      auto colourAttachment = FBOAttachment(FBOTargetParam::Colour0, FBOTextureParam::Texture2D, 
-                                            mSpec.internal, mSpec.format, mSpec.dataType);
-      auto depthAttachment = FBOAttachment(FBOTargetParam::Depth, FBOTextureParam::Texture2D,
-                                           dSpec.internal, dSpec.format, dSpec.dataType);
-      for (unsigned int i = 0; i < NUM_CASCADES; i++)
-      {
-        storage->shadowBuffer[i].resize(state->cascadeSize, state->cascadeSize);
-        storage->shadowBuffer[i].attach(mSpec, colourAttachment);
-        storage->shadowBuffer[i].attach(dSpec, depthAttachment);
-        storage->shadowBuffer[i].setClearColour(glm::vec4(1.0f));
-      }
-      storage->shadowEffectsBuffer.resize(state->cascadeSize, state->cascadeSize);
-      storage->shadowEffectsBuffer.attach(mSpec, colourAttachment);
-      storage->shadowEffectsBuffer.attach(dSpec, depthAttachment);
-      storage->shadowEffectsBuffer.setClearColour(glm::vec4(1.0f));
-      storage->hasCascades = false;
-
-      // Resize the GBuffer.
-      storage->gBuffer.resize(width, height);
-
-      // Prepare a Hi-Z downsampled depth buffer.
-      bloomParams.internal = TextureInternalFormats::R32f;
-      bloomParams.format = TextureFormats::Red;
-      bloomParams.dataType = TextureDataType::Floats;
-      bloomParams.minFilter = TextureMinFilterParams::NearestMipMapNearest;
-      bloomParams.maxFilter = TextureMaxFilterParams::Nearest;
-      storage->hierarchicalDepth.setSize(width, height, 1);
-      storage->hierarchicalDepth.setParams(bloomParams);
-      storage->hierarchicalDepth.initNullTexture();
-      storage->hierarchicalDepth.generateMips();
-
-      // The lighting pass framebuffer.
-      storage->lightingPass.resize(width, height);
-      auto cSpec = Texture2D::getFloatColourParams();
-      colourAttachment = FBOAttachment(FBOTargetParam::Colour0, FBOTextureParam::Texture2D, cSpec.internal, cSpec.format, cSpec.dataType);
-      storage->lightingPass.attach(cSpec, colourAttachment);
-      storage->lightingPass.attachRenderBuffer();
+      rendererData->lightingBuffer.setSize(width, height);
+      rendererData->lightingBuffer.initNullTexture();
     }
-
-    // Shutdown the renderer.
-    void
-    shutdown()
-    {
-      delete storage;
-      delete state;
-      delete stats;
-    }
-
-    // Get the renderer storage, state and stats.
-    RendererStorage* getStorage() { return storage; }
-    RendererState* getState() { return state; }
-    RendererStats* getStats() { return stats; }
-
-    // Generic begin and end for the renderer.
-    void
-    begin(uint width, uint height, const Camera &sceneCamera)
-    {
-      storage->sceneCam = sceneCamera;
-      storage->camFrustum = buildCameraFrustum(sceneCamera);
-
-      // Resize the framebuffer at the start of a frame, if required.
-      storage->drawEdge = false;
-
-      // Update the frame.
-      state->currentFrame++;
-      if (state->currentFrame == 6)
-        state->currentFrame = 0;
-
-      // Resize any fullscreen textures.
-      if (storage->width != width || storage->height != height)
-      {
-        storage->gBuffer.resize(width, height);
-        storage->lightingPass.resize(width, height);
-
-        storage->downscaleBloomTex.setSize(static_cast<uint>((static_cast<float>(width) / 2.0)),
-                                           static_cast<uint>((static_cast<float>(height) / 2.0)), 4);
-        storage->downscaleBloomTex.initNullTexture();
-        storage->downscaleBloomTex.generateMips();
-
-        storage->upscaleBloomTex.setSize(static_cast<uint>((static_cast<float>(width) / 2.0)),
-                                         static_cast<uint>((static_cast<float>(height) / 2.0)), 4);
-        storage->upscaleBloomTex.initNullTexture();
-        storage->upscaleBloomTex.generateMips();
-
-        storage->bufferBloomTex.setSize(static_cast<uint>((static_cast<float>(width) / 2.0)),
-                                        static_cast<uint>((static_cast<float>(height) / 2.0)), 4);
-        storage->bufferBloomTex.initNullTexture();
-        storage->bufferBloomTex.generateMips();
-
-        storage->downsampleLightshaft.setSize(width / 2, height / 2, 4);
-        storage->downsampleLightshaft.initNullTexture();
-        storage->halfResBuffer1.setSize(width / 2, height / 2, 4);
-        storage->halfResBuffer1.initNullTexture();
-
-        storage->downsampleAO.setSize(width / 4, height / 4, 2);
-        storage->downsampleAO.initNullTexture();
-
-        storage->quarterResBuffer1.setSize(width / 4, height / 4, 2);
-        storage->quarterResBuffer1.initNullTexture();
-
-        storage->hierarchicalDepth.setSize(width, height, 1);
-        storage->hierarchicalDepth.initNullTexture();
-        storage->hierarchicalDepth.generateMips();
-
-        storage->width = width;
-        storage->height = height;
-      }
-
-      // Clear the shadow pass FBOs.
-      for (unsigned int i = 0; i < NUM_CASCADES; i++)
-        storage->shadowBuffer[i].clear();
-
-      // Clear the lighting pass FBO.
-      storage->lightingPass.clear();
-
-      // Reset the stats each frame.
-      stats->drawCalls = 0;
-      stats->numVertices = 0;
-      stats->numTriangles = 0;
-      stats->numDirLights = 0;
-      stats->numPointLights = 0;
-      stats->numSpotLights = 0;
-
-      stats->geoFrametime = 0.0f;
-      stats->shadowFrametime = 0.0f;
-      stats->lightFrametime = 0.0f;
-      stats->postFramtime = 0.0f;
-
-      // Clear the render queues.
-      storage->staticRenderQueue.clear();
-      storage->dynamicRenderQueue.clear();
-    }
-
-    void
-    end(Shared<FrameBuffer> frontBuffer)
-    {
-      geometryPass();
-
-      shadowPass();
-
-      lightingPass();
-
-      postProcessPass(frontBuffer);
-    }
-
-    // Draw the data to the screen.
-    void
-    draw(VertexArray* data, Shader* program)
-    {
-      data->bind();
-      program->bind();
-
-      RendererCommands::drawElements(PrimativeType::Triangle, data->numToRender());
-
-      data->unbind();
-      program->unbind();
-    }
-
-    // Draw an environment map to the screen. Draws all the submeshes associated
-    // with the cube model.
-    void
-    drawEnvironment()
-    {
-      RendererCommands::depthFunction(DepthFunctions::LEq);
-      storage->currentEnvironment->configure();
-
-      storage->camBuffer.bindToPoint(0);
-      storage->blankVAO.bind();
-      ShaderCache::getShader("skybox")->bind();
-      RendererCommands::drawArrays(PrimativeType::Triangle, 0, 36);
-
-      RendererCommands::depthFunction(DepthFunctions::Less);
-    }
-
-    void
-    submit(Model* data, ModelMaterial &materials, const glm::mat4 &model,
-           float id, bool drawSelectionMask)
-    {
-      storage->staticRenderQueue.emplace_back(data, &materials, model, id,
-                                                drawSelectionMask);
-
-      storage->staticShadowQueue.emplace_back(data, model);
-    }
-
-    void submit(Model* data, Animator* animation, ModelMaterial &materials,
-                const glm::mat4 &model, float id, bool drawSelectionMask)
-    {
-      storage->dynamicRenderQueue.emplace_back(data, animation, &materials,
-                                                 model, id, drawSelectionMask);
-
-      storage->dynamicShadowQueue.emplace_back(data, animation, model);
-    }
-
-    void
-    submit(DirectionalLight light, const glm::mat4 &model)
-    {
-      auto invTrans = glm::transpose(glm::inverse(model));
-      DirectionalLight temp = light;
-      temp.direction = -1.0f * glm::vec3(invTrans * glm::vec4(0.0f, -1.0f, 0.0f, 0.0f));
-
-      storage->directionalQueue.push_back(temp);
-      stats->numDirLights++;
-    }
-
-    void
-    submit(PointLight light, const glm::mat4 &model)
-    {
-      PointLight temp = light;
-      temp.positionRadius = glm::vec4(glm::vec3(model * glm::vec4(glm::vec3(temp.positionRadius), 1.0f)), temp.positionRadius.w);
-
-      storage->pointQueue.push_back(temp);
-      stats->numPointLights++;
-    }
-
-    void
-    submit(SpotLight light, const glm::mat4 &model)
-    {
-      auto invTrans = glm::transpose(glm::inverse(model));
-      SpotLight temp = light;
-      temp.direction = -1.0f * glm::vec3(invTrans * glm::vec4(0.0f, -1.0f, 0.0f, 0.0f));
-      temp.position = glm::vec3(model * glm::vec4(light.position, 1.0f));
-
-      storage->spotQueue.push_back(temp);
-      stats->numSpotLights++;
-    }
-
-    //--------------------------------------------------------------------------
-    // Deferred geometry pass.
-    //--------------------------------------------------------------------------
-    void geometryPass()
-    {
-      auto start = std::chrono::steady_clock::now();
-
-      // Upload camera uniforms to the camera uniform buffer.
-      storage->camBuffer.bindToPoint(0);
-      storage->camBuffer.setData(0, sizeof(glm::mat4), glm::value_ptr(storage->sceneCam.view));
-      storage->camBuffer.setData(sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(storage->sceneCam.projection));
-      storage->camBuffer.setData(2 * sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(storage->sceneCam.invViewProj));
-      storage->camBuffer.setData(3 * sizeof(glm::mat4), sizeof(glm::vec3), &(storage->sceneCam.position.x));
-      auto nearFar = glm::vec2(storage->sceneCam.near, storage->sceneCam.far);
-      storage->camBuffer.setData(3 * sizeof(glm::mat4) + sizeof(glm::vec4), sizeof(glm::vec2), &(nearFar.x));
-
-      // Start the geometry pass.
-      storage->gBuffer.beginGeoPass();
-
-      storage->transformBuffer.bindToPoint(2);
-      storage->editorBuffer.bindToPoint(3);
-
-      Shader* staticGeometry = ShaderCache::getShader("geometry_pass_shader");
-      Shader* dynamicGeometry = ShaderCache::getShader("dynamic_geometry_pass");
-
-      // Static geometry pass.
-      for (auto& drawable : storage->staticRenderQueue)
-      {
-        auto& [data, materials, transform, id, drawSelectionMask] = drawable;
-        for (auto& submesh : data->getSubmeshes())
-        {
-          // Cull the submesh if it isn't in the frustum.
-          glm::vec3 min = submesh.getMinPos();
-          glm::vec3 max = submesh.getMaxPos();
-
-          auto localTransform = transform * submesh.getTransform();
-          if (!boundingBoxInFrustum(storage->camFrustum, min, max, localTransform) && state->frustumCull)
-            continue;
-
-          Material* material = materials->getMaterial(submesh.getName());
-          if (!material)
-            continue;
-
-          storage->transformBuffer.setData(0, sizeof(glm::mat4), glm::value_ptr(localTransform));
-
-          glm::vec4 maskColourID;
-          if (drawSelectionMask)
-          {
-            // Enable edge detection for selected mesh outlines.
-            storage->drawEdge = true;
-            maskColourID = glm::vec4(1.0f);
-          }
-          else
-            maskColourID = glm::vec4(0.0f);
-
-          maskColourID.w = id + 1.0f;
-          storage->editorBuffer.setData(0, sizeof(glm::vec4), &maskColourID.x);
-
-          material->configure();
-
-          if (submesh.hasVAO())
-            Renderer3D::draw(submesh.getVAO(), staticGeometry);
-          else
-          {
-            submesh.generateVAO();
-            Renderer3D::draw(submesh.getVAO(), staticGeometry);
-          }
-
-          stats->drawCalls++;
-          stats->numVertices += submesh.getData().size();
-          stats->numTriangles += submesh.getIndices().size() / 3;
-        }
-      }
-
-      // Dynamic geometry pass.
-      storage->boneBuffer.bindToPoint(4);
-      for (auto& drawable : storage->dynamicRenderQueue)
-      {
-        auto& [data, animation, materials, transform, id, drawSelectionMask] = drawable;
-
-        if (data->hasSkins())
-        {
-          // Dynamic geometry pass for skinned objects.
-          auto& bones = animation->getFinalBoneTransforms();
-          storage->boneBuffer.setData(0, bones.size() * sizeof(glm::mat4),
-                                      bones.data());
-          
-          for (auto& submesh : data->getSubmeshes())
-          {
-            // Cull the submesh if it isn't in the frustum.
-            glm::vec3 min = submesh.getMinPos();
-            glm::vec3 max = submesh.getMaxPos();
-            
-            if (!boundingBoxInFrustum(storage->camFrustum, min, max, transform) && state->frustumCull)
-              continue;
-            
-            Material* material = materials->getMaterial(submesh.getName());
-            if (!material)
-              continue;
-            
-            storage->transformBuffer.setData(0, sizeof(glm::mat4), glm::value_ptr(transform));
-            
-            glm::vec4 maskColourID;
-            if (drawSelectionMask)
-            {
-              // Enable edge detection for selected mesh outlines.
-              storage->drawEdge = true;
-              maskColourID = glm::vec4(1.0f);
-            }
-            else
-              maskColourID = glm::vec4(0.0f);
-          
-            maskColourID.w = id + 1.0f;
-            storage->editorBuffer.setData(0, sizeof(glm::vec4), &maskColourID.x);
-          
-            material->configureDynamic(dynamicGeometry);
-          
-            if (submesh.hasVAO())
-              Renderer3D::draw(submesh.getVAO(), dynamicGeometry);
-            else
-            {
-              submesh.generateVAO();
-              Renderer3D::draw(submesh.getVAO(), dynamicGeometry);
-            }
-          
-            stats->drawCalls++;
-            stats->numVertices += submesh.getData().size();
-            stats->numTriangles += submesh.getIndices().size() / 3;
-          }
-        }
-        else
-        {
-          // Dynamic geometry pass for unskinned objects.
-          auto& bones = animation->getFinalUnSkinnedTransforms();
-          for (auto& submesh : data->getSubmeshes())
-          {
-            // Cull the submesh if it isn't in the frustum.
-            glm::vec3 min = submesh.getMinPos();
-            glm::vec3 max = submesh.getMaxPos();
-            
-            auto localTransform = transform * bones[submesh.getName()];
-            if (!boundingBoxInFrustum(storage->camFrustum, min, max, localTransform) && state->frustumCull)
-              continue;
-            
-            Material* material = materials->getMaterial(submesh.getName());
-            if (!material)
-              continue;
-            
-            storage->transformBuffer.setData(0, sizeof(glm::mat4), glm::value_ptr(localTransform));
-            
-            glm::vec4 maskColourID;
-            if (drawSelectionMask)
-            {
-              // Enable edge detection for selected mesh outlines.
-              storage->drawEdge = true;
-              maskColourID = glm::vec4(1.0f);
-            }
-            else
-              maskColourID = glm::vec4(0.0f);
-          
-            maskColourID.w = id + 1.0f;
-            storage->editorBuffer.setData(0, sizeof(glm::vec4), &maskColourID.x);
-          
-            material->configure();
-          
-            if (submesh.hasVAO())
-              Renderer3D::draw(submesh.getVAO(), staticGeometry);
-            else
-            {
-              submesh.generateVAO();
-              Renderer3D::draw(submesh.getVAO(), staticGeometry);
-            }
-          
-            stats->drawCalls++;
-            stats->numVertices += submesh.getData().size();
-            stats->numTriangles += submesh.getIndices().size() / 3;
-          }
-        }
-      }
-
-      storage->gBuffer.endGeoPass();
-
-      auto end = std::chrono::steady_clock::now();
-      std::chrono::duration<double> elapsed = end - start;
-      stats->geoFrametime += elapsed.count() * 1000.0f;
-    }
-
-    //--------------------------------------------------------------------------
-    // Deferred shadow mapping pass. Cascaded shadows for a "primary light".
-    //--------------------------------------------------------------------------
-    void
-    shadowPass()
-    {
-      auto start = std::chrono::steady_clock::now();
-
-      //------------------------------------------------------------------------
-      // Directional light shadow cascade calculations:
-      //------------------------------------------------------------------------
-      // https://developer.nvidia.com/gpugems/gpugems3/part-ii-light-and-shadows/chapter-10-parallel-split-shadow-maps-programmable-gpus
-      //------------------------------------------------------------------------
-      // https://docs.microsoft.com/en-us/windows/win32/dxtecharts/cascaded-shadow-maps
-      //------------------------------------------------------------------------
-      const float near = storage->sceneCam.near;
-      const float far = storage->sceneCam.far;
-
-      glm::mat4 camInvVP = storage->sceneCam.invViewProj;
-
-      Frustum lightCullingFrustums[NUM_CASCADES];
-      float cascadeSplits[NUM_CASCADES];
-
-      const float clipRange = far - near;
-      // Calculate the optimal cascade distances
-      const float minZ = near;
-      const float maxZ = near + clipRange;
-      const float range = maxZ - minZ;
-      const float ratio = maxZ / minZ;
-      for (unsigned int i = 0; i < NUM_CASCADES; i++)
-      {
-        const float p = (static_cast<float>(i) + 1.0f) / static_cast<float>(NUM_CASCADES);
-        const float log = minZ * glm::pow(ratio, p);
-        const float uniform = minZ + range * p;
-        const float d = state->cascadeLambda * (log - uniform) + uniform;
-        cascadeSplits[i] = (d - near) / clipRange;
-      }
-
-      // Compute the scene AABB in world space. This fixes issues with objects
-      // not being captured if they're out of the camera frustum (since they
-      // still need to cast shadows).
-      glm::vec3 minPos = glm::vec3(std::numeric_limits<float>::max());
-      glm::vec3 maxPos = glm::vec3(std::numeric_limits<float>::min());
-      for (auto& [model, transform] : storage->staticShadowQueue)
-      {
-        auto localTransform = transform * model->getGlobalTransform();
-        minPos = glm::min(minPos, glm::vec3(localTransform * glm::vec4(model->getMinPos(), 1.0f)));
-        maxPos = glm::max(maxPos, glm::vec3(localTransform * glm::vec4(model->getMaxPos(), 1.0f)));
-      }
-      for (auto& [model, animation, transform] : storage->dynamicShadowQueue)
-      {
-        auto localTransform = transform * model->getGlobalTransform();
-        minPos = glm::min(minPos, glm::vec3(localTransform * glm::vec4(model->getMinPos(), 1.0f)));
-        maxPos = glm::max(maxPos, glm::vec3(localTransform * glm::vec4(model->getMaxPos(), 1.0f)));
-      }
-
-      float sceneMaxRadius = glm::length(minPos);
-      sceneMaxRadius = glm::max(sceneMaxRadius, glm::length(maxPos));
-
-      // Compute the lightspace matrices for each light for each cascade.
-      storage->hasCascades = false;
-      glm::vec3 lightDir = glm::vec3(0.0f);
-      for (auto& dirLight : storage->directionalQueue)
-      {
-        if (!dirLight.castShadows || !dirLight.primaryLight)
-          continue;
-
-        storage->hasCascades = true;
-        lightDir = glm::normalize(dirLight.direction);
-      }
-
-      if (storage->hasCascades)
-      {
-        float previousCascadeDistance = 0.0f;
-
-        glm::mat4 cascadeViewMatrix[NUM_CASCADES];
-        glm::mat4 cascadeProjMatrix[NUM_CASCADES];
-
-        for (unsigned int i = 0; i < NUM_CASCADES; i++)
-        {
-          glm::vec4 frustumCorners[8] =
-          {
-            // The near face of the camera frustum in NDC.
-            { 1.0f, 1.0f, -1.0f, 1.0f },
-            { -1.0f, 1.0f, -1.0f, 1.0f },
-            { 1.0f, -1.0f, -1.0f, 1.0f },
-            { -1.0f, -1.0f, -1.0f, 1.0f },
-
-            // The far face of the camera frustum in NDC.
-            { 1.0f, 1.0f, 1.0f, 1.0f },
-            { -1.0f, 1.0f, 1.0f, 1.0f },
-            { 1.0f, -1.0f, 1.0f, 1.0f },
-            { -1.0f, -1.0f, 1.0f, 1.0f }
-          };
-
-          // Compute the worldspace frustum corners.
-          for (unsigned int j = 0; j < 8; j++)
-          {
-            glm::vec4 worldDepthless = camInvVP * frustumCorners[j];
-            frustumCorners[j] = worldDepthless / worldDepthless.w;
-          }
-
-          // Scale the frustum to the size of the cascade.
-          for (unsigned int j = 0; j < 4; j++)
-          {
-            glm::vec4 distance = frustumCorners[j + 4] - frustumCorners[j];
-            frustumCorners[j + 4] = frustumCorners[j] + (distance * cascadeSplits[i]);
-            frustumCorners[j] = frustumCorners[j] + (distance * previousCascadeDistance);
-          }
-
-          // Find the center of the cascade frustum.
-          glm::vec4 cascadeCenter = glm::vec4(0.0f);
-          for (unsigned int j = 0; j < 8; j++)
-            cascadeCenter += frustumCorners[j];
-          cascadeCenter /= 8.0f;
-
-          // Find the minimum and maximum size of the cascade ortho matrix. Bounding spheres!
-          float radius = 0.0f;
-          for (unsigned int j = 0; j < 8; j++)
-          {
-            float distance = glm::length(glm::vec3(frustumCorners[j] - cascadeCenter));
-            radius = glm::max(radius, distance);
-          }
-          radius = std::ceil(radius * 16.0f) / 16.0f;
-          glm::vec3 maxDims = glm::vec3(radius);
-          glm::vec3 minDims = -1.0f * maxDims;
-
-          if (radius > sceneMaxRadius)
-          {
-            cascadeViewMatrix[i] = glm::lookAt(glm::vec3(cascadeCenter) - lightDir * minDims.z,
-                                               glm::vec3(cascadeCenter), glm::vec3(0.0f, 0.0f, 1.0f));
-            cascadeProjMatrix[i] = glm::ortho(minDims.x, maxDims.x, minDims.y,
-                                              maxDims.y, -15.0f, maxDims.z - minDims.z + 15.0f);
-          }
-          else
-          {
-            cascadeViewMatrix[i] = glm::lookAt(glm::vec3(cascadeCenter) + lightDir * sceneMaxRadius,
-                                               glm::vec3(cascadeCenter), glm::vec3(0.0f, 0.0f, 1.0f));
-            cascadeProjMatrix[i] = glm::ortho(minDims.x, maxDims.x, minDims.y,
-                                              maxDims.y, -15.0f, 2.0f * sceneMaxRadius + 15.0f);
-          }
-
-          // Offset the matrix to texel space to fix shimmering:
-          //--------------------------------------------------------------------
-          // https://docs.microsoft.com/en-ca/windows/win32/dxtecharts/common-
-          // techniques-to-improve-shadow-depth-maps?redirectedfrom=MSDN
-          //--------------------------------------------------------------------
-          glm::mat4 lightVP = cascadeProjMatrix[i] * cascadeViewMatrix[i];
-          glm::vec4 shadowOrigin = glm::vec4(glm::vec3(0.0f), 1.0f);
-          shadowOrigin = lightVP * shadowOrigin;
-          float storedShadowW = shadowOrigin.w;
-          shadowOrigin = 0.5f * shadowOrigin * storage->shadowBuffer[i].getSize().x;
-
-          glm::vec4 roundedShadowOrigin = glm::round(shadowOrigin);
-          glm::vec4 roundedShadowOffset = roundedShadowOrigin - shadowOrigin;
-          roundedShadowOffset = 2.0f * roundedShadowOffset / storage->shadowBuffer[i].getSize().x;
-          roundedShadowOffset.z = 0.0f;
-          roundedShadowOffset.w = 0.0f;
-
-          glm::mat4 texelSpaceOrtho = cascadeProjMatrix[i];
-          texelSpaceOrtho[3] += roundedShadowOffset;
-          cascadeProjMatrix[i] = texelSpaceOrtho;
-
-          storage->cascades[i] = cascadeProjMatrix[i] * cascadeViewMatrix[i];
-          lightCullingFrustums[i] = buildCameraFrustum(storage->cascades[i], -lightDir);
-
-          previousCascadeDistance = cascadeSplits[i];
-
-          storage->cascadeSplits[i].x = minZ + (cascadeSplits[i] * clipRange);
-        }
-      }
-
-      // Actual shadow pass.
-      Shader* horizontalShadowBlur = ShaderCache::getShader("gaussian_hori");
-      Shader* verticalShadowBlur = ShaderCache::getShader("gaussian_vert");
-
-      storage->transformBuffer.bindToPoint(2);
-
-      if (storage->hasCascades)
-      {
-        for (unsigned int i = 0; i < NUM_CASCADES; i++)
-        {
-          storage->shadowBuffer[i].bind();
-          storage->shadowBuffer[i].setViewport();
-
-          storage->cascadeShadowPassBuffer.bindToPoint(6);
-          storage->cascadeShadowPassBuffer.setData(0, sizeof(glm::mat4), glm::value_ptr(storage->cascades[i]));
-
-          Shader* staticShadow = ShaderCache::getShader("static_shadow_shader");
-          Shader* dynamicShadow = ShaderCache::getShader("dynamic_shadow_shader");
-
-          // Static shadow pass.
-          for (auto& [model, transform] : storage->staticShadowQueue)
-          {
-            for (auto& submesh : model->getSubmeshes())
-            {
-              // Cull the submesh if it isn't in the frustum.
-              glm::vec3 min = submesh.getMinPos();
-              glm::vec3 max = submesh.getMaxPos();
-
-              auto localTransform = transform * submesh.getTransform();
-              storage->transformBuffer.setData(0, sizeof(glm::mat4), glm::value_ptr(localTransform));
-
-              if (!boundingBoxInFrustum(lightCullingFrustums[i], min, max, localTransform) && state->frustumCull)
-                continue;
-
-              if (submesh.hasVAO())
-                Renderer3D::draw(submesh.getVAO(), staticShadow);
-              else
-              {
-                submesh.generateVAO();
-                Renderer3D::draw(submesh.getVAO(), staticShadow);
-              }
-            }
-          }
-
-          // Dynamic shadow pass.
-          for (auto& [model, animation, transform] : storage->dynamicShadowQueue)
-          {
-            if (model->hasSkins())
-            {
-              storage->transformBuffer.setData(0, sizeof(glm::mat4), glm::value_ptr(transform));
-              
-              auto& bones = animation->getFinalBoneTransforms();
-              storage->boneBuffer.setData(0, bones.size() * sizeof(glm::mat4),
-                                          bones.data());
-              
-              for (auto& submesh : model->getSubmeshes())
-              {
-                // Cull the submesh if it isn't in the frustum.
-                glm::vec3 min = submesh.getMinPos();
-                glm::vec3 max = submesh.getMaxPos();
-              
-                if (!boundingBoxInFrustum(lightCullingFrustums[i], min, max, transform) && state->frustumCull)
-                  continue;
-              
-                if (submesh.hasVAO())
-                  Renderer3D::draw(submesh.getVAO(), dynamicShadow);
-                else
-                {
-                  submesh.generateVAO();
-                  Renderer3D::draw(submesh.getVAO(), dynamicShadow);
-                }
-              }
-            }
-            else
-            {
-              // Dynamic shadow pass for unskinned objects.
-              auto& bones = animation->getFinalUnSkinnedTransforms();
-              for (auto& submesh : model->getSubmeshes())
-              {
-                // Cull the submesh if it isn't in the frustum.
-                glm::vec3 min = submesh.getMinPos();
-                glm::vec3 max = submesh.getMaxPos();
-                
-                auto localTransform = transform * bones[submesh.getName()];
-                if (!boundingBoxInFrustum(lightCullingFrustums[i], min, max, localTransform) && state->frustumCull)
-                  continue;
-                
-                storage->transformBuffer.setData(0, sizeof(glm::mat4), glm::value_ptr(localTransform));
-              
-                if (submesh.hasVAO())
-                  Renderer3D::draw(submesh.getVAO(), staticShadow);
-                else
-                {
-                  submesh.generateVAO();
-                  Renderer3D::draw(submesh.getVAO(), staticShadow);
-                }
-              }
-            }
-          }
-        }
-
-        if (state->directionalSettings.x == 2)
-        {
-          // Apply a 2-pass 9 tap Gaussian blur to the shadow map.
-          RendererCommands::disableDepthMask();
-          RendererCommands::disable(RendererFunction::DepthTest);
-          for (unsigned int i = 0; i < NUM_CASCADES; i++)
-          {
-            // First pass (horizontal) is FBO attachment -> temp FBO.
-            storage->shadowEffectsBuffer.bind();
-            storage->shadowEffectsBuffer.setViewport();
-
-            storage->shadowBuffer[i].bindTextureID(FBOTargetParam::Colour0, 0);
-            storage->blankVAO.bind();
-            horizontalShadowBlur->bind();
-            RendererCommands::drawArrays(PrimativeType::Triangle, 0, 3);
-
-            storage->shadowEffectsBuffer.unbind();
-
-            // Second pass (vertical) is temp FBO -> FBO attachment.
-            storage->shadowBuffer[i].bind();
-            storage->shadowBuffer[i].setViewport();
-
-            storage->shadowEffectsBuffer.bindTextureID(FBOTargetParam::Colour0, 0);
-            storage->blankVAO.bind();
-            verticalShadowBlur->bind();
-            RendererCommands::drawArrays(PrimativeType::Triangle, 0, 3);
-
-            storage->shadowBuffer[i].unbind();
-          }
-          RendererCommands::enable(RendererFunction::DepthTest);
-          RendererCommands::enableDepthMask();
-        }
-      }
-
-      storage->staticShadowQueue.clear();
-      storage->dynamicShadowQueue.clear();
-
-      auto end = std::chrono::steady_clock::now();
-      std::chrono::duration<double> elapsed = end - start;
-      stats->shadowFrametime += elapsed.count() * 1000.0f;
-    }
-
-    //--------------------------------------------------------------------------
-    // Deferred lighting pass.
-    //--------------------------------------------------------------------------
-    void lightingPass()
-    {
-      auto start = std::chrono::steady_clock::now();
-      storage->currentEnvironment->updateAerialPerspective(storage->camBuffer);
-
-      // Gbuffer textures.
-      storage->gBuffer.bindAttachment(FBOTargetParam::Depth, 3);
-      storage->gBuffer.bindAttachment(FBOTargetParam::Colour0, 4);
-      storage->gBuffer.bindAttachment(FBOTargetParam::Colour1, 5);
-      storage->gBuffer.bindAttachment(FBOTargetParam::Colour2, 6);
-
-      //------------------------------------------------------------------------
-      // Generate the current frame Hi-Z depth buffer.
-      //------------------------------------------------------------------------
-      // Copy the depth buffer to the Hi-Z pyramid.
-      storage->hierarchicalDepth.bindAsImage(0, 0, ImageAccessPolicy::Write);
-      uint groupX = static_cast<uint>(glm::ceil(static_cast<float>(storage->hierarchicalDepth.getWidth()) / 8.0f));
-      uint groupY = static_cast<uint>(glm::ceil(static_cast<float>(storage->hierarchicalDepth.getHeight()) / 8.0f));
-      ShaderCache::getShader("copy_depth_hi_z")->launchCompute(groupX, groupY, 1);
-      Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
-
-      // Number of passes to yield a mip level with a minimum size of 2 texels.
-      int maxDim = glm::max(storage->hierarchicalDepth.getWidth(), 
-                            storage->hierarchicalDepth.getHeight());
-      uint numPasses = static_cast<uint>(glm::ceil(glm::log2(static_cast<float>(maxDim))));
-      float powerOfTwo = 2.0f;
-      auto hiZCompute = ShaderCache::getShader("generate_hi_z");
-      // Generate the image pyramid.
-      for (uint i = 1; i < numPasses; i++)
-      {
-        storage->hierarchicalDepth.bindAsImage(1, i - 1, ImageAccessPolicy::Read);
-        storage->hierarchicalDepth.bindAsImage(0, i, ImageAccessPolicy::Write);
-        groupX = static_cast<uint>(glm::ceil(static_cast<float>(storage->hierarchicalDepth.getWidth()) / (8.0f * powerOfTwo)));
-        groupY = static_cast<uint>(glm::ceil(static_cast<float>(storage->hierarchicalDepth.getHeight()) / (8.0f * powerOfTwo)));
-        hiZCompute->launchCompute(groupX, groupY, 1);
-        Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
-        powerOfTwo *= 2.0f;
-      }
-
-      //------------------------------------------------------------------------
-      // Screen-space HBAO subpass.
-      //------------------------------------------------------------------------
-      if (state->enableAO)
-      {
-        storage->hierarchicalDepth.bind(3);
-        storage->aoParamsBuffer.bindToPoint(1);
-        storage->aoParamsBuffer.setData(0, sizeof(glm::vec4), &(state->aoSettings.x));
-        
-        storage->downsampleAO.bindAsImage(0, 0, ImageAccessPolicy::Write);
-        uint iWidth = (uint)glm::ceil(storage->downsampleAO.getWidth() / 8.0f);
-        uint iHeight = (uint)glm::ceil(storage->downsampleAO.getHeight() / 8.0f);
-        ShaderCache::getShader("screen_space_hbao")->launchCompute(iWidth, iHeight, 1);
-        Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
-        
-        // Blurring the HBAO texture to remove noise.
-        auto hbaoBlur = ShaderCache::getShader("screen_space_hbao_blur");
-        // X blur pass.
-        storage->downsampleAO.bind(0);
-        storage->quarterResBuffer1.bindAsImage(2, 0, ImageAccessPolicy::Write);
-        hbaoBlur->addUniformVector("u_direction", glm::vec2(1.0, 0.0));
-        hbaoBlur->launchCompute(iWidth, iHeight, 1);
-        Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
-        
-        // Y blur pass.
-        storage->quarterResBuffer1.bind(0);
-        storage->downsampleAO.bindAsImage(2, 0, ImageAccessPolicy::Write);
-        hbaoBlur->addUniformVector("u_direction", glm::vec2(0.0, 1.0));
-        hbaoBlur->launchCompute(iWidth, iHeight, 1);
-        Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
-      }
-
-      RendererCommands::disable(RendererFunction::DepthTest);
-      storage->lightingPass.bind();
-      storage->lightingPass.setViewport();
-
-      //------------------------------------------------------------------------
-      // Ambient lighting subpass.
-      //------------------------------------------------------------------------
-      Shader* ambientShader = ShaderCache::getShader("deferred_ambient");
-      // Environment maps.
-      storage->currentEnvironment->bind(MapType::Irradiance, 0);
-      storage->currentEnvironment->bind(MapType::Prefilter, 1);
-      storage->currentEnvironment->bindBRDFLUT(2);
-
-      auto ambientParams = glm::vec3(0.0f);
-      ambientParams.x = static_cast<float>(state->enableAO);
-      ambientParams.z = storage->currentEnvironment->getIntensity();
-      storage->ambientPassBuffer.bindToPoint(4);
-      storage->ambientPassBuffer.setData(0, sizeof(glm::vec3), &(ambientParams.x));
-
-      storage->downsampleAO.bind(7);
-
-      storage->blankVAO.bind();
-      ambientShader->bind();
-      RendererCommands::drawArrays(PrimativeType::Triangle, 0, 3);
-
-      //------------------------------------------------------------------------
-      // Directional lighting subpass.
-      //------------------------------------------------------------------------
-      Shader* directionalLightShadowed = ShaderCache::getShader("deferred_directional_shadowed");
-      Shader* directionalLight = ShaderCache::getShader("deferred_directional");
-      RendererCommands::enable(RendererFunction::Blending);
-      RendererCommands::blendEquation(BlendEquation::Additive);
-      RendererCommands::blendFunction(BlendFunction::One, BlendFunction::One);
-
-      storage->directionalPassBuffer.bindToPoint(5);
-      storage->directionalPassBuffer.setData(2 * sizeof(glm::vec4), sizeof(glm::ivec4), &(state->directionalSettings.x));
-
-      // Set the shadow map uniforms.
-      if (storage->hasCascades)
-      {
-        storage->cascadeShadowBuffer.bindToPoint(7);
-        for (unsigned int i = 0; i < NUM_CASCADES; i++)
-        {
-          storage->cascadeShadowBuffer.setData(i * sizeof(glm::mat4), sizeof(glm::mat4),
-                                                glm::value_ptr(storage->cascades[i]));
-          storage->cascadeShadowBuffer.setData(NUM_CASCADES * sizeof(glm::mat4)
-                                                + i * sizeof(glm::vec4), sizeof(glm::vec4),
-                                                &storage->cascadeSplits[i]);
-        }
-        storage->cascadeShadowBuffer.setData(NUM_CASCADES * sizeof(glm::mat4)
-                                              + NUM_CASCADES * sizeof(glm::vec4),
-                                              2 * sizeof(glm::vec4),
-                                              state->shadowParams);
-      }
-
-      for (auto& light : storage->directionalQueue)
-      {
-        auto dirColourIntensity = glm::vec4(0.0f);
-        dirColourIntensity.x = light.colour.x;
-        dirColourIntensity.y = light.colour.y;
-        dirColourIntensity.z = light.colour.z;
-        dirColourIntensity.w = light.intensity;
-        storage->directionalPassBuffer.setData(0, sizeof(glm::vec4), &dirColourIntensity.x);
-
-        auto dirDirection = glm::vec4(0.0f);
-        dirDirection.x = light.direction.x;
-        dirDirection.y = light.direction.y;
-        dirDirection.z = light.direction.z;
-        storage->directionalPassBuffer.setData(sizeof(glm::vec4), sizeof(glm::vec4), &dirDirection.x);
-
-        if (light.castShadows && light.primaryLight)
-        {
-           for (unsigned int i = 0; i < NUM_CASCADES; i++)
-             storage->shadowBuffer[i].bindTextureID(FBOTargetParam::Depth, i + 7);
-
-           state->postProcessSettings.w = (uint)(storage->hasCascades && state->enableSkyshafts);
-           storage->postProcessSettings.bindToPoint(1);
-           storage->postProcessSettings.setData(2 * sizeof(glm::vec4), sizeof(glm::ivec4), &state->postProcessSettings.x);
-
-          // Launch the godray compute shaders.
-          if (state->enableSkyshafts)
-          {
-            storage->gBuffer.bindAttachment(FBOTargetParam::Depth, 3);
-            storage->lightShaftSettingsBuffer.bindToPoint(1);
-            storage->lightShaftSettingsBuffer.setData(0, sizeof(glm::vec4),
-                                                      &(state->mieScatIntensity.x));
-            storage->lightShaftSettingsBuffer.setData(sizeof(glm::vec4), sizeof(glm::vec4),
-                                                      &(state->mieAbsDensity.x));   
-
-            storage->downsampleLightshaft.bindAsImage(0, 0, ImageAccessPolicy::Write);
-            uint iWidth = (uint) glm::ceil(storage->downsampleLightshaft.getWidth() / 8.0f);
-            uint iHeight = (uint) glm::ceil(storage->downsampleLightshaft.getHeight() / 8.0f);
-            ShaderCache::getShader("screen_space_godrays")->launchCompute(iWidth, iHeight, 1);
-            Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
-            
-            // Blurring the volumetric texture to remove noise.
-            auto depthBlur = ShaderCache::getShader("bilateral_blur");
-            // X blur pass.
-            storage->downsampleLightshaft.bind(0);
-            storage->halfResBuffer1.bindAsImage(2, 0, ImageAccessPolicy::Write);
-            depthBlur->addUniformVector("u_direction", glm::vec2(1.0, 0.0));
-            depthBlur->launchCompute(iWidth, iHeight, 1);
-            Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
-
-            // Y blur pass.
-            storage->halfResBuffer1.bind(0);
-            storage->downsampleLightshaft.bindAsImage(2, 0, ImageAccessPolicy::Write);
-            depthBlur->addUniformVector("u_direction", glm::vec2(0.0, 1.0));
-            depthBlur->launchCompute(iWidth, iHeight, 1);
-            Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
-          }
-
-          for (unsigned int i = 0; i < NUM_CASCADES; i++)
-          {
-            if (state->directionalSettings.x == 2)
-                storage->shadowBuffer[i].bindTextureID(FBOTargetParam::Colour0, i + 7);
-            else
-                storage->shadowBuffer[i].bindTextureID(FBOTargetParam::Depth, i + 7);
-          }
-
-          storage->downsampleLightshaft.bind(1);
-
-          // Launch the primary shadowed directional light pass.
-          storage->blankVAO.bind();
-          directionalLightShadowed->bind();
-          RendererCommands::drawArrays(PrimativeType::Triangle, 0, 3);
-        }
-        else
-        {
-          storage->blankVAO.bind();
-          directionalLight->bind();
-          RendererCommands::drawArrays(PrimativeType::Triangle, 0, 3);
-        }
-      }
-
-      storage->directionalQueue.clear();
-
-      //------------------------------------------------------------------------
-      // Point lighting subpass.
-      //------------------------------------------------------------------------
-      Shader* pointLight = ShaderCache::getShader("deferred_point");
-      storage->pointPassBuffer.bindToPoint(5);
-      for (auto& light : storage->pointQueue)
-      {
-        storage->pointPassBuffer.setData(0, sizeof(PointLight), &light);
-
-        storage->blankVAO.bind();
-        pointLight->bind();
-        RendererCommands::drawArrays(PrimativeType::Triangle, 0, 3);
-      }
-      storage->pointQueue.clear();
-
-      //------------------------------------------------------------------------
-      // Spot lighting subpass.
-      //------------------------------------------------------------------------
-      storage->spotQueue.clear();
-
-      //------------------------------------------------------------------------
-      // Apply the aerial perspective texture if the current skybox permits.
-      //------------------------------------------------------------------------
-      if (storage->currentEnvironment->getDynamicSkyType() == DynamicSkyType::Hillaire
-          && storage->currentEnvironment->getDrawingType() == MapType::DynamicSky
-          && state->useAerialPersp)
-      {
-        storage->currentEnvironment->configure();
-        storage->blankVAO.bind();
-        storage->gBuffer.bindAttachment(FBOTargetParam::Depth, 1);
-        storage->currentEnvironment->bindAerialPerspectiveLUT(7);
-        ShaderCache::getShader("apply_aerial_perspective")->bind();
-        RendererCommands::drawArrays(PrimativeType::Triangle, 0, 3);
-      }
-
-      RendererCommands::disable(RendererFunction::Blending);
-
-      //------------------------------------------------------------------------
-      // Draw the skybox.
-      //------------------------------------------------------------------------
-      RendererCommands::enable(RendererFunction::DepthTest);
-      storage->gBuffer.blitzToOther(storage->lightingPass, FBOTargetParam::Depth);
-      drawEnvironment();
-
-      storage->lightingPass.unbind();
-
-      auto end = std::chrono::steady_clock::now();
-      std::chrono::duration<double> elapsed = end - start;
-      stats->lightFrametime += elapsed.count() * 1000.0f;
-    }
-
-    //--------------------------------------------------------------------------
-    // Post processing pass. TODO: Move most of these to the editor window and a
-    // separate scene renderer?
-    //--------------------------------------------------------------------------
-    void
-    postProcessPass(Shared<FrameBuffer> frontBuffer)
-    {
-      auto start = std::chrono::steady_clock::now();
-
-      //------------------------------------------------------------------------
-      // Bloom pass.
-      //------------------------------------------------------------------------
-      if (state->enableBloom)
-      {
-        // Bloom shaders.
-        auto downsample = ShaderCache::getShader("bloom_downsample");
-        auto upsample = ShaderCache::getShader("bloom_upsample");
-        auto upsampleBlend = ShaderCache::getShader("bloom_upsample_blend");
-
-        // Prefilter + downsample using the lighting buffer as the source.
-        storage->bloomSettingsBuffer.bindToPoint(3);
-        auto bloomSettings = glm::vec4(state->bloomThreshold, state->bloomThreshold - state->bloomKnee,
-                                       2.0f * state->bloomKnee, 0.25 / state->bloomKnee);
-        storage->bloomSettingsBuffer.setData(0, sizeof(glm::vec4), &bloomSettings.x);
-        storage->bloomSettingsBuffer.setData(sizeof(glm::vec4), sizeof(float), &state->bloomRadius);
-
-        storage->lightingPass.bindTextureIDAsImage(FBOTargetParam::Colour0, 0, 0, 
-                                                   false, 0, ImageAccessPolicy::Read);
-        storage->downscaleBloomTex.bindAsImage(1, 0, ImageAccessPolicy::Write);
-        glm::ivec3 invoke = glm::ivec3(glm::ceil(((float) storage->downscaleBloomTex.getWidth()) / 8.0f),
-                                       glm::ceil(((float) storage->downscaleBloomTex.getHeight()) / 8.0f),
-                                       1);
-        ShaderCache::getShader("bloom_prefilter")->launchCompute(invoke.x, invoke.y, invoke.z);
-        Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
-
-        // Continuously downsample the bloom texture to make an image pyramid.
-        float powerOfTwo = 2.0f;
-        for (unsigned int i = 1; i < MAX_NUM_BLOOM_MIPS; i++)
-        {
-          storage->downscaleBloomTex.bindAsImage(0, i - 1, ImageAccessPolicy::Read);
-          storage->downscaleBloomTex.bindAsImage(1, i, ImageAccessPolicy::Write);
-          invoke = glm::ivec3(glm::ceil(((float) storage->downscaleBloomTex.getWidth()) / (powerOfTwo * 8.0f)),
-                              glm::ceil(((float) storage->downscaleBloomTex.getHeight()) / (powerOfTwo * 8.0f)),
-                              1);
-          downsample->launchCompute(invoke.x, invoke.y, invoke.z);
-          Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
-          powerOfTwo *= 2.0;
-        }
-
-        // Blur each of the mips.
-        powerOfTwo = 1.0f;
-        for (unsigned int i = 0; i < MAX_NUM_BLOOM_MIPS - 1; i++)
-        {
-          storage->downscaleBloomTex.bindAsImage(0, i, ImageAccessPolicy::Read);
-          storage->bufferBloomTex.bindAsImage(1, i, ImageAccessPolicy::Write);
-          invoke = glm::ivec3(glm::ceil(((float) storage->bufferBloomTex.getWidth()) / (powerOfTwo * 8.0f)),
-                              glm::ceil(((float) storage->bufferBloomTex.getHeight()) / (powerOfTwo * 8.0f)),
-                              1);
-          upsample->launchCompute(invoke.x, invoke.y, invoke.z);
-          Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
-          powerOfTwo *= 2.0f;
-        }
-
-        // Copy and blur the last mip of the downsampling pyramid into the last
-        // mip of the upsampling pyramid.
-        powerOfTwo = std::pow(2.0, static_cast<float>(MAX_NUM_BLOOM_MIPS - 1));
-        storage->downscaleBloomTex.bindAsImage(0, MAX_NUM_BLOOM_MIPS - 1, ImageAccessPolicy::Read);
-        storage->upscaleBloomTex.bindAsImage(1, MAX_NUM_BLOOM_MIPS - 1, ImageAccessPolicy::Write);
-        invoke = glm::ivec3(glm::ceil(((float) storage->bufferBloomTex.getWidth()) / (powerOfTwo * 8.0f)),
-                            glm::ceil(((float) storage->bufferBloomTex.getHeight()) / (powerOfTwo * 8.0f)),
-                            1);
-        upsample->launchCompute(invoke.x, invoke.y, invoke.z);
-        Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
-
-        // Blend the previous mips together with a blur on the previous mip.
-        for (unsigned int i = MAX_NUM_BLOOM_MIPS - 1; i > 0; i--)
-        {
-          powerOfTwo /= 2.0f;
-          storage->upscaleBloomTex.bindAsImage(0, i, ImageAccessPolicy::Read);
-          storage->bufferBloomTex.bindAsImage(1, i - 1, ImageAccessPolicy::Read);
-          storage->upscaleBloomTex.bindAsImage(2, i - 1, ImageAccessPolicy::Write);
-          invoke = glm::ivec3(glm::ceil(((float) storage->upscaleBloomTex.getWidth()) / (powerOfTwo * 8.0f)),
-                              glm::ceil(((float) storage->upscaleBloomTex.getHeight()) / (powerOfTwo * 8.0f)),
-                              1);
-          upsampleBlend->launchCompute(invoke.x, invoke.y, invoke.z);
-          Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
-        }
-      }
-
-      // Prep the front buffer.
-      frontBuffer->bind();
-      frontBuffer->setViewport();
-
-      //------------------------------------------------------------------------
-      // Generalized post processing shader.
-      //------------------------------------------------------------------------
-      // Prepare the post processing buffer.
-      storage->postProcessSettings.bindToPoint(1);
-      auto camPos = storage->sceneCam.position;
-      auto screenSize = frontBuffer->getSize();
-      auto data0 = glm::vec4(camPos.x, camPos.y, camPos.z, screenSize.x);
-      auto data1 = glm::vec4(screenSize.y, state->gamma, state->bloomIntensity, 0.0f);
-
-      state->postProcessSettings.y = (uint) state->enableBloom;
-      state->postProcessSettings.z = (uint) state->enableFXAA;
-
-      storage->postProcessSettings.setData(0, sizeof(glm::vec4), &data0.x);
-      storage->postProcessSettings.setData(sizeof(glm::vec4), sizeof(glm::vec4), &data1.x);
-      storage->postProcessSettings.setData(2 * sizeof(glm::vec4), sizeof(glm::ivec4), &state->postProcessSettings.x);
-
-      storage->lightingPass.bindTextureID(FBOTargetParam::Colour0, 0);
-      storage->gBuffer.bindAttachment(FBOTargetParam::Colour3, 1);
-      storage->upscaleBloomTex.bind(2);
-
-      storage->blankVAO.bind();
-      ShaderCache::getShader("post_processing")->bind();
-      RendererCommands::drawArrays(PrimativeType::Triangle, 0, 3);
-
-      RendererCommands::enable(RendererFunction::Blending);
-      RendererCommands::blendEquation(BlendEquation::Additive);
-      RendererCommands::blendFunction(BlendFunction::One, BlendFunction::One);
-      RendererCommands::disable(RendererFunction::DepthTest);
-
-      //------------------------------------------------------------------------
-      // Grid post processing pass for the editor.
-      //------------------------------------------------------------------------
-      if (state->drawGrid)
-      {
-        storage->blankVAO.bind();
-        ShaderCache::getShader("grid")->bind();
-        RendererCommands::drawArrays(PrimativeType::Triangle, 0, 3);
-      }
-
-      //------------------------------------------------------------------------
-      // Edge detection post processing pass. Draws an outline around the
-      // selected entity.
-      //------------------------------------------------------------------------
-      if (storage->drawEdge)
-      {
-        storage->gBuffer.bindAttachment(FBOTargetParam::Colour3, 0);
-        storage->blankVAO.bind();
-        ShaderCache::getShader("outline")->bind();
-        RendererCommands::drawArrays(PrimativeType::Triangle, 0, 3);
-      }
-      RendererCommands::enable(RendererFunction::DepthTest);
-      RendererCommands::disable(RendererFunction::Blending);
-
-      frontBuffer->unbind();
-
-      auto end = std::chrono::steady_clock::now();
-      std::chrono::duration<double> elapsed = end - start;
-      stats->postFramtime += elapsed.count() * 1000.0f;
-    }
+    uint groupX = static_cast<uint>(glm::ceil(static_cast<float>(width) / 8.0f));
+    uint groupY = static_cast<uint>(glm::ceil(static_cast<float>(height) / 8.0f));
+    rendererData->lightingBuffer.bindAsImage(0, 0, ImageAccessPolicy::Write);
+    ShaderCache::getShader("clear_tex_2D")->launchCompute(groupX, groupY, 1);
+    Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
+
+    uint hWidth = static_cast<uint>(glm::ceil(static_cast<float>(width) / 2.0f));
+    uint hHeight = static_cast<uint>(glm::ceil(static_cast<float>(height) / 2.0f));
+    if (static_cast<uint>(rendererData->halfResBuffer1.getWidth()) != hWidth ||
+        static_cast<uint>(rendererData->halfResBuffer1.getHeight()) != hHeight)
+	{
+	  rendererData->halfResBuffer1.setSize(hWidth, hHeight);
+	  rendererData->halfResBuffer1.initNullTexture();
+	  rendererData->halfResBuffer1.generateMips();
+	}
+
+    // Prep the renderpasses.
+    passManager->onRendererBegin(width, height);
+  }
+
+  void
+  end(FrameBuffer& frontBuffer)
+  {
+    // Call the render functions since the Renderer basically does all its work when submission is done.
+    passManager->onRender();
+
+    // Whichever renderpass needs to do work when the rendering phase is over.
+    passManager->onRendererEnd(frontBuffer);
+  }
+
+  // Draw some data. This is really, really inefficient.
+  void
+  draw(VertexArray* data, Shader* program)
+  {
+    data->bind();
+    program->bind();
+
+    RendererCommands::drawElements(PrimativeType::Triangle, data->numToRender());
+
+    data->unbind();
+    program->unbind();
+  }
+
+  void
+  submit(const PointLight &light, const glm::mat4 &model)
+  {
+    PointLight temp = light;
+    temp.positionRadius = glm::vec4(glm::vec3(model * glm::vec4(glm::vec3(temp.positionRadius), 1.0f)), temp.positionRadius.w);
+
+    rendererData->pointLightQueue[rendererData->pointLightCount] = temp;
+    rendererData->pointLightCount++;
+  }
+
+  void
+  submit(const SpotLight &light, const glm::mat4 &model)
+  {
+    auto invTrans = glm::transpose(glm::inverse(model));
+    SpotLight temp = light;
+    temp.direction = -1.0f * glm::vec3(invTrans * glm::vec4(0.0f, -1.0f, 0.0f, 0.0f));
+    temp.position = glm::vec3(model * glm::vec4(light.position, 1.0f));
+
+    rendererData->spotLightQueue[rendererData->spotLightCount] = temp;
+    rendererData->spotLightCount++;
   }
 }

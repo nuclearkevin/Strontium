@@ -5,7 +5,6 @@
 
 // Project includes.
 #include "Core/ApplicationBase.h"
-#include "Core/ThreadPool.h"
 #include "Core/Window.h"
 #include "Assets/AssetManager.h"
 #include "Layers/Layers.h"
@@ -56,8 +55,6 @@ namespace Strontium
 
     // The last frame time.
     float lastTime;
-
-    Unique<ThreadPool> workerGroup;
 
     // Asset managers for the different assets loaded in.
     Unique<AssetManager<Model>> modelAssets;

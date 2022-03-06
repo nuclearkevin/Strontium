@@ -21,7 +21,7 @@ namespace Strontium
   void
   CameraWindow::onImGuiRender(bool &isOpen, Shared<Scene> activeScene)
   {
-    auto state = Renderer3D::getState();
+    //auto state = Renderer3D::getState();
 
     auto& fov = this->camera->getHorFOV();
     auto& near = this->camera->getNear();
@@ -29,7 +29,6 @@ namespace Strontium
     auto& aspect = this->camera->getAspect();
 
     auto& speed = this->camera->getSpeed();
-    auto& sense = this->camera->getSens();
 
     ImGui::Begin("Editor Camera Settings", &isOpen);
     ImGui::Text("Perspective Settings");
@@ -39,11 +38,10 @@ namespace Strontium
     ImGui::Text("");
     ImGui::Text("Speed and Sentitivity");
     Styles::drawFloatControl("Speed", 2.5f, speed);
-    Styles::drawFloatControl("Sensitivity", 0.1f, sense);
 
     ImGui::Text("");
     ImGui::Text("Editor Viewport Settings");
-    ImGui::Checkbox("Draw Grid", &state->drawGrid);
+    //ImGui::Checkbox("Draw Grid", &state->drawGrid);
     ImGui::End();
 
     this->camera->updateProj(fov, aspect, near, far);

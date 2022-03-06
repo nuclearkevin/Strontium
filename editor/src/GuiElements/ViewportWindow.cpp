@@ -9,6 +9,9 @@
 #include "Serialization/YamlSerialization.h"
 #include "Utils/AsyncAssetLoading.h"
 
+#include "Graphics/Renderer.h"
+#include "Graphics/RenderPasses/HBAOPass.h"
+
 // Some math for decomposing matrix transformations.
 #include "glm/gtx/matrix_decompose.hpp"
 
@@ -29,12 +32,10 @@ namespace Strontium
   {
     // The editor viewport.
     ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
-		ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
     ImGui::Begin(ICON_FA_GAMEPAD"  Editor Viewport", nullptr, ImGuiWindowFlags_NoCollapse);
     {
-      // TODO: Move off the lighting pass framebuffer and blitz the result to
-      // the editor framebuffer, after post processing of course.
       ImGui::BeginChild("EditorRender");
       {
         this->parentLayer->getEditorSize() = ImGui::GetWindowSize();
@@ -42,9 +43,10 @@ namespace Strontium
         ImGui::Selectable("##editorselectable", false, ImGuiSelectableFlags_Disabled, this->parentLayer->getEditorSize());
         this->DNDTarget(activeScene);
         ImGui::SetCursorPos(cursorPos);
-        auto drawBuffer = this->parentLayer->getFrontBuffer();
-        ImGui::Image((ImTextureID) (unsigned long) drawBuffer->getAttachID(FBOTargetParam::Colour0),
+        auto& globalBlock = Renderer3D::getStorage();
+        ImGui::Image(reinterpret_cast<ImTextureID>(this->parentLayer->getFrontBuffer().getAttachID(FBOTargetParam::Colour0)),
                      this->parentLayer->getEditorSize(), ImVec2(0, 1), ImVec2(1, 0));
+
         this->manipulateEntity(this->parentLayer->getSelectedEntity());
         this->drawGizmoSelector();
       }
@@ -80,7 +82,6 @@ namespace Strontium
       }
       case EventType::WindowResizeEvent:
       {
-
         break;
       }
       default:
@@ -99,7 +100,6 @@ namespace Strontium
 
     int keyCode = keyEvent.getKeyCode();
 
-    bool camStationary = this->parentLayer->getEditorCamera().isStationary();
     bool lControlHeld = appWindow->isKeyPressed(SR_KEY_LEFT_CONTROL);
 
     switch (keyCode)
@@ -107,28 +107,28 @@ namespace Strontium
       case SR_KEY_Q:
       {
         // Stop using the Gizmo.
-        if (lControlHeld && keyEvent.getRepeatCount() == 0 && camStationary)
+        if (lControlHeld && keyEvent.getRepeatCount() == 0)
           this->gizmoType = -1;
         break;
       }
       case SR_KEY_W:
       {
         // Translate.
-        if (lControlHeld && keyEvent.getRepeatCount() == 0 && camStationary)
+        if (lControlHeld && keyEvent.getRepeatCount() == 0)
           this->gizmoType = ImGuizmo::TRANSLATE;
         break;
       }
       case SR_KEY_E:
       {
         // Rotate.
-        if (lControlHeld && keyEvent.getRepeatCount() == 0 && camStationary)
+        if (lControlHeld && keyEvent.getRepeatCount() == 0)
           this->gizmoType = ImGuizmo::ROTATE;
         break;
       }
       case SR_KEY_R:
       {
         // Scale.
-        if (lControlHeld && keyEvent.getRepeatCount() == 0 && camStationary)
+        if (lControlHeld && keyEvent.getRepeatCount() == 0)
           this->gizmoType = ImGuizmo::SCALE;
         break;
       }
@@ -143,14 +143,11 @@ namespace Strontium
 
     int mouseCode = mouseEvent.getButton();
 
-    bool camStationary = this->parentLayer->getEditorCamera().isStationary();
-    bool lControlHeld = appWindow->isKeyPressed(SR_KEY_LEFT_CONTROL);
-
     switch (mouseCode)
     {
       case SR_MOUSE_BUTTON_1:
       {
-        if (lControlHeld && camStationary)
+        if (appWindow->isKeyPressed(SR_KEY_LEFT_CONTROL))
           this->selectEntity();
         break;
       }
@@ -169,7 +166,7 @@ namespace Strontium
     if (mousePos.x >= 0.0f && mousePos.y >= 0.0f &&
         mousePos.x < (this->parentLayer->getEditorSize()).x && mousePos.y < (this->parentLayer->getEditorSize()).y)
     {
-      int id = this->parentLayer->getFrontBuffer()->readPixel(FBOTargetParam::Colour1, glm::vec2(mousePos.x, mousePos.y)) - 1;
+      int id = this->parentLayer->getFrontBuffer().readPixel(FBOTargetParam::Colour1, glm::vec2(mousePos.x, mousePos.y)) - 1;
 
       EventDispatcher* dispatcher = EventDispatcher::getInstance();
       dispatcher->queueEvent(new EntitySwapEvent(id, this->parentLayer->getActiveScene().get()));
@@ -222,14 +219,12 @@ namespace Strontium
 
       if (ImGuizmo::IsUsing())
       {
-        glm::vec3 translation, scale, skew;
+        glm::vec3 skew;
         glm::vec4 perspective;
         glm::quat rotation;
-        glm::decompose(transformMatrix, scale, rotation, translation, skew, perspective);
+        glm::decompose(transformMatrix, transform.scale, rotation, transform.translation, skew, perspective);
 
-        transform.translation = translation;
         transform.rotation = glm::eulerAngles(rotation);
-        transform.scale = scale;
       }
     }
   }
@@ -433,6 +428,7 @@ namespace Strontium
 
     if (filetype == ".hdr")
     {
+      /*
       auto storage = Renderer3D::getStorage();
       auto ambient = activeScene->createEntity("New Ambient Component");
 
@@ -443,6 +439,7 @@ namespace Strontium
       environment->equiToCubeMap(true, state->skyboxWidth, state->skyboxWidth);
       environment->precomputeIrradiance(state->irradianceWidth, state->irradianceWidth, true);
       environment->precomputeSpecular(state->prefilterWidth, state->prefilterWidth, true);
+      */
     }
 
     // Load a SciRender scene file. TODO: Update this with a file load event.

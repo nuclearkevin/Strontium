@@ -271,4 +271,35 @@ namespace Strontium
 
     return inFrustum;
   }
+
+  // Convert a tangent frame to a quaternion.
+  // https://developer.android.com/games/optimize/vertex-data-management
+  glm::quat 
+  compressTangentFrame(const glm::vec3& normal, const glm::vec3& tangent, 
+                       const glm::vec3& bitangent)
+  {
+    glm::quat qTangent(glm::mat3(tangent, bitangent, normal));
+    qTangent = glm::normalize(qTangent);
+
+    if (qTangent.w < 0.0f)
+      qTangent *= -1.0f;
+
+    const float bias = 1.0 / (static_cast<float>(glm::pow(2, 32) - 1));
+    if (qTangent.w < bias)
+    {
+      float normFactor = glm::sqrt(1.0f - (bias * bias));
+      qTangent.w = bias;
+      qTangent.x *= normFactor;
+      qTangent.y *= normFactor;
+      qTangent.z *= normFactor;
+    }
+
+    // Every other implementation I've seen uses the binormal here instead. 
+    // This leads me to believe that the binormal and bitangent can be used interchangeably?
+    glm::vec3 natBitangent = glm::cross(tangent, normal);
+    if (glm::dot(natBitangent, bitangent) <= 0.0f)
+      qTangent *= -1.0f;
+
+    return qTangent;
+  }
 }

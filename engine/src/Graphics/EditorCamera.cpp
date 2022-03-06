@@ -16,10 +16,13 @@ namespace Strontium
     , proj(1.0f)
     , lastMouseX(xCenter)
     , lastMouseY(yCenter)
-    , yaw(-90.0f)
-    , pitch(0.0f)
     , currentType(type)
     , firstClick(true)
+    , horFOV(90.0f)
+    , near(1.0f)
+    , far(200.0f)
+    , aspect(1.0f)
+    , scalarSpeed(2.5f)
   {
     this->view = glm::lookAt(this->position, this->pivot,
                              this->camTop);
@@ -34,10 +37,13 @@ namespace Strontium
     , proj(1.0f)
     , lastMouseX(xCenter)
     , lastMouseY(yCenter)
-    , yaw(-90.0f)
-    , pitch(0.0f)
     , currentType(type)
     , firstClick(true)
+    , horFOV(90.0f)
+    , near(1.0f)
+    , far(200.0f)
+    , aspect(1.0f)
+    , scalarSpeed(2.5f)
   {
     this->view = glm::lookAt(this->position, this->pivot,
                              this->camTop);
@@ -48,15 +54,6 @@ namespace Strontium
                      const float &near, const float &far)
   {
     this->proj = glm::perspective(glm::radians(fov), aspect, near, far);
-    switch (this->currentType)
-    {
-      case EditorCameraType::Free:
-        Application::getInstance()->getWindow()->setCursorCapture(true);
-        break;
-      case EditorCameraType::Stationary:
-        Application::getInstance()->getWindow()->setCursorCapture(false);
-        break;
-    }
 
     // Fetch the application window for input polling.
     Shared<Window> appWindow = Application::getInstance()->getWindow();
@@ -90,7 +87,7 @@ namespace Strontium
         // Handles the mouse input component.
         //----------------------------------------------------------------------
         auto right = glm::normalize(glm::cross(glm::vec3(0.0f, 1.0f, 0.0f), this->camFront));
-        if (appWindow->isKeyPressed(SR_KEY_LEFT_ALT) && appWindow->isMouseClicked(SR_MOUSE_BUTTON_RIGHT))
+        if (appWindow->isMouseClicked(SR_MOUSE_BUTTON_RIGHT))
         {
           float dAngleX = 2.0f * glm::pi<float>() * (this->lastMouseX - mousePos.x) / viewportSize.x;
           float dAngleY = glm::pi<float>() * (this->lastMouseY - mousePos.y) / viewportSize.y;
@@ -113,7 +110,7 @@ namespace Strontium
         //----------------------------------------------------------------------
         // Handles the keyboard input component.
         //----------------------------------------------------------------------
-        if (appWindow->isKeyPressed(SR_KEY_LEFT_ALT) && appWindow->isMouseClicked(SR_MOUSE_BUTTON_MIDDLE))
+        if (appWindow->isMouseClicked(SR_MOUSE_BUTTON_MIDDLE))
         {
           float dx = (this->lastMouseX - mousePos.x) / viewportSize.x;
           float dy = (this->lastMouseY - mousePos.y) / viewportSize.y;
@@ -137,73 +134,73 @@ namespace Strontium
         //----------------------------------------------------------------------
         // Handles the mouse input component.
         //----------------------------------------------------------------------
-        float dx = mousePos.x - this->lastMouseX;
-        float dy = this->lastMouseY - mousePos.y;
-
-        // Compute the yaw and pitch from mouse position.
-        this->yaw += (this->sensitivity * dx);
-        this->pitch += (this->sensitivity * dy);
-
-        if (this->pitch > 89.0f)
-          this-> pitch = 89.0f;
-        if (this->pitch < -89.0f)
-          this->pitch = -89.0f;
-
-        // Compute the new front vector.
-        float distanceToPivot = glm::length(this->pivot - this->position);
-        glm::vec3 temp;
-        temp.x = cos(glm::radians(this->yaw)) * cos(glm::radians(this->pitch));
-        temp.y = sin(glm::radians(this->pitch));
-        temp.z = sin(glm::radians(this->yaw)) * cos(glm::radians(this->pitch));
-        this->camFront = glm::normalize(temp);
-        this->pivot = this->position + (this->camFront * distanceToPivot);
-
-        //----------------------------------------------------------------------
-        // Handles the keyboard input component.
-        //----------------------------------------------------------------------
-        float cameraSpeed = this->scalarSpeed * dt;
-        if (appWindow->isKeyPressed(SR_KEY_W))
+        auto right = glm::normalize(glm::cross(glm::vec3(0.0f, 1.0f, 0.0f), this->camFront));
+        if (appWindow->isMouseClicked(SR_MOUSE_BUTTON_RIGHT))
         {
-          auto velocity = this->camFront * cameraSpeed;
-          this->position += velocity;
-          this->pivot += velocity;
-        }
-
-        if (appWindow->isKeyPressed(SR_KEY_S))
-        {
-          auto velocity = -this->camFront * cameraSpeed;
-          this->position += velocity;
-          this->pivot += velocity;
-        }
-
-        if (appWindow->isKeyPressed(SR_KEY_A))
-        {
-          auto velocity = -glm::normalize(glm::cross(this->camFront, this->camTop))
-                           * cameraSpeed;
-          this->position += velocity;
-          this->pivot += velocity;
-        }
-
-        if (appWindow->isKeyPressed(SR_KEY_D))
-        {
-          auto velocity = glm::normalize(glm::cross(this->camFront, this->camTop))
-                          * cameraSpeed;
-          this->position += velocity;
-          this->pivot += velocity;
-        }
-
-        if (appWindow->isKeyPressed(SR_KEY_SPACE))
-        {
-          auto velocity = this->camTop * cameraSpeed;
-          this->position += velocity;
-          this->pivot += velocity;
-        }
-
-        if (appWindow->isKeyPressed(SR_KEY_LEFT_CONTROL))
-        {
-          auto velocity = -this->camTop * cameraSpeed;
-          this->position += velocity;
-          this->pivot += velocity;
+          float dAngleX = 2.0f * glm::pi<float>() * (this->lastMouseX - mousePos.x) / viewportSize.x;
+          float dAngleY = glm::pi<float>() * (this->lastMouseY - mousePos.y) / viewportSize.y;
+          
+          float cosTheta = glm::dot(this->camFront, glm::vec3(0.0f, 1.0f, 0.0f));
+          if (cosTheta * glm::sign(dAngleY) > 0.99f)
+              dAngleY = 0.0f;
+          
+          auto orientation = glm::quat(glm::vec3(0.0f, 1.0f, 0.0f) + this->camFront * dAngleY, glm::vec3(0.0f, 1.0f, 0.0f));
+          orientation *= glm::quat(this->camFront + right * (-dAngleX), this->camFront);
+          orientation = glm::normalize(orientation);
+          
+          auto rot = glm::toMat4(orientation);
+          auto temp = glm::vec3(rot * glm::vec4(this->camFront, 0.0f));
+          float distanceToPivot = glm::length(this->pivot - this->position);
+          this->camFront = glm::normalize(temp);
+          this->pivot = this->position + (this->camFront * distanceToPivot);
+          
+          //----------------------------------------------------------------------
+          // Handles the keyboard input component.
+          //----------------------------------------------------------------------
+          float cameraSpeed = this->scalarSpeed * dt;
+          if (appWindow->isKeyPressed(SR_KEY_W))
+          {
+            auto velocity = this->camFront * cameraSpeed;
+            this->position += velocity;
+            this->pivot += velocity;
+          }
+          
+          if (appWindow->isKeyPressed(SR_KEY_S))
+          {
+            auto velocity = -this->camFront * cameraSpeed;
+            this->position += velocity;
+            this->pivot += velocity;
+          }
+          
+          if (appWindow->isKeyPressed(SR_KEY_A))
+          {
+            auto velocity = -glm::normalize(glm::cross(this->camFront, this->camTop))
+                             * cameraSpeed;
+            this->position += velocity;
+            this->pivot += velocity;
+          }
+          
+          if (appWindow->isKeyPressed(SR_KEY_D))
+          {
+            auto velocity = glm::normalize(glm::cross(this->camFront, this->camTop))
+                            * cameraSpeed;
+            this->position += velocity;
+            this->pivot += velocity;
+          }
+          
+          if (appWindow->isKeyPressed(SR_KEY_SPACE))
+          {
+            auto velocity = this->camTop * cameraSpeed;
+            this->position += velocity;
+            this->pivot += velocity;
+          }
+          
+          if (appWindow->isKeyPressed(SR_KEY_LEFT_CONTROL))
+          {
+            auto velocity = -this->camTop * cameraSpeed;
+            this->position += velocity;
+            this->pivot += velocity;
+          }
         }
 
         break;
@@ -257,10 +254,7 @@ namespace Strontium
 
     switch (this->currentType)
     {
-      case EditorCameraType::Stationary:
-        if (offsets.y != 0.0 && appWindow->isKeyPressed(SR_KEY_LEFT_ALT))
-          this->cameraZoom(offsets);
-        break;
+      case EditorCameraType::Stationary: this->cameraZoom(offsets); break;
       default: break;
     }
   }
@@ -287,13 +281,11 @@ namespace Strontium
     if (this->currentType == EditorCameraType::Stationary)
     {
       this->currentType = EditorCameraType::Free;
-      appWindow->setCursorCapture(true);
       logs->logMessage(LogMessage("Swapped camera to free-form.", true, false));
     }
     else
     {
       this->currentType = EditorCameraType::Stationary;
-      appWindow->setCursorCapture(false);
       logs->logMessage(LogMessage("Swapped camera to stationary.", true, false));
 
       glm::vec2 cursorPos = appWindow->getCursorPos();

@@ -51,13 +51,13 @@ namespace Strontium
     if (major < 4)
     {
       std::cout << "Unsupported OpenGL version, application requires OpenGL "
-                << "core 4.4 or greater." << std::endl;
+                << "core 4.6." << std::endl;
       exit(EXIT_FAILURE);
     }
-    else if (major == 4 && minor < 4)
+    else if (major == 4 && minor < 6)
     {
       std::cout << "Unsupported OpenGL version, application requires OpenGL "
-                << "core 4.4 or greater." << std::endl;
+                << "core 4.6." << std::endl;
       exit(EXIT_FAILURE);
     }
   }

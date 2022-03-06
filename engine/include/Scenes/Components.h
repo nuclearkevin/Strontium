@@ -6,12 +6,17 @@
 // Project includes.
 #include "Core/ApplicationBase.h"
 #include "Assets/AssetManager.h"
+
 #include "Graphics/Renderer.h"
+#include "Graphics/RenderPasses/RenderPass.h"
+#include "Graphics/RenderPasses/SkyAtmospherePass.h"
+#include "Graphics/RenderPasses/DynamicSkyIBLPass.h"
+
 #include "Graphics/Model.h"
 #include "Graphics/Material.h"
 #include "Graphics/Animations.h"
-#include "Graphics/EnvironmentMap.h"
 #include "Graphics/ShadingPrimatives.h"
+
 #include "Scenes/Entity.h"
 
 namespace Strontium
@@ -167,98 +172,237 @@ namespace Strontium
   struct CameraComponent
   {
     Camera entCamera;
-    bool isPrimary;
 
     CameraComponent(const CameraComponent&) = default;
 
     CameraComponent()
       : entCamera()
-      , isPrimary(false)
     { }
   };
 
-  // This is an IBL ambient light component. TODO: Finish and overhaul environment maps.
-  struct AmbientComponent
+  // All falloffs are in km.
+  struct SkyAtmosphereComponent
   {
-    EnvironmentMap* ambient;
+    // Bunch all of the atmospheric scattering parameters together.
+    glm::vec4 rayleighScat; // Rayleigh scattering base (x, y, z) and height falloff (w).
+    glm::vec4 rayleighAbs; // Rayleigh absorption base (x, y, z) and height falloff (w).
+    glm::vec4 mieScat; // Mie scattering base (x, y, z) and height falloff (w).
+    glm::vec4 mieAbs; // Mie absorption base (x, y, z) and height falloff (w).
+    glm::vec4 ozoneAbs; // Ozone absorption base (x, y, z) and scale (w).
+    glm::vec3 planetAlbedo; // Planet albedo (x, y, z).
+    glm::vec2 planetAtmRadius; // Planet radius (x) and the atmosphere radius (y).
 
-    // Parameters for animating the skybox.
-    bool animate;
-    float animationSpeed; // Degrees.
+    // Other parameters which won't be sent to the shader.
+    // Couple with the primary light for volumetric shadows and godrays.
+    bool usePrimaryLight;
 
-    AmbientComponent(const AmbientComponent&) = default;
+    // Internal renderer handle.
+    RendererDataHandle handle;
 
-    AmbientComponent()
-      : animate(false)
-      , animationSpeed(0.01f)
+    SkyAtmosphereComponent(const SkyAtmosphereComponent& other)
+      : rayleighScat(other.rayleighScat)
+      , rayleighAbs(other.rayleighAbs)
+      , mieScat(other.mieScat)
+      , mieAbs(other.mieAbs)
+      , ozoneAbs(other.ozoneAbs)
+      , planetAlbedo(other.planetAlbedo)
+      , planetAtmRadius(other.planetAtmRadius)
+      , usePrimaryLight(other.usePrimaryLight)
     {
-      ambient = Renderer3D::getStorage()->currentEnvironment.get();
+      this->handle = Renderer3D::getPassManager().getRenderPass<SkyAtmospherePass>()->requestRendererData();
     }
 
-    AmbientComponent(const std::string &iblImagePath)
-      : animate(false)
-      , animationSpeed(0.01f)
+    SkyAtmosphereComponent operator=(const SkyAtmosphereComponent& other)
     {
-      ambient = Renderer3D::getStorage()->currentEnvironment.get();
-      auto state = Renderer3D::getState();
+      this->rayleighScat = other.rayleighScat;
+      this->rayleighAbs = other.rayleighAbs;
+      this->mieScat = other.mieScat;
+      this->mieAbs = other.mieAbs;
+      this->ozoneAbs = other.ozoneAbs;
+      this->planetAlbedo = other.planetAlbedo;
+      this->planetAtmRadius = other.planetAtmRadius;
+      this->usePrimaryLight = other.usePrimaryLight;
 
-      if (iblImagePath != "")
+      this->handle = Renderer3D::getPassManager().getRenderPass<SkyAtmospherePass>()->requestRendererData();
+
+      return *this;
+    }
+
+    SkyAtmosphereComponent(SkyAtmosphereComponent&& other) noexcept
+      : rayleighScat(other.rayleighScat)
+      , rayleighAbs(other.rayleighAbs)
+      , mieScat(other.mieScat)
+      , mieAbs(other.mieAbs)
+      , ozoneAbs(other.ozoneAbs)
+      , planetAlbedo(other.planetAlbedo)
+      , planetAtmRadius(other.planetAtmRadius)
+      , usePrimaryLight(other.usePrimaryLight)
+    {
+      this->handle = other.handle;
+      other.handle = -1;
+    }
+
+    SkyAtmosphereComponent& operator=(SkyAtmosphereComponent&& other) noexcept
+    {
+      if (this != &other)
       {
-        ambient->loadEquirectangularMap(iblImagePath);
-        ambient->equiToCubeMap(true, state->skyboxWidth, state->skyboxWidth);
+        this->rayleighScat = other.rayleighScat;
+        this->rayleighAbs = other.rayleighAbs;
+        this->mieScat = other.mieScat;
+        this->mieAbs = other.mieAbs;
+        this->ozoneAbs = other.ozoneAbs;
+        this->planetAlbedo = other.planetAlbedo;
+        this->planetAtmRadius = other.planetAtmRadius;
+        this->usePrimaryLight = other.usePrimaryLight;
+        
+        this->handle = other.handle;
+        other.handle = -1;
       }
+
+      return *this;
     }
+
+    SkyAtmosphereComponent()
+      : rayleighScat(5.802f, 13.558f, 33.1f, 8.0f)
+      , rayleighAbs(0.0f, 0.0f, 0.0f, 8.0f)
+      , mieScat(3.996f, 3.996f, 3.996f, 1.2f)
+      , mieAbs(4.4f, 4.4f, 4.4f, 1.2f)
+      , ozoneAbs(0.650f, 1.881f, 0.085f, 0.002f)
+      , planetAlbedo(0.0f, 0.0f, 0.0f)
+      , planetAtmRadius(6.360f, 6.460f) // In MM.
+      , usePrimaryLight(false)
+      , handle(Renderer3D::getPassManager().getRenderPass<SkyAtmospherePass>()->requestRendererData())
+    { }
+
+    ~SkyAtmosphereComponent()
+    {
+      Renderer3D::getPassManager().getRenderPass<SkyAtmospherePass>()->deleteRendererData(this->handle);
+    }
+
+    operator Atmosphere()
+    {
+      return Atmosphere(rayleighScat, rayleighAbs, mieScat, 
+                        mieAbs, ozoneAbs, glm::vec4(planetAlbedo, planetAtmRadius.x), 
+                        glm::vec4(0.0f, 0.0f, 0.0f, planetAtmRadius.y), 
+                        glm::vec4(0.0f), glm::vec4(0.0f));
+    }
+
+    operator RendererDataHandle() { return this->handle; }
+  };
+
+  // The dynamic skybox component.
+  struct DynamicSkyboxComponent
+  {
+    float sunSize;
+    float intensity;
+
+    DynamicSkyboxComponent(const DynamicSkyboxComponent&) = default;
+
+    DynamicSkyboxComponent()
+      : sunSize(1.0f)
+      , intensity(1.0f)
+    { }
   };
 
   // TODO: Finish these.
   // Various light components for rendering the scene.
   struct DirectionalLightComponent
   {
-    DirectionalLight light;
+    glm::vec3 colour;
+    float intensity;
+    glm::vec3 direction;
+
+    bool castShadows;
+    float size;
 
     DirectionalLightComponent(const DirectionalLightComponent&) = default;
 
     DirectionalLightComponent()
-      : light()
+      : colour(1.0f)
+      , intensity(1.0f)
+      , direction(0.0f, -1.0f, 0.0f)
+      , castShadows(false)
+      , size(10.f)
     { }
 
     operator DirectionalLight()
     {
-      return light;
+      return DirectionalLight(this->colour, this->intensity, this->direction, this->size);
     }
   };
 
   struct PointLightComponent
   {
-    PointLight light;
+    float radius;
+    glm::vec3 colour;
+    float intensity;
+
     bool castShadows;
 
     PointLightComponent(const PointLightComponent&) = default;
 
     PointLightComponent()
-      : light()
+      : radius(1.0f)
+      , colour(1.0f)
+      , intensity(1.0f)
       , castShadows(false)
     { }
 
     operator PointLight()
     {
-      return light;
+      return PointLight({ 0.0f, 0.0f, 0.0f, this->radius }, { this->colour, this->intensity });
     }
   };
 
-  struct SpotLightComponent
+  struct DynamicSkylightComponent
   {
-    SpotLight light;
+    float intensity;
 
-    SpotLightComponent(const SpotLightComponent&) = default;
+    RendererDataHandle handle;
 
-    SpotLightComponent()
-      : light()
+    DynamicSkylightComponent(const DynamicSkylightComponent& other)
+      : intensity(other.intensity)
+    {
+      this->handle = Renderer3D::getPassManager().getRenderPass<DynamicSkyIBLPass>()->requestRendererData();
+    }
+
+    DynamicSkylightComponent operator=(const DynamicSkylightComponent& other)
+    {
+      this->intensity = other.intensity;
+
+      this->handle = Renderer3D::getPassManager().getRenderPass<DynamicSkyIBLPass>()->requestRendererData();
+
+      return *this;
+    }
+
+    DynamicSkylightComponent(DynamicSkylightComponent&& other) noexcept
+      : intensity(other.intensity)
+    {
+      this->handle = other.handle;
+      other.handle = -1;
+    }
+
+    DynamicSkylightComponent& operator=(DynamicSkylightComponent&& other) noexcept
+    {
+      if (this != &other)
+      {
+        this->intensity = other.intensity;
+        
+        this->handle = other.handle;
+        other.handle = -1;
+      }
+
+      return *this;
+    }
+
+    DynamicSkylightComponent()
+      : intensity(1.0f)
+      , handle(Renderer3D::getPassManager().getRenderPass<DynamicSkyIBLPass>()->requestRendererData())
     { }
 
-    operator SpotLight()
+    ~DynamicSkylightComponent()
     {
-      return light;
+      Renderer3D::getPassManager().getRenderPass<DynamicSkyIBLPass>()->deleteRendererData(handle);
     }
   };
 }
