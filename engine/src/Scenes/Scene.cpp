@@ -13,6 +13,7 @@
 #include "Graphics/RenderPasses/IBLApplicationPass.h"
 #include "Graphics/RenderPasses/DirectionalLightPass.h"
 #include "Graphics/RenderPasses/SkyboxPass.h"
+#include "Graphics/RenderPasses/PostProcessingPass.h"
 
 namespace Strontium
 {
@@ -103,6 +104,9 @@ namespace Strontium
     auto dynIBL = passManager.getRenderPass<DynamicSkyIBLPass>();
     auto iblApp = passManager.getRenderPass<IBLApplicationPass>();
     auto skyboxApp = passManager.getRenderPass<SkyboxPass>();
+    auto postProc = passManager.getRenderPass<PostProcessingPass>();
+
+    bool drawOutline = false;
 
     // Group together the lights and submit them to the renderer.
     auto primaryLight = this->getPrimaryDirectionalEntity();
@@ -152,6 +156,7 @@ namespace Strontium
         transformMatrix = computeGlobalTransform(currentEntity);
 
       bool selected = entity == selectedEntity;
+      drawOutline = drawOutline || selected;
 
       // Submit the mesh + material + transform to the static deferred renderer queue.
       if (renderable && !renderable.animator.animationRenderable())
@@ -205,6 +210,8 @@ namespace Strontium
         skyboxApp->submit(atmosphere.handle, dynSkybox.sunSize, dynSkybox.intensity);
       }
     }
+
+    postProc->getInternalDataBlock<PostProcessingPassDataBlock>()->drawOutline = drawOutline;
   }
 
   void

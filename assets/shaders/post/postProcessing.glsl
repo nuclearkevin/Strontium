@@ -34,16 +34,14 @@ layout(std140, binding = 1) uniform PostProcessBlock
   ivec2 u_postSettings; // Using FXAA (bit 1), using bloom (bit 2) (x). Tone mapping operator (y). z and w are unused.
 };
 
-layout(binding = 0) uniform sampler2D screenColour;
-layout(binding = 1) uniform sampler2D entityIDs;
-layout(binding = 2) uniform sampler2D bloomColour;
+layout(binding = 0) uniform sampler2D gDepth;
+layout(binding = 1) uniform sampler2D gEntityIDMask;
+layout(binding = 2) uniform sampler2D screenColour;
+layout(binding = 3) uniform sampler2D bloomColour;
 
 // Output colour variable.
 layout(location = 0) out vec4 fragColour;
 layout(location = 1) out float fragID;
-
-// Helper functions.
-float rgbToLuminance(vec3 rgbColour);
 
 // Bloom.
 vec3 upsampleBoxTent(sampler2D bloomTexture, vec2 uv, float radius);
@@ -53,6 +51,12 @@ vec3 applyFXAA(vec2 screenSize, vec2 uv, sampler2D screenTexture);
 vec3 toneMap(vec3 colour, uint operator);
 // Gamma correct.
 vec3 applyGamma(vec3 colour, float gamma);
+
+// Stuff for the editor.
+// Grid.
+vec3 applyGrid(vec3 colour, sampler2D gDepth, vec2 uvs, mat4 invVP, mat4 vP);
+// The outline.
+vec3 applyOutline(vec3 colour, sampler2D idMask, vec2 uvs, vec2 texel);
 
 void main()
 {
@@ -68,17 +72,23 @@ void main()
   if ((u_postSettings.x & (1 << 1)) != 0)
     colour += u_bloom.x * upsampleBoxTent(bloomColour, fTexCoords, u_bloom.y);
 
+  if ((u_postSettings.x & (1 << 2)) != 0)
+    colour = applyGrid(colour, gDepth, fTexCoords, u_invViewProjMatrix, u_projMatrix * u_viewMatrix);
+
+  if ((u_postSettings.x & (1 << 3)) != 0)
+    colour = applyOutline(colour, gEntityIDMask, fTexCoords, 1.0.xx / screenSize);
+
   colour = toneMap(colour, uint(u_postSettings.y));
   colour = applyGamma(colour, u_nearFarGamma.z);
 
   fragColour = vec4(colour, 1.0);
-  fragID = texture(entityIDs, fTexCoords).a;
+  fragID = texture(gEntityIDMask, fTexCoords).a;
 }
 
 // Helper functions.
-float rgbToLuminance(vec3 rgbColour)
+float rgbToLuma(vec3 rgbColour)
 {
-  return dot(rgbColour, vec3(0.2126f, 0.7152f, 0.0722f));
+  return dot(rgbColour, vec3(0.299, 0.587, 0.114));
 }
 
 /*
@@ -111,18 +121,17 @@ vec3 applyFXAA(vec2 screenSize, vec2 uv, sampler2D screenTexture)
   vec2 texelSize = 1.0 / screenSize;
   vec4 offsetPos = vec4(texelSize, texelSize) * vec4(-1.0, 1.0, 1.0, -1.0);
 
-  vec3 rgbNW = max(texture2D(screenTexture, uv + vec2(-1.0, -1.0) * texelSize).xyz, vec3(0.0));
-  vec3 rgbNE = max(texture2D(screenTexture, uv + vec2(1.0, -1.0) * texelSize).xyz, vec3(0.0));
-  vec3 rgbSW = max(texture2D(screenTexture, uv + vec2(-1.0, 1.0) * texelSize).xyz, vec3(0.0));
-  vec3 rgbSE = max(texture2D(screenTexture, uv + vec2(1.0, 1.0) * texelSize).xyz, vec3(0.0));
-  vec3 rgbM = max(texture2D(screenTexture, uv).xyz, vec3(0.0));
+  vec3 rgbNW = texture(screenTexture, uv + vec2(-1.0, -1.0) * texelSize).rgb;
+  vec3 rgbNE = texture(screenTexture, uv + vec2(1.0, -1.0) * texelSize).rgb;
+  vec3 rgbSW = texture(screenTexture, uv + vec2(-1.0, 1.0) * texelSize).rgb;
+  vec3 rgbSE = texture(screenTexture, uv + vec2(1.0, 1.0) * texelSize).rgb;
+  vec3 rgbM = texture(screenTexture, uv).rgb;
 
-  vec3 luma = vec3(0.299, 0.587, 0.114);
-  float lumaNW = dot(rgbNW, luma);
-  float lumaNE = dot(rgbNE, luma);
-  float lumaSW = dot(rgbSW, luma);
-  float lumaSE = dot(rgbSE, luma);
-  float lumaM  = dot(rgbM,  luma);
+  float lumaNW = rgbToLuma(rgbNW);
+  float lumaNE = rgbToLuma(rgbNE);
+  float lumaSW = rgbToLuma(rgbSW);
+  float lumaSE = rgbToLuma(rgbSE);
+  float lumaM  = rgbToLuma(rgbM);
 
   float lumaMin = min(lumaM, min(min(lumaNW, lumaNE), min(lumaSW, lumaSE)));
   float lumaMax = max(lumaM, max(max(lumaNW, lumaNE), max(lumaSW, lumaSE)));
@@ -142,11 +151,11 @@ vec3 applyFXAA(vec2 screenSize, vec2 uv, sampler2D screenTexture)
         dir * rcpDirMin)) / screenSize;
 
   vec3 rgbA = 0.5 * (
-      max(texture2D(screenTexture, uv + dir * (1.0 / 3.0 - 0.5)).xyz, vec3(0.0)) +
-      max(texture2D(screenTexture, uv + dir * (2.0 / 3.0 - 0.5)).xyz, vec3(0.0)));
+      max(texture(screenTexture, uv + dir * (1.0 / 3.0 - 0.5)).xyz, vec3(0.0)) +
+      max(texture(screenTexture, uv + dir * (2.0 / 3.0 - 0.5)).xyz, vec3(0.0)));
   vec3 rgbB = 0.5 * rgbA + 0.25 * (
-      max(texture2D(screenTexture, uv + dir * -0.5).xyz, vec3(0.0)) +
-      max(texture2D(screenTexture, uv + dir * 0.5).xyz, vec3(0.0)));
+      max(texture(screenTexture, uv + dir * -0.5).xyz, vec3(0.0)) +
+      max(texture(screenTexture, uv + dir * 0.5).xyz, vec3(0.0)));
 
   float lumaB = dot(rgbB, luma);
   if ((lumaB < lumaMin) || (lumaB > lumaMax))
@@ -162,14 +171,14 @@ vec3 reinhardOperator(vec3 rgbColour)
 
 vec3 luminanceReinhardOperator(vec3 rgbColour)
 {
-  float luminance = rgbToLuminance(rgbColour);
+  float luminance = rgbToLuma(rgbColour);
 
   return rgbColour / (1.0 + luminance);
 }
 
 vec3 luminanceReinhardJodieOperator(vec3 rgbColour)
 {
-  float luminance = rgbToLuminance(rgbColour);
+  float luminance = rgbToLuma(rgbColour);
   vec3 tv = rgbColour / (vec3(1.0) + rgbColour);
 
   return mix(rgbColour / (1.0 + luminance), tv, tv);
@@ -254,4 +263,93 @@ vec3 toneMap(vec3 colour, uint operator)
 vec3 applyGamma(vec3 colour, float gamma)
 {
   return pow(colour, vec3(1.0 / gamma));
+}
+
+vec3 unProject(vec3 position, mat4 invVP)
+{
+  vec4 temp = invVP * vec4(position, 1.0);
+  return temp.xyz / temp.w;
+}
+
+vec2 xzTransparency(vec3 xzFragPos3D, float scale)
+{
+  vec2 coord = xzFragPos3D.xz * scale;
+  vec2 derivative = fwidth(coord);
+  vec2 grid = abs(fract(coord - 0.5) - 0.5) / derivative;
+  float line = min(grid.x, grid.y);
+
+  float transparency = 1.0 - min(line, 1.0);
+  return vec2(transparency * 0.4, line < 1.0);
+}
+
+vec4 grid(vec3 xzFragPos3D, float scale)
+{
+  vec2 coord = xzFragPos3D.xz * scale;
+  vec2 derivative = fwidth(coord);
+
+  float minimumz = min(derivative.y, 1.0);
+  float minimumx = min(derivative.x, 1.0);
+
+  vec2 transparency = xzTransparency(xzFragPos3D, scale);
+  vec4 color = vec4(transparency.xxx, transparency.y);
+
+  // Z axis.
+  if (xzFragPos3D.x > -1.0 * minimumx && xzFragPos3D.x < 1.0 * minimumx)
+    color.xy = 0.0.xx;
+  // X axis.
+  if (xzFragPos3D.z > -1.0 * minimumz && xzFragPos3D.z < 1.0 * minimumz)
+    color.yz = 0.0.xx;
+
+  return color;
+}
+
+// Apply the grid.
+vec3 applyGrid(vec3 colour, sampler2D gDepth, vec2 uvs, mat4 invVP, mat4 vP)
+{
+  uvs = 2.0 * uvs - 1.0.xx;
+  vec3 nearPoint = unProject(vec3(uvs, 0.0), invVP);
+  vec3 farPoint = unProject(vec3(uvs, 1.0), invVP);
+  float t = -nearPoint.y / (farPoint.y - nearPoint.y);
+  float s = -nearPoint.z / (farPoint.z - nearPoint.z);
+
+  vec3 xzFragPos3D = nearPoint + t * (farPoint - nearPoint);
+  vec3 xyFragPos3D = nearPoint + s * (farPoint - nearPoint);
+
+  // Compute the depth of the current fragment along both the x-y and x-z planes
+  // [0, 1].
+  vec4 xzFragClipPos = vP * vec4(xzFragPos3D, 1.0);
+  float xzFragDepth = 0.5 * (xzFragClipPos.z / xzFragClipPos.w) + 0.5;
+
+  // Perform a depth test so the grid doesn't draw over scene objects.
+  float depth = texture(gDepth, 0.5 * uvs + 0.5.xx).r;
+  float xzDepthTest = float(depth > xzFragDepth);
+
+  // Apply the grid within 10 units.
+  float aabb = float(abs(xzFragPos3D.x) <= 10.0 && abs(xzFragPos3D.z) <= 10.0);
+  vec4 gridColour = grid(xzFragPos3D, 1.0) * float(t > 0.0);
+
+  return mix(colour, gridColour.rgb, xzDepthTest * aabb * gridColour.a);
+}
+
+// Apply the outline.
+vec3 applyOutline(vec3 colour, sampler2D idMask, vec2 uvs, vec2 texel)
+{
+  // Populate the Sobel edge detection kernel.
+  float kernel[9];
+  kernel[0] = texture(idMask, uvs + vec2(-texel.x, -texel.y)).r;
+	kernel[1] = texture(idMask, uvs + vec2(0.0, -texel.y)).r;
+	kernel[2] = texture(idMask, uvs + vec2(texel.x, -texel.y)).r;
+	kernel[3] = texture(idMask, uvs + vec2(-texel.x, 0.0)).r;
+	kernel[4] = texture(idMask, uvs).r;
+	kernel[5] = texture(idMask, uvs + vec2(texel.x, 0.0)).r;
+	kernel[6] = texture(idMask, uvs + vec2(-texel.x, texel.y)).r;
+	kernel[7] = texture(idMask, uvs + vec2(0.0, texel.y)).r;
+	kernel[8] = texture(idMask, uvs + vec2(texel.x, texel.y)).r;
+
+  // Find the edge of the entity mask.
+  float sobelEdgeH = kernel[2] + (2.0 * kernel[5]) + kernel[8] - (kernel[0] + (2.0 * kernel[3]) + kernel[6]);
+  float sobelEdgeV = kernel[0] + (2.0 * kernel[1]) + kernel[2] - (kernel[6] + (2.0 * kernel[7]) + kernel[8]);
+  float sobel = sqrt((sobelEdgeH * sobelEdgeH) + (sobelEdgeV * sobelEdgeV));
+
+  return mix(colour, vec3(sobel, 0.0, 0.0), float(sobel > 1e-4));
 }

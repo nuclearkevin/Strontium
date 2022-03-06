@@ -92,8 +92,6 @@ ShaderCache:
     Filepath: ./assets/shaders/post/postProcessing.glsl
   - Handle: outline
     Filepath: ./assets/shaders/post/outline.glsl
-  - Handle: grid
-    Filepath: ./assets/shaders/post/grid.glsl
     #
     # Utility
     #

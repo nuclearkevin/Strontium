@@ -21,6 +21,8 @@ namespace Strontium
     // Various post processing settings.
     uint toneMapOp;
     bool useFXAA;
+    bool useGrid;
+    bool drawOutline;
 
     // Some statistics.
     float frameTime;
@@ -30,6 +32,8 @@ namespace Strontium
       , postProcessingParams(6 * sizeof(float), BufferType::Dynamic)
       , toneMapOp(0u)
       , useFXAA(true)
+      , useGrid(true)
+      , drawOutline(false)
       , frameTime(0.0f)
     { }
   };

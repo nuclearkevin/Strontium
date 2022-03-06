@@ -110,7 +110,7 @@ RendererSettings:
     ShadowMapResolution: 2048
   HBAOSettings:
     UseHBAO: false
-    AORadius: 0.00499999989
+    AORadius: 0.00100000005
     AOMultiplier: 1
     AOExponent: 1
   SkyAtmosphereSettings:
@@ -119,10 +119,10 @@ RendererSettings:
     IrradianceSamples: 512
     RadianceSamples: 64
   BloomSettings:
-    UseBloom: false
+    UseBloom: true
     Threshold: 1
     Knee: 1
-    Radius: 1
+    Radius: 0.930000007
     Intensity: 1
   GeneralPostProcessingSettings:
     UseFXAA: true

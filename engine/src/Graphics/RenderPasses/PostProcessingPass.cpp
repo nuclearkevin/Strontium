@@ -39,7 +39,9 @@ namespace Strontium
 
   void 
   PostProcessingPass::onRendererBegin(uint width, uint height)
-  { }
+  {
+    this->passData.drawOutline = false;
+  }
 
   void 
   PostProcessingPass::onRender()
@@ -50,18 +52,18 @@ namespace Strontium
   {
     this->timer.begin();
 
-    auto bloomPassBlock = this->previousBloomPass->getInternalDataBlock<BloomPassDataBlock>();
+    // Bind the scene depth, entity IDs and mask.
+    auto geometryBlock = this->previousGeoPass->getInternalDataBlock<GeometryPassDataBlock>();
+    geometryBlock->gBuffer.bindAttachment(FBOTargetParam::Depth, 0);
+    geometryBlock->gBuffer.bindAttachment(FBOTargetParam::Colour3, 1);
 
     // Bind the lighting buffer.
-    this->globalBlock->lightingBuffer.bind(0);
+    this->globalBlock->lightingBuffer.bind(2);
 
-    // Bind the IDs and the entity mask.
-    this->previousGeoPass->getInternalDataBlock<GeometryPassDataBlock>()
-                         ->gBuffer.bindAttachment(FBOTargetParam::Colour3, 1);
-
-    // TODO: Bind bloom texture.
+    // Bind bloom texture.
+    auto bloomPassBlock = this->previousBloomPass->getInternalDataBlock<BloomPassDataBlock>();
     if (bloomPassBlock->useBloom)
-      bloomPassBlock->upsampleBuffer2.bind(2);
+      bloomPassBlock->upsampleBuffer2.bind(3);
 
     // Bind the camera uniforms.
     this->previousGeoPass->getInternalDataBlock<GeometryPassDataBlock>()->cameraBuffer.bindToPoint(0);
@@ -81,6 +83,10 @@ namespace Strontium
       postBlock.postSettings.x |= (1 << 0);
     if (bloomPassBlock->useBloom)
       postBlock.postSettings.x |= (1 << 1);
+    if (this->passData.useGrid)
+      postBlock.postSettings.x |= (1 << 2);
+    if (this->passData.drawOutline)
+      postBlock.postSettings.x |= (1 << 3);
 
     this->passData.postProcessingParams.bindToPoint(1);
     this->passData.postProcessingParams.setData(0, sizeof(PostBlockData), &postBlock);
