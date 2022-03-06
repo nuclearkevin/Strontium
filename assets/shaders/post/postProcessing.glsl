@@ -30,7 +30,7 @@ layout(std140, binding = 0) uniform CameraBlock
 // The post processing properties.
 layout(std140, binding = 1) uniform PostProcessBlock
 {
-  vec4 u_bloom;  // Bloom intensity (x). y, z and w are unused.
+  vec4 u_bloom;  // Bloom intensity (x) and radius (y), z and w are unused.
   ivec2 u_postSettings; // Using FXAA (bit 1), using bloom (bit 2) (x). Tone mapping operator (y). z and w are unused.
 };
 
@@ -46,14 +46,11 @@ layout(location = 1) out float fragID;
 float rgbToLuminance(vec3 rgbColour);
 
 // Bloom.
-vec3 blendBloom(vec2 bloomTexCoords, sampler2D bloomTexture, float bloomIntensity);
-
+vec3 upsampleBoxTent(sampler2D bloomTexture, vec2 uv, float radius);
 // FXAA.
 vec3 applyFXAA(vec2 screenSize, vec2 uv, sampler2D screenTexture);
-
 // Tone mapping.
 vec3 toneMap(vec3 colour, uint operator);
-
 // Gamma correct.
 vec3 applyGamma(vec3 colour, float gamma);
 
@@ -63,13 +60,13 @@ void main()
   vec2 fTexCoords = gl_FragCoord.xy / screenSize;
 
   vec3 colour;
-  if ((u_postSettings.x & 1) == 1)
+  if ((u_postSettings.x & (1 << 0)) != 0)
     colour = applyFXAA(screenSize, fTexCoords, screenColour);
   else
     colour = texture(screenColour, fTexCoords).rgb;
 
-  if ((u_postSettings.x & 2) == 2)
-    colour += blendBloom(fTexCoords, bloomColour, u_bloom.y);
+  if ((u_postSettings.x & (1 << 1)) != 0)
+    colour += u_bloom.x * upsampleBoxTent(bloomColour, fTexCoords, u_bloom.y);
 
   colour = toneMap(colour, uint(u_postSettings.y));
   colour = applyGamma(colour, u_nearFarGamma.z);
@@ -93,26 +90,19 @@ float rgbToLuminance(vec3 rgbColour)
 vec3 upsampleBoxTent(sampler2D bloomTexture, vec2 uv, float radius)
 {
   vec2 texelSize = 1.0.xx / vec2(textureSize(bloomTexture, 0).xy);
-  vec4 d = texelSize.xyxy * vec4(1.0, 1.0, -1.0, 0.0) * radius;
+  vec4 d = texelSize.xyxy * vec4(1.0, 1.0, -1.0, 0.0) * 1.0;
 
-  vec3 A = textureLod(bloomTexture, uv - d.xy, 0).rgb;
-  vec3 B = textureLod(bloomTexture, uv - d.wy, 0).rgb * 2.0;
-  vec3 C = textureLod(bloomTexture, uv - d.zy, 0).rgb;
-  vec3 D = textureLod(bloomTexture, uv + d.zw, 0).rgb * 2.0;
-  vec3 E = textureLod(bloomTexture, uv, 0).rgb * 4.0;
-  vec3 F = textureLod(bloomTexture, uv + d.xw, 0).rgb * 2.0;
-  vec3 G = textureLod(bloomTexture, uv + d.zy, 0).rgb;
-  vec3 H = textureLod(bloomTexture, uv + d.wy, 0).rgb * 2.0;
-  vec3 I = textureLod(bloomTexture, uv + d.xy, 0).rgb;
+  vec3 A = texture(bloomTexture, uv - d.xy).rgb;
+  vec3 B = texture(bloomTexture, uv - d.wy).rgb * 2.0;
+  vec3 C = texture(bloomTexture, uv - d.zy).rgb;
+  vec3 D = texture(bloomTexture, uv + d.zw).rgb * 2.0;
+  vec3 E = texture(bloomTexture, uv).rgb * 4.0;
+  vec3 F = texture(bloomTexture, uv + d.xw).rgb * 2.0;
+  vec3 G = texture(bloomTexture, uv + d.zy).rgb;
+  vec3 H = texture(bloomTexture, uv + d.wy).rgb * 2.0;
+  vec3 I = texture(bloomTexture, uv + d.xy).rgb;
 
   return (A + B + C + D + E + F + G + H + I) * 0.0625; // * 1/16
-}
-
-// Bloom.
-vec3 blendBloom(vec2 bloomTexCoords, sampler2D bloomTexture, float bloomIntensity)
-{
-  // Final upsample.
-  return upsampleBoxTent(bloomTexture, bloomTexCoords, 1.0) * bloomIntensity;
 }
 
 // FXAA.

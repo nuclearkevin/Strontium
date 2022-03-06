@@ -77,12 +77,12 @@ ShaderCache:
     #
     # Bloom
     #
-  - Handle: bloom_prefilter
+  - Handle: bloom_downsample_karis
     Filepath: ./assets/shaders/compute/bloom/bloomPrefilter.glsl
   - Handle: bloom_downsample
     Filepath: ./assets/shaders/compute/bloom/bloomDownsample.glsl
-  - Handle: bloom_upsample
-    Filepath: ./assets/shaders/compute/bloom/bloomUpsample.glsl
+  - Handle: bloom_copy
+    Filepath: ./assets/shaders/compute/bloom/bloomCopy.glsl
   - Handle: bloom_upsample_blend
     Filepath: ./assets/shaders/compute/bloom/bloomUpsampleBlend.glsl
     #
@@ -104,6 +104,8 @@ ShaderCache:
     #
     # Widgets
     #
+  - Handle: tex_2D_lod
+    Filepath: ./assets/shaders/widgets/tex_2D_lod.glsl
   - Handle: cubemap_tex_2D
     Filepath: ./assets/shaders/widgets/texCubemapTex2D.glsl
   - Handle: cubemap_array_tex_2D

@@ -1,7 +1,9 @@
 #type compute
 #version 460 core
 /*
- * A bloom downsampling compute shader.
+ * A bloom downsampling compute shader. Based off the presentation by
+ * Jorge Jimenez at Advances in Real-Time Rendering:
+ * http://www.iryoku.com/next-generation-post-processing-in-call-of-duty-advanced-warfare
 */
 
 layout(local_size_x = 8, local_size_y = 8) in;

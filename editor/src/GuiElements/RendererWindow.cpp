@@ -14,6 +14,7 @@
 
 #include "Graphics/RenderPasses/SkyboxPass.h"
 
+#include "Graphics/RenderPasses/BloomPass.h"
 #include "Graphics/RenderPasses/PostProcessingPass.h"
 
 // ImGui includes.
@@ -30,6 +31,9 @@ namespace Strontium
     , skyviewLUTView("Skyview LUT")
     , irradianceView("Dynamic Sky Irradiance")
     , radianceView("Dynamic Sky Radiance")
+    , bloomDownSampleView("Bloom Downsample Image Pyramid")
+    , bloomUpSampleView1("Bloom Upsample Image Pyramid 1")
+    , bloomUpSampleView2("Bloom Upsample Image Pyramid 2")
   { }
 
   RendererWindow::~RendererWindow()
@@ -136,44 +140,6 @@ namespace Strontium
                      ImVec2(128.0f, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
       }
     }
-
-    /*
-    if (ImGui::CollapsingHeader("Bloom"))
-    {
-      auto bufferSize = storage->gBuffer.getSize();
-      float ratio = bufferSize.x / bufferSize.y;
-
-      ImGui::Checkbox("Use Bloom", &state->enableBloom);
-      ImGui::DragFloat("Threshold", &state->bloomThreshold, 0.01f, 0.0f, 10.0f);
-      ImGui::DragFloat("Knee", &state->bloomKnee, 0.01f, 0.0f, 1.0f);
-      ImGui::DragFloat("Radius", &state->bloomRadius, 0.01f, 0.0f, 10.0f);
-      ImGui::DragFloat("Intensity", &state->bloomIntensity, 0.01f, 0.0f, 10.0f);
-
-      static bool showBloomTextures = false;
-      ImGui::Checkbox("Show Bloom Image Pyramid", &showBloomTextures);
-
-      if (showBloomTextures)
-      {
-        ImGui::Text("Downsample Image Pyramid (%d, %d)",
-                    storage->downscaleBloomTex.getWidth(),
-                    storage->downscaleBloomTex.getHeight());
-        ImGui::Image((ImTextureID) (unsigned long) storage->downscaleBloomTex.getID(),
-                     ImVec2(128.0f * ratio, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
-
-        ImGui::Text("Upsample Image Pyramid (%d, %d)",
-                    storage->upscaleBloomTex.getWidth(),
-                    storage->upscaleBloomTex.getHeight());
-        ImGui::Image((ImTextureID) (unsigned long) storage->upscaleBloomTex.getID(),
-                     ImVec2(128.0f * ratio, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
-
-        ImGui::Text("Buffer Image Pyramid (%d, %d)",
-                    storage->bufferBloomTex.getWidth(),
-                    storage->bufferBloomTex.getHeight());
-        ImGui::Image((ImTextureID) (unsigned long) storage->bufferBloomTex.getID(),
-                     ImVec2(128.0f * ratio, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
-      }
-    }
-    */
 
     if (ImGui::CollapsingHeader("Geometry Pass"))
     {
@@ -330,6 +296,35 @@ namespace Strontium
                   / static_cast<float>(globalBlock.lightingBuffer.getHeight());
       ImGui::Image(reinterpret_cast<ImTextureID>(globalBlock.lightingBuffer.getID()),
                    ImVec2(128.0f * ratio, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
+    }
+
+    if (ImGui::CollapsingHeader("Bloom Pass"))
+    {
+      auto& globalBlock = Renderer3D::getStorage();
+      auto& renderPassManger = Renderer3D::getPassManager();
+      auto bloomPass = renderPassManger.getRenderPass<BloomPass>();
+      auto bloomPassBlock = bloomPass->getInternalDataBlock<BloomPassDataBlock>();
+
+      float ratio = static_cast<float>(globalBlock.lightingBuffer.getWidth()) 
+                  / static_cast<float>(globalBlock.lightingBuffer.getHeight());
+
+      ImGui::Text("Bloom Frametime: %f ms", bloomPassBlock->frameTime);
+
+      ImGui::Checkbox("Use Bloom", &bloomPassBlock->useBloom);
+      ImGui::DragFloat("Threshold", &bloomPassBlock->threshold, 0.01f, 0.0f, 10.0f);
+      ImGui::DragFloat("Knee", &bloomPassBlock->knee, 0.01f, 0.0f, 1.0f);
+      ImGui::DragFloat("Radius", &bloomPassBlock->radius, 0.01f, 0.0f, 10.0f);
+      ImGui::DragFloat("Intensity", &bloomPassBlock->intensity, 0.01f, 0.0f, 10.0f);
+
+      static bool showBloomTextures = false;
+      ImGui::Checkbox("Show Bloom Image Pyramid", &showBloomTextures);
+
+      if (showBloomTextures)
+      {
+        this->bloomDownSampleView.texture2DImageLod(bloomPassBlock->downsampleBuffer, ImVec2(128.0f * ratio, 128.0f));
+        this->bloomUpSampleView1.texture2DImageLod(bloomPassBlock->upsampleBuffer1, ImVec2(128.0f * ratio, 128.0f));
+        this->bloomUpSampleView2.texture2DImageLod(bloomPassBlock->upsampleBuffer2, ImVec2(128.0f * ratio, 128.0f));
+      }
     }
 
     if (ImGui::CollapsingHeader("General Post-Processing Pass"))

@@ -11,9 +11,10 @@
 #include "Graphics/RenderPasses/IBLApplicationPass.h"
 #include "Graphics/RenderPasses/DirectionalLightPass.h"
 
-#include "Graphics/RenderPasses/PostProcessingPass.h"
-
 #include "Graphics/RenderPasses/SkyboxPass.h"
+
+#include "Graphics/RenderPasses/BloomPass.h"
+#include "Graphics/RenderPasses/PostProcessingPass.h"
 
 //----------------------------------------------------------------------------
 // 3D renderer starts here.
@@ -82,7 +83,8 @@ namespace Strontium::Renderer3D
     auto skyboxApp = passManager->insertRenderPass<SkyboxPass>(rendererData, geomet, skyatmo);
 
     // Post processing passes
-    auto post = passManager->insertRenderPass<PostProcessingPass>(rendererData, geomet);
+    auto bloom = passManager->insertRenderPass<BloomPass>(rendererData);
+    auto post = passManager->insertRenderPass<PostProcessingPass>(rendererData, geomet, bloom);
 
     // Init the render passes.
     passManager->onInit();

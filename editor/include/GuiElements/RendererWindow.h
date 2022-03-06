@@ -32,5 +32,9 @@ namespace Strontium
 
     TextureWidget irradianceView;
     TextureWidget radianceView;
+
+    TextureWidget bloomDownSampleView;
+    TextureWidget bloomUpSampleView1;
+    TextureWidget bloomUpSampleView2;
   };
 }

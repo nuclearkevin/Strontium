@@ -17,6 +17,7 @@ struct SurfaceProperties
   float metalness;
   float roughness;
   float ao;
+  float emission;
 
   vec3 position;
   vec3 normal;
@@ -80,6 +81,7 @@ void main()
     ao = min(getHBAO(gDepth, hbaoTexture, gBufferUVs, u_nearFar.xy), ao);
 
   totalRadiance += evaluateIBL(u_iblParams.x, gBuffer, ao) * u_iblParams.y;
+  totalRadiance += gBuffer.albedo * gBuffer.emission;
 
   imageStore(lightingBuffer, invoke, vec4(totalRadiance, 1.0));
 }
@@ -114,10 +116,11 @@ SurfaceProperties decodeGBuffer(vec2 gBufferUVs)
   decoded.view = normalize(u_camPosition - decoded.position);
   decoded.normal = decodeNormal(gBufferUVs, gNormal);
 
-  vec3 mra = texture(gMatProp, gBufferUVs).rgb;
-  decoded.metalness = mra.r;
-  decoded.roughness = mra.g;
-  decoded.ao = mra.b;
+  vec4 mrae = texture(gMatProp, gBufferUVs).rgba;
+  decoded.metalness = mrae.r;
+  decoded.roughness = mrae.g;
+  decoded.ao = mrae.b;
+  decoded.emission = mrae.a;
 
   // Remap material properties.
   vec4 albedoReflectance = texture(gAlbedo, gBufferUVs).rgba;

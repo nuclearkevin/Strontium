@@ -10,6 +10,7 @@
 #include "Graphics/RenderPasses/HBAOPass.h"
 #include "Graphics/RenderPasses/SkyAtmospherePass.h"
 #include "Graphics/RenderPasses/DynamicSkyIBLPass.h"
+#include "Graphics/RenderPasses/BloomPass.h"
 #include "Graphics/RenderPasses/PostProcessingPass.h"
 #include "Graphics/Renderer.h"
 
@@ -21,111 +22,114 @@ namespace YAML
   template <>
 	struct convert<glm::vec2>
 	{
-		static Node encode(const glm::vec2& rhs)
-		{
-			Node node;
-			node.push_back(rhs.x);
-			node.push_back(rhs.y);
-
-			node.SetStyle(EmitterStyle::Flow);
-
-			return node;
-		}
-
-		static bool decode(const Node& node, glm::vec2& rhs)
-		{
-			if (!node.IsSequence() || node.size() != 2)
-				return false;
-
-			rhs.x = node[0].as<float>();
-			rhs.y = node[1].as<float>();
-
-			return true;
-		}
+	  static Node encode(const glm::vec2& rhs)
+	  {
+	    Node node;
+	    node.push_back(rhs.x);
+	    node.push_back(rhs.y);
+           
+	    node.SetStyle(EmitterStyle::Flow);
+           
+	    return node;
+	  }
+      
+	  static bool decode(const Node& node, glm::vec2& rhs)
+	  {
+	    if (!node.IsSequence() || node.size() != 2)
+	    	return false;
+           
+	    rhs.x = node[0].as<float>();
+	    rhs.y = node[1].as<float>();
+           
+	    return true;
+	  }
 	};
 
   template <>
-	struct convert<glm::vec3>
-	{
-		static Node encode(const glm::vec3& rhs)
-		{
-			Node node;
-			node.push_back(rhs.x);
-			node.push_back(rhs.y);
-			node.push_back(rhs.z);
-
-			node.SetStyle(EmitterStyle::Flow);
-
-			return node;
-		}
-
-		static bool decode(const Node& node, glm::vec3& rhs)
-		{
-			if (!node.IsSequence() || node.size() != 3)
-				return false;
-
-			rhs.x = node[0].as<float>();
-			rhs.y = node[1].as<float>();
-			rhs.z = node[2].as<float>();
-
-			return true;
-		}
-	};
-
-	template <>
-	struct convert<glm::vec4>
-	{
-		static Node encode(const glm::vec4& rhs)
-		{
-			Node node;
-			node.push_back(rhs.x);
-			node.push_back(rhs.y);
-			node.push_back(rhs.z);
-			node.push_back(rhs.w);
-
-			node.SetStyle(EmitterStyle::Flow);
-
-			return node;
-		}
-
-		static bool decode(const Node& node, glm::vec4& rhs)
-		{
-			if (!node.IsSequence() || node.size() != 4)
-				return false;
-
-			rhs.x = node[0].as<float>();
-			rhs.y = node[1].as<float>();
-			rhs.z = node[2].as<float>();
-			rhs.w = node[3].as<float>();
-
-			return true;
-		}
-	};
+  struct convert<glm::vec3>
+  {
+    static Node encode(const glm::vec3& rhs)
+    {
+      Node node;
+      node.push_back(rhs.x);
+      node.push_back(rhs.y);
+      node.push_back(rhs.z);
+            
+      node.SetStyle(EmitterStyle::Flow);
+            
+      return node;
+    }
+       
+    static bool decode(const Node& node, glm::vec3& rhs)
+    {
+      if (!node.IsSequence() || node.size() != 3)
+      	return false;
+            
+      rhs.x = node[0].as<float>();
+      rhs.y = node[1].as<float>();
+      rhs.z = node[2].as<float>();
+            
+      return true;
+    }
+  };
+  
+  template <>
+  struct convert<glm::vec4>
+  {
+    static Node encode(const glm::vec4& rhs)
+    {
+      Node node;
+      node.push_back(rhs.x);
+      node.push_back(rhs.y);
+      node.push_back(rhs.z);
+      node.push_back(rhs.w);
+            
+      node.SetStyle(EmitterStyle::Flow);
+            
+      return node;
+    }
+  
+    static bool decode(const Node& node, glm::vec4& rhs)
+    {
+      if (!node.IsSequence() || node.size() != 4)
+      	return false;
+            
+      rhs.x = node[0].as<float>();
+      rhs.y = node[1].as<float>();
+      rhs.z = node[2].as<float>();
+      rhs.w = node[3].as<float>();
+            
+      return true;
+    }
+  };
 }
 
 namespace Strontium
 {
   namespace YAMLSerialization
   {
-    YAML::Emitter& operator<<(YAML::Emitter& out, const glm::vec2& v)
+    YAML::Emitter& 
+    operator<<(YAML::Emitter& out, const glm::vec2& v)
     {
-    	out << YAML::Flow;
-    	out << YAML::BeginSeq << v.x << v.y << YAML::EndSeq;
-    	return out;
+      out << YAML::Flow;
+      out << YAML::BeginSeq << v.x << v.y << YAML::EndSeq;
+      return out;
     }
 
-    YAML::Emitter& operator<<(YAML::Emitter& out, const glm::vec3& v)
+    YAML::Emitter& 
+    operator<<(YAML::Emitter& out, const glm::vec3& v)
     {
-    	out << YAML::Flow;
-    	out << YAML::BeginSeq << v.x << v.y << v.z << YAML::EndSeq;
-    	return out;
+      out << YAML::Flow;
+      out << YAML::BeginSeq << v.x << v.y << v.z << YAML::EndSeq;
+      return out;
     }
 
-    YAML::Emitter& operator<<(YAML::Emitter& out, const glm::vec4& v)
+    YAML::Emitter& 
+    operator<<(YAML::Emitter& out, const glm::vec4& v)
     {
-    	out << YAML::Flow;
-    	out << YAML::BeginSeq << v.x << v.y << v.z << v.w << YAML::EndSeq;
-    	return out;
+      out << YAML::Flow;
+      out << YAML::BeginSeq << v.x << v.y << v.z << v.w << YAML::EndSeq;
+      return out;
     }
 
     void
@@ -502,6 +506,22 @@ namespace Strontium
 
           out << YAML::Key << "IrradianceSamples" << YAML::Value << dynSkyIBLPassData->numIrradSamples;
           out << YAML::Key << "RadianceSamples" << YAML::Value << dynSkyIBLPassData->numRadSamples;
+
+          out << YAML::EndMap;
+        }
+
+        // Bloom settings
+        {
+          auto bloomPass = passManager.getRenderPass<BloomPass>();
+          auto bloomPassData = bloomPass->getInternalDataBlock<BloomPassDataBlock>();
+
+          out << YAML::Key << "BloomSettings" << YAML::BeginMap;
+          
+          out << YAML::Key << "UseBloom" << YAML::Value << bloomPassData->useBloom;
+          out << YAML::Key << "Threshold" << YAML::Value << bloomPassData->threshold;
+          out << YAML::Key << "Knee" << YAML::Value << bloomPassData->knee;
+          out << YAML::Key << "Radius" << YAML::Value << bloomPassData->radius;
+          out << YAML::Key << "Intensity" << YAML::Value << bloomPassData->intensity;
 
           out << YAML::EndMap;
         }
@@ -906,6 +926,21 @@ namespace Strontium
 
             dynSkyIBLPassData->numIrradSamples = dynSkyIBLSettings["IrradianceSamples"].as<uint>();
             dynSkyIBLPassData->numRadSamples = dynSkyIBLSettings["RadianceSamples"].as<uint>();
+          }
+        }
+
+        {
+          auto bloomSettings = rendererSettings["BloomSettings"];
+          if (bloomSettings)
+          {
+            auto bloomPass = passManager.getRenderPass<BloomPass>();
+            auto bloomPassData = bloomPass->getInternalDataBlock<BloomPassDataBlock>();
+
+            bloomPassData->useBloom = bloomSettings["UseBloom"].as<bool>();
+            bloomPassData->threshold = bloomSettings["Threshold"].as<float>();
+            bloomPassData->knee = bloomSettings["Knee"].as<float>();
+            bloomPassData->radius = bloomSettings["Radius"].as<float>();
+            bloomPassData->intensity = bloomSettings["Intensity"].as<float>();
           }
         }
 

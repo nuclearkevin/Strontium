@@ -5,6 +5,7 @@
 // Project includes.
 #include "Graphics/RenderPasses/RenderPass.h"
 #include "Graphics/RenderPasses/GeometryPass.h"
+#include "Graphics/RenderPasses/BloomPass.h"
 #include "Graphics/Shaders.h"
 #include "Graphics/Buffers.h"
 #include "Graphics/GPUTimers.h"
@@ -37,7 +38,8 @@ namespace Strontium
   {
   public:
 	PostProcessingPass(Renderer3D::GlobalRendererData* globalRendererData,
-                       GeometryPass* previousGeoPass);
+                       GeometryPass* previousGeoPass,
+                       BloomPass* previousBloomPass);
 	~PostProcessingPass() override;
 
     void onInit() override;
@@ -52,6 +54,7 @@ namespace Strontium
     PostProcessingPassDataBlock passData;
 
     GeometryPass* previousGeoPass;
+    BloomPass* previousBloomPass;
 
     AsynchTimer timer;
   };

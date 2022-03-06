@@ -17,6 +17,9 @@ namespace Strontium
 	TextureWidget(const std::string & widgetName);
 	~TextureWidget();
 
+	void texture2DImageLod(Texture2D &texture, const ImVec2& size,
+						   const ImVec2 &uv1 = ImVec2(0, 1), 
+						   const ImVec2 &uv2 = ImVec2(1, 0));
 	void cubemapImage(CubeMap &texture, const ImVec2 &size, 
 					  bool lodSlider = false,
 					  const ImVec2 &uv1 = ImVec2(0, 1), 
@@ -33,6 +36,7 @@ namespace Strontium
   private:
 	Texture2D buffer;
 
+	Shader* tex2DLod;
 	Shader* texCubemapTex2D;
 	Shader* texCubemapArrayTex2D;
 	Shader* tex2DArrayTex2D;

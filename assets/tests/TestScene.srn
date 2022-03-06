@@ -104,7 +104,7 @@ RendererSettings:
   ShadowSettings:
     ShadowQuality: 2
     MinimumRadius: 3
-    CascadeLambda: 0.5
+    CascadeLambda: 0.899999976
     ConstantBias: 0.5
     NormalBias: 50
     ShadowMapResolution: 2048
@@ -118,6 +118,12 @@ RendererSettings:
   DynamicSkyIBLSettings:
     IrradianceSamples: 512
     RadianceSamples: 64
+  BloomSettings:
+    UseBloom: false
+    Threshold: 1
+    Knee: 1
+    Radius: 1
+    Intensity: 1
   GeneralPostProcessingSettings:
     UseFXAA: true
     ToneMapFunction: 5

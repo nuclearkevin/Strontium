@@ -1,7 +1,9 @@
 #type compute
 #version 460 core
 /*
- * A bloom prefiltering compute shader.
+ * A bloom prefiltering compute shader. Based off the presentation by
+ * Jorge Jimenez at Advances in Real-Time Rendering:
+ * http://www.iryoku.com/next-generation-post-processing-in-call-of-duty-advanced-warfare
 */
 
 layout(local_size_x = 8, local_size_y = 8) in;
@@ -12,10 +14,10 @@ layout(rgba16f, binding = 0) readonly uniform image2D lightingPassImage;
 // The prefiltered output image, ready for downsampling.
 layout(rgba16f, binding = 1) restrict writeonly uniform image2D prefilteredImage;
 
-layout(std140, binding = 3) readonly buffer PrefilterParams
+layout(std140, binding = 0) uniform PrefilterParams
 {
   vec4 u_filterParams; // Threshold (x), threshold - knee (y), 2.0 * knee (z) and 0.25 / knee (w).
-  vec2 u_upsampleRadius; // Upsampling filter radius (x).
+  vec2 u_upsampleRadius; // Upsampling filter radius (x) and the current mip-chain LOD (y). z and w are unused.
 };
 
 // The threshold curve.
@@ -23,9 +25,6 @@ vec3 quadraticThreshold(vec3 colour, float threshold, vec3 curve);
 
 // The downsampling filter.
 vec3 downsampleBox13Tap(ivec2 coords);
-
-// Bilinear fetching for 4 texels.
-vec3 bilinearFetch(ivec2 coords);
 
 void main()
 {
@@ -53,6 +52,16 @@ float computeWeight(vec3 colour)
 {
   float luma = dot(vec3(0.2126, 0.7152, 0.0722), colour);
   return 1.0 / (1.0 + luma);
+}
+
+vec3 bilinearFetch(ivec2 coords)
+{
+  vec3 current = imageLoad(lightingPassImage, coords).rgb;
+  vec3 right = imageLoad(lightingPassImage, coords + ivec2(1, 0)).rgb;
+  vec3 top = imageLoad(lightingPassImage, coords + ivec2(0, 1)).rgb;
+  vec3 topRight = imageLoad(lightingPassImage, coords + ivec2(1, 1)).rgb;
+
+  return 0.25 * (current + right + top + topRight);
 }
 
 /*
@@ -114,14 +123,4 @@ vec3 downsampleBox13Tap(ivec2 coords)
   result += (E + F + H + I) * weights.y / (wE + wF + wH + wI);;
 
   return result;
-}
-
-vec3 bilinearFetch(ivec2 coords)
-{
-  vec3 current = imageLoad(lightingPassImage, coords).rgb;
-  vec3 right = imageLoad(lightingPassImage, coords + ivec2(1, 0)).rgb;
-  vec3 top = imageLoad(lightingPassImage, coords + ivec2(0, 1)).rgb;
-  vec3 topRight = imageLoad(lightingPassImage, coords + ivec2(1, 1)).rgb;
-
-  return 0.25 * (current + right + top + topRight);
 }

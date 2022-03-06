@@ -143,7 +143,7 @@ namespace Strontium
     {
       // Draw all the renderables with transforms.
       auto [transform, renderable] = drawables.get<TransformComponent, RenderableComponent>(entity);
-      glm::mat4 transformMatrix = (glm::mat4) transform;
+      glm::mat4 transformMatrix = static_cast<glm::mat4>(transform);
 
       // If a drawable item has a transform hierarchy, compute the global
       // transforms from local transforms.
@@ -213,6 +213,7 @@ namespace Strontium
     // Grab the required renderpasses for submission.
     auto& passManager = Renderer3D::getPassManager();
     auto shadow = passManager.getRenderPass<ShadowPass>();
+    auto geomet = passManager.getRenderPass<GeometryPass>();
     auto dirApp = passManager.getRenderPass<DirectionalLightPass>();
     auto skyAtm = passManager.getRenderPass<SkyAtmospherePass>();
     auto dynIBL = passManager.getRenderPass<DynamicSkyIBLPass>();
@@ -249,6 +250,35 @@ namespace Strontium
         transformMatrix = computeGlobalTransform(currentEntity);
 
       Renderer3D::submit(point, transformMatrix);
+    }
+
+    // Group together the transform and renderable components.
+    auto drawables = this->sceneECS.group<RenderableComponent>(entt::get<TransformComponent>);
+    for (auto entity : drawables)
+    {
+      // Draw all the renderables with transforms.
+      auto [transform, renderable] = drawables.get<TransformComponent, RenderableComponent>(entity);
+      glm::mat4 transformMatrix = static_cast<glm::mat4>(transform);
+
+      // If a drawable item has a transform hierarchy, compute the global
+      // transforms from local transforms.
+      auto currentEntity = Entity(entity, this);
+      if (currentEntity.hasComponent<ParentEntityComponent>())
+        transformMatrix = computeGlobalTransform(currentEntity);
+
+      // Submit the mesh + material + transform to the static deferred renderer queue.
+      if (renderable && !renderable.animator.animationRenderable())
+      {
+        geomet->submit(static_cast<Model*>(renderable), renderable.materials, transformMatrix);
+        shadow->submit(static_cast<Model*>(renderable), transformMatrix);
+      }
+      // If it has a valid animation, instead submit it to the dynamic deferred renderer queue.
+      else if (renderable && renderable.animator.animationRenderable())
+      {
+        geomet->submit(static_cast<Model*>(renderable), &renderable.animator, 
+                       renderable.materials, transformMatrix);
+        shadow->submit(static_cast<Model*>(renderable), &renderable.animator, transformMatrix);
+      }
     }
 
     // Group together the transform, sky-atmosphere and directional light components.

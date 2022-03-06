@@ -7,13 +7,12 @@
 namespace Strontium
 {
   PostProcessingPass::PostProcessingPass(Renderer3D::GlobalRendererData* globalRendererData,
-                                         GeometryPass* previousGeoPass)
-    : RenderPass(&this->passData, globalRendererData, { previousGeoPass })
+                                         GeometryPass* previousGeoPass, BloomPass* previousBloomPass)
+    : RenderPass(&this->passData, globalRendererData, { previousGeoPass, previousBloomPass })
     , previousGeoPass(previousGeoPass)
+    , previousBloomPass(previousBloomPass)
     , timer(5)
-  {
-
-  }
+  { }
 
   PostProcessingPass::~PostProcessingPass()
   { }
@@ -51,6 +50,8 @@ namespace Strontium
   {
     this->timer.begin();
 
+    auto bloomPassBlock = this->previousBloomPass->getInternalDataBlock<BloomPassDataBlock>();
+
     // Bind the lighting buffer.
     this->globalBlock->lightingBuffer.bind(0);
 
@@ -59,7 +60,8 @@ namespace Strontium
                          ->gBuffer.bindAttachment(FBOTargetParam::Colour3, 1);
 
     // TODO: Bind bloom texture.
-    
+    if (bloomPassBlock->useBloom)
+      bloomPassBlock->upsampleBuffer2.bind(2);
 
     // Bind the camera uniforms.
     this->previousGeoPass->getInternalDataBlock<GeometryPassDataBlock>()->cameraBuffer.bindToPoint(0);
@@ -67,16 +69,18 @@ namespace Strontium
     // Upload the post processing settings.
     struct PostBlockData
     {
-      glm::vec4 bloom;  // Bloom intensity (x). y, z and w are unused.
+      glm::vec4 bloom;  // Bloom intensity (x) and radius (y). z and w are unused.
       glm::ivec2 postSettings; // Using bloom (bit 1), using FXAA (bit 2) (x). Tone mapping operator (y). z and w are unused.
     } 
       postBlock
     {
-      { 0.0f, 0.0f, 0.0f, 0.0f },
+      { bloomPassBlock->intensity, bloomPassBlock->radius, 0.0f, 0.0f },
       { 0, static_cast<int>(this->passData.toneMapOp) }
     };
-    postBlock.postSettings.x |= 1 * static_cast<int>(this->passData.useFXAA);
-    postBlock.postSettings.x |= 0; // TODO: Apply bloom goes here.
+    if (this->passData.useFXAA)
+      postBlock.postSettings.x |= (1 << 0);
+    if (bloomPassBlock->useBloom)
+      postBlock.postSettings.x |= (1 << 1);
 
     this->passData.postProcessingParams.bindToPoint(1);
     this->passData.postProcessingParams.setData(0, sizeof(PostBlockData), &postBlock);
@@ -99,5 +103,5 @@ namespace Strontium
 
   void 
   PostProcessingPass::onShutdown()
-  {}
+  { }
 }

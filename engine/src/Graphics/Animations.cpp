@@ -22,12 +22,12 @@ namespace Strontium
 
   Animation::Animation(Model* parentModel)
     : parentModel(parentModel)
+    , duration(0.0f)
+    , ticksPerSecond(0.0f)
   { }
 
   Animation::~Animation()
-  {
-
-  }
+  { }
 
   void
   Animation::loadAnimation(const aiAnimation* animation)
@@ -36,7 +36,7 @@ namespace Strontium
     this->duration = animation->mDuration;
     this->ticksPerSecond = animation->mTicksPerSecond == 0.0f ? 25.0f : animation->mTicksPerSecond;
 
-    for (unsigned int i = 0; i < animation->mNumChannels; i++)
+    for (uint i = 0; i < animation->mNumChannels; i++)
     {
       aiNodeAnim* node = animation->mChannels[i];
       if (this->animationNodes.find(node->mNodeName.C_Str()) == this->animationNodes.end())
@@ -45,7 +45,7 @@ namespace Strontium
 
         // Load translations.
         this->animationNodes[node->mNodeName.C_Str()].keyTranslations.reserve(node->mNumPositionKeys);
-        for (unsigned int j = 0; j < node->mNumPositionKeys; j++)
+        for (uint j = 0; j < node->mNumPositionKeys; j++)
         {
           this->animationNodes[node->mNodeName.C_Str()]
             .keyTranslations.emplace_back(node->mPositionKeys[j].mTime, Utilities::vec3ToGLM(node->mPositionKeys[j].mValue));
@@ -53,7 +53,7 @@ namespace Strontium
 
         // Load rotations.
         this->animationNodes[node->mNodeName.C_Str()].keyRotations.reserve(node->mNumRotationKeys);
-        for (unsigned int j = 0; j < node->mNumRotationKeys; j++)
+        for (uint j = 0; j < node->mNumRotationKeys; j++)
         {
           this->animationNodes[node->mNodeName.C_Str()]
             .keyRotations.emplace_back(node->mRotationKeys[j].mTime, Utilities::quatToGLM(node->mRotationKeys[j].mValue));
@@ -61,7 +61,7 @@ namespace Strontium
 
         // Load scales.
         this->animationNodes[node->mNodeName.C_Str()].keyScales.reserve(node->mNumScalingKeys);
-        for (unsigned int j = 0; j < node->mNumScalingKeys; j++)
+        for (uint j = 0; j < node->mNumScalingKeys; j++)
         {
           this->animationNodes[node->mNodeName.C_Str()]
             .keyScales.emplace_back(node->mScalingKeys[j].mTime, Utilities::vec3ToGLM(node->mScalingKeys[j].mValue));
@@ -72,7 +72,7 @@ namespace Strontium
 
   void
   Animation::computeBoneTransforms(float aniTime, std::vector<glm::mat4>& outBonesSkinned, 
-                                   std::unordered_map<std::string, glm::mat4>& outBonesUnskinned)
+                                   std::unordered_map<std::string, glm::mat4> &outBonesUnskinned)
   {
     if (this->parentModel->hasSkins())
     {
@@ -101,7 +101,7 @@ namespace Strontium
 
     if (this->animationNodes.find(nodeName) != this->animationNodes.end())
     {
-      auto& aniNode = this->animationNodes[nodeName];
+      auto& aniNode = this->animationNodes.at(nodeName);
       glm::mat4 translation = this->interpolateTranslation(aniTime, aniNode);
       glm::mat4 rotation = this->interpolateRotation(aniTime, aniNode);
       glm::mat4 scale = this->interpolateScale(aniTime, aniNode);
@@ -111,7 +111,7 @@ namespace Strontium
 
     auto globalTransform = parentTransform * nodeTransform;
 
-    outBones[nodeName] = this->parentModel->getGlobalInverseTransform() * globalTransform;
+    outBones.emplace(nodeName, this->parentModel->getGlobalInverseTransform() * globalTransform);
 
     auto& sceneNodes = this->parentModel->getSceneNodes();
     for (auto& childNodeName : node.childNames)
@@ -128,7 +128,7 @@ namespace Strontium
 
     if (this->animationNodes.find(nodeName) != this->animationNodes.end())
     {
-      auto& aniNode = this->animationNodes[nodeName];
+      auto& aniNode = this->animationNodes.at(nodeName);
       glm::mat4 translation = this->interpolateTranslation(aniTime, aniNode);
       glm::mat4 rotation = this->interpolateRotation(aniTime, aniNode);
       glm::mat4 scale = this->interpolateScale(aniTime, aniNode);
@@ -144,7 +144,7 @@ namespace Strontium
       auto& modelBones = this->parentModel->getBones();
       unsigned int index = boneMap[nodeName];
       auto boneOffset = this->parentModel->getBones()[index].offsetMatrix;
-      outBones[index] = this->parentModel->getGlobalInverseTransform() * globalTransform * boneOffset;
+      outBones.at(index) = this->parentModel->getGlobalInverseTransform() * globalTransform * boneOffset;
     }
 
     auto& sceneNodes = this->parentModel->getSceneNodes();

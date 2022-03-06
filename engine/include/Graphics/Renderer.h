@@ -1,8 +1,6 @@
 // Include guard.
 #pragma once
 
-#define MAX_NUM_BLOOM_MIPS 7
-
 // Macro include file.
 #include "StrontiumPCH.h"
 
