@@ -157,7 +157,7 @@ vec3 applyFXAA(vec2 screenSize, vec2 uv, sampler2D screenTexture)
       max(texture(screenTexture, uv + dir * -0.5).xyz, vec3(0.0)) +
       max(texture(screenTexture, uv + dir * 0.5).xyz, vec3(0.0)));
 
-  float lumaB = dot(rgbB, luma);
+  float lumaB = rgbToLuma(rgbB);
   if ((lumaB < lumaMin) || (lumaB > lumaMax))
     return rgbA;
   else
@@ -171,9 +171,7 @@ vec3 reinhardOperator(vec3 rgbColour)
 
 vec3 luminanceReinhardOperator(vec3 rgbColour)
 {
-  float luminance = rgbToLuma(rgbColour);
-
-  return rgbColour / (1.0 + luminance);
+  return rgbColour / (1.0 + rgbToLuma(rgbColour));
 }
 
 vec3 luminanceReinhardJodieOperator(vec3 rgbColour)
