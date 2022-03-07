@@ -56,8 +56,13 @@ namespace Strontium
     }
 
     // Operator overloading to make using this wrapper easier.
-    operator bool() { return this->entityID != entt::null 
-                      && this->parentScene->sceneECS.valid(this->entityID); }
+    operator bool() 
+    {
+      if (this->parentScene)
+        return this->parentScene->sceneECS.valid(this->entityID);
+      else
+        return false;
+    }
     operator entt::entity() { return this->entityID; }
     operator Scene*() { return this->parentScene; }
     operator uint() { return static_cast<uint>(this->entityID); }
