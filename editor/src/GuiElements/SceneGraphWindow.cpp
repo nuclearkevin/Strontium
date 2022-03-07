@@ -160,20 +160,10 @@ namespace Strontium
     , selectedString("")
     , fileTargets(FileLoadTargets::TargetNone)
     , saveTargets(FileSaveTargets::TargetNone)
-    , dirWidgetShader("./assets/shaders/widgets/lightWidget.glsl")
     , widgetWidth(0.0f)
     , selectedSubmesh(nullptr)
-  {
-    auto cSpec = Texture2D::getFloatColourParams();
-    auto attachment = FBOAttachment(FBOTargetParam::Colour0, FBOTextureParam::Texture2D,
-                                    cSpec.internal, cSpec.format, cSpec.dataType);
-    this->dirBuffer = createShared<FrameBuffer>(512, 512);
-    this->dirBuffer->attach(cSpec, attachment);
-    this->dirBuffer->attachRenderBuffer();
-    this->dirBuffer->setClearColour(glm::vec4(0.0f));
-
-    this->sphere.load("./assets/.internal/sphere.fbx");
-  }
+    , directionalWidget("Manipulate Directional Light")
+  { }
 
   SceneGraphWindow::~SceneGraphWindow()
   { }
@@ -1050,7 +1040,25 @@ namespace Strontium
                                  0.0f, 0.01f, 0.0f, 100.0f);
         ImGui::PopID();
 
-        this->drawDirectionalWidget();
+        if (this->selectedEntity.hasComponent<TransformComponent>())
+        {
+          this->widgetWidth = 0.75f * ImGui::GetWindowSize().x;
+          auto& transform = this->selectedEntity.getComponent<TransformComponent>();
+          glm::mat4 transformMatrix = transform;
+          this->directionalWidget.dirLightManip(transformMatrix, ImVec2(this->widgetWidth, this->widgetWidth));
+        
+          if (ImGuizmo::IsUsing())
+          {
+            glm::vec3 translation, scale, skew;
+            glm::vec4 perspective;
+            glm::quat rotation;
+            glm::decompose(transformMatrix, scale, rotation, translation, skew, perspective);
+        
+            transform.translation = translation;
+            transform.rotation = glm::eulerAngles(rotation);
+            transform.scale = scale;
+          }
+        }
       });
 
       drawComponentProperties<PointLightComponent>("Point Light Component",
@@ -1079,95 +1087,6 @@ namespace Strontium
     }
 
     ImGui::End();
-  }
-
-  // Draw a widget to make controlling directional lights more intuitive.
-  void
-  SceneGraphWindow::drawDirectionalWidget()
-  {
-    if (this->selectedEntity.hasComponent<TransformComponent>() &&
-        this->selectedEntity.hasComponent<DirectionalLightComponent>())
-    {
-      auto model = glm::mat4(1.0);
-      auto viewPos = glm::vec3(2.0f);
-      auto viewDir = glm::normalize(glm::vec3(0.0f, 0.0f, 0.0f) - viewPos);
-      auto view = glm::lookAt(viewPos, viewPos + viewDir, glm::vec3(0.0f, 1.0f, 0.0f));
-      auto projection = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 10.0f);
-      auto mVP = projection * view * model;
-
-      auto& transform = this->selectedEntity.getComponent<TransformComponent>();
-      auto& light = this->selectedEntity.getComponent<DirectionalLightComponent>();
-
-      auto lightDir = -1.0f * glm::vec3(glm::toMat4(glm::quat(transform.rotation))
-                            * glm::vec4(0.0f, -1.0f, 0.0f, 0.0f));
-
-      this->dirBuffer->clear();
-      this->dirBuffer->bind();
-      this->dirBuffer->setViewport();
-
-      this->dirWidgetShader.addUniformMatrix("mVP", mVP, false);
-      this->dirWidgetShader.addUniformMatrix("normalMat", glm::transpose(glm::inverse(glm::mat3(model))), false);
-      this->dirWidgetShader.addUniformMatrix("model", model, false);
-      this->dirWidgetShader.addUniformVector("lDirection", lightDir);
-
-      for (auto& submesh : this->sphere.getSubmeshes())
-      {
-        if (submesh.hasVAO())
-          Renderer3D::draw(submesh.getVAO(), &this->dirWidgetShader);
-        else
-        {
-          submesh.generateVAO();
-          if (submesh.hasVAO())
-            Renderer3D::draw(submesh.getVAO(), &this->dirWidgetShader);
-        }
-      }
-
-      this->dirBuffer->unbind();
-
-      this->widgetWidth = ImGui::GetWindowSize().x * 0.75f;
-      ImGui::BeginChild("LightDirection", ImVec2(this->widgetWidth, this->widgetWidth));
-      ImGui::Image((ImTextureID) (unsigned long) this->dirBuffer->getAttachID(FBOTargetParam::Colour0),
-                   ImVec2(this->widgetWidth, this->widgetWidth), ImVec2(0, 1), ImVec2(1, 0));
-
-      // ImGuizmo boilerplate. Prepare the drawing context and set the window to
-      // draw the gizmos to.
-      ImGuizmo::SetOrthographic(false);
-      ImGuizmo::SetDrawlist();
-
-      auto windowMin = ImGui::GetWindowContentRegionMin();
-      auto windowMax = ImGui::GetWindowContentRegionMax();
-      auto windowOffset = ImGui::GetWindowPos();
-      ImVec2 bounds[2];
-      bounds[0] = ImVec2(windowMin.x + windowOffset.x,
-                         windowMin.y + windowOffset.y);
-      bounds[1] = ImVec2(windowMax.x + windowOffset.x,
-                         windowMax.y + windowOffset.y);
-
-      ImGuizmo::SetRect(bounds[0].x - 100.0f, bounds[0].y - 100.0f,
-                        (bounds[1].x - bounds[0].x) + 200.0f,
-                        (bounds[1].y - bounds[0].y) + 200.0f);
-
-      glm::mat4 transformMatrix = transform;
-
-      // Manipulate the matrix. TODO: Add snapping.
-      ImGuizmo::Manipulate(glm::value_ptr(view), glm::value_ptr(projection),
-                           ImGuizmo::ROTATE, ImGuizmo::WORLD,
-                           glm::value_ptr(transformMatrix), nullptr, nullptr);
-
-      if (ImGuizmo::IsUsing())
-      {
-        glm::vec3 translation, scale, skew;
-        glm::vec4 perspective;
-        glm::quat rotation;
-        glm::decompose(transformMatrix, scale, rotation, translation, skew, perspective);
-
-        transform.translation = translation;
-        transform.rotation = glm::eulerAngles(rotation);
-        transform.scale = scale;
-      }
-
-      ImGui::EndChild();
-    }
   }
 
   void

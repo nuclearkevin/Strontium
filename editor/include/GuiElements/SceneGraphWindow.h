@@ -10,10 +10,12 @@
 #include "Graphics/Model.h"
 #include "Graphics/Material.h"
 #include "Graphics/Textures.h"
-#include "GuiElements/GuiWindow.h"
-#include "GuiElements/MaterialSubWindow.h"
 #include "Scenes/Scene.h"
 #include "Scenes/Entity.h"
+
+#include "GuiElements/GuiWindow.h"
+#include "GuiElements/MaterialSubWindow.h"
+#include "Widgets/LightWidgets.h"
 
 namespace Strontium
 {
@@ -36,7 +38,6 @@ namespace Strontium
     void drawEntityNode(Entity entity, Shared<Scene> activeScene);
     void drawComponentNodes(Entity entity, Shared<Scene> activeScene);
     void drawPropsWindow(bool &isOpen, Shared<Scene> activeScene);
-    void drawDirectionalWidget();
 
     // Load an asset from a drag and drop action.
     void loadDNDAsset();
@@ -46,9 +47,7 @@ namespace Strontium
     MaterialSubWindow materialEditor;
 
     // Items for a widget which makes modifying a directional light easier.
-    Shared<FrameBuffer> dirBuffer;
-    Model sphere;
-    Shader dirWidgetShader;
+    LightWidget directionalWidget;
     float widgetWidth;
 
     // Various buffers and selections.

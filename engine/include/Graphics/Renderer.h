@@ -30,11 +30,6 @@ namespace Strontium::Renderer3D
     float gamma;
     Frustum camFrustum;
 
-    uint pointLightCount;
-    std::array<PointLight, 1024> pointLightQueue;
-    uint spotLightCount;
-    std::array<SpotLight, 1024> spotLightQueue;
-
     VertexArray blankVAO;
 
     Texture2D lightingBuffer;
@@ -45,21 +40,14 @@ namespace Strontium::Renderer3D
     { }
   };
 
+  GlobalRendererData& getStorage();
+  RenderPassManager& getPassManager();
+
   // Init the renderer for drawing.
   void init(const uint width, const uint height);
   void shutdown();
 
-  GlobalRendererData& getStorage();
-  RenderPassManager& getPassManager();
-
-  // Draw the data given, forward rendering.
-  void draw(VertexArray* data, Shader* program);
-
   // Generic begin and end for the renderer.
   void begin(uint width, uint height, const Camera &sceneCamera);
   void end(FrameBuffer& frontBuffer);
-
-  // Deferred rendering setup.
-  void submit(const PointLight &light, const glm::mat4 &model);
-  void submit(const SpotLight &light, const glm::mat4 &model);
 }

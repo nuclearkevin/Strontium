@@ -6,25 +6,25 @@ Strontium
 <p align="center"> Yet another open-source C++17 game engine using OpenGL. </p>
 This project started while I was taking a class on intermediate computer graphics, but has spiraled out of control to become something far more than just a practice repo.
 
-![sponza](https://github.com/ksawatzky777/SciRender/blob/main/media/sponza.png)
+![test](https://github.com/ksawatzky777/SciRender/blob/main/media/testscene.png)
 
-![dancing](https://github.com/ksawatzky777/SciRender/blob/main/media/dancing.gif)
+![sponza](https://github.com/ksawatzky777/SciRender/blob/main/media/sponza.png)
 
 ### <h1 align="center">Current Features</h1>
 - Graphics:
   - A deferred 3D physically based renderer using the Cook-Torrance BRDF.
-  - Image-based ambient lighting using HDR environment maps.
-  - Directional sky lighting.
-  - Point lights.
-  - Cascaded exponentially warped shadow maps utilizing parallel splits.
+  - A dynamic skybox system for fast, fully integrated atmospheric lighting.
+  - Dynamic image-based lighting for the skyboxes mentioned above.
+  - Directional lights with support for a single light with cascaded shadows.
+  - A variety of shadow quality options which include percentage-closer soft shadows.
+  - Horizon-based ambient occlusion.
   - Physically-based materials using a metallic workflow.
   - HDR rendering.
-  - Skeletal animation.
+  - Skeletal and rigged animation.
 - Other:
   - Custom scene serialization and loading.
   - Custom material serialization and loading.
   - A syncable prefab system for rapid scene prototyping.
-  - Live shader editing and reloading.
   - Multithreaded asset loading for many supported model formats (using Assimp) and images.
   - A modern editor (with docking) designed with rapid prototyping in mind.
   - And lots more!
@@ -32,22 +32,15 @@ This project started while I was taking a class on intermediate computer graphic
 ### <h1 align="center">Planned Features</h1>
 - Graphics:
   - 2D rendering for particles, sprites and billboards.
-  - Spot lights.
-  - Transparent support.
-  - Volumetric directional lighting.
-  - Screen space ambient occlusion.
-  - Screen space reflections.
-  - Screen space voxel global illumination.
-  - Additional shadow mapping options for user defined light sources.
-- Physics using NVIDIA PhysX.
-- C# Scripting using Mono:
-  - Large portions of the internal engine exposed to user scripting.
-  - Completely scriptable render pipeline.
-- Other:
-  - Asset caching and optimization.
-  - Automatic material loading for common file varieties.
-  - Multi-OS support.
-  - DX11 support with live API switching.
+  - Many point and spot lights through tiled light culling.
+  - Analytical area lights.
+  - Transparent object support.
+  - Unified volumetrics for fog, clouds and haze.
+  - Screen-space glossy reflections.
+  - Screen-space voxel global illumination.
+  - Point and spot light shadow maps.
+- Physics using Jolt Physics.
+- C# Scripting using Mono.
 
 ## Building
 Strontium builds using CMake, so ensure that you have CMake installed before you attempt to build the project. As Strontium is fully platform agnostic, both Windows and Linux builds are supported (although the Linux buildsystem is a WIP).
@@ -67,7 +60,15 @@ cmake ../
 ```
 If you're on Windows, you can open the StrontiumEngine.sln solution file. Set the startup project to StrontiumEditor and build with Visual Studios.
 
-## Credits
-A massive thanks goes out to [Yan Chernikov](https://github.com/TheCherno) and his several Youtube series on
-[OpenGL and game engine design](https://www.youtube.com/user/TheChernoProject). Without them,
-this pet project would not have gotten nearly as far as it is today!
+## Dependencies
+- Assimp
+- EnTT
+- Glad
+- GLFW
+- GLM
+- Dear ImGui
+- ImGui-Addons (notably for the cross-platform Dear ImGui-based file browser)
+- ImGuizmo
+- stb_image and std_image_write
+- yaml-cpp
+- Jolt Physics

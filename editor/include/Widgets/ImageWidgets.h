@@ -14,7 +14,7 @@ namespace Strontium
   class TextureWidget
   {
   public:
-	TextureWidget(const std::string & widgetName);
+	TextureWidget(const std::string &widgetName);
 	~TextureWidget();
 
 	void texture2DImageLod(Texture2D &texture, const ImVec2& size,

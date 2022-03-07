@@ -106,10 +106,6 @@ namespace Strontium::Renderer3D
     rendererData->sceneCam = sceneCamera;
     rendererData->camFrustum = buildCameraFrustum(sceneCamera);
 
-    // Setup the lights.
-    rendererData->pointLightCount = 0u;
-    rendererData->spotLightCount = 0u;
-
     // Resize the global buffers.
     if (static_cast<uint>(rendererData->lightingBuffer.getWidth()) != width ||
         static_cast<uint>(rendererData->lightingBuffer.getHeight()) != height)
@@ -145,40 +141,5 @@ namespace Strontium::Renderer3D
 
     // Whichever renderpass needs to do work when the rendering phase is over.
     passManager->onRendererEnd(frontBuffer);
-  }
-
-  // Draw some data. This is really, really inefficient.
-  void
-  draw(VertexArray* data, Shader* program)
-  {
-    data->bind();
-    program->bind();
-
-    RendererCommands::drawElements(PrimativeType::Triangle, data->numToRender());
-
-    data->unbind();
-    program->unbind();
-  }
-
-  void
-  submit(const PointLight &light, const glm::mat4 &model)
-  {
-    PointLight temp = light;
-    temp.positionRadius = glm::vec4(glm::vec3(model * glm::vec4(glm::vec3(temp.positionRadius), 1.0f)), temp.positionRadius.w);
-
-    rendererData->pointLightQueue[rendererData->pointLightCount] = temp;
-    rendererData->pointLightCount++;
-  }
-
-  void
-  submit(const SpotLight &light, const glm::mat4 &model)
-  {
-    auto invTrans = glm::transpose(glm::inverse(model));
-    SpotLight temp = light;
-    temp.direction = -1.0f * glm::vec3(invTrans * glm::vec4(0.0f, -1.0f, 0.0f, 0.0f));
-    temp.position = glm::vec3(model * glm::vec4(light.position, 1.0f));
-
-    rendererData->spotLightQueue[rendererData->spotLightCount] = temp;
-    rendererData->spotLightCount++;
   }
 }

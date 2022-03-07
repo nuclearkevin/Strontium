@@ -2,7 +2,7 @@
 
 namespace Strontium
 {
-  TextureWidget::TextureWidget(const std::string & widgetName)
+  TextureWidget::TextureWidget(const std::string &widgetName)
     : tex2DLod(ShaderCache::getShader("tex_2D_lod"))
     , texCubemapTex2D(ShaderCache::getShader("cubemap_tex_2D"))
     , texCubemapArrayTex2D(ShaderCache::getShader("cubemap_array_tex_2D"))

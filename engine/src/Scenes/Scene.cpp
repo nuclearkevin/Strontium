@@ -126,6 +126,7 @@ namespace Strontium
         dirApp->submit(directional, transform);
     }
 
+    // TODO: Point light pass.
     auto pointLight = this->sceneECS.group<PointLightComponent>(entt::get<TransformComponent>);
     for (auto entity : pointLight)
     {
@@ -137,8 +138,6 @@ namespace Strontium
       auto currentEntity = Entity(entity, this);
       if (currentEntity.hasComponent<ParentEntityComponent>())
         transformMatrix = computeGlobalTransform(currentEntity);
-
-      Renderer3D::submit(point, transformMatrix);
     }
 
     // Group together the transform and renderable components.
@@ -244,6 +243,7 @@ namespace Strontium
       shadow->submitPrimary(directional, directional.castShadows, transform);
     }
 
+    // TODO: Point light pass.
     auto pointLight = this->sceneECS.group<PointLightComponent>(entt::get<TransformComponent>);
     for (auto entity : pointLight)
     {
@@ -255,8 +255,6 @@ namespace Strontium
       auto currentEntity = Entity(entity, this);
       if (currentEntity.hasComponent<ParentEntityComponent>())
         transformMatrix = computeGlobalTransform(currentEntity);
-
-      Renderer3D::submit(point, transformMatrix);
     }
 
     // Group together the transform and renderable components.

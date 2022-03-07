@@ -100,8 +100,10 @@ ShaderCache:
     #
     # Widgets
     #
+  - Handle: dir_widget
+    Filepath: ./assets/shaders/widgets/lightWidget.glsl
   - Handle: tex_2D_lod
-    Filepath: ./assets/shaders/widgets/tex_2D_lod.glsl
+    Filepath: ./assets/shaders/widgets/tex2DLod.glsl
   - Handle: cubemap_tex_2D
     Filepath: ./assets/shaders/widgets/texCubemapTex2D.glsl
   - Handle: cubemap_array_tex_2D
