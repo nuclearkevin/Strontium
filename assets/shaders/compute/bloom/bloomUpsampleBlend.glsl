@@ -8,7 +8,7 @@ layout(local_size_x = 8, local_size_y = 8) in;
 
 // The previous mip in the upsampling mip chain. It will
 // be filtered and added to the previous mip of the upsampling chain.
-layout(rgba16f, binding = 0) uniform sampler2D previousUpscale;
+layout(binding = 0) uniform sampler2D previousUpscale;
 
 // The equivalent downsample mip to the next mip in the upsample chain, it will
 // be filtered and added to the previous mip of the upsampling chain.

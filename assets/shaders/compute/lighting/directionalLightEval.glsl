@@ -2,8 +2,7 @@
 #version 460 core
 /*
  * A compute shader for evaluating the lighting contribution of up to 8
- * directional lights in deferred shading. Evaluates a single shadowed
- * directional light (for now).
+ * directional lights in deferred shading. 
  */
 
 #define PI 3.141592654

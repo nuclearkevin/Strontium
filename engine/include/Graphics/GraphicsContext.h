@@ -27,6 +27,11 @@ namespace Strontium
     // us we need this window stored.
     GLFWwindow* glfwWindowRef;
 
+    uint versionMajor;
+    uint versionMinor;
+    uint stageTextureUnits;
+    uint stageUniformBuffers;
+
     // A string of info surrounding the graphics context.
     std::string contextInfo;
   };

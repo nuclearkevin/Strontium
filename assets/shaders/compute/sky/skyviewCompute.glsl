@@ -47,7 +47,7 @@ layout(std140, binding = 0) uniform HillaireParams
 
 layout(std430, binding = 1) readonly buffer HillaireIndices
 {
-  int atmosphereIndices[MAX_NUM_ATMOSPHERES];
+  int u_atmosphereIndices[MAX_NUM_ATMOSPHERES];
 };
 
 // Helper functions.
@@ -85,7 +85,7 @@ void main()
   vec2 size = vec2(imageSize(skyviewImages).xy);
   vec2 uv = (vec2(invoke.xy) + 0.5.xx) / size;
 
-  const int atmosphereIndex = atmosphereIndices[invoke.z];
+  const int atmosphereIndex = u_atmosphereIndices[invoke.z];
   const AtmosphereParams params = u_params[atmosphereIndex];
 
   float groundRadiusMM = params.planetAlbedoRadius.w;

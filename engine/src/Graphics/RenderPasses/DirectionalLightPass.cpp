@@ -7,11 +7,13 @@ namespace Strontium
 {
   DirectionalLightPass::DirectionalLightPass(Renderer3D::GlobalRendererData* globalRendererData, 
                                              GeometryPass* previousGeoPass, 
-                                             ShadowPass* previousShadowPass)
+                                             ShadowPass* previousShadowPass,
+                                             SkyAtmospherePass* previousSkyAtmoPass)
     : RenderPass(&this->passData, globalRendererData, { previousGeoPass, previousShadowPass })
     , timer(5)
     , previousGeoPass(previousGeoPass)
     , previousShadowPass(previousShadowPass)
+    , previousSkyAtmoPass(previousSkyAtmoPass)
   { }
 
   DirectionalLightPass::~DirectionalLightPass()
@@ -20,8 +22,10 @@ namespace Strontium
   void 
   DirectionalLightPass::onInit()
   {
-    this->passData.directionalEvaluation = ShaderCache::getShader("directional_evaluation");
     this->passData.directionalEvaluationS = ShaderCache::getShader("directional_evaluation_s");
+    this->passData.directionalEvaluationSA = ShaderCache::getShader("directional_evaluation_s_a");
+    this->passData.directionalEvaluation = ShaderCache::getShader("directional_evaluation");
+    this->passData.directionalEvaluationA = ShaderCache::getShader("directional_evaluation_a");
   }
 
   void 
@@ -42,6 +46,7 @@ namespace Strontium
   DirectionalLightPass::onRendererBegin(uint width, uint height)
   {
     this->passData.directionalLightCount = 0u;
+    this->passData.directionalLightCountA = 0u;
     this->passData.castShadows = false;
   }
 
@@ -49,6 +54,11 @@ namespace Strontium
   DirectionalLightPass::onRender()
   {
     ScopedTimer<AsynchTimer> profiler(this->timer);
+
+    // Early out if there are no directional lights.
+    if (this->passData.directionalLightCount + this->passData.directionalLightCountA == 0
+        && !this->passData.castShadows)
+      return;
 
     auto geometryBlock = this->previousGeoPass->getInternalDataBlock<GeometryPassDataBlock>();
     // Bind the GBuffer attachments.
@@ -61,23 +71,53 @@ namespace Strontium
     // Bind the camera block.
     geometryBlock->cameraBuffer.bindToPoint(0);
 
-    // Bind the lighting block and upload the directional lights.
-    this->passData.lightBlock.bindToPoint(1);
-    this->passData.lightBlock.setData(0, this->passData.directionalLightCount * sizeof(DirectionalLight), 
-                                      this->passData.directionalLightQueue.data());
-    int count = static_cast<int>(this->passData.directionalLightCount);
-    this->passData.lightBlock.setData(MAX_NUM_DIRECTIONAL_LIGHTS * sizeof(DirectionalLight), sizeof(int), &count);
-
     // Bind the lighting buffer.
     this->globalBlock->lightingBuffer.bindAsImage(0, 0, ImageAccessPolicy::ReadWrite);
-
-    // Launch a compute pass for unshadowed directional lights.
     uint iWidth = static_cast<uint>(glm::ceil(static_cast<float>(globalBlock->lightingBuffer.getWidth())
                                               / 8.0f));
     uint iHeight = static_cast<uint>(glm::ceil(static_cast<float>(globalBlock->lightingBuffer.getHeight())
                                                / 8.0f));
-    this->passData.directionalEvaluation->launchCompute(iWidth, iHeight, 1);
-    Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
+
+    // Bind the lighting block and upload the directional lights.
+    this->passData.lightBlock.bindToPoint(1);
+    if (this->passData.directionalLightCount > 0)
+    {
+      this->passData.lightBlock.setData(0, this->passData.directionalLightCount * sizeof(DirectionalLight),
+                                        this->passData.directionalLightQueue.data());
+      int count = static_cast<int>(this->passData.directionalLightCount);
+      this->passData.lightBlock.setData(MAX_NUM_DIRECTIONAL_LIGHTS * sizeof(DirectionalLight), sizeof(int), &count);
+
+      // Launch a compute pass for unshadowed directional lights with no atmospheric effects.
+      this->passData.directionalEvaluation->launchCompute(iWidth, iHeight, 1);
+      Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
+    }
+
+    // Bind atmosphere parameters if we have directional lights that need atmospheric effects.
+    if (this->passData.directionalLightCountA > 0
+        || this->passData.primaryLightAttachedAtmo > -1)
+    {
+      auto skyAtmBlock = this->previousSkyAtmoPass->getInternalDataBlock<SkyAtmospherePassDataBlock>();
+      skyAtmBlock->atmosphereBuffer.bindToPoint(3);
+      skyAtmBlock->transmittanceLUTs.bind(8);
+    }
+
+    // Launch a compute pass for unshadowed directional lights with atmospheric effects.
+    if (this->passData.directionalLightCountA > 0)
+    {
+      // Upload the data for the directional lights with atmospheric effects.
+      this->passData.lightBlock.setData(0, this->passData.directionalLightCountA * sizeof(DirectionalLight),
+                                        this->passData.directionalLightQueueA.data());
+      int count = static_cast<int>(this->passData.directionalLightCountA);
+      this->passData.lightBlock.setData(MAX_NUM_DIRECTIONAL_LIGHTS * sizeof(DirectionalLight), sizeof(int), &count);
+
+      // Bind and upload the atmosphere indices.
+      this->passData.atmosphereIndices.bindToPoint(4);
+      this->passData.atmosphereIndices.setData(0, this->passData.directionalLightCountA * sizeof(int), 
+                                               this->passData.attachedAtmo.data());
+
+      this->passData.directionalEvaluationA->launchCompute(iWidth, iHeight, 1);
+      Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
+    }
 
     // Shadowed directional light pass.
     if (this->passData.castShadows)
@@ -104,7 +144,17 @@ namespace Strontium
       for (uint i = 0; i < NUM_CASCADES; i++)
         shadowBlock->shadowBuffers[i].bindTextureID(FBOTargetParam::Depth, 4 + i);
 
-      this->passData.directionalEvaluationS->launchCompute(iWidth, iHeight, 1);
+      // No atmospheric effects.
+      if (!(this->passData.primaryLightAttachedAtmo > -1))
+        this->passData.directionalEvaluationS->launchCompute(iWidth, iHeight, 1);
+      else
+      {
+        // Bind and upload the atmosphere indices.
+        this->passData.atmosphereIndices.bindToPoint(4);
+        this->passData.atmosphereIndices.setData(0, sizeof(int), &this->passData.primaryLightAttachedAtmo);
+
+        this->passData.directionalEvaluationSA->launchCompute(iWidth, iHeight, 1);
+      }
       Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
     }
   }
@@ -122,19 +172,29 @@ namespace Strontium
   }
 
   void 
-  DirectionalLightPass::submit(const DirectionalLight& light, const glm::mat4& model)
+  DirectionalLightPass::submit(const DirectionalLight& light, const glm::mat4& model,
+                               RendererDataHandle attachedSkyAtmosphere)
   {
     auto invTrans = glm::transpose(glm::inverse(model));
     DirectionalLight temp = light;
     temp.directionSize = glm::vec4(-1.0f * glm::vec3(invTrans * glm::vec4(0.0f, -1.0f, 0.0f, 0.0f)), light.directionSize.w);
 
-    this->passData.directionalLightQueue[this->passData.directionalLightCount] = temp;
-    this->passData.directionalLightCount++;
+    if (attachedSkyAtmosphere > -1)
+    {
+      this->passData.directionalLightQueueA[this->passData.directionalLightCountA] = temp;
+      this->passData.attachedAtmo[this->passData.directionalLightCountA] = attachedSkyAtmosphere;
+      this->passData.directionalLightCountA++;
+    }
+    else
+    {
+      this->passData.directionalLightQueue[this->passData.directionalLightCount] = temp;
+      this->passData.directionalLightCount++;
+    }
   }
 
   void 
   DirectionalLightPass::submitPrimary(const DirectionalLight& light, bool castShadows, 
-                                      const glm::mat4& model)
+                                      const glm::mat4& model, RendererDataHandle attachedSkyAtmosphere)
   {
     auto invTrans = glm::transpose(glm::inverse(model));
     DirectionalLight temp = light;
@@ -142,5 +202,6 @@ namespace Strontium
 
     this->passData.primaryLight = temp;
     this->passData.castShadows = castShadows;
+    this->passData.primaryLightAttachedAtmo = attachedSkyAtmosphere;
   }
 }

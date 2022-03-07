@@ -9,10 +9,15 @@ namespace Strontium
   // Generic constructor / destructor pair.
   GraphicsContext::GraphicsContext(GLFWwindow* genWindow)
     : glfwWindowRef(genWindow)
+    , contextInfo("")
+    , versionMajor(0)
+    , versionMinor(0)
+    , stageTextureUnits(0)
+    , stageUniformBuffers(0)
   {
     if (this->glfwWindowRef == nullptr)
     {
-      std::cout << "Window was nullptr, aborting." << std::endl;
+      std::cout << "Window was nullptr, aborting." << "\n";
       exit(EXIT_FAILURE);
     }
   }
@@ -26,40 +31,54 @@ namespace Strontium
     glfwMakeContextCurrent(this->glfwWindowRef);
     if (!gladLoadGLLoader((GLADloadproc) glfwGetProcAddress))
     {
-      std::cout << "Failed to load a graphics context!" << std::endl;
+      std::cout << "Failed to load a graphics context!" << "\n";
       exit(EXIT_FAILURE);
     }
     auto vendor = glGetString(GL_VENDOR);
+    this->contextInfo += std::string("Graphics device vendor: ") +
+                         std::string(reinterpret_cast<const char*>(vendor));
+    std::cout << "Graphics device vendor: " << vendor << "\n";
     auto device = glGetString(GL_RENDERER);
+    this->contextInfo += std::string("\nGraphics device: ") +
+                         std::string(reinterpret_cast<const char*>(device));
+    std::cout << "Graphics device: " << device << "\n";
     auto version = glGetString(GL_VERSION);
+    this->contextInfo += std::string("\nGraphics context version: ") +
+                         std::string(reinterpret_cast<const char*>(version));
+    std::cout << "Graphics context version: " << version << "\n";
 
-    // Print info about the vendor to the console (for now).
-    std::cout << "Graphics device vendor: " << vendor << std::endl;
-    std::cout << "Graphics device: " << device << std::endl;
-    std::cout << "Graphics context version: " << version << std::endl;
-
-    this->contextInfo = std::string("Graphics device vendor: ") +
-                        std::string(reinterpret_cast<const char*>(vendor)) +
-                        std::string("\nGraphics device: ") +
-                        std::string(reinterpret_cast<const char*>(device)) +
-                        std::string("\nGraphics context version: ") +
-                        std::string(reinterpret_cast<const char*>(version));
-
-    // Check the version of the OpenGL context. Requires 4.4 or greater.
-    uint major = (unsigned int) version[0] - 48;
-    uint minor = (unsigned int) version[2] - 48;
-    if (major < 4)
+    // Check the version of the OpenGL context. Requires 4.6 or greater.
+    this->versionMajor = static_cast<uint>(version[0] - 48);
+    this->versionMinor = static_cast<uint>(version[2] - 48);
+    if (this->versionMajor < 4)
     {
       std::cout << "Unsupported OpenGL version, application requires OpenGL "
-                << "core 4.6." << std::endl;
+                << "core 4.6." << "\n";
       exit(EXIT_FAILURE);
     }
-    else if (major == 4 && minor < 6)
+    else if (this->versionMajor == 4 && this->versionMinor < 6)
     {
       std::cout << "Unsupported OpenGL version, application requires OpenGL "
-                << "core 4.6." << std::endl;
+                << "core 4.6." << "\n";
       exit(EXIT_FAILURE);
     }
+
+    // Get device information.
+    int totalTextureUnits, totalUniformBlocks;
+    glGetIntegerv(GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, &totalTextureUnits);
+    this->stageTextureUnits = totalTextureUnits / 6;
+    this->contextInfo += std::string("\nNumber of texture units per shader stage: ") 
+                      + std::to_string(this->stageTextureUnits);
+
+    glGetIntegerv(GL_MAX_COMBINED_UNIFORM_BLOCKS, &totalUniformBlocks);
+    this->stageUniformBuffers = totalUniformBlocks / 6;
+    this->contextInfo += std::string("\nNumber of uniform blocks per shader stage: ") 
+                      + std::to_string(this->stageUniformBuffers);
+
+    // Check the device information to ensure that shaders will compile properly.
+
+
+    std::cout.flush();
   }
 
   void

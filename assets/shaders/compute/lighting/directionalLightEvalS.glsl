@@ -1,9 +1,9 @@
 #type compute
 #version 460 core
 /*
- * A compute shader for evaluating the lighting contribution of up to 8
- * directional lights in deferred shading. Evaluates a single shadowed
- * directional light (for now).
+ * A compute shader for evaluating the lighting contribution of a single cascaded
+ * shadowed directional light in deferred shading.
+ * TODO: up to 8 cascaded directional lights?
  */
 
 #define PI 3.141592654

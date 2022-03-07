@@ -77,7 +77,7 @@ namespace Strontium::Renderer3D
 
     // Lighting passes.
     auto iblApp = passManager->insertRenderPass<IBLApplicationPass>(rendererData, geomet, hbao, dynIBL);
-    auto dirApp = passManager->insertRenderPass<DirectionalLightPass>(rendererData, geomet, shadow);
+    auto dirApp = passManager->insertRenderPass<DirectionalLightPass>(rendererData, geomet, shadow, skyatmo);
 
     // Skybox pass. This should be applied last.
     auto skyboxApp = passManager->insertRenderPass<SkyboxPass>(rendererData, geomet, skyatmo);

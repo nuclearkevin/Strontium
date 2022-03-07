@@ -118,12 +118,22 @@ namespace Strontium
       // Skip over the primary light IF it cast shadows.
       if (primaryLight.entityID == entity && directional.castShadows)
       {
-        dirApp->submitPrimary(directional, directional.castShadows, transform);
+        RendererDataHandle attachedSky = -1;
+        if (this->sceneECS.has<SkyAtmosphereComponent>(entity))
+          attachedSky = this->sceneECS.get<SkyAtmosphereComponent>(entity).handle;
+
+        dirApp->submitPrimary(directional, directional.castShadows, transform, attachedSky);
         skyAtm->submitPrimary(directional, directional.castShadows, transform);
         shadow->submitPrimary(directional, directional.castShadows, transform);
       }
       else
-        dirApp->submit(directional, transform);
+      {
+        RendererDataHandle attachedSky = -1;
+        if (this->sceneECS.has<SkyAtmosphereComponent>(entity))
+          attachedSky = this->sceneECS.get<SkyAtmosphereComponent>(entity).handle;
+
+        dirApp->submit(directional, transform, attachedSky);
+      }
     }
 
     // TODO: Point light pass.
