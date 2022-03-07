@@ -22,3 +22,6 @@
 [submodule "engine/vendor/assimp"]
 	path = engine/vendor/assimp
 	url = https://github.com/ksawatzky777/assimp.git
+[submodule "engine/vendor/joltphysics"]
+	path = engine/vendor/joltphysics
+	url = https://github.com/nuclearkevin/JoltPhysics.git
