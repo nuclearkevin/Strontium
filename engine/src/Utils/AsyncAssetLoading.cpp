@@ -3,6 +3,7 @@
 // Project includes.
 #include "Core/Events.h"
 #include "Core/JobSystem.h"
+#include "Core/DataStructures/ThreadSafeQueue.h"
 #include "Graphics/Material.h"
 #include "Scenes/Entity.h"
 #include "Scenes/Components.h"
@@ -22,16 +23,11 @@ namespace Strontium
     //--------------------------------------------------------------------------
     // Models, materials and meshes.
     //--------------------------------------------------------------------------
-    std::queue<std::tuple<Model*, Scene*, uint>> asyncModelQueue;
-    std::mutex asyncModelMutex;
+    ThreadSafeQueue<std::tuple<Model*, Scene*, uint>> asyncModelQueue;
 
     void
     bulkGenerateMaterials()
     {
-      // This occasionally segfaults... TODO: Figure out a better solution.
-      std::lock_guard<std::mutex> modelGuard(asyncModelMutex);
-
-      Logger* logs = Logger::getInstance();
       auto textureCache = AssetManager<Texture2D>::getManager();
 
       // Filepaths of the textures that need to be loaded.
@@ -180,14 +176,11 @@ namespace Strontium
     asyncLoadModel(const std::string &filepath, const std::string &name,
                    uint entityID, Scene* activeScene)
     {
-      // Fetch the logs.
-      Logger* logs = Logger::getInstance();
-
       // Check if the file is valid or not.
       std::ifstream test(filepath);
       if (!test)
       {
-        logs->logMessage(LogMessage("Error, file " + filepath + " cannot be opened.", true, true));
+        Logs::log("Error, file " + filepath + " cannot be opened.");
         return;
       }
 
@@ -203,14 +196,11 @@ namespace Strontium
           loadable->load(filepath);
 
           modelAssets->attachAsset(name, loadable);
-
-          std::lock_guard<std::mutex> imageGuard(asyncModelMutex);
           asyncModelQueue.push({ loadable, activeScene, entityID });
         }
         else
         {
           loadable = modelAssets->getAsset(name);
-          std::lock_guard<std::mutex> imageGuard(asyncModelMutex);
           asyncModelQueue.push({ loadable, activeScene, entityID });
         }
       };
@@ -221,15 +211,11 @@ namespace Strontium
     //--------------------------------------------------------------------------
     // Textures.
     //--------------------------------------------------------------------------
-    std::queue<ImageData2D> asyncTexQueue;
-    std::mutex asyncTexMutex;
+    ThreadSafeQueue<ImageData2D> asyncTexQueue;
 
     void
     bulkGenerateTextures()
     {
-      std::lock_guard<std::mutex> imageGuard(asyncTexMutex);
-
-      Logger* logs = Logger::getInstance();
       auto textureCache = AssetManager<Texture2D>::getManager();
 
       while (!asyncTexQueue.empty())
@@ -347,10 +333,10 @@ namespace Strontium
 
         textureCache->attachAsset(image.name, outTex);
 
-        logs->logMessage(LogMessage("Loaded texture: " + image.name + " " +
-                                    "(W: " + std::to_string(image.width) + ", H: " +
-                                    std::to_string(image.height) + ", N: "
-                                    + std::to_string(image.n) + ").", true, true));
+        Logs::log("Loaded texture: " + image.name + " " +
+                  "(W: " + std::to_string(image.width) + ", H: " +
+                  std::to_string(image.height) + ", N: "
+                  + std::to_string(image.n) + ").");
 
         stbi_image_free(image.data);
         asyncTexQueue.pop();
@@ -360,9 +346,6 @@ namespace Strontium
     void
     loadImageAsync(const std::string &filepath, const Texture2DParams &params)
     {
-      // Fetch the logs.
-      Logger* logs = Logger::getInstance();
-
       // Fetch the texture cache.
       auto textureCache = AssetManager<Texture2D>::getManager();
 
@@ -370,7 +353,7 @@ namespace Strontium
       std::ifstream test(filepath);
       if (!test)
       {
-        logs->logMessage(LogMessage("Error, file " + filepath + " cannot be opened.", true, true));
+        Logs::log("Error, file " + filepath + " cannot be opened.");
         return;
       }
 
@@ -402,8 +385,6 @@ namespace Strontium
           stbi_image_free(outImage.data);
           return;
         }
-
-        std::lock_guard<std::mutex> imageGuard(asyncTexMutex);
         asyncTexQueue.push(outImage);
 
         eventDispatcher->queueEvent(new GuiEvent(GuiEventType::EndSpinnerEvent, ""));

@@ -82,8 +82,6 @@ namespace Strontium
   void
   Shader::loadFile(const std::string &filepath)
   {
-    Logger* logs = Logger::getInstance();
-
     // Common shader parameters. Declare with: #type common
     std::string commonBlock = "";
 
@@ -152,7 +150,7 @@ namespace Strontium
           {
             // Log the shader parse log.
             std::string message = "Unknown shader stage " + filepath + ".";
-            logs->logMessage({ message, true, true });
+            Logs::log(message);
             currentStage = ShaderStage::Unknown;
             readingCommon = false;
           }
@@ -179,7 +177,7 @@ namespace Strontium
     else
     {
       std::string message = "Failed to open shader file at " + filepath + ".";
-      logs->logMessage({ message, true, true });
+      Logs::log(message);
     }
   }
 
@@ -206,8 +204,6 @@ namespace Strontium
   uint
   Shader::compileStage(const ShaderStage &stage, const std::string &stageSource)
   {
-    Logger* logs = Logger::getInstance();
-
     char* source = (char*) stageSource.c_str();
 
     // Compile the source.
@@ -226,9 +222,9 @@ namespace Strontium
       glGetShaderInfoLog(shaderID, result, 0, buffer);
 
       std::string message = "Shader compiler error at: "
-													+ shaderStageToString(stage) + "\n"
-													+ std::string(buffer);
-      logs->logMessage({ message, true, true });
+						  + shaderStageToString(stage) + "\n"
+						  + std::string(buffer);
+      Logs::log(message);
 
       delete buffer;
     }
@@ -239,8 +235,6 @@ namespace Strontium
   void
   Shader::linkProgram(const std::vector<uint> &binaries)
   {
-    Logger* logs = Logger::getInstance();
-
     // Attach separate shader binaries.
     for (auto& shaderID : binaries)
       glAttachShader(this->progID, shaderID);
@@ -259,8 +253,8 @@ namespace Strontium
 			glGetProgramInfoLog(this->progID, result, 0, buffer);
 
       std::string message = "Shader link error:\n"
-													+ std::string(buffer);
-      logs->logMessage({ message, true, true });
+							+ std::string(buffer);
+      Logs::log(message);
 
       delete buffer;
     }
@@ -365,7 +359,6 @@ namespace Strontium
       void 
       init(const std::string& filepath)
       {
-        Logger* logs = Logger::getInstance();
         shaderCache = std::unordered_map<std::string, Shader>();
 
         YAML::Node data = YAML::LoadFile(filepath);
@@ -382,7 +375,7 @@ namespace Strontium
             {
               std::string handle = shader["Handle"].as<std::string>();
               std::string path = shader["Filepath"].as<std::string>();
-              logs->logMessage({ "Compiling " + handle, true, true});
+              Logs::log("Compiling " + handle);
               shaderCache.emplace(handle, path);
             }
           }

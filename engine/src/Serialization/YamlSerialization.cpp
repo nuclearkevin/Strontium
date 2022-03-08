@@ -693,9 +693,6 @@ namespace Strontium
     Entity
     deserializeEntity(YAML::Node &entity, Shared<Scene> scene, Entity parent = Entity())
     {
-      // Fetch the logs.
-      Logger* logs = Logger::getInstance();
-
       uint entityID = entity["EntityID"].as<uint>();
 
       Entity newEntity = scene->createEntity(entityID);
@@ -777,7 +774,7 @@ namespace Strontium
           }
         }
         else
-          logs->logMessage(LogMessage("Error, file " + modelPath + " cannot be opened.", true, true));
+          Logs::log("Error, file " + modelPath + " cannot be opened.");
       }
 
       auto camComponent = entity["CameraComponent"];

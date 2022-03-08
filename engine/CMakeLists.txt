@@ -20,6 +20,7 @@ set(INCLUDE_DIRS
     vendor/glfw/include
     vendor/assimp/include
     vendor/yamlcpp/include
+    vendor/joltphysics/Jolt
 )
 
 set(LIB_LINKS
@@ -27,6 +28,7 @@ set(LIB_LINKS
     glfw
     assimp
     yamlcpp
+    jolt
 )
 
 add_library(Strontium ${SOURCE_FILES})

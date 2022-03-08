@@ -22,7 +22,6 @@ namespace Strontium
   Texture2D::createMonoColour(const glm::vec4 &colour, std::string &outName,
                               const Texture2DParams &params, bool cache)
   {
-    Logger* logs = Logger::getInstance();
     auto textureCache = AssetManager<Texture2D>::getManager();
 
     Texture2D* outTex;
@@ -34,9 +33,7 @@ namespace Strontium
         textureCache->attachAsset("Monocolour texture: "
                                   + Utilities::colourToHex(colour), outTex);
 
-        logs->logMessage(LogMessage("Generated monocolour texture: " +
-                                    Utilities::colourToHex(colour) + ".",
-                                    true, true));
+        Logs::log("Generated monocolour texture: " + Utilities::colourToHex(colour) + ".");
       }
       else
       {
@@ -67,7 +64,6 @@ namespace Strontium
   Texture2D::createMonoColour(const glm::vec4 &colour,
                               const Texture2DParams &params, bool cache)
   {
-    Logger* logs = Logger::getInstance();
     auto textureCache = AssetManager<Texture2D>::getManager();
 
     Texture2D* outTex;
@@ -79,9 +75,7 @@ namespace Strontium
         textureCache->attachAsset("Monocolour texture: "
                                   + Utilities::colourToHex(colour), outTex);
 
-        logs->logMessage(LogMessage("Generated monocolour texture: " +
-                                    Utilities::colourToHex(colour) + ".",
-                                    true, true));
+        Logs::log("Generated monocolour texture: " + Utilities::colourToHex(colour) + ".");
       }
       else
       {
@@ -110,7 +104,6 @@ namespace Strontium
   Texture2D::loadTexture2D(const std::string &filepath, const Texture2DParams &params,
                            bool cache)
   {
-    Logger* logs = Logger::getInstance();
     auto textureCache = AssetManager<Texture2D>::getManager();
 
     bool isHDR = (filepath.substr(filepath.find_last_of("."), 4) == ".hdr");
@@ -133,14 +126,12 @@ namespace Strontium
     // Something went wrong while loading, abort.
     if (!dataU && !isHDR)
     {
-      logs->logMessage(LogMessage("Failed to load image at: " + filepath + ".",
-                                  true, true));
+      Logs::log("Failed to load image at: " + filepath + ".");
       stbi_image_free(dataU);
     }
     else if (!dataF && isHDR)
     {
-      logs->logMessage(LogMessage("Failed to load HDR image at: " + filepath + ".",
-                                  true, true));
+      Logs::log("Failed to load HDR image at: " + filepath + ".");
       stbi_image_free(dataF);
     }
 
@@ -155,8 +146,7 @@ namespace Strontium
       }
       else
       {
-        logs->logMessage(LogMessage("Fetched texture at: " + name + ".",
-                                    true, true));
+        Logs::log("Fetched texture at: " + name + ".");
         return textureCache->getAsset(name);
       }
     }
@@ -265,8 +255,7 @@ namespace Strontium
     else
       stbi_image_free(dataU);
 
-    logs->logMessage(LogMessage("Loaded texture at: " + filepath + ".",
-                                true, true));
+    Logs::log("Loaded texture at: " + filepath + ".");
 
     outTex->getFilepath() = filepath;
     return outTex;

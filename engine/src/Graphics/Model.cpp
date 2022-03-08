@@ -30,7 +30,6 @@ namespace Strontium
   void
   Model::load(const std::string &filepath)
   {
-    Logger* logs = Logger::getInstance();
     auto eventDispatcher = EventDispatcher::getInstance();
     eventDispatcher->queueEvent(new GuiEvent(GuiEventType::StartSpinnerEvent, filepath));
 
@@ -43,17 +42,17 @@ namespace Strontium
     const aiScene* scene = importer.ReadFile(filepath, flags);
     if (!scene)
     {
-      logs->logMessage(LogMessage("Model failed to load at the path " + filepath +
-                                  ", with the error: " + importer.GetErrorString()
-                                  + ".", true, true));
+      Logs::log("Model failed to load at the path " + filepath +
+                ", with the error: " + importer.GetErrorString()
+                + ".");
       eventDispatcher->queueEvent(new GuiEvent(GuiEventType::EndSpinnerEvent, ""));
       return;
     }
     else if (scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
     {
-      logs->logMessage(LogMessage("Model failed to load at the path " + filepath +
-                                  ", with the error: " + importer.GetErrorString()
-                                  + ".", true, true));
+      Logs::log("Model failed to load at the path " + filepath +
+                ", with the error: " + importer.GetErrorString()
+                + ".");
       eventDispatcher->queueEvent(new GuiEvent(GuiEventType::EndSpinnerEvent, ""));
       return;
     }
@@ -86,7 +85,7 @@ namespace Strontium
     this->loaded = true;
 
     eventDispatcher->queueEvent(new GuiEvent(GuiEventType::EndSpinnerEvent, ""));
-    logs->logMessage(LogMessage("Model loaded at path " + filepath));
+    Logs::log("Model loaded at path " + filepath + ".");
   }
 
   void 

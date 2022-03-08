@@ -27,8 +27,7 @@ namespace Strontium
     Application::appInstance = this;
 
     // Initialize the application logs.
-    Logger* logs = Logger::getInstance();
-    logs->init();
+    Logs::init("./logs.txt");
 
     // Initialize the application main window.
     this->appWindow = Window::getNewInstance(this->name);
@@ -77,9 +76,11 @@ namespace Strontium
     // Terminate the spawned threads.
     JobSystem::shutdown();
 
+    // Shutdown the logs.
+    Logs::shutdown();
+
     // Delete the application event dispatcher and logs.
     delete EventDispatcher::getInstance();
-    delete Logger::getInstance();
   }
 
   void

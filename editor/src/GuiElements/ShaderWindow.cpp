@@ -23,8 +23,6 @@ namespace Strontium
   void
   ShaderWindow::onImGuiRender(bool &isOpen, Shared<Scene> activeScene)
   {
-    Logger* logs = Logger::getInstance();
-
     ImGui::Begin("Shader Programs", &isOpen);
     for (auto pair = ShaderCache::begin(); pair != ShaderCache::end(); ++pair)
     {
@@ -56,8 +54,7 @@ namespace Strontium
         ImGui::Indent();
         if (ImGui::Button("Reload From File", ImVec2(buttonWidth, 0)))
         {
-          logs->logMessage(LogMessage(std::string("Reloaded shader: ") + this->shaderName,
-                                      true, true));
+          Logs::log(std::string("Reloaded shader: ") + this->shaderName);
           this->selectedShader->rebuild();
         }
 

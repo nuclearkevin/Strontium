@@ -261,8 +261,6 @@ namespace Strontium
   void
   EditorLayer::onImGuiRender()
   {
-    Logger* logs = Logger::getInstance();
-
     // Get the window size.
     ImVec2 wSize = ImGui::GetIO().DisplaySize;
 
@@ -441,14 +439,29 @@ namespace Strontium
     // The log menu.
     ImGui::Begin("Application Logs", nullptr);
     {
-      if (ImGui::Button("Clear Logs"))
-        Logger::getInstance()->getLogs() = "";
-
       ImGui::BeginChild("LogText");
       {
         auto size = ImGui::GetWindowSize();
         ImGui::PushTextWrapPos(size.x);
-        ImGui::Text(Logger::getInstance()->getLogs().c_str());
+        auto messageCount = Logs::getMessageCount();
+        auto messagePointer = Logs::getMessagePointer();
+        if (messageCount == 50)
+        {
+          for (std::size_t i = 0; i < 50; i++)
+          {
+            auto index = (messagePointer + 1 + i) % 50;
+            auto message = Logs::getMessage(index);
+            ImGui::Text(message.c_str());
+          }
+        }
+        else
+        {
+          for (std::size_t i = 0; i < messagePointer; i++)
+          {
+            auto message = Logs::getMessage(i);
+            ImGui::Text(message.c_str());
+          }
+        }
         ImGui::PopTextWrapPos();
       }
       ImGui::EndChild();

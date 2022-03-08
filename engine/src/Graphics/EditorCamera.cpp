@@ -275,18 +275,17 @@ namespace Strontium
   void
   EditorCamera::swap()
   {
-    Logger* logs = Logger::getInstance();
     Shared<Window> appWindow = Application::getInstance()->getWindow();
 
     if (this->currentType == EditorCameraType::Stationary)
     {
       this->currentType = EditorCameraType::Free;
-      logs->logMessage(LogMessage("Swapped camera to free-form.", true, false));
+      Logs::log("Swapped camera to free-form.");
     }
     else
     {
       this->currentType = EditorCameraType::Stationary;
-      logs->logMessage(LogMessage("Swapped camera to stationary.", true, false));
+      Logs::log("Swapped camera to stationary.");
 
       glm::vec2 cursorPos = appWindow->getCursorPos();
       this->lastMouseX = cursorPos.x;

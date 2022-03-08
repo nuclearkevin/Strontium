@@ -50,3 +50,6 @@ Application
 !**/assets/.icons/*
 !**/assets/.fonts/*
 !**/assets/tests/*
+
+# Ignore the logs file
+logs.txt
