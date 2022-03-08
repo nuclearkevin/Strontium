@@ -359,6 +359,12 @@ namespace Strontium
 
       std::filesystem::path fsPath(filepath);
 
+      if (fsPath.extension().string() == ".dds")
+      {
+        Logs::log("Error loading " + fsPath.filename().string() + ": .dds files are not supported.");
+        return;
+      }
+
       auto loaderImpl = [](const std::filesystem::path& path, const Texture2DParams &params)
       {
         auto eventDispatcher = EventDispatcher::getInstance();

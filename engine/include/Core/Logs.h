@@ -39,7 +39,7 @@ namespace Strontium::Logs
              + ":" + std::to_string(local->tm_sec) + "]"
              + " Initialized application logging.\n";
 
-    LogInternals::logData.logFile.open(filepath, std::ios::out | std::ios::app);
+    LogInternals::logData.logFile.open(filepath, std::ios::out);
     std::cout << message;
     LogInternals::logData.logFile << message;
     LogInternals::logData.messages[LogInternals::logData.messagePointer] = message;
@@ -97,12 +97,12 @@ namespace Strontium::Logs
     std::time_t current = std::time(0);
     std::tm* local = std::localtime(&current);
 
-    // The init message.
+    // The close message.
     std::string message("");
     message += "[" + std::to_string(local->tm_hour) + ":"
             + std::to_string(local->tm_min)
             + ":" + std::to_string(local->tm_sec) + "]"
-            + " Initialized application logging.\n";
+            + " Closed application logging.\n";
 
     std::cout << message;
     LogInternals::logData.logFile << message;

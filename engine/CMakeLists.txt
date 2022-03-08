@@ -20,6 +20,7 @@ set(INCLUDE_DIRS
     vendor/glfw/include
     vendor/assimp/include
     vendor/yamlcpp/include
+    vendor/joltphysics
     vendor/joltphysics/Jolt
 )
 

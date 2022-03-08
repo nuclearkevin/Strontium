@@ -64,7 +64,7 @@ namespace Strontium::JobSystemInternal
 namespace Strontium::JobSystem
 {
   inline void 
-  init(unsigned int numThreads)
+  init(unsigned int numThreads = std::thread::hardware_concurrency() - 1)
   {
     JobSystemInternal::poolData.isActive.store(true);
 
@@ -109,6 +109,18 @@ namespace Strontium::JobSystem
     }
     
     std::unique_lock<std::mutex> taskLock(JobSystemInternal::poolData.taskMutex);
+
+    // Execute any remaining jobs.
+    while (!JobSystemInternal::poolData.tasks.empty())
+    {
+      auto job = JobSystemInternal::poolData.tasks.pop();
+      job->execute();
+    }
+  }
+
+  inline int getMaxConcurrency()
+  {
+    return JobSystemInternal::poolData.workers.size();
   }
 
   // Queue up jobs for the workers to execute.
@@ -118,8 +130,6 @@ namespace Strontium::JobSystem
     typedef decltype(func(args...)) retType;
 
     std::packaged_task<retType()> newTask(std::move(std::bind(func, args...)));
-
-    std::unique_lock<std::mutex> lock(JobSystemInternal::poolData.taskMutex);
 
     std::future<retType> returnValue = newTask.get_future();
 

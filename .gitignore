@@ -25,7 +25,7 @@
 *.smtl
 
 # Ignore asset directories
-/assets/models/*
+/assets/
 
 # Object files
 *.d

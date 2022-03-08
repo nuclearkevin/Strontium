@@ -664,7 +664,7 @@ namespace Strontium
 
         ImGui::Text("");
         ImGui::Separator();
-        ImGui::Text("Materials");
+        ImGui::Text("Submeshes");
         if (this->selectedSubmesh && componentModel)
         {
           if (ImGui::BeginCombo("##sceneGraphSelectedSubmesh", this->selectedSubmesh->getName().c_str()))
@@ -690,7 +690,8 @@ namespace Strontium
           if (material)
           {
             ImGui::PushID("MaterialPreview");
-            if (ImGui::ImageButton((ImTextureID) (unsigned long) material->getSampler2D("albedoMap")->getID(),
+            ImGui::Text("Material name: %s", materialHandle.c_str());
+            if (ImGui::ImageButton(reinterpret_cast<ImTextureID>(material->getSampler2D("albedoMap")->getID()),
                                    ImVec2(48, 48), ImVec2(0, 1), ImVec2(1, 0)))
             {
 
@@ -705,7 +706,7 @@ namespace Strontium
             }
 
             static bool makingNewmaterial = false;
-            static std::string newMaterialname = "";
+            static std::string newMaterialname("");
             ImGui::SameLine();
             if (ImGui::Button(ICON_FA_FILE))
             {
@@ -739,7 +740,7 @@ namespace Strontium
             if (ImGui::Button(ICON_FA_FOLDER_O))
             {
               EventDispatcher::getInstance()->queueEvent(new OpenDialogueEvent(DialogueEventType::FileOpen,
-                                                         ".srmat"));
+                                                         ".smtl"));
               this->fileTargets = FileLoadTargets::TargetMaterial;
             }
 
@@ -747,7 +748,7 @@ namespace Strontium
             if (ImGui::Button(ICON_FA_FLOPPY_O))
             {
               EventDispatcher::getInstance()->queueEvent(new OpenDialogueEvent(DialogueEventType::FileSave,
-                                                         ".srmat"));
+                                                         ".smtl"));
               this->saveTargets = FileSaveTargets::TargetMaterial;
             }
           }

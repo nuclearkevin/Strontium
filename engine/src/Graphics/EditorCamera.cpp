@@ -280,12 +280,12 @@ namespace Strontium
     if (this->currentType == EditorCameraType::Stationary)
     {
       this->currentType = EditorCameraType::Free;
-      Logs::log("Swapped camera to free-form.");
+      Logs::log("Swapped camera to free-form.", true, false);
     }
     else
     {
       this->currentType = EditorCameraType::Stationary;
-      Logs::log("Swapped camera to stationary.");
+      Logs::log("Swapped camera to stationary.", true, false);
 
       glm::vec2 cursorPos = appWindow->getCursorPos();
       this->lastMouseX = cursorPos.x;

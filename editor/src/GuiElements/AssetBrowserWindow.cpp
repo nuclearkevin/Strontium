@@ -272,7 +272,6 @@ namespace Strontium
     }
   }
 
-  // This segfaults?
   void
   AssetBrowserWindow::drawFolders(Shared<Scene> activeScene)
   {
@@ -372,17 +371,17 @@ namespace Strontium
         ImGui::SetCursorPos(cursorPos);
         if (fileExt == ".srn")
         {
-          ImGui::Image((ImTextureID) (unsigned long) this->icons["srfile"]->getID(),
+          ImGui::Image(reinterpret_cast<ImTextureID>(this->icons["srfile"]->getID()),
                        ImVec2(64.0f, 64.0f), ImVec2(0, 1), ImVec2(1, 0));
         }
         else if (fileExt == ".sfab")
         {
-          ImGui::Image((ImTextureID) (unsigned long) this->icons["sfabfile"]->getID(),
+          ImGui::Image(reinterpret_cast<ImTextureID>(this->icons["sfabfile"]->getID()),
                        ImVec2(64.0f, 64.0f), ImVec2(0, 1), ImVec2(1, 0));
         }
         else
         {
-          ImGui::Image((ImTextureID) (unsigned long) this->icons["file"]->getID(),
+          ImGui::Image(reinterpret_cast<ImTextureID>(this->icons["file"]->getID()),
                        ImVec2(64.0f, 64.0f), ImVec2(0, 1), ImVec2(1, 0));
         }
         ImGui::TextWrapped(fileName.c_str());

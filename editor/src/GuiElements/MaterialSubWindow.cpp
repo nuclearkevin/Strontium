@@ -49,7 +49,7 @@ namespace Strontium
   {
     ImGui::Text(name.c_str());
     ImGui::PushID(name.c_str());
-    if (ImGui::ImageButton((ImTextureID) (unsigned long) material->getSampler2D(samplerName)->getID(),
+    if (ImGui::ImageButton(reinterpret_cast<ImTextureID>(material->getSampler2D(samplerName)->getID()),
                            ImVec2(64, 64), ImVec2(0, 1), ImVec2(1, 0)))
     {
       selectedMap = samplerName;
@@ -107,8 +107,8 @@ namespace Strontium
 
       auto texture = textureCache->getAsset(handle);
       ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
-      ImGui::ImageButton((ImTextureID) (unsigned long) texture->getID(),
-                   ImVec2(64.0f, 64.0f), ImVec2(0, 1), ImVec2(1, 0));
+      ImGui::ImageButton(reinterpret_cast<ImTextureID>(texture->getID()),
+                         ImVec2(64.0f, 64.0f), ImVec2(0, 1), ImVec2(1, 0));
       ImGui::PopStyleColor();
 
       if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(0))
@@ -184,7 +184,7 @@ namespace Strontium
     // Draw all the associated texture maps for the entity.
     ImGui::Text("Albedo Map");
     ImGui::PushID("Albedo Button");
-    if (ImGui::ImageButton((ImTextureID) (unsigned long) material->getSampler2D("albedoMap")->getID(),
+    if (ImGui::ImageButton(reinterpret_cast<ImTextureID>(material->getSampler2D("albedoMap")->getID()),
                            ImVec2(64, 64), ImVec2(0, 1), ImVec2(1, 0)))
     {
       selectedSampler = "albedoMap";

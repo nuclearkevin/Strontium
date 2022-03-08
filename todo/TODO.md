@@ -11,7 +11,10 @@
   - Rewrite the job system.
     - [x] Use a concurrent queue (https://github.com/cameron314/concurrentqueue) OR a
     threadsafe non-concurrent queue that minimizes locking.
-    - [ ] Implement the Jolt physics job system.
+    - [x] Implement the Jolt physics job system which performs calls to engine's job system.
+      - [x] class PhysicsThreadPool final : public JobSystem { ... }
+      - [x] class PhysicsBarrier : public Barrier { ... }
+      - [x] class Semaphore { ... }
 
   - [ ] Add a scene copying system. Prevents physics (and later scripting) updates
   from changing the scene permanently.  
