@@ -7,6 +7,7 @@
 #include <memory>
 
 // Basic typedefs.
+typedef unsigned short ushort;
 typedef unsigned int uint;
 typedef long long unsigned int ulong;
 

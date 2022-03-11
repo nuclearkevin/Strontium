@@ -24,15 +24,15 @@
   - [x] Add Jolt Physics to the engine build system.
 
   - [ ] PhysicsWorld functions(?) / class.
-    - [ ] init(): Sets up the resources required for physics.
-    - [ ] shutdown(): Frees resources used by Jolt
+    - [x] init(): Sets up the resources required for physics.
+    - [x] shutdown(): Frees resources used by Jolt
     - [ ] add(Body components, Collider components, etc): Add in components
     - [ ] onSimulationBegin(): Creates the Jolt physics world. Creates all the physics
     actors using components sent over and initializes the physics scene.
-    - [ ] onUpdate(float dtFrame, other physics params...): Steps the physics system
+    - [x] onUpdate(float dtFrame, other physics params...): Steps the physics system
     (https://gafferongames.com/post/fix_your_timestep/).
     - [ ] updateEntities(Scene): Update scene entities using information from the physics simulation.
-    - [ ] onSimulationEnd(): Deletes the physics world and all of the actors created.
+    - [x] onSimulationEnd(): Deletes the physics world and all of the actors created.
 
   - [ ] PhysicsActor class.
     - Maps EnTT entities to Jolt actors.

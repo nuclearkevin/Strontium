@@ -61,7 +61,7 @@ namespace Strontium
 	  void AddJob(const JobHandle& inJob) override;
 	  void AddJobs(const JobHandle* inHandles, uint inNumHandles) override;
 
-	  inline bool isEmpty() const { return jobReadIndex == jobWriteIndex; }
+	  inline bool isEmpty() const { return this->jobReadIndex == this->jobWriteIndex; }
 
 	  void wait();
 

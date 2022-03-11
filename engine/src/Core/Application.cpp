@@ -6,6 +6,8 @@
 #include "Core/Logs.h"
 #include "Utils/AsyncAssetLoading.h"
 
+#include "PhysicsSystem/PhysicsWorld.h"
+
 namespace Strontium
 {
   Application* Application::appInstance = nullptr;
@@ -37,6 +39,9 @@ namespace Strontium
 
     // Init the shader cache.
     ShaderCache::init("./assets/shaders/shaderManifest.yaml");
+
+    // Init the physics system.
+    PhysicsWorld::init();
 
     // Initialize the asset managers.
     this->modelAssets.reset(AssetManager<Model>::getManager());
@@ -72,6 +77,9 @@ namespace Strontium
 
     // Shutdown the renderer.
     Renderer3D::shutdown();
+
+    // Shutdown the physics system.
+    PhysicsWorld::shutdown();
 
     // Terminate the spawned threads.
     JobSystem::shutdown();

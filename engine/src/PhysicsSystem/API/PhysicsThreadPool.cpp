@@ -1,4 +1,4 @@
-#include "Physics/PhysicsThreadPool.h"
+#include "PhysicsSystem/API/PhysicsThreadPool.h"
 
 // Project includes.
 #include "Core/JobSystem.h"
@@ -45,7 +45,7 @@ Strontium::PhysicsThreadPool::PhysicsBarrier::PhysicsBarrier()
 
 Strontium::PhysicsThreadPool::PhysicsBarrier::~PhysicsBarrier()
 {
-  assert(this->IsEmpty());
+  assert(this->isEmpty());
 }
 
 void 
