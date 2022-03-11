@@ -114,7 +114,7 @@ namespace Strontium::PhysicsWorld
   }
 
   void 
-  updatePhysics(float dtFrame)
+  onUpdate(float dtFrame)
   {
 	if (!internals->simulating)
 	  return;

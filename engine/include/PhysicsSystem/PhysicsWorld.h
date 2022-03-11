@@ -8,5 +8,5 @@ namespace Strontium::PhysicsWorld
   void onSimulationBegin();
   void onSimulationEnd();
 
-  void updatePhysics(float dtFrame);
+  void onUpdate(float dtFrame);
 }
