@@ -54,6 +54,9 @@ namespace Strontium
 
     // The current scene.
     Shared<Scene> currentScene;
+    // Backup of the current scene so we can revert to a version before runtime changes.
+    Shared<Scene> backupScene;
+
     // The framebuffer for the scene.
     FrameBuffer drawBuffer;
     // Editor camera.

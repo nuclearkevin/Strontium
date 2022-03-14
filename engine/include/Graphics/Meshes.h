@@ -1,6 +1,5 @@
 #pragma once
 
-// Macro include file.
 #include "StrontiumPCH.h"
 
 // Project includes.

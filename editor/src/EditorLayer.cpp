@@ -9,11 +9,7 @@
 #include "Serialization/YamlSerialization.h"
 #include "Scenes/Components.h"
 
-// Some math for decomposing matrix transformations.
-#include "glm/gtx/matrix_decompose.hpp"
-
-// ImGizmo goodies.
-#include "imguizmo/ImGuizmo.h"
+#include "PhysicsEngine/PhysicsEngine.h"
 
 namespace Strontium
 {
@@ -68,6 +64,7 @@ namespace Strontium
 
     // Setup stuff for the scene.
     this->currentScene = createShared<Scene>();
+    this->backupScene = createShared<Scene>();
 
     // Init the editor camera.
     this->editorCam.init(90.0f, 1.0f, 0.1f, 200.0f);
@@ -139,6 +136,7 @@ namespace Strontium
 
           if (success)
           {
+            Logs::log("Scene loaded from: " + loadEvent.getAbsPath());
             this->currentScene = tempScene;
             this->currentScene->getSaveFilepath() = loadEvent.getAbsPath();
             static_cast<SceneGraphWindow*>(this->windows[0])->setSelectedEntity(Entity());
@@ -160,29 +158,14 @@ namespace Strontium
           YAMLSerialization::serializeScene(this->currentScene, saveEvent.getAbsPath(), name);
           this->currentScene->getSaveFilepath() = saveEvent.getAbsPath();
 
-          if (this->dndScenePath != "")
-          {
-            static_cast<SceneGraphWindow*>(this->windows[0])->setSelectedEntity(Entity());
-            static_cast<ModelWindow*>(this->windows[4])->setSelectedEntity(Entity());
-
-            Shared<Scene> tempScene = createShared<Scene>();
-            if (YAMLSerialization::deserializeScene(tempScene, this->dndScenePath))
-            {
-              this->currentScene = tempScene;
-              this->currentScene->getSaveFilepath() = this->dndScenePath;
-            }
-            this->dndScenePath = "";
-          }
+          Logs::log("Scene saved at: " + saveEvent.getAbsPath());
         }
 
         this->saveTarget = FileSaveTargets::TargetNone;
         break;
       }
 
-      default:
-      {
-        break;
-      }
+      default: break;
     }
   }
 
@@ -216,7 +199,7 @@ namespace Strontium
 
         // Draw the scene.
         this->drawBuffer.clear();
-        Renderer3D::begin(this->editorSize.x, this->editorSize.y, (Camera) this->editorCam);
+        Renderer3D::begin(this->editorSize.x, this->editorSize.y, static_cast<Camera>(this->editorCam));
         this->currentScene->onRenderEditor(this->getSelectedEntity());
         Renderer3D::end(this->drawBuffer);
 
@@ -227,6 +210,10 @@ namespace Strontium
 
       case SceneState::Play:
       {
+        // Update the physics system.
+        PhysicsEngine::onUpdate(dt);
+        this->currentScene->updatePhysicsTransforms();
+
         // Update the scene.
         this->currentScene->onUpdateRuntime(dt);
 
@@ -235,17 +222,25 @@ namespace Strontium
         Camera primaryCamera;
         if (primaryCameraEntity)
         {
+          auto transform = this->currentScene->computeGlobalTransform(primaryCameraEntity);
           primaryCamera = primaryCameraEntity.getComponent<CameraComponent>().entCamera;
 
-          float ratio = this->editorSize.x / this->editorSize.y;
+          primaryCamera.position = glm::vec3(transform * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
+          primaryCamera.front = glm::normalize(glm::vec3(transform  * glm::vec4(0.0f, 0.0f, -1.0f, 0.0f)));
+
+          primaryCamera.view = glm::lookAt(primaryCamera.position, primaryCamera.position + primaryCamera.front, 
+                                           glm::vec3(0.0f, 1.0f, 0.0f));
+
           primaryCamera.projection = glm::perspective(primaryCamera.fov,
-                                                      ratio, primaryCamera.near,
+                                                      this->editorSize.x / this->editorSize.y, 
+                                                      primaryCamera.near,
                                                       primaryCamera.far);
           primaryCamera.invViewProj = glm::inverse(primaryCamera.projection * primaryCamera.view);
         }
         else
         {
-          primaryCamera = (Camera) this->editorCam;
+          // Fall back to the editor camera if now primary camera is available.
+          primaryCamera = static_cast<Camera>(this->editorCam);
           this->editorCam.onUpdate(dt, glm::vec2(this->editorSize.x, this->editorSize.y));
         }
 
@@ -313,11 +308,6 @@ namespace Strontium
     	{
        	if (ImGui::MenuItem(ICON_FA_FILE_O" New", "Ctrl+N"))
        	{
-          /*
-          auto storage = Renderer3D::getStorage();
-          storage->currentEnvironment->unloadEnvironment();
-          */
-
           this->currentScene = createShared<Scene>();
        	}
         if (ImGui::MenuItem(ICON_FA_FOLDER_OPEN_O" Open...", "Ctrl+O"))
@@ -335,6 +325,7 @@ namespace Strontium
             std::string name = path.substr(path.find_last_of('/') + 1, path.find_last_of('.'));
 
             YAMLSerialization::serializeScene(this->currentScene, path, name);
+            Logs::log("Scene saved at: " + path);
           }
           else
           {
@@ -526,6 +517,7 @@ namespace Strontium
           std::string name = path.substr(path.find_last_of('/') + 1, path.find_last_of('.'));
 
           YAMLSerialization::serializeScene(this->currentScene, path, name);
+          Logs::log("Scene saved at: " + path);
 
           static_cast<SceneGraphWindow*>(this->windows[0])->setSelectedEntity(Entity());
           static_cast<ModelWindow*>(this->windows[4])->setSelectedEntity(Entity());
@@ -535,6 +527,7 @@ namespace Strontium
           {
             this->currentScene = tempScene;
             this->currentScene->getSaveFilepath() = this->dndScenePath;
+            Logs::log("Scene loaded from: " + path);
           }
           this->dndScenePath = "";
         }
@@ -558,6 +551,7 @@ namespace Strontium
         {
           this->currentScene = tempScene;
           this->currentScene->getSaveFilepath() = this->dndScenePath;
+          Logs::log("Scene loaded from: " + this->dndScenePath);
         }
         this->dndScenePath = "";
       }
@@ -578,6 +572,7 @@ namespace Strontium
       {
         this->currentScene = tempScene;
         this->currentScene->getSaveFilepath() = this->dndScenePath;
+        Logs::log("Scene loaded from: " + this->dndScenePath);
       }
       this->dndScenePath = "";
     }
@@ -594,7 +589,6 @@ namespace Strontium
 
     int keyCode = keyEvent.getKeyCode();
 
-    bool camStationary = this->editorCam.isStationary();
     bool lControlHeld = appWindow->isKeyPressed(SR_KEY_LEFT_CONTROL);
     bool lShiftHeld = appWindow->isKeyPressed(SR_KEY_LEFT_SHIFT);
 
@@ -602,22 +596,19 @@ namespace Strontium
     {
       case SR_KEY_N:
       {
-        if (lControlHeld && keyEvent.getRepeatCount() == 0 && camStationary)
+        if (lControlHeld && keyEvent.getRepeatCount() == 0)
         {
-          /*
-          auto storage = Renderer3D::getStorage();
-          storage->currentEnvironment->unloadEnvironment();
-          */
-
           this->currentScene = createShared<Scene>();
           static_cast<SceneGraphWindow*>(this->windows[0])->setSelectedEntity(Entity());
           static_cast<ModelWindow*>(this->windows[4])->setSelectedEntity(Entity());
+
+          Logs::log("New scene created.");
         }
         break;
       }
       case SR_KEY_O:
       {
-        if (lControlHeld && keyEvent.getRepeatCount() == 0 && camStationary)
+        if (lControlHeld && keyEvent.getRepeatCount() == 0)
         {
           EventDispatcher* dispatcher = EventDispatcher::getInstance();
           dispatcher->queueEvent(new OpenDialogueEvent(DialogueEventType::FileOpen,
@@ -628,14 +619,14 @@ namespace Strontium
       }
       case SR_KEY_S:
       {
-        if (lControlHeld && lShiftHeld && keyEvent.getRepeatCount() == 0 && camStationary)
+        if (lControlHeld && lShiftHeld && keyEvent.getRepeatCount() == 0)
         {
           EventDispatcher* dispatcher = EventDispatcher::getInstance();
           dispatcher->queueEvent(new OpenDialogueEvent(DialogueEventType::FileSave,
                                                        ".srn"));
           this->saveTarget = FileSaveTargets::TargetScene;
         }
-        else if (lControlHeld && keyEvent.getRepeatCount() == 0 && camStationary)
+        else if (lControlHeld && keyEvent.getRepeatCount() == 0)
         {
           if (this->currentScene->getSaveFilepath() != "")
           {
@@ -643,6 +634,8 @@ namespace Strontium
             std::string name = path.substr(path.find_last_of('/') + 1, path.find_last_of('.'));
 
             YAMLSerialization::serializeScene(this->currentScene, path, name);
+
+            Logs::log("Scene saved at: " + path);
           }
           else
           {
@@ -666,12 +659,30 @@ namespace Strontium
   EditorLayer::onScenePlay()
   {
     this->sceneState = SceneState::Play;
+
+    // Copy the current scene to the editor scene.
+    this->backupScene->clearForRuntime();
+    this->backupScene->copyForRuntime(*this->currentScene);
+    this->backupScene->getSaveFilepath() = this->currentScene->getSaveFilepath();
+
+    this->currentScene->initPhysics();
+
+    PhysicsEngine::onSimulationBegin();
   }
 
   void
   EditorLayer::onSceneStop()
   {
     this->sceneState = SceneState::Edit;
+
+    this->currentScene->shutdownPhysics();
+
+    // Copy the editor scene to the current scene 
+    this->currentScene->clearForRuntime();
+    this->currentScene->copyForRuntime(*this->backupScene);
+    this->currentScene->getSaveFilepath() = this->backupScene->getSaveFilepath();
+
+    PhysicsEngine::onSimulationEnd();
   }
 
   Entity

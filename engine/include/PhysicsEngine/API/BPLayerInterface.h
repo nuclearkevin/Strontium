@@ -6,27 +6,27 @@
 // Jolt includes.
 #include "Jolt/Jolt.h"
 #include "Jolt/Physics/Collision/BroadPhase/BroadPhaseLayer.h"
-#include "PhysicsSystem/API/PhysicsLayers.h"
+#include "PhysicsEngine/API/Layers.h"
 
-namespace Strontium
+namespace Strontium::PhysicsEngine
 {
-  class PhysicsBPLayerInterface final : public JPH::BroadPhaseLayerInterface
+  class BPLayerInterface final : public JPH::BroadPhaseLayerInterface
   {
   public:
-	PhysicsBPLayerInterface()
+	BPLayerInterface()
 	{
-	  this->layers[PhysicsLayers::NonMoving] = JPH::BroadPhaseLayer(PhysicsLayers::NonMoving);
-	  this->layers[PhysicsLayers::Moving] = JPH::BroadPhaseLayer(PhysicsLayers::Moving);
+	  this->layers[Layers::NonMoving] = JPH::BroadPhaseLayer(Layers::NonMoving);
+	  this->layers[Layers::Moving] = JPH::BroadPhaseLayer(Layers::Moving);
 	}
 
-	~PhysicsBPLayerInterface() override 
+	~BPLayerInterface() override 
 	{ }
 
-	uint GetNumBroadPhaseLayers() const override { return PhysicsLayers::NumLayers; }
+	uint GetNumBroadPhaseLayers() const override { return Layers::NumLayers; }
 
 	JPH::BroadPhaseLayer GetBroadPhaseLayer(JPH::ObjectLayer inLayer) const override 
 	{ 
-	  assert(inLayer < PhysicsLayers::NumLayers);
+	  assert(inLayer < Layers::NumLayers);
 	  return this->layers[inLayer]; 
 	}
 
@@ -42,6 +42,6 @@ namespace Strontium
 	}
     #endif
   private:
-	JPH::BroadPhaseLayer layers[PhysicsLayers::NumLayers];
+	JPH::BroadPhaseLayer layers[Layers::NumLayers];
   };
 }

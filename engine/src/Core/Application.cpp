@@ -6,7 +6,7 @@
 #include "Core/Logs.h"
 #include "Utils/AsyncAssetLoading.h"
 
-#include "PhysicsSystem/PhysicsWorld.h"
+#include "PhysicsEngine/PhysicsEngine.h"
 
 namespace Strontium
 {
@@ -35,13 +35,16 @@ namespace Strontium
     this->appWindow = Window::getNewInstance(this->name);
 
     // Initialize the thread pool.
-    JobSystem::init(4);
+    JobSystem::init(3);
 
     // Init the shader cache.
     ShaderCache::init("./assets/shaders/shaderManifest.yaml");
 
+    // Initialize the 3D renderer.
+    Renderer3D::init(1600.0f, 900.0f);
+
     // Init the physics system.
-    PhysicsWorld::init();
+    PhysicsEngine::init();
 
     // Initialize the asset managers.
     this->modelAssets.reset(AssetManager<Model>::getManager());
@@ -61,9 +64,6 @@ namespace Strontium
 
     this->imLayer = new ImGuiLayer();
     this->pushOverlay(this->imLayer);
-
-    // Initialize the 3D renderer.
-    Renderer3D::init(1600.0f, 900.0f);
   }
 
   Application::~Application()
@@ -79,7 +79,7 @@ namespace Strontium
     Renderer3D::shutdown();
 
     // Shutdown the physics system.
-    PhysicsWorld::shutdown();
+    PhysicsEngine::shutdown();
 
     // Terminate the spawned threads.
     JobSystem::shutdown();

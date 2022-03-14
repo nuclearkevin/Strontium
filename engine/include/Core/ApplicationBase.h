@@ -3,13 +3,14 @@
 // Macro include file.
 #include "StrontiumPCH.h"
 
-// Memory management library.
+// STL includes.
+#include <cstdint>
 #include <memory>
 
 // Basic typedefs.
-typedef unsigned short ushort;
-typedef unsigned int uint;
-typedef long long unsigned int ulong;
+typedef std::uint16_t ushort;
+typedef std::uint32_t uint;
+typedef std::uint64_t ulong;
 
 namespace Strontium
 {

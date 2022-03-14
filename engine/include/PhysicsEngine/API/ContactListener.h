@@ -7,13 +7,13 @@
 #include "Jolt/Jolt.h"
 #include "Jolt/Physics/Collision/ContactListener.h"
 
-namespace Strontium
+namespace Strontium::PhysicsEngine
 {
-  class PhysicsContactListener : public JPH::ContactListener
+  class ContactListener : public JPH::ContactListener
   {
   public:
-	PhysicsContactListener();
-	~PhysicsContactListener() override;
+	ContactListener();
+	~ContactListener() override;
 
 	JPH::ValidateResult OnContactValidate(const JPH::Body &inBody1, const JPH::Body &inBody2, 
 										  const JPH::CollideShapeResult &inCollisionResult) override;

@@ -2,14 +2,14 @@
 
 // Project includes.
 #include "Core/Logs.h"
-#include "PhysicsSystem/API/PhysicsLayers.h"
+#include "PhysicsEngine/API/Layers.h"
 
 // Jolt includes.
 #include "Jolt/Jolt.h"
 #include "Jolt/Physics/Collision/ObjectLayer.h"
 #include "Jolt/Physics/Collision/BroadPhase/BroadPhaseLayer.h"
 
-namespace Strontium::PhysicsCallbacks
+namespace Strontium::PhysicsEngine::Callbacks
 {
   // Callback for traces.
   static void traceImpl(const char *inFMT, ...)
@@ -39,8 +39,8 @@ namespace Strontium::PhysicsCallbacks
   {
 	switch (inObject1)
 	{
-	case PhysicsLayers::NonMoving: return inObject2 == PhysicsLayers::Moving;
-	case PhysicsLayers::Moving: return true;
+	case Layers::NonMoving: return inObject2 == Layers::Moving;
+	case Layers::Moving: return true;
 	default: return false;
 	}
   }
@@ -50,8 +50,8 @@ namespace Strontium::PhysicsCallbacks
   {
 	switch (inLayer1)
 	{
-	  case PhysicsLayers::NonMoving: return inLayer2 == JPH::BroadPhaseLayer(PhysicsLayers::Moving);
-	  case PhysicsLayers::Moving: return true;
+	  case Layers::NonMoving: return inLayer2 == JPH::BroadPhaseLayer(Layers::Moving);
+	  case Layers::Moving: return true;
 	  default: return false;
 	}
   }

@@ -83,7 +83,7 @@ void main()
   // Skybox should only be drawn when the depth of a fragment is 1.0, early out
   // if that is not the case.
   float depth = textureLod(gDepth, gBufferUVs, 0.0).r;
-  if (depth != 1.0)
+  if (depth < (1.0 - 1e-6))
     return;
 
   // Compute the ray direction.

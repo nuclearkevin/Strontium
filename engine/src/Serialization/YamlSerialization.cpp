@@ -410,6 +410,45 @@ namespace Strontium
         out << YAML::EndMap;
       }
 
+      if (entity.hasComponent<SphereColliderComponent>())
+      {
+        out << YAML::Key << "SphereColliderComponent";
+        out << YAML::BeginMap;
+
+        auto& component = entity.getComponent<SphereColliderComponent>();
+        out << YAML::Key << "Radius" << YAML::Value << component.radius;
+        out << YAML::Key << "Offset" << YAML::Value << component.offset;
+        out << YAML::Key << "Density" << YAML::Value << component.density;
+
+        out << YAML::EndMap;
+      }
+
+      if (entity.hasComponent<BoxColliderComponent>())
+      {
+        out << YAML::Key << "BoxColliderComponent";
+        out << YAML::BeginMap;
+
+        auto& component = entity.getComponent<BoxColliderComponent>();
+        out << YAML::Key << "HalfExtents" << YAML::Value << component.extents;
+        out << YAML::Key << "Offset" << YAML::Value << component.offset;
+        out << YAML::Key << "Density" << YAML::Value << component.density;
+
+        out << YAML::EndMap;
+      }
+
+      if (entity.hasComponent<RigidBody3DComponent>())
+      {
+        out << YAML::Key << "RigidBody3DComponent";
+        out << YAML::BeginMap;
+
+        auto& component = entity.getComponent<RigidBody3DComponent>();
+        out << YAML::Key << "Type" << YAML::Value << static_cast<uint>(component.type);
+        out << YAML::Key << "Friction" << YAML::Value << component.friction;
+        out << YAML::Key << "Restitution" << YAML::Value << component.restitution;
+
+        out << YAML::EndMap;
+      }
+
       out << YAML::EndMap;
     }
 
@@ -838,6 +877,33 @@ namespace Strontium
       {
         auto& dsComponent = newEntity.addComponent<DynamicSkylightComponent>();
         dsComponent.intensity = dynamicSkyLightComponent["Intensity"].as<float>();
+      }
+
+      auto sphereColliderComponent = entity["SphereColliderComponent"];
+      if (sphereColliderComponent)
+      {
+        auto& scComponent = newEntity.addComponent<SphereColliderComponent>();
+        scComponent.radius = sphereColliderComponent["Radius"].as<float>();
+        scComponent.offset = sphereColliderComponent["Offset"].as<glm::vec3>();
+        scComponent.density = sphereColliderComponent["Density"].as<float>();
+      }
+
+      auto boxColliderComponent = entity["BoxColliderComponent"];
+      if (boxColliderComponent)
+      {
+        auto& bcComponent = newEntity.addComponent<BoxColliderComponent>();
+        bcComponent.extents = boxColliderComponent["HalfExtents"].as<glm::vec3>();
+        bcComponent.offset = boxColliderComponent["Offset"].as<glm::vec3>();
+        bcComponent.density = boxColliderComponent["Density"].as<float>();
+      }
+
+      auto rigidBody3DComponent = entity["RigidBody3DComponent"];
+      if (rigidBody3DComponent)
+      {
+        auto& rb3DComponent = newEntity.addComponent<RigidBody3DComponent>();
+        rb3DComponent.type = static_cast<PhysicsEngine::RigidBodyTypes>(rigidBody3DComponent["Type"].as<uint>());
+        rb3DComponent.friction = rigidBody3DComponent["Friction"].as<float>();
+        rb3DComponent.restitution = rigidBody3DComponent["Restitution"].as<float>();
       }
 
       return newEntity;

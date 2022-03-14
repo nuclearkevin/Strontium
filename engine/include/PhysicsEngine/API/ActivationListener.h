@@ -7,13 +7,13 @@
 #include "Jolt/Jolt.h"
 #include "Jolt/Physics/Body/BodyActivationListener.h"
 
-namespace Strontium
+namespace Strontium::PhysicsEngine
 {
-  class PhysicsActivationListener : public JPH::BodyActivationListener
+  class ActivationListener : public JPH::BodyActivationListener
   {
   public:
-	PhysicsActivationListener();
-	~PhysicsActivationListener() override;
+	ActivationListener();
+	~ActivationListener() override;
 
 	void OnBodyActivated(const JPH::BodyID &inBodyID, JPH::uint64 inBodyUserData) override;
 

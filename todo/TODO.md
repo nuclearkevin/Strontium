@@ -16,33 +16,42 @@
       - [x] class PhysicsBarrier : public Barrier { ... }
       - [x] class Semaphore { ... }
 
-  - [ ] Add a scene copying system. Prevents physics (and later scripting) updates
+  - [x] Add a scene copying system. Prevents physics (and later scripting) updates
   from changing the scene permanently.  
     - Requested renderer handles are a headache. Deal with those separately.
 
 - Physics
   - [x] Add Jolt Physics to the engine build system.
 
-  - [ ] PhysicsWorld functions(?) / class.
+  - [x] PhysicsWorld functions(?) / class.
     - [x] init(): Sets up the resources required for physics.
     - [x] shutdown(): Frees resources used by Jolt
-    - [ ] add(Body components, Collider components, etc): Add in components
-    - [ ] onSimulationBegin(): Creates the Jolt physics world. Creates all the physics
+    - [x] addBody(Entity entity), etc: Add physics bodies.
+    - [x] onSimulationBegin(): Creates the Jolt physics world. Creates all the physics
     actors using components sent over and initializes the physics scene.
     - [x] onUpdate(float dtFrame, other physics params...): Steps the physics system
     (https://gafferongames.com/post/fix_your_timestep/).
-    - [ ] updateEntities(Scene): Update scene entities using information from the physics simulation.
     - [x] onSimulationEnd(): Deletes the physics world and all of the actors created.
 
-  - [ ] PhysicsActor class.
+  - [x] PhysicsActor class.
     - Maps EnTT entities to Jolt actors.
 
-  - [ ] PhysicsUtils functions.
+  - [x] PhysicsUtils functions.
     - Convert between Jolt types and GLM types.
 
-  - [ ] Physics components for the ECS.
-    - Rigid body components (mapped to Jolt shapes somehow).
+  - [x] Physics components for the ECS.
+    - [x] 3D rigidbody component.
     - Collider components (mapped to some functionality of Jolt shapes somehow).
+      - [x] Box collider
+      - [x] Sphere collider
+      - [ ] Capsule collider
+      - [ ] Tapered-capsule collider
+      - [ ] Cylinder collider
+      - [ ] Convex hull collider
+      - [ ] Mesh collider
+      - [ ] Height field collider
+
+  - [ ] A constraint abstraction for compound shapes
 
 - Rendering
   - [ ] Sky atmosphere pass.
@@ -60,5 +69,5 @@
 
   - [ ] Spot lighting pass. Do after the point lighting pass.
     - [ ] Add the renderpass class.
-    - [ ] Add spot light sibmission to Scene.cpp.
+    - [ ] Add spot light submission to Scene.cpp.
     - [ ] Write the culling shaders. Cone AABB, cone frustum testing vs bounding sphere testing.

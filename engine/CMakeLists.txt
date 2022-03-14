@@ -14,6 +14,7 @@ file(GLOB_RECURSE SOURCE_FILES
 set(INCLUDE_DIRS
     include
     vendor
+    vendor/robin-hood/include
     vendor/glm
     vendor/glad/include
     vendor/entt/include

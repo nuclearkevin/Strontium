@@ -32,6 +32,8 @@ namespace Strontium::Renderer3D
   void
   init(const uint width, const uint height)
   {
+    Logs::log("Initializing the 3D renderer.");
+
     // Initialize OpenGL parameters.
     RendererCommands::enable(RendererFunction::DepthTest);
     RendererCommands::enable(RendererFunction::CubeMapSeamless);
@@ -94,6 +96,8 @@ namespace Strontium::Renderer3D
   void
   shutdown()
   {
+    Logs::log("Shutting down the 3D renderer.");
+
     delete passManager;
     delete rendererData;
   }

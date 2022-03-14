@@ -5,7 +5,6 @@
 #pragma once
 
 // STL and standard includes.
-//#include <stdlib.h>
 #include <iostream>
 #include <math.h>
 #include <algorithm>
@@ -15,7 +14,6 @@
 #include <string.h>
 #include <vector>
 #include <array>
-#include <unordered_map>
 #include <map>
 #include <queue>
 #include <stack>
@@ -24,8 +22,14 @@
 #include <bitset>
 
 // GLM includes. TODO: Move to Math?
+#define GLM_ENABLE_EXPERIMENTAL
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
 #include "glm/gtc/type_ptr.hpp"
 #include "glm/gtx/transform.hpp"
 #include "glm/gtx/quaternion.hpp"
+#include "glm/gtc/quaternion.hpp"
+#undef GLM_ENABLE_EXPERIMENTAL
+
+// Data Structure includes.
+#include "robin-hood/include/robin_hood.h"

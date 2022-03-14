@@ -14,15 +14,15 @@
 #include <atomic>
 #include <condition_variable>
 
-namespace Strontium
+namespace Strontium::PhysicsEngine
 {
   // Implements the Jolt jobsystem API on top of Strontium's jobsystem. 
   // Its an adapted version of Jolt/Core/JobSystemThreadPool.h 
-  class PhysicsThreadPool final : public JPH::JobSystem
+  class ThreadPool final : public JPH::JobSystem
   {
   public:
-	PhysicsThreadPool(uint maxNumBarriers);
-	~PhysicsThreadPool() override;
+	ThreadPool(uint maxNumBarriers);
+	~ThreadPool() override;
 
 	int GetMaxConcurrency() const override;
 

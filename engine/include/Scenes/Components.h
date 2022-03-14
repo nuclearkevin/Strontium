@@ -19,6 +19,8 @@
 
 #include "Scenes/Entity.h"
 
+#include "PhysicsEngine/PhysicsFlags.h"
+
 namespace Strontium
 {
   // Entity nametag component.
@@ -404,5 +406,60 @@ namespace Strontium
     {
       Renderer3D::getPassManager().getRenderPass<DynamicSkyIBLPass>()->deleteRendererData(handle);
     }
+  };
+
+  // Physics components!
+  struct SphereColliderComponent
+  {
+    PhysicsEngine::ColliderTypes type;
+    float radius;
+    glm::vec3 offset;
+
+    // TODO: Physics material.
+    float density;
+
+    SphereColliderComponent(const SphereColliderComponent&) = default;
+
+    SphereColliderComponent()
+      : type(PhysicsEngine::ColliderTypes::Sphere)
+      , radius(1.0f)
+      , offset(0.0f)
+      , density(1000.0f)
+    { }
+  };
+
+  struct BoxColliderComponent
+  {
+    PhysicsEngine::ColliderTypes type;
+    glm::vec3 extents;
+    glm::vec3 offset;
+
+    // TODO: Physics material.
+    float density;
+
+    BoxColliderComponent(const BoxColliderComponent&) = default;
+
+    BoxColliderComponent()
+      : type(PhysicsEngine::ColliderTypes::Box)
+      , extents(0.5f)
+      , offset(0.0f)
+      , density(1000.0f)
+    { }
+  };
+
+  struct RigidBody3DComponent
+  {
+    PhysicsEngine::RigidBodyTypes type;
+
+    float friction;
+    float restitution;
+
+    RigidBody3DComponent(const RigidBody3DComponent&) = default;
+
+    RigidBody3DComponent()
+      : type(PhysicsEngine::RigidBodyTypes::Static)
+      , friction(0.5f)
+      , restitution(0.0f)
+    { }
   };
 }

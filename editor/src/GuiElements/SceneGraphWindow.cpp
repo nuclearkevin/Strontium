@@ -399,10 +399,19 @@ namespace Strontium
       {
         // Add various components.
         drawComponentAdd<TransformComponent>("Transform Component", entity);
+        drawComponentAdd<RigidBody3DComponent>("3D Rigid Body Component", entity);
         drawComponentAdd<RenderableComponent>("Renderable Component", entity);
         drawComponentAdd<CameraComponent>("Camera Component", entity);
         drawComponentAdd<SkyAtmosphereComponent>("Sky and Atmosphere Component", entity);
         drawComponentAdd<DynamicSkyboxComponent>("Dynamic Skybox Component", entity);
+
+        if (ImGui::BeginMenu("Collider Components"))
+        {
+          drawComponentAdd<SphereColliderComponent>("Sphere Collider Component", entity);
+          drawComponentAdd<BoxColliderComponent>("Box Collider Component", entity);
+
+          ImGui::EndMenu();
+        }
 
         if (ImGui::BeginMenu("Light Components"))
         {
@@ -420,10 +429,19 @@ namespace Strontium
       {
         // Remove various components.
         drawComponentRemove<TransformComponent>("Transform Component", entity);
+        drawComponentRemove<RigidBody3DComponent>("3D Rigid Body Component", entity);
         drawComponentRemove<RenderableComponent>("Renderable Component", entity);
         drawComponentRemove<CameraComponent>("Camera Component", entity);
         drawComponentRemove<SkyAtmosphereComponent>("Sky and Atmosphere Component", entity);
         drawComponentRemove<DynamicSkyboxComponent>("Dynamic Skybox Component", entity);
+
+        if (ImGui::BeginMenu("Collider Components"))
+        {
+          drawComponentRemove<SphereColliderComponent>("Sphere Collider Component", entity);
+          drawComponentRemove<BoxColliderComponent>("Box Collider Component", entity);
+
+          ImGui::EndMenu();
+        }
 
         if (ImGui::BeginMenu("Light Components"))
         {
@@ -477,6 +495,9 @@ namespace Strontium
 
         copyComponent<NameComponent>(entity, newEntity);
         copyComponent<TransformComponent>(entity, newEntity);
+        copyComponent<RigidBody3DComponent>(entity, newEntity);
+        copyComponent<SphereColliderComponent>(entity, newEntity);
+        copyComponent<BoxColliderComponent>(entity, newEntity);
         copyComponent<RenderableComponent>(entity, newEntity);
         copyComponent<SkyAtmosphereComponent>(entity, newEntity);
         copyComponent<DynamicSkyboxComponent>(entity, newEntity);
@@ -631,11 +652,67 @@ namespace Strontium
       drawComponentProperties<TransformComponent>("Transform Component",
         this->selectedEntity, [](auto& component)
       {
+        ImGui::PushID("TransformComponent");
+
         Styles::drawVec3Controls("Translation", glm::vec3(0.0f), component.translation);
         glm::vec3 tEulerRotation = glm::degrees(component.rotation);
         Styles::drawVec3Controls("Rotation", glm::vec3(0.0f), tEulerRotation);
         component.rotation = glm::radians(tEulerRotation);
         Styles::drawVec3Controls("Scale", glm::vec3(1.0f), component.scale);
+
+        ImGui::PopID();
+      });
+
+      drawComponentProperties<SphereColliderComponent>("Sphere Collider Component",
+        this->selectedEntity, [](auto& component)
+      {
+        ImGui::PushID("SphereColliderComponent");
+
+        Styles::drawFloatControl("Radius", 1.0f, component.radius);
+        Styles::drawVec3Controls("Offset", glm::vec3(0.0f), component.offset);
+        Styles::drawFloatControl("Density", 1000.0f, component.density);
+
+        ImGui::PopID();
+      });
+
+      drawComponentProperties<BoxColliderComponent>("Box Collider Component",
+        this->selectedEntity, [](auto& component)
+      {
+        ImGui::PushID("BoxColliderComponent");
+
+        Styles::drawVec3Controls("Half Extents", glm::vec3(0.5f), component.extents);
+        Styles::drawVec3Controls("Offset", glm::vec3(0.0f), component.offset);
+        Styles::drawFloatControl("Density", 1000.0f, component.density);
+
+        ImGui::PopID();
+      });
+
+      drawComponentProperties<RigidBody3DComponent>("3D Rigid Body Component",
+        this->selectedEntity, [](auto& component)
+      {
+        ImGui::PushID("RigidBody3DComponent");
+
+        const char* bodyTypes[] = { "Static", "Kinematic", "Dynamic" };
+
+        if (ImGui::BeginCombo("##bodyTypes", bodyTypes[static_cast<uint>(component.type)]))
+        {
+          for (uint i = 0; i < IM_ARRAYSIZE(bodyTypes); i++)
+          {
+            bool isSelected = (bodyTypes[i] == bodyTypes[static_cast<uint>(component.type)]);
+            if (ImGui::Selectable(bodyTypes[i], isSelected))
+              component.type = static_cast<PhysicsEngine::RigidBodyTypes>(i);
+        
+            if (isSelected)
+              ImGui::SetItemDefaultFocus();
+          }
+        
+          ImGui::EndCombo();
+        }
+
+        Styles::drawFloatControl("Restitution", 0.0f, component.restitution, 0.0f, 0.1f, 0.0f, 1.0f);
+        Styles::drawFloatControl("Friction", 0.0f, component.friction, 0.0f, 0.1f, 0.0f, 1.0f);
+
+        ImGui::PopID();
       });
 
       drawComponentProperties<RenderableComponent>("Renderable Component",

@@ -15,6 +15,11 @@
 #include "Graphics/RenderPasses/SkyboxPass.h"
 #include "Graphics/RenderPasses/PostProcessingPass.h"
 
+#include "PhysicsEngine/PhysicsEngine.h"
+
+// GLM includes.
+#include "glm/gtx/matrix_decompose.hpp"
+
 namespace Strontium
 {
   Scene::Scene(const std::string &filepath)
@@ -78,6 +83,103 @@ namespace Strontium
   Scene::deleteEntity(Entity entity)
   {
     this->sceneECS.destroy(entity);
+  }
+
+  void 
+  Scene::initPhysics()
+  {
+    // Group together and fetch all the entities that have 
+    // transform + rigid body + sphere collider components.
+    {
+      auto sphereColliders = this->sceneECS.group<SphereColliderComponent>(entt::get<TransformComponent, RigidBody3DComponent>);
+      for (auto entity : sphereColliders)
+        PhysicsEngine::addActor(Entity(entity, this));
+    }
+
+    // Group together and fetch all the entities that have 
+    // transform + rigid body + box collider components.
+    {
+      auto boxColliders = this->sceneECS.group<BoxColliderComponent>(entt::get<TransformComponent, RigidBody3DComponent>);
+      for (auto entity : boxColliders)
+        PhysicsEngine::addActor(Entity(entity, this));
+    }
+  }
+
+  void 
+  Scene::shutdownPhysics()
+  {
+
+  }
+
+  // Poll the physics system to get updated transforms.
+  void 
+  Scene::updatePhysicsTransforms()
+  {
+    // Group together and fetch all the entities that have 
+    // transform + rigid body + sphere collider components.
+    {
+      auto sphereColliders = this->sceneECS.group<SphereColliderComponent>(entt::get<TransformComponent, RigidBody3DComponent>);
+      for (auto entity : sphereColliders)
+      {
+        auto& actor = PhysicsEngine::getActor(Entity(entity, this));
+
+        if (!actor.isValid())
+          continue;
+
+        auto transformData = actor.getUpdatedTransformData();
+        auto& transform = this->sceneECS.get<TransformComponent>(entity);
+        auto& collider = this->sceneECS.get<SphereColliderComponent>(entity);
+
+        // Compute the hierarchy pre-physics.
+        auto globalTransform = this->computeGlobalTransform(Entity(entity, this));
+        auto globalNoEntity = globalTransform * glm::inverse(static_cast<glm::mat4>(transform));
+        auto inverseGlobalNoEntity = glm::inverse(globalNoEntity);
+
+        glm::vec3 scale;
+        glm::vec3 translation;
+        glm::vec3 skew;
+        glm::vec4 perspective;
+        glm::quat rotation;
+        glm::decompose(inverseGlobalNoEntity, scale, rotation, translation, skew, perspective);
+
+        transform.translation = inverseGlobalNoEntity * glm::vec4(transformData.translation - collider.offset, 1.0f);
+        auto euler = glm::eulerAngles(rotation * transformData.rotation);
+        transform.rotation = glm::vec3(euler.z, euler.y, euler.x);
+      }
+    }
+
+    // Group together and fetch all the entities that have 
+    // transform + rigid body + box collider components.
+    {
+      auto boxColliders = this->sceneECS.group<BoxColliderComponent>(entt::get<TransformComponent, RigidBody3DComponent>);
+      for (auto entity : boxColliders)
+      {
+        auto& actor = PhysicsEngine::getActor(Entity(entity, this));
+
+        if (!actor.isValid())
+          continue;
+
+        auto transformData = actor.getUpdatedTransformData();
+        auto& transform = this->sceneECS.get<TransformComponent>(entity);
+        auto& collider = this->sceneECS.get<BoxColliderComponent>(entity);
+
+        // Compute the hierarchy pre-physics.
+        auto globalTransform = this->computeGlobalTransform(Entity(entity, this));
+        auto globalNoEntity = globalTransform * glm::inverse(static_cast<glm::mat4>(transform));
+        auto inverseGlobalNoEntity = glm::inverse(globalNoEntity);
+
+        glm::vec3 scale;
+        glm::vec3 translation;
+        glm::vec3 skew;
+        glm::vec4 perspective;
+        glm::quat rotation;
+        glm::decompose(inverseGlobalNoEntity, scale, rotation, translation, skew, perspective);
+
+        transform.translation = inverseGlobalNoEntity * glm::vec4(transformData.translation - collider.offset, 1.0f);
+        auto euler = glm::eulerAngles(rotation * transformData.rotation);
+        transform.rotation = glm::vec3(euler.z, euler.y, euler.x);
+      }
+    }
   }
 
   void
@@ -235,22 +337,36 @@ namespace Strontium
     auto dynIBL = passManager.getRenderPass<DynamicSkyIBLPass>();
     auto iblApp = passManager.getRenderPass<IBLApplicationPass>();
     auto skyboxApp = passManager.getRenderPass<SkyboxPass>();
+    auto postProc = passManager.getRenderPass<PostProcessingPass>();
+
+    bool drawOutline = false;
 
     // Group together the lights and submit them to the renderer.
+    auto primaryLight = this->getPrimaryDirectionalEntity();
     auto dirLight = this->sceneECS.group<DirectionalLightComponent>(entt::get<TransformComponent>);
     for (auto entity : dirLight)
     {
       auto [directional, transform] = dirLight.get<DirectionalLightComponent, TransformComponent>(entity);
-      dirApp->submit(directional, transform);
-    }
 
-    auto primaryLight = this->getPrimaryDirectionalEntity();
-    if (primaryLight)
-    {
-      auto [directional, transform] = this->sceneECS.get<DirectionalLightComponent, TransformComponent>(primaryLight.entityID);
-      dirApp->submitPrimary(directional, directional.castShadows, transform);
-      skyAtm->submitPrimary(directional, directional.castShadows, transform);
-      shadow->submitPrimary(directional, directional.castShadows, transform);
+      // Skip over the primary light IF it cast shadows.
+      if (primaryLight.entityID == entity && directional.castShadows)
+      {
+        RendererDataHandle attachedSky = -1;
+        if (this->sceneECS.has<SkyAtmosphereComponent>(entity))
+          attachedSky = this->sceneECS.get<SkyAtmosphereComponent>(entity).handle;
+
+        dirApp->submitPrimary(directional, directional.castShadows, transform, attachedSky);
+        skyAtm->submitPrimary(directional, directional.castShadows, transform);
+        shadow->submitPrimary(directional, directional.castShadows, transform);
+      }
+      else
+      {
+        RendererDataHandle attachedSky = -1;
+        if (this->sceneECS.has<SkyAtmosphereComponent>(entity))
+          attachedSky = this->sceneECS.get<SkyAtmosphereComponent>(entity).handle;
+
+        dirApp->submit(directional, transform, attachedSky);
+      }
     }
 
     // TODO: Point light pass.
@@ -331,6 +447,8 @@ namespace Strontium
         skyboxApp->submit(atmosphere.handle, dynSkybox.sunSize, dynSkybox.intensity);
       }
     }
+
+    postProc->getInternalDataBlock<PostProcessingPassDataBlock>()->drawOutline = drawOutline;
   }
 
   void
@@ -416,5 +534,234 @@ namespace Strontium
       auto& renderable = renderables.get<RenderableComponent>(entity);
       renderable.animator.onUpdate(dt);
     }
+  }
+
+  // Helper functions to copy a component from source into destination.
+  template <typename T>
+  void 
+  copyComponent(Entity source, Entity destination)
+  {
+    if (source.hasComponent<T>())
+    {
+      auto& comp = destination.addComponent<T>();
+      comp = source.getComponent<T>();
+    }
+  }
+
+  // Specialize for the name component.
+  template <>
+  void 
+  copyComponent<NameComponent>(Entity source, Entity destination)
+  {
+    destination.getComponent<NameComponent>() = source.getComponent<NameComponent>();
+  }
+
+  // Specialize for components that use renderer handles.
+  template <>
+  void 
+  copyComponent<SkyAtmosphereComponent>(Entity source, Entity destination)
+  {
+    if (source.hasComponent<SkyAtmosphereComponent>())
+    {
+      auto& passManager = Renderer3D::getPassManager();
+      auto skyAtm = passManager.getRenderPass<SkyAtmospherePass>();
+
+      auto& dest = destination.addComponent<SkyAtmosphereComponent>();
+      auto& src = source.getComponent<SkyAtmosphereComponent>();
+      
+      skyAtm->deleteRendererData(dest.handle);
+      
+      dest.mieAbs = src.mieAbs;
+      dest.mieScat = src.mieScat;
+      dest.rayleighAbs = src.rayleighAbs;
+      dest.rayleighScat = src.rayleighScat;
+      dest.ozoneAbs = src.ozoneAbs;
+      dest.planetAlbedo = src.planetAlbedo;
+      dest.planetAtmRadius = src.planetAtmRadius;
+      dest.usePrimaryLight = src.usePrimaryLight;
+      dest.handle = src.handle;
+    }
+  }
+
+  template <>
+  void 
+  copyComponent<DynamicSkylightComponent>(Entity source, Entity destination)
+  {
+    if (source.hasComponent<DynamicSkylightComponent>())
+    {
+      auto& passManager = Renderer3D::getPassManager();
+      auto dynIBL = passManager.getRenderPass<DynamicSkyIBLPass>();
+
+      auto& dest = destination.addComponent<DynamicSkylightComponent>();
+      auto& src = source.getComponent<DynamicSkylightComponent>();
+
+      dynIBL->deleteRendererData(dest.handle);
+
+      dest.intensity = src.intensity;
+      dest.handle = src.handle;
+    }
+  }
+
+  void 
+  copyComponents(Entity source, Entity destination)
+  {
+    copyComponent<NameComponent>(source, destination);
+    copyComponent<TransformComponent>(source, destination);
+    copyComponent<RenderableComponent>(source, destination);
+    copyComponent<CameraComponent>(source, destination);
+    copyComponent<SkyAtmosphereComponent>(source, destination);
+    copyComponent<DynamicSkyboxComponent>(source, destination);
+    copyComponent<DirectionalLightComponent>(source, destination);
+    copyComponent<PointLightComponent>(source, destination);
+    copyComponent<DynamicSkylightComponent>(source, destination);
+    copyComponent<SphereColliderComponent>(source, destination);
+    copyComponent<BoxColliderComponent>(source, destination);
+    copyComponent<RigidBody3DComponent>(source, destination);
+  }
+
+  void 
+  traverseHierarchyCopy(Entity sourceParent, Entity destinationParent)
+  {
+    if (sourceParent.hasComponent<ChildEntityComponent>())
+    {
+      Scene* sourceScene = static_cast<Scene*>(sourceParent);
+      Scene* destinationScene = static_cast<Scene*>(destinationParent);
+
+      auto& sourceChildEntityComponent = sourceParent.getComponent<ChildEntityComponent>();
+      auto& destinationChildEntityComponent = destinationParent.addComponent<ChildEntityComponent>();
+
+      for (auto& sourceChild : sourceChildEntityComponent.children)
+      {
+        // Create a new child entity and add it to the new parent's list of children.
+        auto newDestinationChildEntity = destinationScene->createEntity();
+        destinationChildEntityComponent.children.push_back(newDestinationChildEntity);
+
+        // Create a parent component on the child and add it's parent.
+        auto& destinationParentComponent = newDestinationChildEntity.addComponent<ParentEntityComponent>();
+        destinationParentComponent.parent = destinationParent;
+
+        // Traverse the hierarchy.
+        traverseHierarchyCopy(sourceChild, newDestinationChildEntity);
+      }
+    }
+
+    // Copy over the components.
+    copyComponents(sourceParent, destinationParent);
+
+    // Set the primary entities.
+    if (sourceParent == static_cast<Scene*>(sourceParent)->getPrimaryCameraEntity())
+      static_cast<Scene*>(destinationParent)->setPrimaryCameraEntity(destinationParent);
+    if (sourceParent == static_cast<Scene*>(sourceParent)->getPrimaryDirectionalEntity())
+      static_cast<Scene*>(destinationParent)->setPrimaryDirectionalEntity(destinationParent);
+  }
+
+  void 
+  Scene::copyForRuntime(Scene& other)
+  {
+    this->sceneECS = entt::registry();
+
+    auto currentScene = this;
+    auto otherScene = &other;
+
+    auto copyHierarchy = [currentScene, otherScene](entt::entity entity, ChildEntityComponent &comp)
+    {
+      if (Entity(entity, otherScene).hasComponent<ParentEntityComponent>())
+        return;
+
+      auto& destinationEntity = currentScene->createEntity();
+      auto& sourceEntity = Entity(entity, otherScene);
+
+      traverseHierarchyCopy(sourceEntity, destinationEntity);
+    };
+
+    other.sceneECS.view<ChildEntityComponent>().each(copyHierarchy);
+
+    auto copyFlattened = [currentScene, otherScene](entt::entity entity, NameComponent &comp)
+    {
+      auto destinationEntity = currentScene->createEntity();
+      auto sourceEntity = Entity(entity, otherScene);
+
+      copyComponents(sourceEntity, destinationEntity);
+
+      // Set the primary entities.
+      if (sourceEntity == static_cast<Scene*>(sourceEntity)->getPrimaryCameraEntity())
+        static_cast<Scene*>(destinationEntity)->setPrimaryCameraEntity(destinationEntity);
+      if (sourceEntity == static_cast<Scene*>(sourceEntity)->getPrimaryDirectionalEntity())
+        static_cast<Scene*>(destinationEntity)->setPrimaryDirectionalEntity(destinationEntity);
+    };
+
+    other.sceneECS.view<NameComponent>(entt::exclude<ChildEntityComponent, ParentEntityComponent>).each(copyFlattened);
+  }
+
+  // Helper functions to delete a component without changing renderer handles.
+  template <typename T>
+  void 
+  deleteComponent(Entity source)
+  {
+    if (source.hasComponent<T>())
+      source.removeComponent<T>();
+  }
+
+  // Specialize components that use renderer handles.
+  template <>
+  void 
+  deleteComponent<SkyAtmosphereComponent>(Entity source)
+  {
+    if (source.hasComponent<SkyAtmosphereComponent>())
+    {
+      auto& component = source.getComponent<SkyAtmosphereComponent>();
+      component.handle = -1;
+      source.removeComponent<SkyAtmosphereComponent>();
+    }
+  }
+
+  template <>
+  void 
+  deleteComponent<DynamicSkylightComponent>(Entity source)
+  {
+    if (source.hasComponent<DynamicSkylightComponent>())
+    {
+      auto& component = source.getComponent<DynamicSkylightComponent>();
+      component.handle = -1;
+      source.removeComponent<DynamicSkylightComponent>();
+    }
+  }
+
+  void 
+  deleteComponents(Entity source)
+  {
+    deleteComponent<NameComponent>(source);
+    deleteComponent<ParentEntityComponent>(source);
+    deleteComponent<ChildEntityComponent>(source);
+    deleteComponent<TransformComponent>(source);
+    deleteComponent<RenderableComponent>(source);
+    deleteComponent<CameraComponent>(source);
+    deleteComponent<SkyAtmosphereComponent>(source);
+    deleteComponent<DynamicSkyboxComponent>(source);
+    deleteComponent<DirectionalLightComponent>(source);
+    deleteComponent<PointLightComponent>(source);
+    deleteComponent<DynamicSkylightComponent>(source);
+    deleteComponent<SphereColliderComponent>(source);
+    deleteComponent<BoxColliderComponent>(source);
+    deleteComponent<RigidBody3DComponent>(source);
+
+    Scene* scene = static_cast<Scene*>(source);
+    scene->deleteEntity(source);
+  }
+
+  void 
+  Scene::clearForRuntime()
+  {
+    this->clearPrimaryCameraEntity();
+    this->clearPrimaryDirectionalEntity();
+
+    auto function = [this](entt::entity entity)
+    {
+      deleteComponents(Entity(entity, this));
+    };
+
+    this->sceneECS.each(function);
+    this->sceneECS.clear();
+    this->sceneECS = entt::registry();
   }
 }
