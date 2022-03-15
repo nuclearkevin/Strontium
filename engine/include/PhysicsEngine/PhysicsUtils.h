@@ -16,7 +16,7 @@ namespace Strontium::PhysicsUtils
   static 
   glm::quat convertJoltToGLM(JPH::Quat inQuat)
   {
-	return glm::quat(inQuat.GetW(), inQuat.GetZ(), inQuat.GetY(), inQuat.GetX());
+	return glm::quat(inQuat.GetW(), inQuat.GetX(), inQuat.GetY(), inQuat.GetZ());
   }
 
   static

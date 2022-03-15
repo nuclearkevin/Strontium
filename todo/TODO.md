@@ -54,6 +54,10 @@
   - [ ] A constraint abstraction for compound shapes
 
 - Rendering
+  - [ ] Debug pass (editor only).
+    - [ ] Visualize colliders.
+    - [ ] Visualize camera frustums
+    
   - [ ] Sky atmosphere pass.
     - [ ] Fix the camera positioning system
     - [ ] Implement the aerial perspective LUT from Hillaire2020.

@@ -241,6 +241,7 @@ namespace Strontium::PhysicsEngine
   
     auto jobFunction = [](Job* job)
     {
+      std::cout << "Executing job " << std::endl;
       job->Execute();
       job->Release();
     };

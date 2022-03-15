@@ -39,6 +39,13 @@ namespace Strontium::PhysicsEngine
     assert(("PhysicsActor requires the owning entity to have a transform and rigidbody component.", 
             !(!owningEntity.hasComponent<RigidBody3DComponent>() || !owningEntity.hasComponent<TransformComponent>())));
 
+    if (owningEntity.hasComponent<ParentEntityComponent>())
+    {
+      Logs::log("Warning: Entities with parents cannot be physics objects.");
+      this->valid = false;
+      return;
+    }
+
     JPH::ShapeRefC shapeRef;
     glm::vec3 offset(0.0f);
 
@@ -61,7 +68,7 @@ namespace Strontium::PhysicsEngine
         this->cType = collider.type;
       }
       else
-        Logs::log("Failed to create a sphere shape with the error: " + result.GetError());
+        Logs::log("Warning: Failed to create a box shape with the message: " + result.GetError());
 
       offset = collider.offset;
     }
@@ -85,7 +92,7 @@ namespace Strontium::PhysicsEngine
         this->cType = collider.type;
       }
       else
-        Logs::log("Failed to create a box shape with the error: " + result.GetError());
+        Logs::log("Warning: Failed to create a box shape with the message: " + result.GetError());
 
       offset = collider.offset;
     }
@@ -100,17 +107,8 @@ namespace Strontium::PhysicsEngine
     auto& transform = owningEntity.getComponent<TransformComponent>();
     auto& rigidBody = owningEntity.getComponent<RigidBody3DComponent>();
 
-    // Prepare the rotation and offset body position.
-    auto globalTransform = static_cast<Scene*>(owningEntity)->computeGlobalTransform(owningEntity);
-    glm::vec3 scale;
-    glm::vec3 translation;
-    glm::vec3 skew;
-    glm::vec4 perspective;
-    glm::quat rotation;
-    glm::decompose(globalTransform, scale, rotation, translation, skew, perspective);
-
-    auto pos = PhysicsUtils::convertGLMToJolt(translation + offset);
-    auto rot = PhysicsUtils::convertGLMToJolt(rotation);
+    auto pos = PhysicsUtils::convertGLMToJolt(transform.translation + offset);
+    auto rot = PhysicsUtils::convertGLMToJolt(glm::quat(transform.rotation));
     this->rbType = rigidBody.type;
 
     //----------------------------------------------------------------------------
@@ -127,7 +125,7 @@ namespace Strontium::PhysicsEngine
 
         if (!body)
         {
-          Logs::log("Body limit exceeded, failed to create a body.");
+          Logs::log("Error: Body limit exceeded, failed to create a body.");
           this->valid = false;
           return;
         }
@@ -143,7 +141,7 @@ namespace Strontium::PhysicsEngine
 
         if (!body)
         {
-          Logs::log("Body limit exceeded, failed to create a body.");
+          Logs::log("Error: Body limit exceeded, failed to create a body.");
           this->valid = false;
           return;
         }
@@ -159,7 +157,7 @@ namespace Strontium::PhysicsEngine
 
         if (!body)
         {
-          Logs::log("Body limit exceeded, failed to create a body.");
+          Logs::log("Error: Body limit exceeded, failed to create a body.");
           this->valid = false;
           return;
         }

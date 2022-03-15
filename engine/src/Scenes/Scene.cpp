@@ -130,21 +130,8 @@ namespace Strontium
         auto& transform = this->sceneECS.get<TransformComponent>(entity);
         auto& collider = this->sceneECS.get<SphereColliderComponent>(entity);
 
-        // Compute the hierarchy pre-physics.
-        auto globalTransform = this->computeGlobalTransform(Entity(entity, this));
-        auto globalNoEntity = globalTransform * glm::inverse(static_cast<glm::mat4>(transform));
-        auto inverseGlobalNoEntity = glm::inverse(globalNoEntity);
-
-        glm::vec3 scale;
-        glm::vec3 translation;
-        glm::vec3 skew;
-        glm::vec4 perspective;
-        glm::quat rotation;
-        glm::decompose(inverseGlobalNoEntity, scale, rotation, translation, skew, perspective);
-
-        transform.translation = inverseGlobalNoEntity * glm::vec4(transformData.translation - collider.offset, 1.0f);
-        auto euler = glm::eulerAngles(rotation * transformData.rotation);
-        transform.rotation = glm::vec3(euler.z, euler.y, euler.x);
+        transform.translation = transformData.translation - collider.offset;
+        transform.rotation = glm::eulerAngles(transformData.rotation);
       }
     }
 
@@ -163,21 +150,8 @@ namespace Strontium
         auto& transform = this->sceneECS.get<TransformComponent>(entity);
         auto& collider = this->sceneECS.get<BoxColliderComponent>(entity);
 
-        // Compute the hierarchy pre-physics.
-        auto globalTransform = this->computeGlobalTransform(Entity(entity, this));
-        auto globalNoEntity = globalTransform * glm::inverse(static_cast<glm::mat4>(transform));
-        auto inverseGlobalNoEntity = glm::inverse(globalNoEntity);
-
-        glm::vec3 scale;
-        glm::vec3 translation;
-        glm::vec3 skew;
-        glm::vec4 perspective;
-        glm::quat rotation;
-        glm::decompose(inverseGlobalNoEntity, scale, rotation, translation, skew, perspective);
-
-        transform.translation = inverseGlobalNoEntity * glm::vec4(transformData.translation - collider.offset, 1.0f);
-        auto euler = glm::eulerAngles(rotation * transformData.rotation);
-        transform.rotation = glm::vec3(euler.z, euler.y, euler.x);
+        transform.translation = transformData.translation - collider.offset;
+        transform.rotation = glm::eulerAngles(transformData.rotation);
       }
     }
   }

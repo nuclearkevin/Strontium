@@ -7,16 +7,10 @@
 // Project includes.
 #include "Core/ApplicationBase.h"
 #include "Core/Math.h"
-#include "Graphics/RendererCommands.h"
 #include "Graphics/VertexArray.h"
 #include "Graphics/Shaders.h"
-#include "Graphics/FrameBuffer.h"
-#include "Graphics/GeometryBuffer.h"
+#include "Graphics/Textures.h"
 
-#include "Graphics/Meshes.h"
-#include "Graphics/Model.h"
-#include "Graphics/Animations.h"
-#include "Graphics/Material.h"
 #include "Graphics/ShadingPrimatives.h"
 
 #include "Graphics/RenderPasses/RenderPassManager.h"
@@ -37,6 +31,8 @@ namespace Strontium::Renderer3D
 
     GlobalRendererData()
       : blankVAO()
+      , gamma(2.2f)
+      , camFrustum()
     { }
   };
 
@@ -50,4 +46,30 @@ namespace Strontium::Renderer3D
   // Generic begin and end for the renderer.
   void begin(uint width, uint height, const Camera &sceneCamera);
   void end(FrameBuffer& frontBuffer);
+}
+
+namespace Strontium::Renderer2D
+{
+  struct GlobalRendererData
+  {
+    GlobalRendererData()
+    { }
+  };
+
+  // Init the renderer for drawing.
+  void init(const uint width, const uint height);
+  void shutdown();
+}
+
+namespace Strontium::DebugRenderer
+{
+  struct GlobalRendererData
+  {
+    GlobalRendererData()
+    { }
+  };
+
+  // Init the renderer for drawing.
+  void init(const uint width, const uint height);
+  void shutdown();
 }

@@ -31,6 +31,7 @@ namespace Strontium::PhysicsEngine
   struct PhysicsInternals
   {
 	JPH::JobSystemThreadPool threadPool;
+	//ThreadPool threadPool;
 	JPH::TempAllocatorImpl allocator;
 
 	BPLayerInterface bpInterface;
@@ -47,6 +48,7 @@ namespace Strontium::PhysicsEngine
 
 	PhysicsInternals()
 	  : threadPool(JPH::cMaxPhysicsJobs, JPH::cMaxPhysicsBarriers, 2)
+	  //: threadPool(JPH::cMaxPhysicsBarriers)
 	  , allocator(100 * 1024 * 1024)
 	  , bpInterface()
 	  , cListener()
@@ -112,6 +114,7 @@ namespace Strontium::PhysicsEngine
   addActor(Entity entity)
   {
 	assert(!hasActor(entity));
+
 	internals->actors.emplace(entity, PhysicsActor(entity, internals->bodyInterface));
 	return internals->actors.at(entity);
   }
