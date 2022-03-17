@@ -4,7 +4,11 @@
 #include "Core/JobSystem.h"
 #include "Core/Events.h"
 #include "Core/Logs.h"
+
+#include "Graphics/Model.h"
+#include "Graphics/Material.h"
 #include "Utils/AsyncAssetLoading.h"
+#include "Graphics/RendererCommands.h"
 
 #include "PhysicsEngine/PhysicsEngine.h"
 

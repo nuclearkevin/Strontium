@@ -2,6 +2,7 @@
 
 // Project includes.
 #include "Graphics/Renderer.h"
+#include "Graphics/RendererCommands.h"
 
 namespace Strontium
 {

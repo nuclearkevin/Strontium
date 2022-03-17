@@ -1,6 +1,8 @@
 #include "Graphics/Renderer.h"
 
 // Project includes.
+#include "Graphics/RendererCommands.h"
+
 #include "Graphics/RenderPasses/GeometryPass.h"
 #include "Graphics/RenderPasses/ShadowPass.h"
 #include "Graphics/RenderPasses/HiZPass.h"

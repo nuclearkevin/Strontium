@@ -15,6 +15,9 @@ int main(int argc, char** argv);
 
 namespace Strontium
 {
+  class Model;
+  class Material;
+
   // Singleton application class.
   class Application
   {
