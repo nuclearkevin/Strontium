@@ -42,13 +42,13 @@ layout(std140, binding = 0) readonly buffer EntityBlock
 #type vertex
 #define MAX_BONES_PER_MODEL 512
 
-layout (location = 0) in vec4 vPosition;
-layout (location = 1) in vec3 vNormal;
-layout (location = 2) in vec2 vTexCoord;
-layout (location = 3) in vec3 vTangent;
-layout (location = 4) in vec3 vBitangent;
-layout (location = 5) in vec4 vBoneWeight;
-layout (location = 6) in ivec4 vBoneID;
+layout(location = 0) in vec4 vPosition;
+layout(location = 1) in vec3 vNormal;
+layout(location = 2) in vec2 vTexCoord;
+layout(location = 3) in vec3 vTangent;
+layout(location = 4) in vec3 vBitangent;
+layout(location = 5) in vec4 vBoneWeight;
+layout(location = 6) in ivec4 vBoneID;
 
 layout(std140, binding = 4) readonly buffer BoneBlock
 {
@@ -97,10 +97,10 @@ void main()
 }
 
 #type fragment
-layout (location = 0) out vec4 gNormal;
-layout (location = 1) out vec4 gAlbedo;
-layout (location = 2) out vec4 gMatProp;
-layout (location = 3) out vec4 gIDMaskColour;
+layout(location = 0) out vec4 gNormal;
+layout(location = 1) out vec4 gAlbedo;
+layout(location = 2) out vec4 gMatProp;
+layout(location = 3) out vec4 gIDMaskColour;
 
 in VERT_OUT
 {

@@ -40,11 +40,11 @@ layout(std140, binding = 0) readonly buffer EntityBlock
 };
 
 #type vertex
-layout (location = 0) in vec4 vPosition;
-layout (location = 1) in vec3 vNormal;
-layout (location = 2) in vec2 vTexCoord;
-layout (location = 3) in vec3 vTangent;
-layout (location = 4) in vec3 vBitangent;
+layout(location = 0) in vec4 vPosition;
+layout(location = 1) in vec3 vNormal;
+layout(location = 2) in vec2 vTexCoord;
+layout(location = 3) in vec3 vTangent;
+layout(location = 4) in vec3 vBitangent;
 
 // Vertex properties for shading.
 out VERT_OUT
@@ -79,10 +79,10 @@ void main()
 }
 
 #type fragment
-layout (location = 0) out vec4 gNormal; // z and w components unused.
-layout (location = 1) out vec4 gAlbedo;
-layout (location = 2) out vec4 gMatProp;
-layout (location = 3) out vec4 gIDMaskColour; // This should be a 2-component buffer...
+layout(location = 0) out vec4 gNormal; // z and w components unused.
+layout(location = 1) out vec4 gAlbedo;
+layout(location = 2) out vec4 gMatProp;
+layout(location = 3) out vec4 gIDMaskColour; // This should be a 2-component buffer...
 
 in VERT_OUT
 {

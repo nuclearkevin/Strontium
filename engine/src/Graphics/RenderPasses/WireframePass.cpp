@@ -17,7 +17,8 @@ namespace Strontium
   void 
   WireframePass::onInit()
   {
-    // TODO: line shader.
+    this->passData.lineShader = ShaderCache::getShader("debug_lines");
+    this->passData.wireframeShader = ShaderCache::getShader("debug_wireframe");
 
     this->passData.debugCube.load("./assets/.internal/debug/cube.gltf");
     auto& max = this->passData.debugCube.getMaxPos();

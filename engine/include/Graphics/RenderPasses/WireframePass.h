@@ -33,6 +33,7 @@ namespace Strontium
   struct DebugPassDataBlock
   {
     Shader* lineShader;
+    Shader* wireframeShader;
 
     Model debugCube;
     glm::vec3 debugCubeExtents;
@@ -51,6 +52,7 @@ namespace Strontium
 
     DebugPassDataBlock()
       : lineShader(nullptr)
+      , wireframeShader(nullptr)
       , debugCube()
       , debugCubeExtents(1.0f)
       , debugSphere()
