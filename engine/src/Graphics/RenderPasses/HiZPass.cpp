@@ -1,6 +1,7 @@
 #include "Graphics/RenderPasses/HiZPass.h"
 
 // Project includes.
+#include "Graphics/Renderer.h"
 #include "Graphics/RenderPasses/GeometryPass.h"
 
 namespace Strontium

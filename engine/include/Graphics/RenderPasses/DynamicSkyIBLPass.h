@@ -15,6 +15,11 @@
 
 namespace Strontium
 {
+  namespace Renderer3D
+  {
+    struct GlobalRendererData;
+  }
+
   struct DynamicSkyIBLPassDataBlock
   {
     Shader* dynamicSkyIrradiance;
@@ -48,7 +53,7 @@ namespace Strontium
     { }
   };
 
-  class DynamicSkyIBLPass : public RenderPass
+  class DynamicSkyIBLPass final : public RenderPass
   {
   public:
 	DynamicSkyIBLPass(Renderer3D::GlobalRendererData* globalRendererData, 

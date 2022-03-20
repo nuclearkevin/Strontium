@@ -6,12 +6,6 @@
 
 namespace Strontium
 {
-  // Data common to the renderer.
-  namespace Renderer3D
-  {
-    struct GlobalRendererData;
-  }
-
   using RendererDataHandle = int;
 
   class RenderPassManager;
@@ -20,7 +14,7 @@ namespace Strontium
   class RenderPass
   {
   public:
-    RenderPass(void* internalDataBlock, Renderer3D::GlobalRendererData* globalRendererData, 
+    RenderPass(void* internalDataBlock, void* globalRendererData, 
                const std::vector<RenderPass*> &previousPasses)
       : globalBlock(globalRendererData)
       , internalDataBlock(internalDataBlock)
@@ -46,7 +40,7 @@ namespace Strontium
     };
 
   protected:
-    Renderer3D::GlobalRendererData* globalBlock;
+    void* globalBlock;
     void* internalDataBlock;
 
     std::vector<RenderPass*> previousPasses;

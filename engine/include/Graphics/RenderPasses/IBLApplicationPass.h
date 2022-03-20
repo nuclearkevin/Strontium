@@ -15,6 +15,11 @@
 
 namespace Strontium
 {
+  namespace Renderer3D
+  {
+    struct GlobalRendererData;
+  }
+
   struct IBLApplicationPassDataBlock
   {
     Shader* iblEvaluation;
@@ -38,7 +43,7 @@ namespace Strontium
     { }
   };
 
-  class IBLApplicationPass : public RenderPass
+  class IBLApplicationPass final : public RenderPass
   {
   public:
 	IBLApplicationPass(Renderer3D::GlobalRendererData* globalRendererData, 

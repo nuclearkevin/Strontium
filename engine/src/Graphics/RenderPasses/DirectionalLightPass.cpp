@@ -72,10 +72,11 @@ namespace Strontium
     geometryBlock->cameraBuffer.bindToPoint(0);
 
     // Bind the lighting buffer.
-    this->globalBlock->lightingBuffer.bindAsImage(0, 0, ImageAccessPolicy::ReadWrite);
-    uint iWidth = static_cast<uint>(glm::ceil(static_cast<float>(globalBlock->lightingBuffer.getWidth())
+    auto rendererData = static_cast<Renderer3D::GlobalRendererData*>(this->globalBlock);
+    rendererData->lightingBuffer.bindAsImage(0, 0, ImageAccessPolicy::ReadWrite);
+    uint iWidth = static_cast<uint>(glm::ceil(static_cast<float>(rendererData->lightingBuffer.getWidth())
                                               / 8.0f));
-    uint iHeight = static_cast<uint>(glm::ceil(static_cast<float>(globalBlock->lightingBuffer.getHeight())
+    uint iHeight = static_cast<uint>(glm::ceil(static_cast<float>(rendererData->lightingBuffer.getHeight())
                                                / 8.0f));
 
     // Bind the lighting block and upload the directional lights.

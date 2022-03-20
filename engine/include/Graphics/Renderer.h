@@ -65,11 +65,21 @@ namespace Strontium::DebugRenderer
 {
   struct GlobalRendererData
   {
+    Camera sceneCam;
+
     GlobalRendererData()
+      : sceneCam()
     { }
   };
+
+  GlobalRendererData& getStorage();
+  RenderPassManager& getPassManager();
 
   // Init the renderer for drawing.
   void init(const uint width, const uint height);
   void shutdown();
+
+  // Generic begin and end for the renderer.
+  void begin(uint width, uint height, const Camera& sceneCamera);
+  void end(FrameBuffer& frontBuffer);
 }

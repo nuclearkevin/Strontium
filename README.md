@@ -21,6 +21,15 @@ This project started while I was taking a class on intermediate computer graphic
   - Physically-based materials using a metallic workflow.
   - HDR rendering.
   - Skeletal and rigged animation.
+- Physics
+  - A robust implementation of Jolt Physics.
+  - Several colliders:
+    - Sphere.
+    - Box.
+  - Collision callbacks:
+    - Contact added.
+    - Contact persisted.
+    - Contact removed.
 - Other:
   - Custom scene serialization and loading.
   - Custom material serialization and loading.
@@ -39,8 +48,7 @@ This project started while I was taking a class on intermediate computer graphic
   - Screen-space glossy reflections.
   - Screen-space voxel global illumination.
   - Point and spot light shadow maps.
-- Physics using Jolt Physics.
-- C# Scripting using Mono.
+- C# Scripting.
 
 ## Building
 Strontium builds using CMake, so ensure that you have CMake installed before you attempt to build the project. As Strontium is fully platform agnostic, both Windows and Linux builds are supported (although the Linux buildsystem is a WIP).

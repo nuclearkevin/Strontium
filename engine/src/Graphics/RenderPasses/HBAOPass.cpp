@@ -64,6 +64,8 @@ namespace Strontium
   {
     ScopedTimer<AsynchTimer> profiler(this->timer);
 
+    auto rendererData = static_cast<Renderer3D::GlobalRendererData*>(this->globalBlock);
+
     if (this->passData.enableAO)
     {
       struct HBAOBlockData
@@ -101,13 +103,13 @@ namespace Strontium
 
       // Blur the SSHBAO texture to get rid of noise from the jittering.
       this->passData.downsampleAO.bind(1);
-      this->globalBlock->halfResBuffer1.bindAsImage(0, 0, ImageAccessPolicy::Write);
+      rendererData->halfResBuffer1.bindAsImage(0, 0, ImageAccessPolicy::Write);
       this->passData.aoBlur->launchCompute(iWidth, iHeight, 1);
       Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
 
       hbaoData.aoParams2 = glm::vec4(0.0f, 1.0f, 0.0f, 0.0f);
       this->passData.aoParamsBuffer.setData(sizeof(glm::vec4), sizeof(glm::vec4), &(hbaoData.aoParams2.x));
-      this->globalBlock->halfResBuffer1.bind(1);
+      rendererData->halfResBuffer1.bind(1);
       this->passData.downsampleAO.bindAsImage(0, 0, ImageAccessPolicy::Write);
       this->passData.aoBlur->launchCompute(iWidth, iHeight, 1);
       Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);

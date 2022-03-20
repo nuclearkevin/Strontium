@@ -23,12 +23,7 @@ namespace Strontium
     , isMinimized(false)
     , lastTime(0.0f)
   {
-    if (Application::appInstance != nullptr)
-    {
-      std::cout << "Already have an instance of the application. Aborting"
-                << std::endl;
-      assert(Application::appInstance != nullptr);
-    }
+    assert(("Error: Already have an instance of the application.", Application::appInstance == nullptr));
 
     Application::appInstance = this;
 
@@ -44,8 +39,9 @@ namespace Strontium
     // Init the shader cache.
     ShaderCache::init("./assets/shaders/shaderManifest.yaml");
 
-    // Initialize the 3D renderer.
-    Renderer3D::init(1600.0f, 900.0f);
+    // Initialize the renderers.
+    Renderer3D::init(1600u, 900u);
+    DebugRenderer::init(1600u, 900u);
 
     // Init the physics system.
     PhysicsEngine::init();
@@ -79,8 +75,9 @@ namespace Strontium
   	  delete layer;
 	}
 
-    // Shutdown the renderer.
+    // Shutdown the renderers.
     Renderer3D::shutdown();
+    DebugRenderer::shutdown();
 
     // Shutdown the physics system.
     PhysicsEngine::shutdown();

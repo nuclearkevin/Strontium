@@ -1,6 +1,7 @@
 #include "Graphics/RenderPasses/DynamicSkyIBLPass.h"
 
 // Project includes.
+#include "Graphics/Renderer.h"
 #include "Graphics/RenderPasses/SkyAtmospherePass.h"
 
 namespace Strontium

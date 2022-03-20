@@ -52,13 +52,15 @@ namespace Strontium
   {
     this->timer.begin();
 
+    auto rendererData = static_cast<Renderer3D::GlobalRendererData*>(this->globalBlock);
+
     // Bind the scene depth, entity IDs and mask.
     auto geometryBlock = this->previousGeoPass->getInternalDataBlock<GeometryPassDataBlock>();
     geometryBlock->gBuffer.bindAttachment(FBOTargetParam::Depth, 0);
     geometryBlock->gBuffer.bindAttachment(FBOTargetParam::Colour3, 1);
 
     // Bind the lighting buffer.
-    this->globalBlock->lightingBuffer.bind(2);
+    rendererData->lightingBuffer.bind(2);
 
     // Bind bloom texture.
     auto bloomPassBlock = this->previousBloomPass->getInternalDataBlock<BloomPassDataBlock>();
@@ -92,11 +94,10 @@ namespace Strontium
     this->passData.postProcessingParams.setData(0, sizeof(PostBlockData), &postBlock);
 
     RendererCommands::disable(RendererFunction::DepthTest);
-    frontBuffer.clear();
     frontBuffer.setViewport();
     frontBuffer.bind();
 
-    this->globalBlock->blankVAO.bind();
+    rendererData->blankVAO.bind();
     this->passData.postProcessingShader->bind();
     RendererCommands::drawArrays(PrimativeType::Triangle, 0, 3);
 

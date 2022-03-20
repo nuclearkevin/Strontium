@@ -9,6 +9,11 @@
 
 namespace Strontium
 {
+  namespace Renderer3D
+  {
+    struct GlobalRendererData;
+  }
+
   class GeometryPass;
 
   struct HiZPassDataBlock
@@ -29,7 +34,7 @@ namespace Strontium
     { }
   };
 
-  class HiZPass : public RenderPass
+  class HiZPass final : public RenderPass
   {
   public:
     HiZPass(Renderer3D::GlobalRendererData* globalRendererData, 

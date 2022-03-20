@@ -13,6 +13,11 @@
 
 namespace Strontium
 {
+  namespace Renderer3D
+  {
+    struct GlobalRendererData;
+  }
+
   class GeometryPass;
 
   struct SkyAtmospherePassDataBlock
@@ -57,7 +62,7 @@ namespace Strontium
     { }
   };
 
-  class SkyAtmospherePass : public RenderPass
+  class SkyAtmospherePass final : public RenderPass
   {
   public:
     SkyAtmospherePass(Renderer3D::GlobalRendererData* globalRendererData,

@@ -1,316 +1,11 @@
 Scene: tests\TestScene.srn
 Entities:
-  - EntityID: 14
-    NameComponent:
-      Name: Sphere 4
-      Description: ""
-    TransformComponent:
-      Translation: [-8.83019638, 0.600000024, 2.82393718]
-      Rotation: [-1.8308692, 0.636829615, -2.87016368]
-      Scale: [0.5, 0.5, 0.499999911]
-    RenderableComponent:
-      ModelPath: ./assets/tests\sphere.gltf
-      ModelName: sphere.gltf
-      CurrentAnimation: None
-      Material:
-        - SubmeshName: Sphere
-          MaterialHandle: Sphere
-    SphereColliderComponent:
-      Radius: 0.5
-      Offset: [0, 0, 0]
-      Density: 100
-    RigidBody3DComponent:
-      Type: 2
-      Friction: 0
-      Restitution: 1
   - EntityID: 13
-    NameComponent:
-      Name: Sphere 3
-      Description: ""
-    TransformComponent:
-      Translation: [-8.26736927, 0.600000024, 1.92188025]
-      Rotation: [-1.8308692, 0.636829615, -2.87016368]
-      Scale: [0.5, 0.5, 0.499999911]
-    RenderableComponent:
-      ModelPath: ./assets/tests\sphere.gltf
-      ModelName: sphere.gltf
-      CurrentAnimation: None
-      Material:
-        - SubmeshName: Sphere
-          MaterialHandle: Sphere
-    SphereColliderComponent:
-      Radius: 0.5
-      Offset: [0, 0, 0]
-      Density: 100
-    RigidBody3DComponent:
-      Type: 2
-      Friction: 0
-      Restitution: 1
-  - EntityID: 12
-    NameComponent:
-      Name: Sphere 2
-      Description: ""
-    TransformComponent:
-      Translation: [-7.81339455, 0.600000024, 2.8273325]
-      Rotation: [-1.8308692, 0.636829615, -2.87016368]
-      Scale: [0.5, 0.5, 0.499999911]
-    RenderableComponent:
-      ModelPath: ./assets/tests\sphere.gltf
-      ModelName: sphere.gltf
-      CurrentAnimation: None
-      Material:
-        - SubmeshName: Sphere
-          MaterialHandle: Sphere
-    SphereColliderComponent:
-      Radius: 0.5
-      Offset: [0, 0, 0]
-      Density: 100
-    RigidBody3DComponent:
-      Type: 2
-      Friction: 0
-      Restitution: 1
-  - EntityID: 11
-    NameComponent:
-      Name: Ramp
-      Description: ""
-    TransformComponent:
-      Translation: [-8.23172474, 6.61808443, -6.75436115]
-      Rotation: [0.707207441, -5.74657832e-08, 1.04443941e-07]
-      Scale: [1, 0.100000001, 10]
-    RenderableComponent:
-      ModelPath: ./assets/tests\cube.gltf
-      ModelName: cube.gltf
-      CurrentAnimation: None
-      Material:
-        - SubmeshName: Cube
-          MaterialHandle: Cube
-    BoxColliderComponent:
-      HalfExtents: [1, 0.100000001, 10]
-      Offset: [0, 0, 0]
-      Density: 1000
-    RigidBody3DComponent:
-      Type: 0
-      Friction: 0
-      Restitution: 0
-  - EntityID: 10
-    NameComponent:
-      Name: Sphere 1
-      Description: ""
-    TransformComponent:
-      Translation: [-8.26329231, 13.7144022, -13.3755388]
-      Rotation: [-1.8308692, 0.636829615, -2.87016368]
-      Scale: [0.999999583, 0.999999344, 0.999999762]
-    RenderableComponent:
-      ModelPath: ./assets/tests\sphere.gltf
-      ModelName: sphere.gltf
-      CurrentAnimation: None
-      Material:
-        - SubmeshName: Sphere
-          MaterialHandle: Sphere
-    SphereColliderComponent:
-      Radius: 1
-      Offset: [0, 0, 0]
-      Density: 1000
-    RigidBody3DComponent:
-      Type: 2
-      Friction: 0
-      Restitution: 1
-  - EntityID: 9
-    NameComponent:
-      Name: Wall
-      Description: ""
-    TransformComponent:
-      Translation: [-10.1000004, 4.9000001, 0]
-      Rotation: [0, -0, 0]
-      Scale: [0.100000001, 5, 10]
-    RenderableComponent:
-      ModelPath: ./assets/tests\cube.gltf
-      ModelName: cube.gltf
-      CurrentAnimation: None
-      Material:
-        - SubmeshName: Cube
-          MaterialHandle: Cube
-    BoxColliderComponent:
-      HalfExtents: [0.100000001, 5, 10]
-      Offset: [0, 0, 0]
-      Density: 1000
-    RigidBody3DComponent:
-      Type: 0
-      Friction: 0
-      Restitution: 1
-  - EntityID: 8
-    NameComponent:
-      Name: Ground
-      Description: ""
-    TransformComponent:
-      Translation: [0, 0, 0]
-      Rotation: [0, -0, 0]
-      Scale: [10, 0.100000001, 10]
-    RenderableComponent:
-      ModelPath: ./assets/tests\cube.gltf
-      ModelName: cube.gltf
-      CurrentAnimation: None
-      Material:
-        - SubmeshName: Cube
-          MaterialHandle: Ground
-    BoxColliderComponent:
-      HalfExtents: [10, 0.100000001, 10]
-      Offset: [0, 0, 0]
-      Density: 1000
-    RigidBody3DComponent:
-      Type: 0
-      Friction: 0
-      Restitution: 0
-  - EntityID: 7
-    NameComponent:
-      Name: Skylight
-      Description: ""
-    TransformComponent:
-      Translation: [0, 0, 0]
-      Rotation: [0, 0, 0]
-      Scale: [1, 1, 1]
-    SkyAtmosphereComponent:
-      RayleighScatteringFunction: [5.80200005, 13.5579996, 33.0999985, 8]
-      RayleighAbsorptionFunction: [0, 0, 0, 8]
-      MieScatteringFunction: [3.99600005, 3.99600005, 3.99600005, 1.20000005]
-      MieAbsorptionFunction: [4.4000001, 4.4000001, 4.4000001, 1.20000005]
-      OzoneAbsorptionFunction: [0.649999976, 1.88100004, 0.0850000009, 0.00200000009]
-      PlanetAlbedo: [0, 0, 0]
-      PlanetAndAtmosphereRadius: [6.36000013, 6.46000004]
-      UsePrimaryLight: false
-    DynamicSkyboxComponent:
-      SunSize: 1
-      Intensity: 1
-    DirectionalLightComponent:
-      Direction: [0, -1, 0]
-      Colour: [1, 1, 1]
-      Intensity: 5
-      Size: 10
-      CastShadows: true
-      PrimaryLight: true
-    DynamicSkylightComponent:
-      Intensity: 1
-  - EntityID: 6
-    NameComponent:
-      Name: Fence 1
-      Description: ""
-    TransformComponent:
-      Translation: [0, 1, 10.1000004]
-      Rotation: [0, -0, 0]
-      Scale: [10.1999998, 1.10000002, 0.100000001]
-    RenderableComponent:
-      ModelPath: ./assets/tests\cube.gltf
-      ModelName: cube.gltf
-      CurrentAnimation: None
-      Material:
-        - SubmeshName: Cube
-          MaterialHandle: Cube
-    BoxColliderComponent:
-      HalfExtents: [10.1999998, 1.10000002, 0.100000001]
-      Offset: [0, 0, 0]
-      Density: 1000
-    RigidBody3DComponent:
-      Type: 0
-      Friction: 0
-      Restitution: 1
-  - EntityID: 5
-    NameComponent:
-      Name: Fence 2
-      Description: ""
-    TransformComponent:
-      Translation: [0, 1, -10.1000004]
-      Rotation: [0, -0, 0]
-      Scale: [10.1999998, 1.10000002, 0.100000001]
-    RenderableComponent:
-      ModelPath: ./assets/tests\cube.gltf
-      ModelName: cube.gltf
-      CurrentAnimation: None
-      Material:
-        - SubmeshName: Cube
-          MaterialHandle: Cube
-    BoxColliderComponent:
-      HalfExtents: [10.1999998, 1.10000002, 0.100000001]
-      Offset: [0, 0, 0]
-      Density: 1000
-    RigidBody3DComponent:
-      Type: 0
-      Friction: 0
-      Restitution: 1
-  - EntityID: 4
-    NameComponent:
-      Name: Fence 3
-      Description: ""
-    TransformComponent:
-      Translation: [10.1000004, 1, -9.31322575e-10]
-      Rotation: [0, 1.57045102, 0]
-      Scale: [9.99999905, 1.10000002, 0.0999999866]
-    RenderableComponent:
-      ModelPath: ./assets/tests\cube.gltf
-      ModelName: cube.gltf
-      CurrentAnimation: None
-      Material:
-        - SubmeshName: Cube
-          MaterialHandle: Cube
-    BoxColliderComponent:
-      HalfExtents: [10, 1.10000002, 0.100000001]
-      Offset: [0, 0, 0]
-      Density: 1000
-    RigidBody3DComponent:
-      Type: 0
-      Friction: 0
-      Restitution: 1
-  - EntityID: 3
-    NameComponent:
-      Name: Ramp 2
-      Description: ""
-    TransformComponent:
-      Translation: [-8.23172474, 0.999522567, 7.76080084]
-      Rotation: [-0.413294047, -5.74657975e-08, 1.04443956e-07]
-      Scale: [1, 0.100000024, 2.50000048]
-    RenderableComponent:
-      ModelPath: ./assets/tests\cube.gltf
-      ModelName: cube.gltf
-      CurrentAnimation: None
-      Material:
-        - SubmeshName: Cube
-          MaterialHandle: Cube
-    BoxColliderComponent:
-      HalfExtents: [1, 0.100000001, 2.5]
-      Offset: [0, 0, 0]
-      Density: 1000
-    RigidBody3DComponent:
-      Type: 0
-      Friction: 0
-      Restitution: 0
-  - EntityID: 2
-    NameComponent:
-      Name: Panel
-      Description: ""
-    TransformComponent:
-      Translation: [-8.2343235, 3.09868431, 10.085453]
-      Rotation: [0, -0, 0]
-      Scale: [1, 1, 0.100000001]
-    RenderableComponent:
-      ModelPath: ./assets/tests\cube.gltf
-      ModelName: cube.gltf
-      CurrentAnimation: None
-      Material:
-        - SubmeshName: Cube
-          MaterialHandle: Cube
-    BoxColliderComponent:
-      HalfExtents: [1, 1, 0.100000001]
-      Offset: [0, 0, 0]
-      Density: 1000
-    RigidBody3DComponent:
-      Type: 2
-      Friction: 0.5
-      Restitution: 0
-  - EntityID: 0
     NameComponent:
       Name: Camera
       Description: ""
     ChildEntities:
-      - EntityID: 1
+      - EntityID: 14
         NameComponent:
           Name: Camera Front
           Description: ""
@@ -341,6 +36,311 @@ Entities:
       Near: 0.600000024
       Far: 30
       FOV: 1.57079637
+  - EntityID: 12
+    NameComponent:
+      Name: Sphere 4
+      Description: ""
+    TransformComponent:
+      Translation: [-8.83019638, 0.600000024, 2.82393718]
+      Rotation: [-1.8308692, 0.636829615, -2.87016368]
+      Scale: [0.5, 0.5, 0.499999911]
+    RenderableComponent:
+      ModelPath: ./assets/tests\sphere.gltf
+      ModelName: sphere.gltf
+      CurrentAnimation: None
+      Material:
+        - SubmeshName: Sphere
+          MaterialHandle: Sphere
+    SphereColliderComponent:
+      Radius: 0.5
+      Offset: [0, 0, 0]
+      Density: 100
+    RigidBody3DComponent:
+      Type: 2
+      Friction: 0
+      Restitution: 1
+  - EntityID: 11
+    NameComponent:
+      Name: Sphere 3
+      Description: ""
+    TransformComponent:
+      Translation: [-8.26736927, 0.600000024, 1.92188025]
+      Rotation: [-1.8308692, 0.636829615, -2.87016368]
+      Scale: [0.5, 0.5, 0.499999911]
+    RenderableComponent:
+      ModelPath: ./assets/tests\sphere.gltf
+      ModelName: sphere.gltf
+      CurrentAnimation: None
+      Material:
+        - SubmeshName: Sphere
+          MaterialHandle: Sphere
+    SphereColliderComponent:
+      Radius: 0.5
+      Offset: [0, 0, 0]
+      Density: 100
+    RigidBody3DComponent:
+      Type: 2
+      Friction: 0
+      Restitution: 1
+  - EntityID: 10
+    NameComponent:
+      Name: Sphere 2
+      Description: ""
+    TransformComponent:
+      Translation: [-7.81339455, 0.600000024, 2.8273325]
+      Rotation: [-1.8308692, 0.636829615, -2.87016368]
+      Scale: [0.5, 0.5, 0.499999911]
+    RenderableComponent:
+      ModelPath: ./assets/tests\sphere.gltf
+      ModelName: sphere.gltf
+      CurrentAnimation: None
+      Material:
+        - SubmeshName: Sphere
+          MaterialHandle: Sphere
+    SphereColliderComponent:
+      Radius: 0.5
+      Offset: [0, 0, 0]
+      Density: 100
+    RigidBody3DComponent:
+      Type: 2
+      Friction: 0
+      Restitution: 1
+  - EntityID: 9
+    NameComponent:
+      Name: Ramp
+      Description: ""
+    TransformComponent:
+      Translation: [-8.23172474, 6.61808443, -6.75436115]
+      Rotation: [0.707207441, -5.74657832e-08, 1.04443941e-07]
+      Scale: [1, 0.100000001, 10]
+    RenderableComponent:
+      ModelPath: ./assets/tests\cube.gltf
+      ModelName: cube.gltf
+      CurrentAnimation: None
+      Material:
+        - SubmeshName: Cube
+          MaterialHandle: Cube
+    BoxColliderComponent:
+      HalfExtents: [1, 0.100000001, 10]
+      Offset: [0, 0, 0]
+      Density: 1000
+    RigidBody3DComponent:
+      Type: 0
+      Friction: 0
+      Restitution: 0
+  - EntityID: 8
+    NameComponent:
+      Name: Sphere 1
+      Description: ""
+    TransformComponent:
+      Translation: [-8.26329231, 13.7144022, -13.3755388]
+      Rotation: [-1.8308692, 0.636829615, -2.87016368]
+      Scale: [0.999999583, 0.999999344, 0.999999762]
+    RenderableComponent:
+      ModelPath: ./assets/tests\sphere.gltf
+      ModelName: sphere.gltf
+      CurrentAnimation: None
+      Material:
+        - SubmeshName: Sphere
+          MaterialHandle: Sphere
+    SphereColliderComponent:
+      Radius: 1
+      Offset: [0, 0, 0]
+      Density: 1000
+    RigidBody3DComponent:
+      Type: 2
+      Friction: 0
+      Restitution: 1
+  - EntityID: 7
+    NameComponent:
+      Name: Wall
+      Description: ""
+    TransformComponent:
+      Translation: [-10.1000004, 4.9000001, 0]
+      Rotation: [0, -0, 0]
+      Scale: [0.100000001, 5, 10]
+    RenderableComponent:
+      ModelPath: ./assets/tests\cube.gltf
+      ModelName: cube.gltf
+      CurrentAnimation: None
+      Material:
+        - SubmeshName: Cube
+          MaterialHandle: Cube
+    BoxColliderComponent:
+      HalfExtents: [0.100000001, 5, 10]
+      Offset: [0, 0, 0]
+      Density: 1000
+    RigidBody3DComponent:
+      Type: 0
+      Friction: 0
+      Restitution: 1
+  - EntityID: 6
+    NameComponent:
+      Name: Ground
+      Description: ""
+    TransformComponent:
+      Translation: [0, 0, 0]
+      Rotation: [0, -0, 0]
+      Scale: [10, 0.100000001, 10]
+    RenderableComponent:
+      ModelPath: ./assets/tests\cube.gltf
+      ModelName: cube.gltf
+      CurrentAnimation: None
+      Material:
+        - SubmeshName: Cube
+          MaterialHandle: Ground
+    BoxColliderComponent:
+      HalfExtents: [10, 0.100000001, 10]
+      Offset: [0, 0, 0]
+      Density: 1000
+    RigidBody3DComponent:
+      Type: 0
+      Friction: 0
+      Restitution: 0
+  - EntityID: 5
+    NameComponent:
+      Name: Skylight
+      Description: ""
+    TransformComponent:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    SkyAtmosphereComponent:
+      RayleighScatteringFunction: [5.80200005, 13.5579996, 33.0999985, 8]
+      RayleighAbsorptionFunction: [0, 0, 0, 8]
+      MieScatteringFunction: [3.99600005, 3.99600005, 3.99600005, 1.20000005]
+      MieAbsorptionFunction: [4.4000001, 4.4000001, 4.4000001, 1.20000005]
+      OzoneAbsorptionFunction: [0.649999976, 1.88100004, 0.0850000009, 0.00200000009]
+      PlanetAlbedo: [0, 0, 0]
+      PlanetAndAtmosphereRadius: [6.36000013, 6.46000004]
+      UsePrimaryLight: false
+    DynamicSkyboxComponent:
+      SunSize: 1
+      Intensity: 1
+    DirectionalLightComponent:
+      Direction: [0, -1, 0]
+      Colour: [1, 1, 1]
+      Intensity: 5
+      Size: 10
+      CastShadows: true
+      PrimaryLight: true
+    DynamicSkylightComponent:
+      Intensity: 1
+  - EntityID: 4
+    NameComponent:
+      Name: Fence 1
+      Description: ""
+    TransformComponent:
+      Translation: [0, 1, 10.1000004]
+      Rotation: [0, -0, 0]
+      Scale: [10.1999998, 1.10000002, 0.100000001]
+    RenderableComponent:
+      ModelPath: ./assets/tests\cube.gltf
+      ModelName: cube.gltf
+      CurrentAnimation: None
+      Material:
+        - SubmeshName: Cube
+          MaterialHandle: Cube
+    BoxColliderComponent:
+      HalfExtents: [10.1999998, 1.10000002, 0.100000001]
+      Offset: [0, 0, 0]
+      Density: 1000
+    RigidBody3DComponent:
+      Type: 0
+      Friction: 0
+      Restitution: 1
+  - EntityID: 3
+    NameComponent:
+      Name: Fence 2
+      Description: ""
+    TransformComponent:
+      Translation: [0, 1, -10.1000004]
+      Rotation: [0, -0, 0]
+      Scale: [10.1999998, 1.10000002, 0.100000001]
+    RenderableComponent:
+      ModelPath: ./assets/tests\cube.gltf
+      ModelName: cube.gltf
+      CurrentAnimation: None
+      Material:
+        - SubmeshName: Cube
+          MaterialHandle: Cube
+    BoxColliderComponent:
+      HalfExtents: [10.1999998, 1.10000002, 0.100000001]
+      Offset: [0, 0, 0]
+      Density: 1000
+    RigidBody3DComponent:
+      Type: 0
+      Friction: 0
+      Restitution: 1
+  - EntityID: 2
+    NameComponent:
+      Name: Fence 3
+      Description: ""
+    TransformComponent:
+      Translation: [10.1000004, 1, -9.31322575e-10]
+      Rotation: [0, 1.57045102, 0]
+      Scale: [9.99999905, 1.10000002, 0.0999999866]
+    RenderableComponent:
+      ModelPath: ./assets/tests\cube.gltf
+      ModelName: cube.gltf
+      CurrentAnimation: None
+      Material:
+        - SubmeshName: Cube
+          MaterialHandle: Cube
+    BoxColliderComponent:
+      HalfExtents: [10, 1.10000002, 0.100000001]
+      Offset: [0, 0, 0]
+      Density: 1000
+    RigidBody3DComponent:
+      Type: 0
+      Friction: 0
+      Restitution: 1
+  - EntityID: 1
+    NameComponent:
+      Name: Ramp 2
+      Description: ""
+    TransformComponent:
+      Translation: [-8.23172474, 0.999522567, 7.76080084]
+      Rotation: [-0.413294047, -5.74657975e-08, 1.04443956e-07]
+      Scale: [1, 0.100000024, 2.50000048]
+    RenderableComponent:
+      ModelPath: ./assets/tests\cube.gltf
+      ModelName: cube.gltf
+      CurrentAnimation: None
+      Material:
+        - SubmeshName: Cube
+          MaterialHandle: Cube
+    BoxColliderComponent:
+      HalfExtents: [1, 0.100000001, 2.5]
+      Offset: [0, 0, 0]
+      Density: 1000
+    RigidBody3DComponent:
+      Type: 0
+      Friction: 0
+      Restitution: 0
+  - EntityID: 0
+    NameComponent:
+      Name: Panel
+      Description: ""
+    TransformComponent:
+      Translation: [-8.2343235, 3.09868431, 10.085453]
+      Rotation: [0, -0, 0]
+      Scale: [1, 1, 0.100000001]
+    RenderableComponent:
+      ModelPath: ./assets/tests\cube.gltf
+      ModelName: cube.gltf
+      CurrentAnimation: None
+      Material:
+        - SubmeshName: Cube
+          MaterialHandle: Cube
+    BoxColliderComponent:
+      HalfExtents: [1, 1, 0.100000001]
+      Offset: [0, 0, 0]
+      Density: 1000
+    RigidBody3DComponent:
+      Type: 2
+      Friction: 0.5
+      Restitution: 0
 RendererSettings:
   GeneralSettings:
     Gamma: 2.20000005
@@ -368,7 +368,7 @@ RendererSettings:
     Radius: 1
     Intensity: 1
   GeneralPostProcessingSettings:
-    UseFXAA: true
+    UseFXAA: false
     ToneMapFunction: 5
 Materials:
   - MaterialName: Cube

@@ -51,6 +51,8 @@ namespace Strontium
     if (!(this->passData.skyboxes.size() > 0u))
       return;
 
+    auto rendererData = static_cast<Renderer3D::GlobalRendererData*>(this->globalBlock);
+
     auto geometryBlock = this->previousGeoPass->getInternalDataBlock<GeometryPassDataBlock>();
     // Bind the depth GBuffer attachment.
     geometryBlock->gBuffer.bindAttachment(FBOTargetParam::Depth, 0);
@@ -69,9 +71,9 @@ namespace Strontium
     this->passData.skyboxParams.setData(0, sizeof(glm::vec4), &(this->passData.skyboxes[0])); 
 
     // Apply the skybox.
-    uint iWidth = static_cast<uint>(glm::ceil(static_cast<float>(globalBlock->lightingBuffer.getWidth())
+    uint iWidth = static_cast<uint>(glm::ceil(static_cast<float>(rendererData->lightingBuffer.getWidth())
                                               / 8.0f));
-    uint iHeight = static_cast<uint>(glm::ceil(static_cast<float>(globalBlock->lightingBuffer.getHeight())
+    uint iHeight = static_cast<uint>(glm::ceil(static_cast<float>(rendererData->lightingBuffer.getHeight())
                                                / 8.0f));
     this->passData.dynamicSkyEvaluation->launchCompute(iWidth, iHeight, 1);
     Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);

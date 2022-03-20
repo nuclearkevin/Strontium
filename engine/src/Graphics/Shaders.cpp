@@ -2,7 +2,6 @@
 
 // Project includes.
 #include "Core/Logs.h"
-#include "Serialization/YamlSerialization.h"
 
 // OpenGL includes.
 #include "glad/glad.h"
@@ -226,7 +225,7 @@ namespace Strontium
 						  + std::string(buffer);
       Logs::log(message);
 
-      delete buffer;
+      delete[] buffer;
     }
 
     return shaderID;
@@ -245,9 +244,9 @@ namespace Strontium
     // Check to see if the link succeeded.
     int result;
     char* buffer;
-		glGetProgramiv(this->progID, GL_LINK_STATUS, &result);
+    glGetProgramiv(this->progID, GL_LINK_STATUS, &result);
     if (result != GL_TRUE)
-		{
+	{
       glGetProgramiv(this->progID, GL_INFO_LOG_LENGTH, &result);
       buffer = new char[result];
 			glGetProgramInfoLog(this->progID, result, 0, buffer);
@@ -256,7 +255,7 @@ namespace Strontium
 							+ std::string(buffer);
       Logs::log(message);
 
-      delete buffer;
+      delete[] buffer;
     }
 
     // Delete the shader binaries now, no longer needed as they are linked in a
@@ -266,137 +265,138 @@ namespace Strontium
   }
 
   // Push uniform data.
-	void
-	Shader::addUniformMatrix(const char* uniformName, const glm::mat4 &matrix,
-													  bool transpose)
-	{
-		GLboolean glTranspose = static_cast<GLboolean>(transpose);
-		glUseProgram(this->progID);
-		uint uniLoc = glGetUniformLocation(this->progID, uniformName);
-		glUniformMatrix4fv(uniLoc, 1, glTranspose, glm::value_ptr(matrix));
-	}
-
-	void
-	Shader::addUniformMatrix(const char* uniformName, const glm::mat3 &matrix,
-													  bool transpose)
-	{
-		GLboolean glTranspose = static_cast<GLboolean>(transpose);
-		glUseProgram(this->progID);
-		uint uniLoc = glGetUniformLocation(this->progID, uniformName);
-		glUniformMatrix3fv(uniLoc, 1, glTranspose, glm::value_ptr(matrix));
-	}
-
-	void
-	Shader::addUniformMatrix(const char* uniformName, const glm::mat2 &matrix,
-													  bool transpose)
-	{
-		GLboolean glTranspose = static_cast<GLboolean>(transpose);
-		glUseProgram(this->progID);
-		uint uniLoc = glGetUniformLocation(this->progID, uniformName);
-		glUniformMatrix2fv(uniLoc, 1, glTranspose, glm::value_ptr(matrix));
-	}
-
-	void
-	Shader::addUniformVector(const char* uniformName, const glm::vec4 &vector)
-	{
-		glUseProgram(this->progID);
-		uint uniLoc = glGetUniformLocation(this->progID, uniformName);
-		glUniform4f(uniLoc, vector[0], vector[1], vector[2], vector[3]);
-	}
-
-	void
-	Shader::addUniformVector(const char* uniformName, const glm::vec3 &vector)
-	{
-		glUseProgram(this->progID);
-		uint uniLoc = glGetUniformLocation(this->progID, uniformName);
-		glUniform3f(uniLoc, vector[0], vector[1], vector[2]);
-	}
-
-	void
-	Shader::addUniformVector(const char* uniformName, const glm::vec2 &vector)
-	{
-		glUseProgram(this->progID);
-		uint uniLoc = glGetUniformLocation(this->progID, uniformName);
-		glUniform2f(uniLoc, vector[0], vector[1]);
-	}
-
-	void
-	Shader::addUniformFloat(const char* uniformName, float value)
-	{
-		glUseProgram(this->progID);
-		uint uniLoc = glGetUniformLocation(this->progID, uniformName);
-		glUniform1f(uniLoc, value);
-	}
-
-	void
-	Shader::addUniformInt(const char* uniformName, int value)
-	{
-		glUseProgram(this->progID);
-		uint uniLoc = glGetUniformLocation(this->progID, uniformName);
-		glUniform1i(uniLoc, value);
-	}
-
-	void
-	Shader::addUniformUInt(const char* uniformName, uint value)
-	{
-		glUseProgram(this->progID);
-		uint uniLoc = glGetUniformLocation(this->progID, uniformName);
-		glUniform1ui(uniLoc, value);
-	}
-
-	void
-	Shader::addUniformSampler(const char* uniformName, uint texID)
-	{
-		glUseProgram(this->progID);
-		uint uniLoc = glGetUniformLocation(this->progID, uniformName);
-		glUniform1i(uniLoc, texID);
-	}
-
-    namespace ShaderCache
+  void
+  Shader::addUniformMatrix(const char* uniformName, const glm::mat4 &matrix,
+  												  bool transpose)
+  {
+  	GLboolean glTranspose = static_cast<GLboolean>(transpose);
+  	glUseProgram(this->progID);
+  	uint uniLoc = glGetUniformLocation(this->progID, uniformName);
+  	glUniformMatrix4fv(uniLoc, 1, glTranspose, glm::value_ptr(matrix));
+  }
+  
+  void
+  Shader::addUniformMatrix(const char* uniformName, const glm::mat3 &matrix,
+  												  bool transpose)
+  {
+  	GLboolean glTranspose = static_cast<GLboolean>(transpose);
+  	glUseProgram(this->progID);
+  	uint uniLoc = glGetUniformLocation(this->progID, uniformName);
+  	glUniformMatrix3fv(uniLoc, 1, glTranspose, glm::value_ptr(matrix));
+  }
+  
+  void
+  Shader::addUniformMatrix(const char* uniformName, const glm::mat2 &matrix,
+  												  bool transpose)
+  {
+  	GLboolean glTranspose = static_cast<GLboolean>(transpose);
+  	glUseProgram(this->progID);
+  	uint uniLoc = glGetUniformLocation(this->progID, uniformName);
+  	glUniformMatrix2fv(uniLoc, 1, glTranspose, glm::value_ptr(matrix));
+  }
+  
+  void
+  Shader::addUniformVector(const char* uniformName, const glm::vec4 &vector)
+  {
+  	glUseProgram(this->progID);
+  	uint uniLoc = glGetUniformLocation(this->progID, uniformName);
+  	glUniform4f(uniLoc, vector[0], vector[1], vector[2], vector[3]);
+  }
+  
+  void
+  Shader::addUniformVector(const char* uniformName, const glm::vec3 &vector)
+  {
+  	glUseProgram(this->progID);
+  	uint uniLoc = glGetUniformLocation(this->progID, uniformName);
+  	glUniform3f(uniLoc, vector[0], vector[1], vector[2]);
+  }
+  
+  void
+  Shader::addUniformVector(const char* uniformName, const glm::vec2 &vector)
+  {
+  	glUseProgram(this->progID);
+  	uint uniLoc = glGetUniformLocation(this->progID, uniformName);
+  	glUniform2f(uniLoc, vector[0], vector[1]);
+  }
+  
+  void
+  Shader::addUniformFloat(const char* uniformName, float value)
+  {
+  	glUseProgram(this->progID);
+  	uint uniLoc = glGetUniformLocation(this->progID, uniformName);
+  	glUniform1f(uniLoc, value);
+  }
+  
+  void
+  Shader::addUniformInt(const char* uniformName, int value)
+  {
+  	glUseProgram(this->progID);
+  	uint uniLoc = glGetUniformLocation(this->progID, uniformName);
+  	glUniform1i(uniLoc, value);
+  }
+  
+  void
+  Shader::addUniformUInt(const char* uniformName, uint value)
+  {
+  	glUseProgram(this->progID);
+  	uint uniLoc = glGetUniformLocation(this->progID, uniformName);
+  	glUniform1ui(uniLoc, value);
+  }
+  
+  void
+  Shader::addUniformSampler(const char* uniformName, uint texID)
+  {
+  	glUseProgram(this->progID);
+  	uint uniLoc = glGetUniformLocation(this->progID, uniformName);
+  	glUniform1i(uniLoc, texID);
+  }
+  
+  namespace ShaderCache
+  {
+    std::unordered_map<std::string, Shader> shaderCache;
+  
+    void 
+    init(const std::string &filepath)
     {
-      std::unordered_map<std::string, Shader> shaderCache;
-
-      void 
-      init(const std::string& filepath)
+      Logs::log("Compiling shaders.");
+      shaderCache = std::unordered_map<std::string, Shader>();
+  
+      YAML::Node data = YAML::LoadFile(filepath);
+      if (!data["ShaderCache"])
       {
-        shaderCache = std::unordered_map<std::string, Shader>();
-
-        YAML::Node data = YAML::LoadFile(filepath);
-        if (!data["ShaderCache"])
+        assert("Shader cache not found");
+      }
+      else
+      {
+        auto shaderList = data["ShaderCache"];
+        for (auto shader : shaderList)
         {
-          assert("Shader cache not found");
-        }
-        else
-        {
-          auto shaderList = data["ShaderCache"];
-          for (auto shader : shaderList)
+          if (shader["Handle"] && shader["Filepath"])
           {
-            if (shader["Handle"] && shader["Filepath"])
-            {
-              std::string handle = shader["Handle"].as<std::string>();
-              std::string path = shader["Filepath"].as<std::string>();
-              Logs::log("Compiling " + handle);
-              shaderCache.emplace(handle, path);
-            }
+            std::string handle = shader["Handle"].as<std::string>();
+            std::string path = shader["Filepath"].as<std::string>();
+            shaderCache.emplace(handle, path);
           }
-        } 
-      }
-
-      Shader*
-      getShader(const std::string& shaderHandle)
-      {
-        return &(shaderCache.at(shaderHandle));
-      }
-
-      std::unordered_map<std::string, Shader>::iterator 
-      begin()
-      {
-        return shaderCache.begin();
-      }
-      std::unordered_map<std::string, Shader>::iterator 
-      end()
-      {
-        return shaderCache.end();
-      }
+        }
+      } 
     }
+  
+    Shader*
+    getShader(const std::string& shaderHandle)
+    {
+      return &(shaderCache.at(shaderHandle));
+    }
+  
+    std::unordered_map<std::string, Shader>::iterator 
+    begin()
+    {
+      return shaderCache.begin();
+    }
+
+    std::unordered_map<std::string, Shader>::iterator 
+    end()
+    {
+      return shaderCache.end();
+    }
+  }
 }

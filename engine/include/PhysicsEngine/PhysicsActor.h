@@ -20,11 +20,9 @@ namespace Strontium::PhysicsEngine
   class PhysicsActor
   {
   public:
-	// Construct an invalid actor.
-	PhysicsActor(); 
+	// Create a physics actor given an Entity and a JPH::BodyInterface*.
+	static PhysicsActor createActor(Entity owningEntity, JPH::BodyInterface* owningInterface);
 
-	// Construct a valid actor given an Entity and a JPH::BodyInterface*.
-	PhysicsActor(Entity owningEntity, JPH::BodyInterface* owningInterface);
 	~PhysicsActor() = default;
 
 	// Check if the actor is valid before attempting to modify the actor's state.
@@ -32,9 +30,6 @@ namespace Strontium::PhysicsEngine
 
 	// Get the internal Jolt body ID.
 	uint getBodyID() const { return this->joltBodyID; }
-
-	// Update the physics parameters from the components.
-	void update();
 
 	// Get the position and orientation of this actor.
 	glm::vec3 getPosition() const;
@@ -76,6 +71,9 @@ namespace Strontium::PhysicsEngine
 	void addTorque(const glm::vec3 &torque);
 	void addAngularImpulse(const glm::vec3 &impulse);
   private:
+	// Construct an invalid actor.
+	PhysicsActor(); 
+
 	RigidBodyTypes rbType;
 	ColliderTypes cType;
 

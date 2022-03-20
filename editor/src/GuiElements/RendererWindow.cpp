@@ -52,9 +52,7 @@ namespace Strontium
       ImGui::Text("Frametime: %f ms", shadowBlock->frameTime);
       ImGui::Text("Number of Draw Calls: %u", shadowBlock->numDrawCalls);
       ImGui::Text("Number of Instances: %u", shadowBlock->numInstances);
-      ImGui::Text("Number of Triangles Submitted: %u", shadowBlock->numTrianglesSubmitted);
       ImGui::Text("Number of Triangles Drawn: %u", shadowBlock->numTrianglesDrawn);
-      ImGui::Text("Number of Triangles Culled: %u", shadowBlock->numTrianglesSubmitted - shadowBlock->numTrianglesDrawn);
 
       ImGui::Separator();
 

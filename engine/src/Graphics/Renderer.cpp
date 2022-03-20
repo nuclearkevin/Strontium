@@ -18,6 +18,8 @@
 #include "Graphics/RenderPasses/BloomPass.h"
 #include "Graphics/RenderPasses/PostProcessingPass.h"
 
+#include "Graphics/RenderPasses/WireframePass.h"
+
 //----------------------------------------------------------------------------
 // 3D renderer starts here.
 //----------------------------------------------------------------------------
@@ -140,6 +142,70 @@ namespace Strontium::Renderer3D
   }
 
   void
+  end(FrameBuffer& frontBuffer)
+  {
+    // Call the render functions since the Renderer basically does all its work when submission is done.
+    passManager->onRender();
+
+    // Whichever renderpass needs to do work when the rendering phase is over.
+    passManager->onRendererEnd(frontBuffer);
+  }
+}
+
+//----------------------------------------------------------------------------
+// Debug renderer starts here.
+//----------------------------------------------------------------------------
+namespace Strontium::DebugRenderer
+{
+  static RenderPassManager* passManager;
+  static GlobalRendererData* rendererData;
+
+  GlobalRendererData& 
+  getStorage()
+  {
+    return *rendererData;
+  }
+
+  RenderPassManager& 
+  getPassManager()
+  {
+    return *passManager;
+  }
+  
+  // Init the renderer for drawing.
+  void
+  init(const uint width, const uint height)
+  {
+    Logs::log("Initializing the debug renderer.");
+
+    // Setup global storage which gets used by multiple passes.
+    rendererData = new GlobalRendererData();
+
+    // Initialize the renderpass system.
+    passManager = new RenderPassManager();
+
+    auto geometry = Renderer3D::passManager->getRenderPass<GeometryPass>();
+    auto wireframe = passManager->insertRenderPass<WireframePass>(rendererData, geometry);
+  }
+
+  void 
+  shutdown()
+  {
+    Logs::log("Shutting down the debug renderer.");
+
+    delete rendererData;
+    delete passManager;
+  }
+  
+  // Generic begin and end for the renderer.
+  void 
+  begin(uint width, uint height, const Camera &sceneCamera)
+  {
+    // Prep the renderpasses.
+    passManager->onRendererBegin(width, height);
+  }
+
+  void 
   end(FrameBuffer& frontBuffer)
   {
     // Call the render functions since the Renderer basically does all its work when submission is done.

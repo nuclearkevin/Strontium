@@ -24,6 +24,17 @@ namespace Strontium
     , isSkinned(false)
   { }
 
+  Model::Model(const std::string &path)
+    : loaded(false)
+    , globalInverseTransform(1.0f)
+    , globalTransform(1.0f)
+    , minPos(std::numeric_limits<float>::max())
+    , maxPos(std::numeric_limits<float>::min())
+    , isSkinned(false)
+  {
+    this->load(path);
+  }
+
   Model::~Model()
   { }
 

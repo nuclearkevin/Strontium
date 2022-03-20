@@ -13,6 +13,27 @@
 
 namespace Strontium
 {
+  namespace Renderer3D
+  {
+  	struct GlobalRendererData;
+  }
+
+  struct GeomStaticDrawData
+  {
+	VertexArray* primatives;
+	Material* technique;
+
+	GeomStaticDrawData(VertexArray* primatives, Material* technique)
+	  : primatives(primatives)
+      , technique(technique)
+	{ }
+
+	bool operator==(const GeomStaticDrawData& other) const
+	{ 
+	  return this->primatives == other.primatives && this->technique == other.technique;
+	}
+  };
+
   struct PerEntityData
   {
 	glm::mat4 transform;
@@ -25,22 +46,6 @@ namespace Strontium
 	  , idMask(idMask)
 	  , materialData(materialData)
 	{ }
-  };
-
-  struct GeomStaticDrawData
-  {
-	VertexArray* primatives;
-	Material* technique;
-
-	std::vector<PerEntityData> instancedData;
-
-	GeomStaticDrawData(VertexArray* primatives, Material* technique)
-	: primatives(primatives)
-    , technique(technique)
-	{ }
-
-	operator VertexArray*() { return this->primatives; }
-	operator Material*() { return this->technique; }
   };
 
   struct GeomDynamicDrawData
@@ -66,7 +71,21 @@ namespace Strontium
 	operator Material*() { return this->technique; }
 	operator Animator* () { return this->animations; }
   };
+}
 
+template<>
+struct std::hash<Strontium::GeomStaticDrawData>
+{
+  std::size_t operator()(Strontium::GeomStaticDrawData const &data) const noexcept
+  {
+    std::size_t h1 = std::hash<Strontium::VertexArray*>{}(data.primatives);
+    std::size_t h2 = std::hash<Strontium::Material*>{}(data.technique);
+    return h1 ^ (h2 << 1); 
+  }
+};
+
+namespace Strontium
+{
   struct GeometryPassDataBlock
   {
 	// Required buffers and lists to draw stuff.
@@ -82,7 +101,7 @@ namespace Strontium
 	ShaderStorageBuffer boneBuffer;
 
 	uint numUniqueEntities;
-	std::vector<GeomStaticDrawData> staticDrawList;
+	robin_hood::unordered_map<GeomStaticDrawData, std::vector<PerEntityData>> staticInstanceMap;
 	std::vector<GeomDynamicDrawData> dynamicDrawList;
 
 	// Some statistics to display.
@@ -109,7 +128,7 @@ namespace Strontium
 	{ }
   };
 
-  class GeometryPass : public RenderPass
+  class GeometryPass final : public RenderPass
   {
   public:
 	GeometryPass(Renderer3D::GlobalRendererData* globalRendererData);

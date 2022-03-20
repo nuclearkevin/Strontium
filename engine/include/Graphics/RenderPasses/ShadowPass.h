@@ -12,17 +12,23 @@
 
 namespace Strontium
 {
+  namespace Renderer3D
+  {
+    struct GlobalRendererData;
+  }
+
   struct ShadowStaticDrawData
   {
 	VertexArray* primatives;
-
-	std::vector<glm::mat4> instancedTransforms;
 
 	ShadowStaticDrawData(VertexArray* primatives)
 	  : primatives(primatives)
 	{ }
 
-	operator VertexArray*() { return this->primatives; }
+	bool operator==(const ShadowStaticDrawData& other) const
+	{
+	  return this->primatives == other.primatives;
+	}
   };
 
   struct ShadowDynamicDrawData
@@ -45,7 +51,19 @@ namespace Strontium
 	operator VertexArray*() { return this->primatives; }
 	operator Animator* () { return this->animations; }
   };
+}
 
+template<>
+struct std::hash<Strontium::ShadowStaticDrawData>
+{
+  std::size_t operator()(Strontium::ShadowStaticDrawData const &data) const noexcept
+  {
+    return std::hash<Strontium::VertexArray*>{}(data.primatives);
+  }
+};
+
+namespace Strontium
+{
   struct ShadowPassDataBlock
   {
 	FrameBuffer shadowBuffers[NUM_CASCADES];
@@ -76,7 +94,7 @@ namespace Strontium
 	uint numUniqueEntities;
 	glm::vec3 minPos;
 	glm::vec3 maxPos;
-	std::vector<ShadowStaticDrawData> staticDrawList;
+	robin_hood::unordered_map<ShadowStaticDrawData, std::vector<glm::mat4>> staticInstanceMap;
 	std::vector<ShadowDynamicDrawData> dynamicDrawList;
 
 	// Shadow settings.
@@ -89,7 +107,6 @@ namespace Strontium
 	float frameTime;
 	uint numInstances;
 	uint numDrawCalls;
-	uint numTrianglesSubmitted;
 	uint numTrianglesDrawn;
 
 	ShadowPassDataBlock()
@@ -116,12 +133,11 @@ namespace Strontium
 	  , frameTime(0.0f)
 	  , numInstances(0u)
 	  , numDrawCalls(0u)
-	  , numTrianglesSubmitted(0u)
 	  , numTrianglesDrawn(0u)
 	{ }
   };
 
-  class ShadowPass : public RenderPass
+  class ShadowPass final : public RenderPass
   {
   public:
     ShadowPass(Renderer3D::GlobalRendererData* globalRendererData);

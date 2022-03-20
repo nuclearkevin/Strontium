@@ -115,7 +115,7 @@ namespace Strontium::PhysicsEngine
   {
 	assert(!hasActor(entity));
 
-	internals->actors.emplace(entity, PhysicsActor(entity, internals->bodyInterface));
+	internals->actors.emplace(entity, PhysicsActor::createActor(entity, internals->bodyInterface));
 	return internals->actors.at(entity);
   }
 
@@ -165,6 +165,7 @@ namespace Strontium::PhysicsEngine
 	internals->actors.clear();
 
 	internals->simulating = false;
+	internals->accumulator = 0.0f;
   }
 
   void 
@@ -172,8 +173,6 @@ namespace Strontium::PhysicsEngine
   {
 	if (!internals->simulating)
 	  return;
-
-	// TODO: Check for invalid physics objects and remove them.
 
 	// Simulate physics.
 	internals->accumulator += dtFrame;

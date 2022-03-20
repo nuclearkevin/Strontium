@@ -13,6 +13,11 @@
 
 namespace Strontium
 {
+  namespace Renderer3D
+  {
+    struct GlobalRendererData;
+  }
+
   struct BloomPassDataBlock
   {
     Shader* bloomDownsampleKaris;
@@ -51,7 +56,7 @@ namespace Strontium
     { }
   };
 
-  class BloomPass : public RenderPass
+  class BloomPass final : public RenderPass
   {
   public:
 	BloomPass(Renderer3D::GlobalRendererData* globalRendererData);

@@ -21,6 +21,7 @@ namespace Strontium
   {
   public:
     Model();
+    Model(const std::string &path);
     ~Model();
 
     // Load a model.

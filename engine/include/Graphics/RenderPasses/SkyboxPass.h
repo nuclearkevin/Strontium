@@ -12,6 +12,11 @@
 
 namespace Strontium
 {
+  namespace Renderer3D
+  {
+    struct GlobalRendererData;
+  }
+
   struct SkyboxPassDataBlock
   {
     Shader* dynamicSkyEvaluation;
@@ -31,7 +36,7 @@ namespace Strontium
     { }
   };
 
-  class SkyboxPass : public RenderPass
+  class SkyboxPass final : public RenderPass
   {
   public:
 	SkyboxPass(Renderer3D::GlobalRendererData* globalRendererData, 

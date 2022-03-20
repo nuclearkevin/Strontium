@@ -22,6 +22,31 @@ namespace Strontium
     glm::vec3 extents;
   };
 
+  struct OrientedBoundingBox
+  {
+    glm::vec3 center;
+    glm::vec3 extents;
+    glm::quat orientation;
+
+    OrientedBoundingBox(const glm::vec3 &center, const glm::vec3 &extents, 
+                        const glm::quat &orientation)
+      : center(center)
+      , extents(extents)
+      , orientation(orientation)
+    { }
+  };
+
+  struct Sphere
+  {
+    glm::vec3 center;
+    float radius;
+
+    Sphere(const glm::vec3 &center, float radius)
+      : center(center)
+      , radius(radius)
+    { }
+  };
+
   struct Frustum
   {
     glm::vec3 corners[8];

@@ -39,7 +39,7 @@ namespace Strontium
   GeometryPass::onRendererBegin(uint width, uint height)
   {
     // Clear the lists and staging for the next frame.
-    this->passData.staticDrawList.clear();
+    this->passData.staticInstanceMap.clear();
     this->passData.dynamicDrawList.clear();
 
     // Resize the geometry buffer.
@@ -62,6 +62,8 @@ namespace Strontium
     // Time the entire scope.
     ScopedTimer<AsynchTimer> profiler(this->timer);
 
+    auto rendererData = static_cast<Renderer3D::GlobalRendererData*>(this->globalBlock);
+
 	// Setup the camera uniforms.
 	struct CameraBlockData
 	{
@@ -73,12 +75,12 @@ namespace Strontium
 	} 
 	  cameraBlock 
 	{ 
-	  this->globalBlock->sceneCam.view, 
-	  this->globalBlock->sceneCam.projection, 
-	  this->globalBlock->sceneCam.invViewProj,
-      { this->globalBlock->sceneCam.position, 0.0 },
-      { this->globalBlock->sceneCam.near,
-        this->globalBlock->sceneCam.far, this->globalBlock->gamma, 0.0 }
+      rendererData->sceneCam.view,
+      rendererData->sceneCam.projection,
+      rendererData->sceneCam.invViewProj,
+      { rendererData->sceneCam.position, 0.0 },
+      { rendererData->sceneCam.near,
+        rendererData->sceneCam.far, rendererData->gamma, 0.0 }
 	};
 	this->passData.cameraBuffer.setData(0, sizeof(CameraBlockData), &cameraBlock);
     
@@ -87,11 +89,11 @@ namespace Strontium
       this->passData.entityDataBuffer.resize(sizeof(PerEntityData) * this->passData.numUniqueEntities, BufferType::Dynamic);
 
     uint bufferOffset = 0;
-    for (auto& drawCommand : this->passData.staticDrawList)
+    for (auto& [vaoMat, instancedData] : this->passData.staticInstanceMap)
     {
-      this->passData.entityDataBuffer.setData(bufferOffset, sizeof(PerEntityData) * drawCommand.instancedData.size(),
-                                              drawCommand.instancedData.data());
-      bufferOffset += sizeof(PerEntityData) * drawCommand.instancedData.size();
+      this->passData.entityDataBuffer.setData(bufferOffset, sizeof(PerEntityData) * instancedData.size(),
+                                              instancedData.data());
+      bufferOffset += sizeof(PerEntityData) * instancedData.size();
     }
     for (auto& drawCommand : this->passData.dynamicDrawList)
     {
@@ -111,7 +113,7 @@ namespace Strontium
     bufferOffset = 0;
     // Static geometry pass.
     this->passData.staticGeometry->bind();
-    for (auto& drawable : this->passData.staticDrawList)
+    for (auto& [drawable, instancedData] : this->passData.staticInstanceMap)
     {
       // Set the index offset. 
       this->passData.perDrawUniforms.setData(0, sizeof(int), &bufferOffset);
@@ -121,15 +123,15 @@ namespace Strontium
       drawable.primatives->bind();
       RendererCommands::drawElementsInstanced(PrimativeType::Triangle, 
                                               drawable.primatives->numToRender(), 
-                                              drawable.instancedData.size());
+                                              instancedData.size());
       drawable.primatives->unbind();
       
-      bufferOffset += drawable.instancedData.size();
+      bufferOffset += instancedData.size();
 
       // Record some statistics.
       this->passData.numDrawCalls++;
-      this->passData.numInstances += drawable.instancedData.size();
-      this->passData.numTrianglesDrawn += (drawable.instancedData.size() * drawable.primatives->numToRender()) / 3;
+      this->passData.numInstances += instancedData.size();
+      this->passData.numTrianglesDrawn += (instancedData.size() * drawable.primatives->numToRender()) / 3;
     }
 
     // Dynamic geometry pass for skinned objects.
@@ -180,6 +182,8 @@ namespace Strontium
   GeometryPass::submit(Model* data, ModelMaterial &materials, const glm::mat4 &model,
                        float id, bool drawSelectionMask)
   {
+    auto rendererData = static_cast<Renderer3D::GlobalRendererData*>(this->globalBlock);
+
 	for (auto& submesh : data->getSubmeshes())
 	{
       auto material = materials.getMaterial(submesh.getName());
@@ -194,33 +198,25 @@ namespace Strontium
       this->passData.numTrianglesSubmitted += vao->numToRender() / 3;
 
       auto localTransform = model * submesh.getTransform();
-      if (!boundingBoxInFrustum(this->globalBlock->camFrustum, submesh.getMinPos(), 
+      if (!boundingBoxInFrustum(rendererData->camFrustum, submesh.getMinPos(),
 						  submesh.getMaxPos(), localTransform))
         continue;
 
       // Populate the draw list.
-      auto drawData = std::find_if(this->passData.staticDrawList.begin(), 
-                                   this->passData.staticDrawList.end(),
-                                   [vao, material](const GeomStaticDrawData& data)
-      {
-        return data.technique == material && data.primatives == vao;
-      });
+      auto drawData = this->passData.staticInstanceMap.find(GeomStaticDrawData(vao, material));
 
       this->passData.numUniqueEntities++;
-      if (drawData != this->passData.staticDrawList.end())
+      if (drawData != this->passData.staticInstanceMap.end())
       {
-        drawData->instancedData.emplace_back(localTransform, 
-                                             glm::vec4(drawSelectionMask ? 1.0f : 0.0f, 
-                                                       id + 1.0f, 0.0f, 0.0f), 
-                                             material->getPackedUniformData());
+        drawData->second.emplace_back(localTransform, 
+                                      glm::vec4(drawSelectionMask ? 1.0f : 0.0f, id + 1.0f, 0.0f, 0.0f), 
+                                      material->getPackedUniformData());
       }
       else 
       {
-        this->passData.staticDrawList.emplace_back(vao, material);
-        this->passData.staticDrawList.back().instancedData.emplace_back(localTransform, 
-                                                                        glm::vec4(drawSelectionMask ? 1.0f : 0.0f, 
-                                                                                  id + 1.0f, 0.0f, 0.0f), 
-                                                                        material->getPackedUniformData());
+        auto& item = this->passData.staticInstanceMap.emplace(GeomStaticDrawData(vao, material), std::vector<PerEntityData>());
+        item.first->second.emplace_back(localTransform, glm::vec4(drawSelectionMask ? 1.0f : 0.0f, id + 1.0f, 0.0f, 0.0f), 
+                                        material->getPackedUniformData());
       }
 	}
   }
@@ -229,6 +225,8 @@ namespace Strontium
   GeometryPass::submit(Model* data, Animator* animation, ModelMaterial &materials,
                        const glm::mat4 &model, float id, bool drawSelectionMask)
   {
+    auto rendererData = static_cast<Renderer3D::GlobalRendererData*>(this->globalBlock);
+
     if (data->hasSkins())
     {
       // Skinned animated mesh, store the static transform.
@@ -245,7 +243,7 @@ namespace Strontium
         // Record some statistics.
         this->passData.numTrianglesSubmitted += vao->numToRender() / 3;
 
-        if (!boundingBoxInFrustum(this->globalBlock->camFrustum, data->getMinPos(),
+        if (!boundingBoxInFrustum(rendererData->camFrustum, data->getMinPos(),
 	 						    data->getMaxPos(), model))
           continue;
 
@@ -276,33 +274,26 @@ namespace Strontium
         this->passData.numTrianglesSubmitted += vao->numToRender() / 3;
 
         auto localTransform = model * bones[submesh.getName()];
-	    if (!boundingBoxInFrustum(this->globalBlock->camFrustum, submesh.getMinPos(), 
+	    if (!boundingBoxInFrustum(rendererData->camFrustum, submesh.getMinPos(),
 	 						      submesh.getMaxPos(), localTransform))
           continue;
 
         // Populate the draw list.
-        auto drawData = std::find_if(this->passData.staticDrawList.begin(), 
-                                     this->passData.staticDrawList.end(),
-                                     [vao, material](const GeomStaticDrawData& data)
-        {
-          return data.technique == material && data.primatives == vao;
-        });
+        auto drawData = this->passData.staticInstanceMap.find(GeomStaticDrawData(vao, material));
         
         this->passData.numUniqueEntities++;
-        if (drawData != this->passData.staticDrawList.end())
+        if (drawData != this->passData.staticInstanceMap.end())
         {
-          drawData->instancedData.emplace_back(localTransform, 
-                                               glm::vec4(drawSelectionMask ? 1.0f : 0.0f, 
-                                                         id + 1.0f, 0.0f, 0.0f), 
-                                               material->getPackedUniformData());
+          this->passData.staticInstanceMap.at(drawData->first)
+                                          .emplace_back(localTransform, glm::vec4(drawSelectionMask ? 1.0f : 0.0f, 
+                                                        id + 1.0f, 0.0f, 0.0f), material->getPackedUniformData());
         }
         else 
         {
-          this->passData.staticDrawList.emplace_back(vao, material);
-          this->passData.staticDrawList.back().instancedData.emplace_back(localTransform, 
-                                                                          glm::vec4(drawSelectionMask ? 1.0f : 0.0f, 
-                                                                                    id + 1.0f, 0.0f, 0.0f), 
-                                                                          material->getPackedUniformData());
+          this->passData.staticInstanceMap.emplace(GeomStaticDrawData(vao, material), std::vector<PerEntityData>());
+          this->passData.staticInstanceMap.at(GeomStaticDrawData(vao, material))
+                                          .emplace_back(localTransform, glm::vec4(drawSelectionMask ? 1.0f : 0.0f, 
+                                                        id + 1.0f, 0.0f, 0.0f), material->getPackedUniformData());
         }
       }  
 	}

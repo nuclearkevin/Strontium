@@ -17,6 +17,11 @@
 
 namespace Strontium
 {
+  namespace Renderer3D
+  {
+    struct GlobalRendererData;
+  }
+
   struct DirectionalLightPassDataBlock
   {
     // Shadowed directional light.
@@ -65,7 +70,7 @@ namespace Strontium
     { }
   };
 
-  class DirectionalLightPass : public RenderPass
+  class DirectionalLightPass final : public RenderPass
   {
   public:
 	DirectionalLightPass(Renderer3D::GlobalRendererData* globalRendererData, 

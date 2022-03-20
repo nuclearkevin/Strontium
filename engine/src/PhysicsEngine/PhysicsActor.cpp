@@ -20,30 +20,21 @@
 
 namespace Strontium::PhysicsEngine
 {
-  PhysicsActor::PhysicsActor()
-    : rbType(RigidBodyTypes::Static)
-    , cType(ColliderTypes::Sphere)
-    , owningInterface(nullptr)
-    , joltBodyID()
-    , valid(false)
-  { }
-
-  PhysicsActor::PhysicsActor(Entity owningEntity, JPH::BodyInterface* owningInterface)
-    : rbType(RigidBodyTypes::Static)
-    , cType(ColliderTypes::Sphere)
-    , owningInterface(owningInterface)
-    , joltBodyID()
-    , valid(true)
+  PhysicsActor 
+  PhysicsActor::createActor(Entity owningEntity, JPH::BodyInterface* owningInterface)
   {
+    PhysicsActor newActor;
+    
     assert(("Invalid entity.", static_cast<bool>(owningEntity)));
     assert(("PhysicsActor requires the owning entity to have a transform and rigidbody component.", 
             !(!owningEntity.hasComponent<RigidBody3DComponent>() || !owningEntity.hasComponent<TransformComponent>())));
+    assert(("JPH::BodyInterface* was null.", owningInterface));
 
     if (owningEntity.hasComponent<ParentEntityComponent>())
     {
       Logs::log("Warning: Entities with parents cannot be physics objects.");
-      this->valid = false;
-      return;
+      newActor.valid = false;
+      return PhysicsActor();
     }
 
     JPH::ShapeRefC shapeRef;
@@ -65,7 +56,7 @@ namespace Strontium::PhysicsEngine
       if (!result.HasError())
       {
         shapeRef = result.Get();
-        this->cType = collider.type;
+        newActor.cType = collider.type;
       }
       else
         Logs::log("Warning: Failed to create a box shape with the message: " + result.GetError());
@@ -89,7 +80,7 @@ namespace Strontium::PhysicsEngine
       if (!result.HasError())
       {
         shapeRef = result.Get();
-        this->cType = collider.type;
+        newActor.cType = collider.type;
       }
       else
         Logs::log("Warning: Failed to create a box shape with the message: " + result.GetError());
@@ -99,8 +90,8 @@ namespace Strontium::PhysicsEngine
 
     if (!shapeRef)
     {
-      this->valid = false;
-      return;
+      newActor.valid = false;
+      return PhysicsActor();
     }
     
     // Grab the transform and rigid body components.
@@ -109,7 +100,7 @@ namespace Strontium::PhysicsEngine
 
     auto pos = PhysicsUtils::convertGLMToJolt(transform.translation + offset);
     auto rot = PhysicsUtils::convertGLMToJolt(glm::quat(transform.rotation));
-    this->rbType = rigidBody.type;
+    newActor.rbType = rigidBody.type;
 
     //----------------------------------------------------------------------------
     // Set the body.
@@ -120,14 +111,14 @@ namespace Strontium::PhysicsEngine
       {
         JPH::BodyCreationSettings bodySettings(shapeRef, pos, rot, JPH::EMotionType::Static, Layers::NonMoving);
         JPH::Body* body = owningInterface->CreateBody(bodySettings);
-        this->joltBodyID = body->GetID().GetIndexAndSequenceNumber();
+        newActor.joltBodyID = body->GetID().GetIndexAndSequenceNumber();
         owningInterface->AddBody(body->GetID(), JPH::EActivation::DontActivate);
 
         if (!body)
         {
           Logs::log("Error: Body limit exceeded, failed to create a body.");
-          this->valid = false;
-          return;
+          newActor.valid = false;
+          return PhysicsActor();
         }
         break;
       }
@@ -136,14 +127,14 @@ namespace Strontium::PhysicsEngine
       {
         JPH::BodyCreationSettings bodySettings(shapeRef, pos, rot, JPH::EMotionType::Kinematic, Layers::Moving);
         JPH::Body* body = owningInterface->CreateBody(bodySettings);
-        this->joltBodyID = body->GetID().GetIndexAndSequenceNumber();
+        newActor.joltBodyID = body->GetID().GetIndexAndSequenceNumber();
         owningInterface->AddBody(body->GetID(), JPH::EActivation::Activate);
 
         if (!body)
         {
           Logs::log("Error: Body limit exceeded, failed to create a body.");
-          this->valid = false;
-          return;
+          newActor.valid = false;
+          return PhysicsActor();
         }
         break;
       }
@@ -152,25 +143,31 @@ namespace Strontium::PhysicsEngine
       {
         JPH::BodyCreationSettings bodySettings(shapeRef, pos, rot, JPH::EMotionType::Dynamic, Layers::Moving);
         JPH::Body* body = owningInterface->CreateBody(bodySettings);
-        this->joltBodyID = body->GetID().GetIndexAndSequenceNumber();
+        newActor.joltBodyID = body->GetID().GetIndexAndSequenceNumber();
         owningInterface->AddBody(body->GetID(), JPH::EActivation::Activate);
 
         if (!body)
         {
           Logs::log("Error: Body limit exceeded, failed to create a body.");
-          this->valid = false;
-          return;
+          newActor.valid = false;
+          return PhysicsActor();
         }
         break;
       }
     }
+    
+    newActor.valid = true;
+    newActor.owningInterface = owningInterface;
+    return newActor;
   }
 
-  void 
-  PhysicsActor::update()
-  {
-
-  }
+  PhysicsActor::PhysicsActor()
+    : rbType(RigidBodyTypes::Static)
+    , cType(ColliderTypes::Sphere)
+    , owningInterface(nullptr)
+    , joltBodyID()
+    , valid(false)
+  { }
 
   glm::vec3 
   PhysicsActor::getPosition() const

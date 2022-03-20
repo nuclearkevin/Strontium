@@ -12,6 +12,11 @@
 
 namespace Strontium
 {
+  namespace Renderer3D
+  {
+    struct GlobalRendererData;
+  }
+
   struct PostProcessingPassDataBlock
   {
     Shader* postProcessingShader;
@@ -38,7 +43,7 @@ namespace Strontium
     { }
   };
 
-  class PostProcessingPass : public RenderPass
+  class PostProcessingPass final : public RenderPass
   {
   public:
 	PostProcessingPass(Renderer3D::GlobalRendererData* globalRendererData,

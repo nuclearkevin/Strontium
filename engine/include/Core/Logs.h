@@ -46,7 +46,6 @@ namespace Strontium::Logs
     LogInternals::logData.messagePointer++;
     LogInternals::logData.messageCount++;
 
-    std::cout.flush();
     LogInternals::logData.logFile.flush();
 
     LogInternals::logData.logMutex.unlock();
@@ -83,7 +82,6 @@ namespace Strontium::Logs
     if (LogInternals::logData.messagePointer >= 50)
       LogInternals::logData.messagePointer = 0;
 
-    std::cout.flush();
     LogInternals::logData.logFile.flush();
 
     LogInternals::logData.logMutex.unlock();
@@ -107,7 +105,6 @@ namespace Strontium::Logs
     std::cout << message;
     LogInternals::logData.logFile << message;
 
-    std::cout.flush();
     LogInternals::logData.logFile.flush();
 
     LogInternals::logData.logFile.close();

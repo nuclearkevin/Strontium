@@ -10,6 +10,11 @@
 
 namespace Strontium
 {
+  namespace Renderer3D
+  {
+    struct GlobalRendererData;
+  }
+
   class GeometryPass;
   class HiZPass;
 
@@ -42,7 +47,7 @@ namespace Strontium
 	{ }
   };
 
-  class HBAOPass : public RenderPass
+  class HBAOPass final : public RenderPass
   {
   public:
 	HBAOPass(Renderer3D::GlobalRendererData* globalRendererData,

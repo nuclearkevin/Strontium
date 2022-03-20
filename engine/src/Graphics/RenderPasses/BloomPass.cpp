@@ -97,7 +97,7 @@ namespace Strontium
     this->passData.bloomParams.setData(sizeof(glm::vec4), sizeof(float), &this->passData.radius);
 
     // Bind the lighting pass image.
-    this->globalBlock->lightingBuffer.bindAsImage(0, 0, ImageAccessPolicy::Read);
+    static_cast<Renderer3D::GlobalRendererData*>(this->globalBlock)->lightingBuffer.bindAsImage(0, 0, ImageAccessPolicy::Read);
 
     // Bind the downsampling buffer.
     this->passData.downsampleBuffer.bindAsImage(1, 0, ImageAccessPolicy::Write);

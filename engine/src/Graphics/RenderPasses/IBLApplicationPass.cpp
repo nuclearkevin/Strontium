@@ -63,6 +63,8 @@ namespace Strontium
   {
     ScopedTimer<AsynchTimer> profiler(this->timer);
 
+    auto rendererData = static_cast<Renderer3D::GlobalRendererData*>(this->globalBlock);
+
     auto geometryBlock = this->previousGeoPass->getInternalDataBlock<GeometryPassDataBlock>();
     // Bind the GBuffer attachments.
     auto& gBuffer = geometryBlock->gBuffer;
@@ -83,7 +85,7 @@ namespace Strontium
       hbaoBlock->downsampleAO.bind(7);
 
     // Bind the lighting buffer.
-    this->globalBlock->lightingBuffer.bindAsImage(0, 0, ImageAccessPolicy::ReadWrite);
+    rendererData->lightingBuffer.bindAsImage(0, 0, ImageAccessPolicy::ReadWrite);
 
     // The IBL-specific parameters.
     glm::vec4 iblParams(0.0f, 0.0f, static_cast<float>(hbaoBlock->enableAO), 0.0f);
@@ -105,9 +107,9 @@ namespace Strontium
       iblParams.y = dynamicIBLParam.intensity;
       this->passData.iblBuffer.setData(0, 3 * sizeof(float), &(iblParams.x));
 
-      uint iWidth = static_cast<uint>(glm::ceil(static_cast<float>(globalBlock->lightingBuffer.getWidth())
+      uint iWidth = static_cast<uint>(glm::ceil(static_cast<float>(rendererData->lightingBuffer.getWidth())
                                                 / 8.0f));
-      uint iHeight = static_cast<uint>(glm::ceil(static_cast<float>(globalBlock->lightingBuffer.getHeight())
+      uint iHeight = static_cast<uint>(glm::ceil(static_cast<float>(rendererData->lightingBuffer.getHeight())
                                                  / 8.0f));
       this->passData.iblEvaluation->launchCompute(iWidth, iHeight, 1);
       Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
