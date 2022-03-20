@@ -21,6 +21,12 @@ namespace Strontium
     glBindBuffer(GL_ARRAY_BUFFER, 0);
   }
 
+  VertexBuffer::VertexBuffer(BufferType bufferType)
+    : hasData(false)
+    , type(bufferType)
+    , dataSize(0u)
+  { }
+
   VertexBuffer::~VertexBuffer()
   {
     glDeleteBuffers(1, &this->bufferID);
@@ -38,6 +44,28 @@ namespace Strontium
   VertexBuffer::unbind()
   {
     glBindBuffer(GL_ARRAY_BUFFER, 0);
+  }
+
+  // Resize the buffer.
+  void 
+  VertexBuffer::resize(uint bufferSize, BufferType bufferType)
+  {
+    glBindBuffer(GL_ARRAY_BUFFER, this->bufferID);
+    glBufferData(GL_ARRAY_BUFFER, bufferSize, nullptr, static_cast<GLenum>(bufferType));
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    this->dataSize = bufferSize;
+  }
+
+  // Modify the buffer's contents.
+  void
+  VertexBuffer::setData(uint start, uint newDataSize, const void* newData)
+  {
+    assert(("New data exceeds buffer size.", !(start + newDataSize > this->dataSize)));
+
+    glBindBuffer(GL_ARRAY_BUFFER, this->bufferID);
+    glBufferSubData(GL_ARRAY_BUFFER, start, newDataSize, newData);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    this->hasData = true;
   }
 
   //----------------------------------------------------------------------------

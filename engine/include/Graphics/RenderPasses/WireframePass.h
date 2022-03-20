@@ -30,10 +30,29 @@ namespace Strontium
     { }
   };
 
+  struct WireframeData
+  {
+    glm::mat4 transform;
+    glm::vec4 colour;
+
+    WireframeData(const glm::mat4 &transform, const glm::vec4 &colour)
+      : transform(transform)
+      , colour(colour)
+    { }
+  };
+
   struct DebugPassDataBlock
   {
     Shader* lineShader;
     Shader* wireframeShader;
+    Shader* lineApplyShader;
+
+    Shared<VertexBuffer> lineBuffer;
+    VertexArray lineVAO;
+
+    ShaderStorageBuffer instancedData;
+
+    FrameBuffer wireframeView;
 
     Model debugCube;
     glm::vec3 debugCubeExtents;
@@ -45,14 +64,17 @@ namespace Strontium
 
     std::vector<LineVertex> lines;
 
-    std::vector<glm::mat4> sphereQueue;
-    std::vector<glm::mat4> obbQueue;
+    std::vector<WireframeData> sphereQueue;
+    std::vector<WireframeData> obbQueue;
     // TODO: Capsule
     // TODO: Cylinder
 
     DebugPassDataBlock()
       : lineShader(nullptr)
       , wireframeShader(nullptr)
+      , lineBuffer(createShared<VertexBuffer>(BufferType::Dynamic))
+      , instancedData(0, BufferType::Dynamic)
+      , wireframeView(1600, 900)
       , debugCube()
       , debugCubeExtents(1.0f)
       , debugSphere()

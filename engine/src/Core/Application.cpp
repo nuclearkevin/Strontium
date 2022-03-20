@@ -41,7 +41,6 @@ namespace Strontium
 
     // Initialize the renderers.
     Renderer3D::init(1600u, 900u);
-    DebugRenderer::init(1600u, 900u);
 
     // Init the physics system.
     PhysicsEngine::init();
@@ -77,7 +76,6 @@ namespace Strontium
 
     // Shutdown the renderers.
     Renderer3D::shutdown();
-    DebugRenderer::shutdown();
 
     // Shutdown the physics system.
     PhysicsEngine::shutdown();

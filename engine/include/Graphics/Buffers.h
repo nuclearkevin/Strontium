@@ -34,9 +34,9 @@ namespace Strontium
   class VertexBuffer
   {
   public:
-    // Constructor and destructor.
     VertexBuffer(const void* bufferData, uint dataSize,
                  BufferType bufferType);
+    VertexBuffer(BufferType bufferType);
     ~VertexBuffer();
 
     // Delete the copy constructor and the assignment operator. Prevents
@@ -49,6 +49,10 @@ namespace Strontium
     void bind();
     void unbind();
 
+    // Modify the buffer's contents.
+    void resize(uint bufferSize, BufferType bufferType);
+    void setData(uint start, uint newDataSize, const void* newData);
+
     uint getID() { return this->bufferID; }
   private:
     // OpenGL buffer ID.
@@ -60,7 +64,7 @@ namespace Strontium
     // Type of the buffer to prevent mismatching.
     BufferType type;
 
-    unsigned dataSize;
+    uint dataSize;
   };
 
   //----------------------------------------------------------------------------

@@ -98,4 +98,10 @@ namespace Strontium
   {
     glCullFace(static_cast<GLenum>(face));
   }
+
+  void 
+  RendererCommands::setPolygonMode(const PolygonMode& mode)
+  {
+    glPolygonMode(GL_FRONT_AND_BACK, static_cast<GLenum>(mode));
+  }
 }

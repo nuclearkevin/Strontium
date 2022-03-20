@@ -2,6 +2,8 @@
 
 // Project includes.
 #include "Graphics/Renderer.h"
+#include "Graphics/RenderPasses/PostProcessingPass.h"
+
 #include "GuiElements/Styles.h"
 
 // ImGui includes.
@@ -21,30 +23,26 @@ namespace Strontium
   void
   CameraWindow::onImGuiRender(bool &isOpen, Shared<Scene> activeScene)
   {
-    //auto state = Renderer3D::getState();
+    ImGui::Begin("Viewport Settings", &isOpen);
+    if (ImGui::CollapsingHeader("Editor Camera Settings"))
+    {
+      Styles::drawFloatControl("FOV", 90.0f, this->camera->getHorFOV());
+      Styles::drawFloatControl("Near", 0.1f, this->camera->getNear());
+      Styles::drawFloatControl("Far", 200.0f, this->camera->getFar());
+      Styles::drawFloatControl("Speed", 2.5f, this->camera->getSpeed());
+    }
+    
+    if (ImGui::CollapsingHeader("Editor Viewport Settings"))
+    {
+      auto& passManager3D  = Renderer3D::getPassManager();
+      auto postBlock = passManager3D.getRenderPass<PostProcessingPass>()->getInternalDataBlock<PostProcessingPassDataBlock>();
 
-    auto& fov = this->camera->getHorFOV();
-    auto& near = this->camera->getNear();
-    auto& far = this->camera->getFar();
-    auto& aspect = this->camera->getAspect();
-
-    auto& speed = this->camera->getSpeed();
-
-    ImGui::Begin("Editor Camera Settings", &isOpen);
-    ImGui::Text("Perspective Settings");
-    Styles::drawFloatControl("FOV", 90.0f, fov);
-    Styles::drawFloatControl("Near", 0.1f, near);
-    Styles::drawFloatControl("Far", 200.0f, far);
-    ImGui::Text("");
-    ImGui::Text("Speed and Sentitivity");
-    Styles::drawFloatControl("Speed", 2.5f, speed);
-
-    ImGui::Text("");
-    ImGui::Text("Editor Viewport Settings");
-    //ImGui::Checkbox("Draw Grid", &state->drawGrid);
+      ImGui::Checkbox("Draw Grid", &postBlock->useGrid);
+    }
     ImGui::End();
 
-    this->camera->updateProj(fov, aspect, near, far);
+    this->camera->updateProj(this->camera->getHorFOV(), this->camera->getAspect(), 
+                             this->camera->getNear(), this->camera->getFar());
   }
 
   void

@@ -62,8 +62,8 @@ namespace Strontium
 
   // Add an attribute
   void
-  VertexArray::addAttribute(GLuint location, AttribType type, bool normalized,
-                            unsigned size, unsigned stride)
+  VertexArray::addAttribute(uint location, AttribType type, bool normalized,
+                            uint size, uint stride)
   {
     GLboolean glNormalized = static_cast<GLboolean>(normalized);
     this->bind();
@@ -101,7 +101,7 @@ namespace Strontium
       }
     }
 
-		glEnableVertexAttribArray(location);
+    glEnableVertexAttribArray(location);
   }
 
   // Replace the vertex buffer, also purges the index buffers for safety.
@@ -111,6 +111,7 @@ namespace Strontium
     if (buffer != nullptr)
     {
       this->data = buffer;
+      glBindVertexArray(this->arrayID);
       this->data->bind();
       this->indices = nullptr;
       this->iBuffers.clear();
@@ -174,7 +175,7 @@ namespace Strontium
       return false;
   }
 
-  unsigned
+  uint
   VertexArray::numToRender()
   {
     if (this->indices != nullptr)

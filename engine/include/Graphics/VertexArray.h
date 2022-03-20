@@ -33,7 +33,7 @@ namespace Strontium
     void unbind();
 
     void addAttribute(uint location, AttribType type, bool normalized,
-                      unsigned size, unsigned stride);
+                      uint size, uint stride);
 
     // Replace the vertex buffer, also purges the index buffers for safety.
     void setData(Shared<VertexBuffer> buffer);
@@ -52,17 +52,17 @@ namespace Strontium
     bool canRender();
 
     // Return the number of vertices to render.
-    unsigned numToRender();
+    uint numToRender();
 
   protected:
     // Vertex array ID.
-    uint                    arrayID;
+    uint arrayID;
 
     // Vertex buffer with the data to be associated with this vertex array.
-    Shared<VertexBuffer>      data;
+    Shared<VertexBuffer> data;
 
     // Current index buffer for rendering.
-    Shared<IndexBuffer>       indices;
+    Shared<IndexBuffer> indices;
 
     // Vector of index buffers for rendering purposes.
     std::vector<Shared<IndexBuffer>> iBuffers;

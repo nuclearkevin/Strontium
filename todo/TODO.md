@@ -11,10 +11,10 @@
   - Rewrite the job system.
     - [x] Use a concurrent queue (https://github.com/cameron314/concurrentqueue) OR a
     threadsafe non-concurrent queue that minimizes locking.
-    - [x] Implement the Jolt physics job system which performs calls to engine's job system.
-      - [x] class PhysicsThreadPool final : public JobSystem { ... }
-      - [x] class PhysicsBarrier : public Barrier { ... }
-      - [x] class Semaphore { ... }
+    - [ ] Implement the Jolt physics job system which performs calls to engine's job system.
+      - [ ] class PhysicsThreadPool final : public JobSystem { ... }
+      - [ ] class PhysicsBarrier : public Barrier { ... }
+      - [ ] class Semaphore { ... }
 
   - [x] Add a scene copying system. Prevents physics (and later scripting) updates
   from changing the scene permanently.  
@@ -54,10 +54,27 @@
   - [ ] A constraint abstraction for compound shapes
 
 - Rendering
-  - [ ] Debug pass (editor only).
-    - [ ] Visualize colliders.
-    - [ ] Visualize camera frustums
-    
+  - [x] Debug pass (editor only).
+    - [x] Visualize colliders.
+      - [x] Box collider
+      - [x] Sphere collider
+      - [ ] Capsule collider
+      - [ ] Tapered-capsule collider
+      - [ ] Cylinder collider
+      - [ ] Convex hull collider
+      - [ ] Mesh collider
+      - [ ] Height field collider
+    - [x] Visualize camera frustums
+
+  - [ ] Improve the animation system.
+    - [ ] Animation and Animator class:
+      - [ ] Replace the std::unordered_maps with robin_hood::unordered_flat_map
+      - [ ] Use unsigned integer keys instead of strings.
+    - [ ] GeometryPass and ShadowPass classes:
+      - [ ] Compute shaders to traverse the hierarchy and generate the skinning matrices?
+      - [ ] Compute shader skinning.
+      - [ ] Instanced skinned meshes?
+
   - [ ] Sky atmosphere pass.
     - [ ] Fix the camera positioning system
     - [ ] Implement the aerial perspective LUT from Hillaire2020.

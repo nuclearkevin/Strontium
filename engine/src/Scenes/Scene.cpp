@@ -15,6 +15,8 @@
 #include "Graphics/RenderPasses/SkyboxPass.h"
 #include "Graphics/RenderPasses/PostProcessingPass.h"
 
+#include "Graphics/RenderPasses/WireframePass.h"
+
 #include "PhysicsEngine/PhysicsEngine.h"
 
 // GLM includes.
@@ -113,7 +115,7 @@ namespace Strontium
 
   // Poll the physics system to get updated transforms.
   void 
-  Scene::updatePhysicsTransforms()
+  Scene::postPhysics()
   {
     // Group together and fetch all the entities that have 
     // transform + rigid body + sphere collider components.
@@ -130,7 +132,9 @@ namespace Strontium
         auto& transform = this->sceneECS.get<TransformComponent>(entity);
         auto& collider = this->sceneECS.get<SphereColliderComponent>(entity);
 
-        transform.translation = transformData.translation - collider.offset;
+        auto matrix = glm::inverse(glm::toMat4(glm::quat(transformData.rotation)));
+
+        transform.translation = transformData.translation - glm::vec3(matrix * glm::vec4(collider.offset, 1.0f));
         transform.rotation = glm::eulerAngles(transformData.rotation);
       }
     }
@@ -150,7 +154,9 @@ namespace Strontium
         auto& transform = this->sceneECS.get<TransformComponent>(entity);
         auto& collider = this->sceneECS.get<BoxColliderComponent>(entity);
 
-        transform.translation = transformData.translation - collider.offset;
+        auto matrix = glm::inverse(glm::toMat4(glm::quat(transformData.rotation)));
+
+        transform.translation = transformData.translation - glm::vec3(matrix * glm::vec4(collider.offset, 1.0f));
         transform.rotation = glm::eulerAngles(transformData.rotation);
       }
     }
@@ -169,7 +175,7 @@ namespace Strontium
   }
 
   void
-  Scene::onRenderEditor(Entity selectedEntity)
+  Scene::onRenderEditor(float viewportAspect, Entity selectedEntity)
   {
     // Grab the required renderpasses for submission.
     auto& passManager = Renderer3D::getPassManager();
@@ -300,7 +306,7 @@ namespace Strontium
   }
 
   void
-  Scene::onRenderRuntime()
+  Scene::onRenderRuntime(float viewportAspect)
   {
     // Grab the required renderpasses for submission.
     auto& passManager = Renderer3D::getPassManager();
@@ -423,6 +429,79 @@ namespace Strontium
     }
 
     postProc->getInternalDataBlock<PostProcessingPassDataBlock>()->drawOutline = drawOutline;
+  }
+
+  void 
+  Scene::onRenderDebug(float viewportAspect)
+  {
+    auto& debugPassManager = DebugRenderer::getPassManager();
+    auto wireframePass = debugPassManager.getRenderPass<WireframePass>();
+    
+    // Group together and fetch all the entities that have 
+    // transform + camera components.
+    {
+      auto cameras = this->sceneECS.group<CameraComponent>(entt::get<TransformComponent>);
+      for (auto entity : cameras)
+      {
+        auto& camera = this->sceneECS.get<CameraComponent>(entity);
+        if (camera.visualize)
+        {
+          auto& transform = this->sceneECS.get<TransformComponent>(entity);
+          Camera cam = camera.entCamera;
+
+          cam.position = glm::vec3(static_cast<glm::mat4>(transform) 
+                                   * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
+          cam.front = glm::normalize(glm::vec3(static_cast<glm::mat4>(transform) 
+                                               * glm::vec4(0.0f, 0.0f, -1.0f, 0.0f)));
+
+          cam.view = glm::lookAt(cam.position, cam.position + cam.front, glm::vec3(0.0f, 1.0f, 0.0f));
+
+          cam.projection = glm::perspective(cam.fov, viewportAspect, cam.near, cam.far);
+          cam.invViewProj = glm::inverse(cam.projection * cam.view);
+
+          wireframePass->submitFrustum(buildCameraFrustum(cam), glm::vec3(0.0f, 0.0f, 1.0f));
+        }
+      }
+    }
+
+    // Group together and fetch all the entities that have 
+    // transform + sphere collider components.
+    {
+      auto sphereColliders = this->sceneECS.group<SphereColliderComponent>(entt::get<TransformComponent>);
+      for (auto entity : sphereColliders)
+      {
+        auto& collider = this->sceneECS.get<SphereColliderComponent>(entity);
+        if (collider.visualize)
+        {
+          auto& transform = this->sceneECS.get<TransformComponent>(entity);
+          auto matrix = glm::translate(transform.translation) * glm::toMat4(glm::quat(transform.rotation));
+
+          wireframePass->submitSphere(Sphere(glm::vec3(matrix * glm::vec4(collider.offset, 1.0f)),
+                                             collider.radius), 
+                                      glm::vec3(0.0f, 1.0f, 0.0f));
+        }
+      }
+    }
+
+    // Group together and fetch all the entities that have 
+    // transform + box collider components.
+    {
+      auto boxColliders = this->sceneECS.group<BoxColliderComponent>(entt::get<TransformComponent>);
+      for (auto entity : boxColliders)
+      {
+        auto& collider = this->sceneECS.get<BoxColliderComponent>(entity);
+        if (collider.visualize)
+        {
+          auto& transform = this->sceneECS.get<TransformComponent>(entity);
+          auto matrix = glm::translate(transform.translation) * glm::toMat4(glm::quat(transform.rotation));
+
+          wireframePass->submitOrientedBox(OrientedBoundingBox(glm::vec3(matrix * glm::vec4(collider.offset, 1.0f)),
+                                                               collider.extents, 
+                                                               glm::quat(transform.rotation)), 
+                                            glm::vec3(0.0f, 1.0f, 0.0f));
+        }
+      }
+    }
   }
 
   void

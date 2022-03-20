@@ -668,6 +668,8 @@ namespace Strontium
       {
         ImGui::PushID("SphereColliderComponent");
 
+        ImGui::Checkbox("Show Collider", &component.visualize);
+
         Styles::drawFloatControl("Radius", 1.0f, component.radius);
         Styles::drawVec3Controls("Offset", glm::vec3(0.0f), component.offset);
         Styles::drawFloatControl("Density", 1000.0f, component.density);
@@ -679,6 +681,8 @@ namespace Strontium
         this->selectedEntity, [](auto& component)
       {
         ImGui::PushID("BoxColliderComponent");
+
+        ImGui::Checkbox("Show Collider", &component.visualize);
 
         Styles::drawVec3Controls("Half Extents", glm::vec3(0.5f), component.extents);
         Styles::drawVec3Controls("Offset", glm::vec3(0.0f), component.offset);
@@ -979,6 +983,8 @@ namespace Strontium
           ImGui::PopItemFlag();
           ImGui::PopStyleVar();
         }
+
+        ImGui::Checkbox("Show Frustum", &component.visualize);
 
         Styles::drawFloatControl("Near", 0.1f, camera.near, 0.0f, 0.1f, 0.1f, 100.0f);
         Styles::drawFloatControl("Far", 30.0f, camera.far, 0.0f, 0.1f, 30.0f, 500.0f);

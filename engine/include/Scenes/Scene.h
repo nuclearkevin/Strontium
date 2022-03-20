@@ -28,15 +28,16 @@ namespace Strontium
     // Physics functions.
     void initPhysics();
     void shutdownPhysics();
-    void updatePhysicsTransforms();
+    void postPhysics();
 
     // Update functions.
     void onUpdateEditor(float dt);
     void onUpdateRuntime(float dt);
 
     // Rendering functions.
-    void onRenderEditor(Entity selectedEntity);
-    void onRenderRuntime();
+    void onRenderEditor(float viewportAspect, Entity selectedEntity);
+    void onRenderRuntime(float viewportAspect);
+    void onRenderDebug(float viewportAspect);
 
     // Get and set primary entities.
     Entity getPrimaryCameraEntity();

@@ -67,8 +67,11 @@ namespace Strontium::DebugRenderer
   {
     Camera sceneCam;
 
+    VertexArray blankVAO;
+
     GlobalRendererData()
       : sceneCam()
+      , blankVAO()
     { }
   };
 

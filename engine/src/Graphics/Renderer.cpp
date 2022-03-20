@@ -94,12 +94,16 @@ namespace Strontium::Renderer3D
 
     // Init the render passes.
     passManager->onInit();
+
+    // Init the debug renderer.
+    DebugRenderer::init(1600u, 900u);
   }
 
   // Shutdown the renderer.
   void
   shutdown()
   {
+    DebugRenderer::shutdown();
     Logs::log("Shutting down the 3D renderer.");
 
     delete passManager;
@@ -186,6 +190,9 @@ namespace Strontium::DebugRenderer
 
     auto geometry = Renderer3D::passManager->getRenderPass<GeometryPass>();
     auto wireframe = passManager->insertRenderPass<WireframePass>(rendererData, geometry);
+    
+    // Init the render passes.
+    passManager->onInit();
   }
 
   void 

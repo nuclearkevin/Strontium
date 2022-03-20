@@ -4,6 +4,12 @@
  * A wireframe shader for debugging and visualizing objects.
  */
 
+struct WireframeData
+{
+  mat4 transform;
+  vec4 colour;
+};
+
 // Camera specific uniforms.
 layout(std140, binding = 0) uniform CameraBlock
 {
@@ -14,31 +20,39 @@ layout(std140, binding = 0) uniform CameraBlock
   vec4 u_nearFarGamma; // Near plane (x), far plane (y), gamma correction factor (z). w is unused.
 };
 
-layout(std140, binding = 1) uniform ColourBlock
-{
-  vec4 u_colour;
-};
-
 layout(std140, binding = 0) readonly buffer ModelBlock
 {
-  mat4 u_transform[];
+  WireframeData u_data[];
 };
 
 #type vertex
 layout(location = 0) in vec4 vPosition;
 
+// Vertex properties for shading.
+out VERT_OUT
+{
+  vec4 fColour;
+} vertOut;
+
 void main()
 {
   const int index = gl_InstanceID;
-  const mat4 modelMatrix = u_transform[index];
+  const mat4 modelMatrix = u_data[index].transform;
 
   gl_Position = u_projMatrix * u_viewMatrix * modelMatrix * vPosition;
+
+  vertOut.fColour = u_data[index].colour;
 }
 
 #type fragment
 layout(location = 0) out vec4 gColour;
 
+in VERT_OUT
+{
+	vec4 fColour;
+} fragIn;
+
 void main()
 {
-  gColour = u_colour;
+  gColour = fragIn.fColour;
 }

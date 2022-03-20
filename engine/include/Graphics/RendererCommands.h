@@ -30,11 +30,14 @@ namespace Strontium
 
   enum class BlendFunction
   {
-    One = 1 // GL_ONE
+    One = 1, // GL_ONE
+    SourceAlpha = 0x0302, // GL_SRC_ALPHA
+    OneMinusSourceAlpha = 0x0303 // GL_ONE_MINUS_SRC_ALPHA
   };
 
   enum class PrimativeType
   {
+    Line = 0x0001, // GL_LINES
     Triangle = 0x0004 // GL_TRIANGLES
   };
 
@@ -42,6 +45,13 @@ namespace Strontium
   {
     Front = 0x0404, // GL_FRONT
     Back = 0x0405 // GL_BACK
+  };
+
+  enum class PolygonMode
+  {
+    Point = 0x1B00, // GL_POINT
+    Line = 0x1B01, // GL_LINE
+    Fill = 0x1B02 // GL_FILL
   };
 
   namespace RendererCommands
@@ -63,5 +73,6 @@ namespace Strontium
     void drawElementsInstanced(PrimativeType primative, uint count, uint numInstances = 1, 
                                const void* indices = nullptr);
     void cullType(FaceType face);
+    void setPolygonMode(const PolygonMode& mode);
   };
 }

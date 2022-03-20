@@ -94,11 +94,18 @@ namespace Strontium::PhysicsEngine
       return PhysicsActor();
     }
     
+    /*
+    return glm::translate(glm::mat4(1.0f), translation)
+             * glm::toMat4(glm::quat(rotation)) * glm::scale(scale);
+    */
+
     // Grab the transform and rigid body components.
     auto& transform = owningEntity.getComponent<TransformComponent>();
     auto& rigidBody = owningEntity.getComponent<RigidBody3DComponent>();
 
-    auto pos = PhysicsUtils::convertGLMToJolt(transform.translation + offset);
+    auto matrix = glm::translate(transform.translation) * glm::toMat4(glm::quat(transform.rotation));
+
+    auto pos = PhysicsUtils::convertGLMToJolt(glm::vec3(matrix * glm::vec4(offset, 1.0f)));
     auto rot = PhysicsUtils::convertGLMToJolt(glm::quat(transform.rotation));
     newActor.rbType = rigidBody.type;
 

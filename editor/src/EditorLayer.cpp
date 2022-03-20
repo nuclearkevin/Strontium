@@ -197,14 +197,20 @@ namespace Strontium
         // Update the scene.
         this->currentScene->onUpdateEditor(dt);
 
-        // Draw the scene.
         this->drawBuffer.clear();
+        // Draw the scene.
         Renderer3D::begin(this->editorSize.x, this->editorSize.y, static_cast<Camera>(this->editorCam));
-        this->currentScene->onRenderEditor(this->getSelectedEntity());
+        this->currentScene->onRenderEditor(this->editorSize.x / this->editorSize.y, this->getSelectedEntity());
         Renderer3D::end(this->drawBuffer);
+
+        // Draw debug information.
+        DebugRenderer::begin(this->editorSize.x, this->editorSize.y, static_cast<Camera>(this->editorCam));
+        this->currentScene->onRenderDebug(this->editorSize.x / this->editorSize.y);
+        DebugRenderer::end(this->drawBuffer);
 
         // Update the editor camera.
         this->editorCam.onUpdate(dt, glm::vec2(this->editorSize.x, this->editorSize.y));
+
         break;
       }
 
@@ -212,7 +218,7 @@ namespace Strontium
       {
         // Update the physics system.
         PhysicsEngine::onUpdate(dt);
-        this->currentScene->updatePhysicsTransforms();
+        this->currentScene->postPhysics();
 
         // Update the scene.
         this->currentScene->onUpdateRuntime(dt);
@@ -245,9 +251,16 @@ namespace Strontium
         }
 
         this->drawBuffer.clear();
+        // Draw the scene.
         Renderer3D::begin(this->editorSize.x, this->editorSize.y, primaryCamera);
-        this->currentScene->onRenderRuntime();
+        this->currentScene->onRenderRuntime(this->editorSize.x / this->editorSize.y);
         Renderer3D::end(this->drawBuffer);
+
+        // Draw debug information.
+        DebugRenderer::begin(this->editorSize.x, this->editorSize.y, primaryCamera);
+        this->currentScene->onRenderDebug(this->editorSize.x / this->editorSize.y);
+        DebugRenderer::end(this->drawBuffer);
+
         break;
       }
     }

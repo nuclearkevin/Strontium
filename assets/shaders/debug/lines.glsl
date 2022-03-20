@@ -16,7 +16,7 @@ layout(std140, binding = 0) uniform CameraBlock
 
 #type vertex
 layout(location = 0) in vec3 vPosition;
-layout(location = 0) in vec3 vColour;
+layout(location = 1) in vec3 vColour;
 
 // Vertex properties for shading.
 out VERT_OUT
@@ -27,6 +27,7 @@ out VERT_OUT
 void main()
 {
   gl_Position = u_projMatrix * u_viewMatrix * vec4(vPosition, 1.0);
+  vertOut.fColour = vColour;
 }
 
 #type fragment

@@ -124,7 +124,7 @@ void main()
   ivec2 invoke = ivec2(gl_GlobalInvocationID.xy);
   vec2 gBufferUVs = (vec2(invoke) + 0.5.xx) / vec2(textureSize(gDepth, 0).xy);
 
-  if (texture(gDepth, gBufferUVs).r >= (1.0 - 1e-6))
+  if (texelFetch(gDepth, invoke, 0).r >= (1.0 - 1e-6))
     return;
 
   SurfaceProperties gBuffer = decodeGBuffer(gBufferUVs);

@@ -118,9 +118,11 @@ ShaderCache:
   - Handle: tex_3D_tex_2D
     Filepath: ./assets/shaders/widgets/tex3DTex2D.glsl
     #
-    # Utility
+    # Debug
     #
   - Handle: debug_lines
     Filepath: ./assets/shaders/debug/lines.glsl
   - Handle: debug_wireframe
     Filepath: ./assets/shaders/debug/wireframe.glsl
+  - Handle: apply_lines
+    Filepath: ./assets/shaders/debug/applyLines.glsl

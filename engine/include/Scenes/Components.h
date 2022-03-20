@@ -175,10 +175,13 @@ namespace Strontium
   {
     Camera entCamera;
 
+    bool visualize;
+
     CameraComponent(const CameraComponent&) = default;
 
     CameraComponent()
       : entCamera()
+      , visualize(false)
     { }
   };
 
@@ -418,6 +421,8 @@ namespace Strontium
     // TODO: Physics material.
     float density;
 
+    bool visualize;
+
     SphereColliderComponent(const SphereColliderComponent&) = default;
 
     SphereColliderComponent()
@@ -425,6 +430,7 @@ namespace Strontium
       , radius(1.0f)
       , offset(0.0f)
       , density(1000.0f)
+      , visualize(false)
     { }
   };
 
@@ -437,6 +443,8 @@ namespace Strontium
     // TODO: Physics material.
     float density;
 
+    bool visualize;
+
     BoxColliderComponent(const BoxColliderComponent&) = default;
 
     BoxColliderComponent()
@@ -444,6 +452,7 @@ namespace Strontium
       , extents(0.5f)
       , offset(0.0f)
       , density(1000.0f)
+      , visualize(false)
     { }
   };
 
