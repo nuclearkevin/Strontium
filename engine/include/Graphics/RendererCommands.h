@@ -20,7 +20,8 @@ namespace Strontium
   {
     DepthTest = 0x0B71, // GL_DEPTH_TEST
     Blending = 0x0BE2, // GL_BLEND
-    CubeMapSeamless = 0x884F // GL_TEXTURE_CUBE_MAP_SEAMLESS
+    CubeMapSeamless = 0x884F, // GL_TEXTURE_CUBE_MAP_SEAMLESS
+    SmoothLines = 0x0B20 // GL_LINE_SMOOTH
   };
 
   enum class BlendEquation

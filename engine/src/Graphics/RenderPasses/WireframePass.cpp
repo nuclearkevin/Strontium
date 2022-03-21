@@ -50,6 +50,8 @@ namespace Strontium
     this->passData.wireframeView.attach(cSpec, colourAttachment);
     this->passData.wireframeView.attach(dSpec, depthAttachment);
     this->passData.wireframeView.setClearColour(glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
+
+    RendererCommands::enable(RendererFunction::SmoothLines);
   }
   
   void 

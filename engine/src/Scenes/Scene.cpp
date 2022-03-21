@@ -459,7 +459,7 @@ namespace Strontium
           cam.projection = glm::perspective(cam.fov, viewportAspect, cam.near, cam.far);
           cam.invViewProj = glm::inverse(cam.projection * cam.view);
 
-          wireframePass->submitFrustum(buildCameraFrustum(cam), glm::vec3(0.0f, 0.0f, 1.0f));
+          wireframePass->submitFrustum(buildCameraFrustum(cam), glm::vec3(0.0f, 1.0f, 0.0f));
         }
       }
     }
