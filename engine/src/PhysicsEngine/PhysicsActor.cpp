@@ -15,6 +15,7 @@
 #include "Jolt/Physics/Collision/Shape/ConvexShape.h"
 #include "Jolt/Physics/Collision/Shape/BoxShape.h"
 #include "Jolt/Physics/Collision/Shape/SphereShape.h"
+#include "Jolt/Physics/Collision/Shape/CylinderShape.h"
 #include "Jolt/Physics/Body/BodyCreationSettings.h"
 #include "Jolt/Physics/Body/Body.h"
 
@@ -88,16 +89,34 @@ namespace Strontium::PhysicsEngine
       offset = collider.offset;
     }
 
+    //----------------------------------------------------------------------------
+    // Cylinder shape.
+    //----------------------------------------------------------------------------
+    if (owningEntity.hasComponent<CylinderColliderComponent>() && !shapeRef)
+    {
+      auto& collider = owningEntity.getComponent<CylinderColliderComponent>();
+
+      JPH::CylinderShapeSettings shapeSettings(collider.halfHeight, collider.radius);
+      shapeSettings.mDensity = collider.density;
+
+      // Register the cylinder shape and error check.
+      JPH::ShapeSettings::ShapeResult result = shapeSettings.Create();
+      if (!result.HasError())
+      {
+        shapeRef = result.Get();
+        newActor.cType = collider.type;
+      }
+      else
+        Logs::log("Warning: Failed to create a cylinder shape with the message: " + result.GetError());
+
+      offset = collider.offset;
+    }
+
     if (!shapeRef)
     {
       newActor.valid = false;
       return PhysicsActor();
     }
-    
-    /*
-    return glm::translate(glm::mat4(1.0f), translation)
-             * glm::toMat4(glm::quat(rotation)) * glm::scale(scale);
-    */
 
     // Grab the transform and rigid body components.
     auto& transform = owningEntity.getComponent<TransformComponent>();
@@ -240,6 +259,11 @@ namespace Strontium::PhysicsEngine
       case ColliderTypes::Box:
       {
         return static_cast<const JPH::BoxShape*>(shp.GetPtr())->GetDensity();
+      }
+
+      case ColliderTypes::Cylinder:
+      {
+        return static_cast<const JPH::CylinderShape*>(shp.GetPtr())->GetDensity();
       }
 
       default: return 0.0f;

@@ -46,7 +46,7 @@
       - [x] Sphere collider
       - [ ] Capsule collider
       - [ ] Tapered-capsule collider
-      - [ ] Cylinder collider
+      - [x] Cylinder collider
       - [ ] Convex hull collider
       - [ ] Mesh collider
       - [ ] Height field collider

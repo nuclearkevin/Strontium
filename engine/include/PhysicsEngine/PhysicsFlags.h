@@ -15,7 +15,8 @@ namespace Strontium::PhysicsEngine
   enum class ColliderTypes : ushort
   {
 	Sphere = 0u,
-	Box = 1u
+	Box = 1u,
+	Cylinder = 2u
   };
 
   struct UpdatedTransformData

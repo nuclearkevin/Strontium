@@ -105,6 +105,14 @@ namespace Strontium
       for (auto entity : boxColliders)
         PhysicsEngine::addActor(Entity(entity, this));
     }
+
+    // Group together and fetch all the entities that have 
+    // transform + rigid body + cylinder collider components.
+    {
+      auto boxColliders = this->sceneECS.group<CylinderColliderComponent>(entt::get<TransformComponent, RigidBody3DComponent>);
+      for (auto entity : boxColliders)
+        PhysicsEngine::addActor(Entity(entity, this));
+    }
   }
 
   void 
@@ -132,7 +140,7 @@ namespace Strontium
         auto& transform = this->sceneECS.get<TransformComponent>(entity);
         auto& collider = this->sceneECS.get<SphereColliderComponent>(entity);
 
-        auto matrix = glm::inverse(glm::toMat4(glm::quat(transformData.rotation)));
+        auto matrix = glm::toMat4(glm::quat(transformData.rotation));
 
         transform.translation = transformData.translation - glm::vec3(matrix * glm::vec4(collider.offset, 1.0f));
         transform.rotation = glm::eulerAngles(transformData.rotation);
@@ -154,7 +162,29 @@ namespace Strontium
         auto& transform = this->sceneECS.get<TransformComponent>(entity);
         auto& collider = this->sceneECS.get<BoxColliderComponent>(entity);
 
-        auto matrix = glm::inverse(glm::toMat4(glm::quat(transformData.rotation)));
+        auto matrix = glm::toMat4(glm::quat(transformData.rotation));
+
+        transform.translation = transformData.translation - glm::vec3(matrix * glm::vec4(collider.offset, 1.0f));
+        transform.rotation = glm::eulerAngles(transformData.rotation);
+      }
+    }
+
+    // Group together and fetch all the entities that have 
+    // transform + rigid body + cylinder collider components.
+    {
+      auto cylinderColliders = this->sceneECS.group<CylinderColliderComponent>(entt::get<TransformComponent, RigidBody3DComponent>);
+      for (auto entity : cylinderColliders)
+      {
+        auto& actor = PhysicsEngine::getActor(Entity(entity, this));
+
+        if (!actor.isValid())
+          continue;
+
+        auto transformData = actor.getUpdatedTransformData();
+        auto& transform = this->sceneECS.get<TransformComponent>(entity);
+        auto& collider = this->sceneECS.get<CylinderColliderComponent>(entity);
+
+        auto matrix = glm::toMat4(glm::quat(transformData.rotation));
 
         transform.translation = transformData.translation - glm::vec3(matrix * glm::vec4(collider.offset, 1.0f));
         transform.rotation = glm::eulerAngles(transformData.rotation);
@@ -502,6 +532,25 @@ namespace Strontium
         }
       }
     }
+
+    // Group together and fetch all the entities that have 
+    // transform + cylinder collider components.
+    {
+      auto cylinderColliders = this->sceneECS.group<CylinderColliderComponent>(entt::get<TransformComponent>);
+      for (auto entity : cylinderColliders)
+      {
+        auto& collider = this->sceneECS.get<CylinderColliderComponent>(entity);
+        if (collider.visualize)
+        {
+          auto& transform = this->sceneECS.get<TransformComponent>(entity);
+          auto matrix = glm::translate(transform.translation) * glm::toMat4(glm::quat(transform.rotation));
+
+          wireframePass->submitCylinder(Cylinder(glm::vec3(matrix * glm::vec4(collider.offset, 1.0f)), 
+                                                 collider.halfHeight, collider.radius, glm::quat(transform.rotation)), 
+                                        glm::vec3(0.0f, 1.0f, 0.0f));
+        }
+      }
+    }
   }
 
   void
@@ -669,6 +718,7 @@ namespace Strontium
     copyComponent<DynamicSkylightComponent>(source, destination);
     copyComponent<SphereColliderComponent>(source, destination);
     copyComponent<BoxColliderComponent>(source, destination);
+    copyComponent<CylinderColliderComponent>(source, destination);
     copyComponent<RigidBody3DComponent>(source, destination);
   }
 
@@ -796,6 +846,7 @@ namespace Strontium
     deleteComponent<DynamicSkylightComponent>(source);
     deleteComponent<SphereColliderComponent>(source);
     deleteComponent<BoxColliderComponent>(source);
+    deleteComponent<CylinderColliderComponent>(source);
     deleteComponent<RigidBody3DComponent>(source);
 
     Scene* scene = static_cast<Scene*>(source);

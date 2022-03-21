@@ -23,14 +23,8 @@ namespace Strontium
     this->passData.lineApplyShader = ShaderCache::getShader("apply_lines");
 
     this->passData.debugCube.load("./assets/.internal/debug/cube.gltf");
-    auto& max = this->passData.debugCube.getMaxPos();
-    auto& min = this->passData.debugCube.getMinPos();
-    auto center = (max + min) / 2.0f;
-    this->passData.debugCubeExtents = glm::max(glm::abs(max), glm::abs(min)) - center;
-
     this->passData.debugSphere.load("./assets/.internal/debug/sphere.gltf");
-    this->passData.debugSphereRadius = glm::max(glm::length(this->passData.debugSphere.getMaxPos()), 
-                                                glm::length(this->passData.debugSphere.getMinPos()));
+    this->passData.debugCylinder.load("./assets/.internal/debug/cylinder.gltf");
     
     this->passData.lineVAO.setData(this->passData.lineBuffer);
     this->passData.lineVAO.addAttribute(0, AttribType::Vec3, false, sizeof(LineVertex), 0);
@@ -80,6 +74,7 @@ namespace Strontium
     this->passData.lines.clear();
     this->passData.sphereQueue.clear();
     this->passData.obbQueue.clear();
+    this->passData.cylinderQueue.clear();
   }
   
   void
@@ -112,7 +107,7 @@ namespace Strontium
     RendererCommands::setPolygonMode(PolygonMode::Line);
     this->passData.instancedData.bindToPoint(0);
 
-    // Submit sphere data.
+    // Render spheres.
     if (this->passData.sphereQueue.size() > 0u)
     {
       this->passData.instancedData.resize(sizeof(WireframeData) * this->passData.sphereQueue.size(), 
@@ -131,7 +126,7 @@ namespace Strontium
       }
     }
 
-    // Submit cube data.
+    // Render boxes.
     if (this->passData.obbQueue.size() > 0u)
     {
       this->passData.instancedData.resize(sizeof(WireframeData) * this->passData.obbQueue.size(), 
@@ -146,6 +141,24 @@ namespace Strontium
         RendererCommands::drawElementsInstanced(PrimativeType::Triangle, 
                                                 vao->numToRender(), 
                                                 this->passData.obbQueue.size());
+        vao->unbind();
+      }
+    }
+
+    if (this->passData.cylinderQueue.size() > 0u)
+    {
+      this->passData.instancedData.resize(sizeof(WireframeData) * this->passData.cylinderQueue.size(),
+                                          BufferType::Dynamic);
+      this->passData.instancedData.setData(0, sizeof(WireframeData) * this->passData.cylinderQueue.size(),
+                                           this->passData.cylinderQueue.data());
+
+      for (auto& submesh : this->passData.debugCylinder.getSubmeshes())
+      {
+        VertexArray* vao = submesh.hasVAO() ? submesh.getVAO() : submesh.generateVAO();
+        vao->bind();
+        RendererCommands::drawElementsInstanced(PrimativeType::Triangle, 
+                                                vao->numToRender(), 
+                                                this->passData.cylinderQueue.size());
         vao->unbind();
       }
     }
@@ -233,12 +246,24 @@ namespace Strontium
   void
   WireframePass::submitOrientedBox(const OrientedBoundingBox &box, const glm::vec3 &colour)
   {
-    auto extents = box.extents / this->passData.debugCubeExtents;
+    auto extents = box.extents;
     extents += 0.01f * extents;
 
     this->passData.obbQueue.emplace_back(glm::translate(box.center) 
                                          * glm::toMat4(box.orientation) 
                                          * glm::scale(extents), 
                                          glm::vec4(colour, 1.0f));
+  }
+
+  void 
+  WireframePass::submitCylinder(const Cylinder& cylinder, const glm::vec3& colour)
+  {
+    auto size = glm::vec3(cylinder.radius, cylinder.halfHeight, cylinder.radius);
+    size += 0.01f * size;
+
+    this->passData.cylinderQueue.emplace_back(glm::translate(cylinder.center)
+                                              * glm::toMat4(cylinder.orientation)
+                                              * glm::scale(size),
+                                              glm::vec4(colour, 1.0f));
   }
 }
