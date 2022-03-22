@@ -23,13 +23,11 @@ This project started while I was taking a class on intermediate computer graphic
   - Skeletal and rigged animation.
 - Physics
   - A robust implementation of Jolt Physics.
-  - Several colliders:
-    - Sphere.
-    - Box.
-  - Collision callbacks:
-    - Contact added.
-    - Contact persisted.
-    - Contact removed.
+  - Several colliders (sphere, box, cylinder, capsule).
+  - Collision callbacks for:
+    - A contact being added between two shapes.
+    - A contact persisting between two shapes.
+    - A contact being removed between two shapes.
 - Other:
   - Custom scene serialization and loading.
   - Custom material serialization and loading.
@@ -51,7 +49,7 @@ This project started while I was taking a class on intermediate computer graphic
 - C# Scripting.
 
 ## Building
-Strontium builds using CMake, so ensure that you have CMake installed before you attempt to build the project. As Strontium is fully platform agnostic, both Windows and Linux builds are supported (although the Linux buildsystem is a WIP).
+Strontium builds using CMake, so ensure that you have CMake installed before you attempt to build the project. As Strontium is fully platform agnostic, both Windows and Linux builds are possible (although the Linux buildsystem is WIP).
 Start by recursively cloning the repo using git:
 ```bash
 git clone https://github.com/ksawatzky777/Strontium.git --recursive

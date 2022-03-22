@@ -216,12 +216,13 @@ namespace Strontium
 
       case SceneState::Play:
       {
-        // Update the physics system.
-        PhysicsEngine::onUpdate(dt);
-        this->currentScene->postPhysics();
-
         // Update the scene.
         this->currentScene->onUpdateRuntime(dt);
+
+        // Update the physics system.
+        this->currentScene->prePhysics();
+        PhysicsEngine::onUpdate(dt);
+        this->currentScene->postPhysics();
 
         // Fetch the primary camera entity.
         auto primaryCameraEntity = this->currentScene->getPrimaryCameraEntity();

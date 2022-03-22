@@ -480,6 +480,30 @@ namespace Strontium
     { }
   };
 
+  struct CapsuleColliderComponent
+  {
+    PhysicsEngine::ColliderTypes type;
+    float halfHeight;
+    float radius;
+    glm::vec3 offset;
+
+    // TODO: Physics material.
+    float density;
+
+    bool visualize;
+
+    CapsuleColliderComponent(const CapsuleColliderComponent&) = default;
+
+    CapsuleColliderComponent()
+      : type(PhysicsEngine::ColliderTypes::Capsule)
+      , halfHeight(1.0f)
+      , radius(1.0f)
+      , offset(0.0f)
+      , density(1000.0f)
+      , visualize(false)
+    { }
+  };
+
   struct RigidBody3DComponent
   {
     PhysicsEngine::RigidBodyTypes type;

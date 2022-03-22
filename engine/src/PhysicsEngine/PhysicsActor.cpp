@@ -12,10 +12,10 @@
 // Jolt includes.
 #include "Jolt/Jolt.h"
 #include "Jolt/Physics/Body/BodyInterface.h"
-#include "Jolt/Physics/Collision/Shape/ConvexShape.h"
-#include "Jolt/Physics/Collision/Shape/BoxShape.h"
 #include "Jolt/Physics/Collision/Shape/SphereShape.h"
+#include "Jolt/Physics/Collision/Shape/BoxShape.h"
 #include "Jolt/Physics/Collision/Shape/CylinderShape.h"
+#include "Jolt/Physics/Collision/Shape/CapsuleShape.h"
 #include "Jolt/Physics/Body/BodyCreationSettings.h"
 #include "Jolt/Physics/Body/Body.h"
 
@@ -112,6 +112,29 @@ namespace Strontium::PhysicsEngine
       offset = collider.offset;
     }
 
+    //----------------------------------------------------------------------------
+    // Capsule shape.
+    //----------------------------------------------------------------------------
+    if (owningEntity.hasComponent<CapsuleColliderComponent>() && !shapeRef)
+    {
+      auto& collider = owningEntity.getComponent<CapsuleColliderComponent>();
+
+      JPH::CapsuleShapeSettings shapeSettings(collider.halfHeight, collider.radius);
+      shapeSettings.mDensity = collider.density;
+
+      // Register the cylinder shape and error check.
+      JPH::ShapeSettings::ShapeResult result = shapeSettings.Create();
+      if (!result.HasError())
+      {
+        shapeRef = result.Get();
+        newActor.cType = collider.type;
+      }
+      else
+        Logs::log("Warning: Failed to create a capsule shape with the message: " + result.GetError());
+
+      offset = collider.offset;
+    }
+
     if (!shapeRef)
     {
       newActor.valid = false;
@@ -124,8 +147,11 @@ namespace Strontium::PhysicsEngine
 
     auto matrix = glm::translate(transform.translation) * glm::toMat4(glm::quat(transform.rotation));
 
-    auto pos = PhysicsUtils::convertGLMToJolt(glm::vec3(matrix * glm::vec4(offset, 1.0f)));
-    auto rot = PhysicsUtils::convertGLMToJolt(glm::quat(transform.rotation));
+    newActor.previousPosition = glm::vec3(matrix * glm::vec4(offset, 1.0f));
+    newActor.previousOrientation = glm::quat(transform.rotation);
+
+    auto pos = PhysicsUtils::convertGLMToJolt(newActor.previousPosition);
+    auto rot = PhysicsUtils::convertGLMToJolt(newActor.previousOrientation);
     newActor.rbType = rigidBody.type;
 
     //----------------------------------------------------------------------------
@@ -193,7 +219,25 @@ namespace Strontium::PhysicsEngine
     , owningInterface(nullptr)
     , joltBodyID()
     , valid(false)
+    , previousPosition(0.0f)
+    , lerpedPosition(0.0f)
+    , previousOrientation(0.0f, 0.0f, 0.0f, 1.0f)
+    , slerpedOrientation(0.0f, 0.0f, 0.0f, 1.0f)
   { }
+
+  void 
+  PhysicsActor::updatePreviousState()
+  {
+    this->previousPosition = this->getPosition();
+    this->previousOrientation = this->getRotation();
+  }
+
+  void 
+  PhysicsActor::updateCurrentState(float stateAlpha)
+  {
+    this->lerpedPosition = glm::mix(this->previousPosition, this->getPosition(), stateAlpha);
+    this->slerpedOrientation = glm::mix(this->previousOrientation, this->getRotation(), stateAlpha);
+  }
 
   glm::vec3 
   PhysicsActor::getPosition() const
@@ -215,8 +259,7 @@ namespace Strontium::PhysicsEngine
 
   UpdatedTransformData PhysicsActor::getUpdatedTransformData() const
   {
-    // Euler angles are backwards for whatever reason. GLM doesn't seem to stay consistent...
-    return UpdatedTransformData(this->getPosition(), this->getRotation());
+    return UpdatedTransformData(this->lerpedPosition, this->slerpedOrientation);
   }
   
   glm::vec3 

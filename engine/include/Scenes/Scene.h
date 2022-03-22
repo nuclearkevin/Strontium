@@ -28,6 +28,7 @@ namespace Strontium
     // Physics functions.
     void initPhysics();
     void shutdownPhysics();
+    void prePhysics();
     void postPhysics();
 
     // Update functions.

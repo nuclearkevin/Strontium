@@ -180,8 +180,28 @@ namespace Strontium::PhysicsEngine
 
 	for (uint i = 0; i < numSteps; ++i)
 	{
+	  if (static_cast<int>(i) == (static_cast<int>(numSteps) - 1))
+	  {
+		for (auto& actorPairs : internals->actors)
+	    {
+	      if (!actorPairs.second.isValid())
+	        continue;
+	    
+	      actorPairs.second.updatePreviousState();
+	    }
+	  }
+
 	  internals->physicsSystem.Update(dtUpdate, 1, 1, &internals->allocator, &internals->threadPool);
 	  internals->accumulator -= dtUpdate;
+	}
+
+	// Store the current state given that the next state has been computed.
+	for (auto& actorPairs : internals->actors)
+	{
+	  if (!actorPairs.second.isValid())
+	    continue;
+	
+	  actorPairs.second.updateCurrentState(internals->accumulator / dtUpdate);
 	}
   }
 }

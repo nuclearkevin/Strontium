@@ -54,17 +54,17 @@ namespace Strontium
 
     FrameBuffer wireframeView;
 
-    Model debugCube;
     Model debugSphere;
+    Model debugHalfSphere;
+    Model debugCube;
     Model debugCylinder;
-    // TODO: Cylinder
 
     std::vector<LineVertex> lines;
 
     std::vector<WireframeData> sphereQueue;
+    std::vector<WireframeData> halfSphereQueue;
     std::vector<WireframeData> obbQueue;
     std::vector<WireframeData> cylinderQueue;
-    // TODO: Capsule
 
     DebugPassDataBlock()
       : lineShader(nullptr)
@@ -73,8 +73,9 @@ namespace Strontium
       , lineBuffer(createShared<VertexBuffer>(BufferType::Dynamic))
       , instancedData(0, BufferType::Dynamic)
       , wireframeView(1600, 900)
-      , debugCube()
       , debugSphere()
+      , debugHalfSphere()
+      , debugCube()
       , debugCylinder()
     { }
   };
@@ -99,8 +100,10 @@ namespace Strontium
     void submitLine(const glm::vec3 &pointOne, const glm::vec3 &pointTwo, const glm::vec3 &colour);
     void submitFrustum(const Frustum &frustum, const glm::vec3 &colour);
     void submitSphere(const Sphere &sphere, const glm::vec3 &colour);
+    void submitHalfSphere(const Sphere &sphere, const glm::quat &orientation, const glm::vec3 &colour);
     void submitOrientedBox(const OrientedBoundingBox &box, const glm::vec3 &colour);
     void submitCylinder(const Cylinder &cylinder, const glm::vec3 &colour);
+    void submitCapsule(const Capsule &capsule, const glm::vec3 &colour);
   private:
     DebugPassDataBlock passData;
 

@@ -122,6 +122,13 @@ namespace Strontium
       }
     }
   }
+
+  template <typename T>
+  static void drawComponentLeaf(Entity entity, const std::string &name)
+  {
+    constexpr auto flags = ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
+    if (entity.hasComponent<T>()) ImGui::TreeNodeEx(name.c_str(), flags);
+  }
   //----------------------------------------------------------------------------
 
   // Other helper functions.
@@ -410,6 +417,7 @@ namespace Strontium
           drawComponentAdd<SphereColliderComponent>("Sphere Collider Component", entity);
           drawComponentAdd<BoxColliderComponent>("Box Collider Component", entity);
           drawComponentAdd<CylinderColliderComponent>("Cylinder Collider Component", entity);
+          drawComponentAdd<CapsuleColliderComponent>("Capsule Collider Component", entity);
 
           ImGui::EndMenu();
         }
@@ -441,6 +449,7 @@ namespace Strontium
           drawComponentRemove<SphereColliderComponent>("Sphere Collider Component", entity);
           drawComponentRemove<BoxColliderComponent>("Box Collider Component", entity);
           drawComponentRemove<CylinderColliderComponent>("Cylinder Collider Component", entity);
+          drawComponentRemove<CapsuleColliderComponent>("Capsule Collider Component", entity);
 
           ImGui::EndMenu();
         }
@@ -501,6 +510,7 @@ namespace Strontium
         copyComponent<SphereColliderComponent>(entity, newEntity);
         copyComponent<BoxColliderComponent>(entity, newEntity);
         copyComponent<CylinderColliderComponent>(entity, newEntity);
+        copyComponent<CapsuleColliderComponent>(entity, newEntity);
         copyComponent<RenderableComponent>(entity, newEntity);
         copyComponent<SkyAtmosphereComponent>(entity, newEntity);
         copyComponent<DynamicSkyboxComponent>(entity, newEntity);
@@ -561,27 +571,19 @@ namespace Strontium
         drawEntityNode(child, activeScene);
     }
 
-    // Display components here.
-    if (entity.hasComponent<TransformComponent>())
-      ImGui::TreeNodeEx("Transform Componenet", leafFlag);
-    if (entity.hasComponent<RenderableComponent>())
-      ImGui::TreeNodeEx("Renderable Componenet", leafFlag);
-    if (entity.hasComponent<CameraComponent>())
-      ImGui::TreeNodeEx("Camera Componenet", leafFlag);
-    if (entity.hasComponent<SphereColliderComponent>())
-        ImGui::TreeNodeEx("Sphere Collider Componenet", leafFlag);
-    if (entity.hasComponent<BoxColliderComponent>())
-        ImGui::TreeNodeEx("Box Collider Componenet", leafFlag);
-    if (entity.hasComponent<CylinderColliderComponent>())
-        ImGui::TreeNodeEx("Cylinder Collider Componenet", leafFlag);
-    if (entity.hasComponent<RigidBody3DComponent>())
-        ImGui::TreeNodeEx("3D Rigid Body Componenet", leafFlag);
-    if (entity.hasComponent<DirectionalLightComponent>())
-      ImGui::TreeNodeEx("Directional Light Componenet", leafFlag);
-    if (entity.hasComponent<PointLightComponent>())
-      ImGui::TreeNodeEx("Point Light Componenet", leafFlag);
-    if (entity.hasComponent<SkyAtmosphereComponent>())
-      ImGui::TreeNodeEx("Sky and Atmosphere Component", leafFlag);
+    drawComponentLeaf<TransformComponent>(entity, "Transform Component");
+    drawComponentLeaf<SphereColliderComponent>(entity, "Sphere Collider Component");
+    drawComponentLeaf<BoxColliderComponent>(entity, "Box Collider Component");
+    drawComponentLeaf<CylinderColliderComponent>(entity, "Cylinder Collider Component");
+    drawComponentLeaf<CapsuleColliderComponent>(entity, "Capsule Collider Component");
+    drawComponentLeaf<RigidBody3DComponent>(entity, "3D Rigid Body Component");
+    drawComponentLeaf<RenderableComponent>(entity, "Renderable Component");
+    drawComponentLeaf<CameraComponent>(entity, "Camera Component");
+    drawComponentLeaf<SkyAtmosphereComponent>(entity, "Sky Atmosphere Component");
+    drawComponentLeaf<DynamicSkyboxComponent>(entity, "Dynamic Skybox Component");
+    drawComponentLeaf<DirectionalLightComponent>(entity, "Directional Light Component");
+    drawComponentLeaf<PointLightComponent>(entity, "Point Light Component");
+    drawComponentLeaf<DynamicSkylightComponent>(entity, "Dynamic Skylight Component");
   }
 
   // The property panel for an entity.
@@ -694,6 +696,21 @@ namespace Strontium
         this->selectedEntity, [](auto& component)
       {
         ImGui::PushID("CylinderColliderComponent");
+
+        ImGui::Checkbox("Show Collider", &component.visualize);
+
+        Styles::drawFloatControl("Half Height", 1.0f, component.halfHeight);
+        Styles::drawFloatControl("Radius", 0.5f, component.radius);
+        Styles::drawVec3Controls("Offset", glm::vec3(0.0f), component.offset);
+        Styles::drawFloatControl("Density", 1000.0f, component.density);
+
+        ImGui::PopID();
+      });
+
+      drawComponentProperties<CapsuleColliderComponent>("Capsule Collider Component",
+        this->selectedEntity, [](auto& component)
+      {
+        ImGui::PushID("CapsuleColliderComponent");
 
         ImGui::Checkbox("Show Collider", &component.visualize);
 

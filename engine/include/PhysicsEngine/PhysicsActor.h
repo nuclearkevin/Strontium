@@ -25,6 +25,11 @@ namespace Strontium::PhysicsEngine
 
 	~PhysicsActor() = default;
 
+	// Update the previous position + rotation of this object. 
+	// Used for smooth physics at a constant physics update.
+	void updatePreviousState();
+	void updateCurrentState(float stateAlpha);
+
 	// Check if the actor is valid before attempting to modify the actor's state.
 	bool isValid() const { return this->valid; }
 
@@ -81,5 +86,10 @@ namespace Strontium::PhysicsEngine
 	JPH::BodyInterface* owningInterface;
 
 	bool valid;
+
+	glm::vec3 previousPosition;
+	glm::vec3 lerpedPosition;
+	glm::quat previousOrientation;
+	glm::quat slerpedOrientation;
   };
 }

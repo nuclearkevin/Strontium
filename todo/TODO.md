@@ -44,8 +44,7 @@
     - Collider components (mapped to some functionality of Jolt shapes somehow).
       - [x] Box collider
       - [x] Sphere collider
-      - [ ] Capsule collider
-      - [ ] Tapered-capsule collider
+      - [x] Capsule collider
       - [x] Cylinder collider
       - [ ] Convex hull collider
       - [ ] Mesh collider
@@ -58,9 +57,8 @@
     - [x] Visualize colliders.
       - [x] Box collider
       - [x] Sphere collider
-      - [ ] Capsule collider
-      - [ ] Tapered-capsule collider
-      - [ ] Cylinder collider
+      - [x] Capsule collider
+      - [x] Cylinder collider
       - [ ] Convex hull collider
       - [ ] Mesh collider
       - [ ] Height field collider

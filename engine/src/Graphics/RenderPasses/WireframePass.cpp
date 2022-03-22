@@ -22,8 +22,9 @@ namespace Strontium
     this->passData.wireframeShader = ShaderCache::getShader("debug_wireframe");
     this->passData.lineApplyShader = ShaderCache::getShader("apply_lines");
 
-    this->passData.debugCube.load("./assets/.internal/debug/cube.gltf");
     this->passData.debugSphere.load("./assets/.internal/debug/sphere.gltf");
+    this->passData.debugHalfSphere.load("./assets/.internal/debug/halfSphere.gltf");
+    this->passData.debugCube.load("./assets/.internal/debug/cube.gltf");
     this->passData.debugCylinder.load("./assets/.internal/debug/cylinder.gltf");
     
     this->passData.lineVAO.setData(this->passData.lineBuffer);
@@ -73,6 +74,7 @@ namespace Strontium
 
     this->passData.lines.clear();
     this->passData.sphereQueue.clear();
+    this->passData.halfSphereQueue.clear();
     this->passData.obbQueue.clear();
     this->passData.cylinderQueue.clear();
   }
@@ -122,6 +124,25 @@ namespace Strontium
         RendererCommands::drawElementsInstanced(PrimativeType::Triangle, 
                                                 vao->numToRender(), 
                                                 this->passData.sphereQueue.size());
+        vao->unbind();
+      }
+    }
+
+    // Render half spheres.
+    if (this->passData.halfSphereQueue.size() > 0u)
+    {
+      this->passData.instancedData.resize(sizeof(WireframeData) * this->passData.halfSphereQueue.size(),
+                                          BufferType::Dynamic);
+      this->passData.instancedData.setData(0, sizeof(WireframeData) * this->passData.halfSphereQueue.size(),
+                                           this->passData.halfSphereQueue.data());
+      
+      for (auto& submesh : this->passData.debugHalfSphere.getSubmeshes())
+      {
+        VertexArray* vao = submesh.hasVAO() ? submesh.getVAO() : submesh.generateVAO();
+        vao->bind();
+        RendererCommands::drawElementsInstanced(PrimativeType::Triangle, 
+                                                vao->numToRender(), 
+                                                this->passData.halfSphereQueue.size());
         vao->unbind();
       }
     }
@@ -236,13 +257,24 @@ namespace Strontium
   void
   WireframePass::submitSphere(const Sphere &sphere, const glm::vec3 &colour)
   {
-    float scale = sphere.radius;// / this->passData.debugSphereRadius;
+    float scale = sphere.radius;
     scale += 0.01f * scale;
 
     this->passData.sphereQueue.emplace_back(glm::translate(sphere.center) * glm::scale(glm::vec3(scale)), 
                                             glm::vec4(colour, 1.0f));
   }
   
+  void 
+  WireframePass::submitHalfSphere(const Sphere &sphere, const glm::quat &orientation, const glm::vec3 &colour)
+  {
+    float scale = sphere.radius;
+    scale += 0.01f * scale;
+
+    this->passData.halfSphereQueue.emplace_back(glm::translate(sphere.center) * glm::toMat4(orientation) 
+                                            * glm::scale(glm::vec3(scale)), 
+                                            glm::vec4(colour, 1.0f));
+  }
+
   void
   WireframePass::submitOrientedBox(const OrientedBoundingBox &box, const glm::vec3 &colour)
   {
@@ -265,5 +297,20 @@ namespace Strontium
                                               * glm::toMat4(cylinder.orientation)
                                               * glm::scale(size),
                                               glm::vec4(colour, 1.0f));
+  }
+
+  void 
+  WireframePass::submitCapsule(const Capsule &capsule, const glm::vec3 &colour)
+  {
+    this->submitCylinder(Cylinder(capsule.center, capsule.halfHeight, 
+                                  capsule.radius, capsule.orientation), colour);
+
+    auto rotQuat = capsule.orientation * glm::quat(glm::vec3(glm::radians(180.0f), 0.0f, 0.0f));
+
+    auto rot = glm::toMat4(capsule.orientation);
+    auto sphereCenter = capsule.center + glm::vec3(rot * glm::vec4(glm::vec3(0.0f, capsule.halfHeight, 0.0f), 1.0f));
+    this->submitHalfSphere(Sphere(sphereCenter, capsule.radius), capsule.orientation, colour);
+    sphereCenter = capsule.center - glm::vec3(rot * glm::vec4(glm::vec3(0.0f, capsule.halfHeight, 0.0f), 1.0f));
+    this->submitHalfSphere(Sphere(sphereCenter, capsule.radius), rotQuat, colour);
   }
 }

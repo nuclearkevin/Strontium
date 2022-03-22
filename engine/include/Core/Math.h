@@ -63,6 +63,22 @@ namespace Strontium
     { }
   };
 
+  struct Capsule
+  {
+    glm::vec3 center;
+    float halfHeight;
+    float radius;
+    glm::quat orientation;
+
+    Capsule(const glm::vec3 &center, float halfHeight,
+            float radius, const glm::quat &orientation)
+      : center(center)
+      , radius(radius)
+      , halfHeight(halfHeight)
+      , orientation(orientation)
+    { }
+  };
+
   struct Frustum
   {
     glm::vec3 corners[8];

@@ -450,6 +450,20 @@ namespace Strontium
         out << YAML::EndMap;
       }
 
+      if (entity.hasComponent<CapsuleColliderComponent>())
+      {
+        out << YAML::Key << "CapsuleColliderComponent";
+        out << YAML::BeginMap;
+
+        auto& component = entity.getComponent<CapsuleColliderComponent>();
+        out << YAML::Key << "HalfHeight" << YAML::Value << component.halfHeight;
+        out << YAML::Key << "Radius" << YAML::Value << component.radius;
+        out << YAML::Key << "Offset" << YAML::Value << component.offset;
+        out << YAML::Key << "Density" << YAML::Value << component.density;
+
+        out << YAML::EndMap;
+      }
+
       if (entity.hasComponent<RigidBody3DComponent>())
       {
         out << YAML::Key << "RigidBody3DComponent";
@@ -919,6 +933,16 @@ namespace Strontium
         cComponent.radius = cylinderColliderComponent["Radius"].as<float>();
         cComponent.offset = cylinderColliderComponent["Offset"].as<glm::vec3>();
         cComponent.density = cylinderColliderComponent["Density"].as<float>();
+      }
+
+      auto capsuleColliderComponent = entity["CapsuleColliderComponent"];
+      if (capsuleColliderComponent)
+      {
+        auto& cComponent = newEntity.addComponent<CapsuleColliderComponent>();
+        cComponent.halfHeight = capsuleColliderComponent["HalfHeight"].as<float>();
+        cComponent.radius = capsuleColliderComponent["Radius"].as<float>();
+        cComponent.offset = capsuleColliderComponent["Offset"].as<glm::vec3>();
+        cComponent.density = capsuleColliderComponent["Density"].as<float>();
       }
 
       auto rigidBody3DComponent = entity["RigidBody3DComponent"];

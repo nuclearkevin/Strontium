@@ -16,7 +16,8 @@ namespace Strontium::PhysicsEngine
   {
 	Sphere = 0u,
 	Box = 1u,
-	Cylinder = 2u
+	Cylinder = 2u,
+	Capsule = 3u
   };
 
   struct UpdatedTransformData
