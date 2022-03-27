@@ -198,8 +198,8 @@ namespace Strontium
       auto& renderPassManger = Renderer3D::getPassManager();
       auto hbaoPass = renderPassManger.getRenderPass<HBAOPass>();
       auto hbaoBlock = hbaoPass->getInternalDataBlock<HBAOPassDataBlock>();
-      float width = static_cast<float>(hbaoBlock->downsampleAO.getWidth());
-      float height = static_cast<float>(hbaoBlock->downsampleAO.getHeight());
+      float width = static_cast<float>(hbaoBlock->ao.getWidth());
+      float height = static_cast<float>(hbaoBlock->ao.getHeight());
       float ratio = width / height;
 
       ImGui::Checkbox("Enable HBAO", &hbaoBlock->enableAO);
@@ -208,7 +208,7 @@ namespace Strontium
       ImGui::Text("Frametime: %f ms", hbaoBlock->frameTime);
       ImGui::Separator();
 
-      ImGui::SliderFloat("Radius", &hbaoBlock->aoRadius, 0.0f, 0.1f);
+      ImGui::SliderFloat("Radius", &hbaoBlock->aoRadius, 0.0f, 1.0f);
       ImGui::SliderFloat("Multiplier", &hbaoBlock->aoMultiplier, 0.0f, 10.0f);
       ImGui::SliderFloat("Power", &hbaoBlock->aoExponent, 0.0f, 10.0f);
 
@@ -218,7 +218,7 @@ namespace Strontium
       if (showHBAOTexture)
       {
         ImGui::Text("HBAO Texture");
-        ImGui::Image(reinterpret_cast<ImTextureID>(hbaoBlock->downsampleAO.getID()),
+        ImGui::Image(reinterpret_cast<ImTextureID>(hbaoBlock->ao.getID()),
                      ImVec2(128.0f * ratio, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
       }
     }

@@ -19,6 +19,7 @@ layout(local_size_x = 8, local_size_y = 8) in;
 layout(rgba16f, binding = 0) restrict writeonly uniform image2D aoOut;
 
 layout(binding = 0) uniform sampler2D gDepth;
+layout(binding = 1) uniform sampler2D noise;
 
 // Camera specific uniforms.
 layout(std140, binding = 0) uniform CameraBlock
@@ -43,11 +44,11 @@ void main()
 {
   ivec2 invoke = ivec2(gl_GlobalInvocationID.xy);
 
+  // Quit early for threads that aren't in bounds of the screen.
+  if (any(greaterThanEqual(invoke, imageSize(aoOut).xy)))
+    return;
+
   // Half resolution.
-  /*
-  vec2 gTexel = 1.0.xx / vec2(textureSize(gDepth, 0).xy);
-  vec2 gBufferUV = (vec2(2 * invoke) + 0.5.xx) * gTexel;
-  */
   vec2 gTexel = 1.0.xx / vec2(textureSize(gDepth, 0).xy);
   vec2 coords = (vec2(2 * invoke) + 0.5.xx);
   vec2 gBufferUV = coords * gTexel;
@@ -57,32 +58,28 @@ void main()
 
   float result = pow(ao, u_aoParams1.z);
   imageStore(aoOut, invoke, vec4(result.xxx, 1.0));
-  //imageStore(aoOut, invoke, vec4(ao, 1.0));
 }
 
-// Sample a dithering pattern.
-float sampleDither(ivec2 coords)
+// Sample a dithering function.
+vec4 sampleDither(ivec2 coords)
 {
-  const mat4 ditherMatrix = mat4
-  (
-    vec4(0.0, 0.5, 0.125, 0.625),
-    vec4(0.75, 0.22, 0.875, 0.375),
-    vec4(0.1875, 0.6875, 0.0625, 0.5625),
-    vec4(0.9375, 0.4375, 0.8125, 0.3125)
-  );
-
-  return ditherMatrix[coords.x % 4][coords.y % 4];
+  const vec2 noiseScale = vec2(textureSize(gDepth, 0).xy) / vec2(textureSize(noise, 0).xy);
+  return texture(noise, (vec2(coords) + 0.5.xx) * noiseScale);
 }
 
-// Create a rotation matrix with the dithering function above.
-mat2 randomRotation(ivec2 coords)
+// Interleaved gradient noise from:
+// http://www.iryoku.com/next-generation-post-processing-in-call-of-duty-advanced-warfare
+// Create a rotation matrix with IGL.
+mat2 randomRotation()
 {
-  float theta = 2.0 * PI * sampleDither(coords);
+  const vec3 magic = vec3(0.06711056, 0.00583715, 52.9829189);
+  float theta = 2.0 * PI * fract(magic.z * fract(dot(vec2(gl_GlobalInvocationID.xy), magic.xy)));
   float sinTheta = sin(theta);
   float cosTheta = cos(theta);
   return mat2(cosTheta, sinTheta, -sinTheta, cosTheta);
 }
 
+// Create a normal rotation matrix given an angle.
 mat2 rotation(float theta)
 {
   float sinTheta = sin(theta);
@@ -93,7 +90,7 @@ mat2 rotation(float theta)
 // HBAO falloff.
 float falloff(float distanceSquare, float invR2)
 {
-  return distanceSquare * invR2 + 1.0;
+  return distanceSquare * -invR2 + 1.0;
 }
 
 // Decodes the worldspace position of the fragment from depth.
@@ -179,22 +176,25 @@ float computeHBAO(ivec2 coords, vec2 uv, vec4 aoParams, sampler2D depthTex,
   vec3 viewNormal = normalize((view * vec4(normal, 0.0)).xyz);
 
   // Screen-space radius of the sample disk.
-  float sRadius = aoParams.x / max(viewPos.z, 1e-4);
+  float sRadius = aoParams.x / max(abs(viewPos.z), 1e-4);
+  sRadius = max(sRadius, float(NUM_STEPS));
+  const float invR2 = 1.0 / (aoParams.x * aoParams.x);
 
   const float stepSize = sRadius / (float(NUM_STEPS) + 1.0);
   const float alpha = 2.0 * PI / float(NUM_DIRECTIONS);
 
   // Gather AO within the sample disk.
   float ao = 0.0;
+
+  // Compute a jittered starting position.
+  mat2 outerRot = randomRotation();
+  float ray = sampleDither(coords).r * stepSize;
   // Outer loop rotates about the sample point.
   for (int i = 0; i < NUM_DIRECTIONS; i++)
   {
     // Compute a jittered direction vector.
     float theta = alpha * float(i);
-    vec2 direction = rotation(theta) * randomRotation(coords) * vec2(1.0, 0.0);
-
-    // Compute a jittered starting position.
-    float ray = sampleDither(coords) * stepSize;
+    vec2 direction = rotation(theta) * outerRot * vec2(1.0, 0.0);
 
     // Inner loop raymarches through the depth buffer gathering AO contributions.
     for (uint j = 0; j < NUM_STEPS; j++)
@@ -204,11 +204,12 @@ float computeHBAO(ivec2 coords, vec2 uv, vec4 aoParams, sampler2D depthTex,
 
       ray += stepSize;
 
-      ao += computeAO(viewPos, viewNormal, samplePos, aoParams.x);
+      ao += computeAO(viewPos, viewNormal, samplePos, invR2);
     }
   }
 
   ao *= aoParams.y / (float(NUM_STEPS) * float(NUM_DIRECTIONS));
 
   return clamp(1.0 - 2.0 * ao, 0.0, 1.0);
+  //return sampleDither(coords).r;
 }

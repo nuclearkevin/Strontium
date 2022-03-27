@@ -7,10 +7,12 @@ namespace Strontium
 {
   IBLApplicationPass::IBLApplicationPass(Renderer3D::GlobalRendererData* globalRendererData,
 										 GeometryPass* previousGeoPass,
+                                         HiZPass* previousHiZPass,
                                          HBAOPass* previousHBAOPass,
 										 DynamicSkyIBLPass* previousDynSkyIBLPass)
     : RenderPass(&this->passData, globalRendererData, { previousGeoPass, previousDynSkyIBLPass })
 	, previousGeoPass(previousGeoPass)
+    , previousHiZPass(previousHiZPass)
     , previousHBAOPass(previousHBAOPass)
 	, previousDynSkyIBLPass(previousDynSkyIBLPass)
 	, timer(5)
@@ -68,10 +70,13 @@ namespace Strontium
     auto geometryBlock = this->previousGeoPass->getInternalDataBlock<GeometryPassDataBlock>();
     // Bind the GBuffer attachments.
     auto& gBuffer = geometryBlock->gBuffer;
-    gBuffer.bindAttachment(FBOTargetParam::Depth, 0);
+    //gBuffer.bindAttachment(FBOTargetParam::Depth, 0);
     gBuffer.bindAttachment(FBOTargetParam::Colour0, 1);
     gBuffer.bindAttachment(FBOTargetParam::Colour1, 2);
     gBuffer.bindAttachment(FBOTargetParam::Colour2, 3);
+
+    // Bind the downsampled depth.
+    this->previousHiZPass->getInternalDataBlock<HiZPassDataBlock>()->hierarchicalDepth.bind(0);
 
     // Bind the camera block.
     geometryBlock->cameraBuffer.bindToPoint(0);
@@ -82,7 +87,7 @@ namespace Strontium
     // Bind the HBAO texture.
     auto hbaoBlock = this->previousHBAOPass->getInternalDataBlock<HBAOPassDataBlock>();
     if (hbaoBlock->enableAO)
-      hbaoBlock->downsampleAO.bind(7);
+      hbaoBlock->ao.bind(7);
 
     // Bind the lighting buffer.
     rendererData->lightingBuffer.bindAsImage(0, 0, ImageAccessPolicy::ReadWrite);

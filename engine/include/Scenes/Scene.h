@@ -28,8 +28,7 @@ namespace Strontium
     // Physics functions.
     void initPhysics();
     void shutdownPhysics();
-    void prePhysics();
-    void postPhysics();
+    void simulatePhysics(float dt);
 
     // Update functions.
     void onUpdateEditor(float dt);
@@ -61,8 +60,6 @@ namespace Strontium
     entt::registry& getRegistry() { return this->sceneECS; }
     std::string& getSaveFilepath() { return this->saveFilepath; }
   protected:
-    void updateAnimations(float dt);
-
     entt::entity primaryCameraID;
     entt::entity primaryDirLightID;
 

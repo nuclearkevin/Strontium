@@ -125,26 +125,33 @@ namespace Strontium
       for (auto entity : capsuleColliders)
         PhysicsEngine::addActor(Entity(entity, this));
     }
+
+    PhysicsEngine::onSimulationBegin();
   }
 
   void 
   Scene::shutdownPhysics()
   {
-    
+    PhysicsEngine::onSimulationEnd();
   }
 
-  // Update the physics system with components.
-  // TODO: Update colliders.
   void 
-  Scene::prePhysics()
+  Scene::simulatePhysics(float dt)
   {
+    //----------------------------------------------------------------------------
+    // Pre-physics steps. Update the physics system if needed.
+    //----------------------------------------------------------------------------
     
-  }
 
-  // Poll the physics system to get updated transforms (and more?).
-  void 
-  Scene::postPhysics()
-  {
+    //----------------------------------------------------------------------------
+    // Perform the actual physics steps.
+    //----------------------------------------------------------------------------
+    PhysicsEngine::onUpdate(dt);
+
+    //----------------------------------------------------------------------------
+    // Post-physics steps. Fetch positions and orientations from the physics 
+    // system to update the transforms.
+    //----------------------------------------------------------------------------
     // Group together and fetch all the entities that have 
     // transform + rigid body + sphere collider components.
     {
@@ -233,13 +240,19 @@ namespace Strontium
   void
   Scene::onUpdateEditor(float dt)
   {
-    this->updateAnimations(dt);
+    // Get all the renderable components to update animations.
+    auto renderables = this->sceneECS.view<RenderableComponent>();
+    for (auto entity : renderables)
+      renderables.get<RenderableComponent>(entity).animator.onUpdate(dt);
   }
 
   void
   Scene::onUpdateRuntime(float dt)
   {
-    this->updateAnimations(dt);
+    // Get all the renderable components to update animations.
+    auto renderables = this->sceneECS.view<RenderableComponent>();
+    for (auto entity : renderables)
+      renderables.get<RenderableComponent>(entity).animator.onUpdate(dt);
   }
 
   void
@@ -515,7 +528,7 @@ namespace Strontium
         if (camera.visualize)
         {
           auto matrix = this->computeGlobalTransform(Entity(entity, this));
-          Camera cam = camera.entCamera;
+          Camera& cam = camera.entCamera;
 
           cam.position = glm::vec3(matrix * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
           cam.front = glm::normalize(glm::vec3(matrix * glm::vec4(0.0f, 0.0f, -1.0f, 0.0f)));
@@ -678,18 +691,6 @@ namespace Strontium
       }
       else
         return glm::mat4(1.0f);
-    }
-  }
-
-  void
-  Scene::updateAnimations(float dt)
-  {
-    // Get all the renderable components to update animations.
-    auto renderables = this->sceneECS.view<RenderableComponent>();
-    for (auto entity : renderables)
-    {
-      auto& renderable = renderables.get<RenderableComponent>(entity);
-      renderable.animator.onUpdate(dt);
     }
   }
 

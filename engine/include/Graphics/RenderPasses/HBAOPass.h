@@ -23,12 +23,13 @@ namespace Strontium
 	Shader* aoCompute;
 	Shader* aoBlur;
 
-	Texture2D downsampleAO;
+	Texture2D ao;
 
 	UniformBuffer aoParamsBuffer;
 
 	bool enableAO;
 	float aoRadius;
+	float aoRadiusToScreen;
 	float aoMultiplier;
 	float aoExponent;
 
@@ -41,6 +42,7 @@ namespace Strontium
 	  , aoParamsBuffer(2 * sizeof(glm::vec4), BufferType::Dynamic)
 	  , enableAO(false)
 	  , aoRadius(0.001f)
+	  , aoRadiusToScreen(0.001f)
 	  , aoMultiplier(1.0f)
 	  , aoExponent(1.0f)
 	  , frameTime(0.0f)

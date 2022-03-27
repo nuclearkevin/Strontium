@@ -309,6 +309,11 @@ namespace Strontium::PhysicsEngine
         return static_cast<const JPH::CylinderShape*>(shp.GetPtr())->GetDensity();
       }
 
+      case ColliderTypes::Capsule:
+      {
+        return static_cast<const JPH::CapsuleShape*>(shp.GetPtr())->GetDensity();
+      }
+
       default: return 0.0f;
     }
   }

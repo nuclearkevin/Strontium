@@ -47,7 +47,12 @@ namespace Strontium
     // Compile each source saved in the map.
     std::vector<uint> shaderBindaries;
     for (auto&& [stage, source] : this->shaderSources)
-      shaderBindaries.emplace_back(this->compileStage(stage, source));
+    {
+      bool status = true;
+      shaderBindaries.emplace_back(this->compileStage(stage, source, status));
+      if (!status)
+        Logs::log(filepath);
+    }
 
     // Link the individual shader programs, deletes after linking is completed.
     this->linkProgram(shaderBindaries);
@@ -72,7 +77,12 @@ namespace Strontium
     // Compile each source saved in the map.
     std::vector<uint> shaderBindaries;
     for (auto&& [stage, source] : this->shaderSources)
-      shaderBindaries.emplace_back(this->compileStage(stage, source));
+    {
+      bool status;
+      shaderBindaries.emplace_back(this->compileStage(stage, source, status));
+      if (!status)
+        Logs::log(this->shaderPath);
+    }
 
     // Link the individual shader programs, deletes after linking is completed.
     this->linkProgram(shaderBindaries);
@@ -201,7 +211,7 @@ namespace Strontium
   }
 
   uint
-  Shader::compileStage(const ShaderStage &stage, const std::string &stageSource)
+  Shader::compileStage(const ShaderStage &stage, const std::string &stageSource, bool &status)
   {
     char* source = (char*) stageSource.c_str();
 
@@ -216,6 +226,8 @@ namespace Strontium
     glGetShaderiv(shaderID, GL_COMPILE_STATUS, &result);
     if (result != GL_TRUE)
     {
+      status = false;
+
       glGetShaderiv(shaderID, GL_INFO_LOG_LENGTH, &result);
       buffer = new char[result];
       glGetShaderInfoLog(shaderID, result, 0, buffer);

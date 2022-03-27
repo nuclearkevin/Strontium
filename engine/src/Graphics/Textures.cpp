@@ -377,13 +377,6 @@ namespace Strontium
   }
 
   // Clear the texture.
-  /*
-  Depth = GL_DEPTH_COMPONENT, DepthStencil = GL_DEPTH_STENCIL,
-  Depth24Stencil8 = GL_DEPTH24_STENCIL8, Depth32f = GL_DEPTH_COMPONENT32F,
-  Red = GL_RED, RG = GL_RG, RGB = GL_RGB, RGBA = GL_RGBA, R16f = GL_R16F,
-  RG16f = GL_RG16F, RGB16f = GL_RGB16F, RGBA16f = GL_RGBA16F, R32f = GL_R32F,
-  RG32f = GL_RG32F, RGB32f = GL_RGB32F, RGBA32f = GL_RGBA32F
-  */
   void
   Texture2D::clearTexture()
   {
@@ -408,6 +401,7 @@ namespace Strontium
     this->params = newParams;
 
     glBindTexture(GL_TEXTURE_2D, this->textureID);
+
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S,
                     static_cast<GLint>(this->params.sWrap));
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T,

@@ -78,12 +78,18 @@ vec3 computeSunLuminance(vec3 e, vec3 s, vec3 colour, float size, float intensit
 void main()
 {
   ivec2 invoke = ivec2(gl_GlobalInvocationID.xy);
-  vec2 gBufferUVs = (vec2(invoke) + 0.5.xx) / vec2(textureSize(gDepth, 0).xy);
+  ivec2 gBufferSize = ivec2(textureSize(gDepth, 0).xy);
+
+  // Quit early for threads that aren't in bounds of the screen.
+  if (any(greaterThanEqual(invoke, gBufferSize)))
+    return;
+
+  vec2 gBufferUVs = (vec2(invoke) + 0.5.xx) / vec2(gBufferSize);
 
   // Skybox should only be drawn when the depth of a fragment is 1.0, early out
   // if that is not the case.
-  float depth = textureLod(gDepth, gBufferUVs, 0.0).r;
-  if (texelFetch(gDepth, invoke, 0).r < (1.0 - 1e-6))
+  float depth = texelFetch(gDepth, invoke, 0).r;
+  if (depth < (1.0 - 1e-6))
     return;
 
   // Compute the ray direction.

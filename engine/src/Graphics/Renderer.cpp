@@ -47,6 +47,9 @@ namespace Strontium::Renderer3D
 
     rendererData->gamma = 2.2f;
 
+    // Some noise textures.
+    rendererData->blueNoise.reset(Texture2D::loadTexture2D("./assets/.internal/noise/HDR_RGBA_0.png", Texture2DParams(), false));
+
     // The lighting pass buffer.
     Texture2DParams lightingParams = Texture2DParams();
     lightingParams.sWrap = TextureWrapParams::ClampEdges;
@@ -69,6 +72,11 @@ namespace Strontium::Renderer3D
     rendererData->halfResBuffer1.setParams(halfRes1Params);
     rendererData->halfResBuffer1.initNullTexture();
 
+    // A full-res buffer for full resolution effects.
+    rendererData->fullResBuffer1.setSize(1600, 900);
+    rendererData->fullResBuffer1.setParams(halfRes1Params);
+    rendererData->fullResBuffer1.initNullTexture();
+
     // Initialize the renderpass system.
     passManager = new RenderPassManager();
 
@@ -82,7 +90,7 @@ namespace Strontium::Renderer3D
     auto dynIBL = passManager->insertRenderPass<DynamicSkyIBLPass>(rendererData, skyatmo);
 
     // Lighting passes.
-    auto iblApp = passManager->insertRenderPass<IBLApplicationPass>(rendererData, geomet, hbao, dynIBL);
+    auto iblApp = passManager->insertRenderPass<IBLApplicationPass>(rendererData, geomet, hiZ, hbao, dynIBL);
     auto dirApp = passManager->insertRenderPass<DirectionalLightPass>(rendererData, geomet, shadow, skyatmo);
 
     // Skybox pass. This should be applied last.
@@ -124,6 +132,9 @@ namespace Strontium::Renderer3D
     {
       rendererData->lightingBuffer.setSize(width, height);
       rendererData->lightingBuffer.initNullTexture();
+
+      rendererData->fullResBuffer1.setSize(width, height);
+      rendererData->fullResBuffer1.initNullTexture();
     }
     uint groupX = static_cast<uint>(glm::ceil(static_cast<float>(width) / 8.0f));
     uint groupY = static_cast<uint>(glm::ceil(static_cast<float>(height) / 8.0f));
@@ -213,7 +224,7 @@ namespace Strontium::DebugRenderer
   }
 
   void 
-  end(FrameBuffer& frontBuffer)
+  end(FrameBuffer &frontBuffer)
   {
     // Call the render functions since the Renderer basically does all its work when submission is done.
     passManager->onRender();

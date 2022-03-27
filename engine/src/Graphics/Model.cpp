@@ -112,7 +112,7 @@ namespace Strontium
   {
     if (this->sceneNodes.find(node->mName.C_Str()) == this->sceneNodes.end())
     {
-      this->sceneNodes.insert(std::make_pair<std::string, SceneNode>(node->mName.C_Str(), SceneNode(node->mName.C_Str(), Utilities::mat4ToGLM(node->mTransformation))));
+      this->sceneNodes.emplace(std::string(node->mName.C_Str()), SceneNode(node->mName.C_Str(), Utilities::mat4ToGLM(node->mTransformation)));
       for (uint i = 0; i < node->mNumChildren; i++)
         this->sceneNodes[node->mName.C_Str()].childNames.emplace_back(node->mChildren[i]->mName.C_Str());
     }

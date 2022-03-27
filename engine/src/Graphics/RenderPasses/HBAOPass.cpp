@@ -29,9 +29,9 @@ namespace Strontium
     aoParams.internal = TextureInternalFormats::RGBA16f;
     aoParams.format = TextureFormats::RGBA;
     aoParams.dataType = TextureDataType::Floats;
-    this->passData.downsampleAO.setSize(1600 / 2, 900 / 2);
-    this->passData.downsampleAO.setParams(aoParams);
-    this->passData.downsampleAO.initNullTexture();
+    this->passData.ao.setSize(1600, 900);
+    this->passData.ao.setParams(aoParams);
+    this->passData.ao.initNullTexture();
   }
 
   void HBAOPass::updatePassData()
@@ -49,15 +49,16 @@ namespace Strontium
 
   void HBAOPass::onRendererBegin(uint width, uint height)
   {
-    uint hWidth = static_cast<uint>(glm::ceil(this->previousGeoPass->getInternalDataBlock<GeometryPassDataBlock>()->gBuffer.getSize().x / 2.0f));
-	uint hHeight = static_cast<uint>(glm::ceil(this->previousGeoPass->getInternalDataBlock<GeometryPassDataBlock>()->gBuffer.getSize().y / 2.0f));
-
-    if (static_cast<uint>(this->passData.downsampleAO.getWidth()) != hWidth || 
-        static_cast<uint>(this->passData.downsampleAO.getHeight()) != hHeight)
+    if (static_cast<uint>(this->passData.ao.getWidth()) != width ||
+        static_cast<uint>(this->passData.ao.getHeight()) != height)
 	{
-	  this->passData.downsampleAO.setSize(hWidth, hHeight);
-	  this->passData.downsampleAO.initNullTexture();
+	  this->passData.ao.setSize(width, height);
+	  this->passData.ao.initNullTexture();
 	}
+
+    auto rendererData = static_cast<Renderer3D::GlobalRendererData*>(this->globalBlock);
+    this->passData.aoRadiusToScreen = 0.5f * this->passData.aoRadius * static_cast<float>(height) 
+                                      / (2.0f * glm::tan(0.5f * rendererData->sceneCam.fov));
   }
 
   void HBAOPass::onRender()
@@ -75,7 +76,7 @@ namespace Strontium
       }
         hbaoData
       {
-        { this->passData.aoRadius, this->passData.aoMultiplier,
+        { this->passData.aoRadiusToScreen, this->passData.aoMultiplier,
           this->passData.aoExponent, 0.0f},
         { 1.0f, 0.0f, 0.0f, 0.0f }
       };
@@ -92,26 +93,29 @@ namespace Strontium
                            ->cameraBuffer.bindToPoint(0);
       this->passData.aoParamsBuffer.bindToPoint(1);
 
+      // Bind the blue noise texture.
+      rendererData->blueNoise->bind(1);
+
       // Compute the SSHBAO.
-      this->passData.downsampleAO.bindAsImage(0, 0, ImageAccessPolicy::Write);
+      rendererData->halfResBuffer1.bindAsImage(0, 0, ImageAccessPolicy::Write);
       uint iWidth = static_cast<uint>(glm::ceil(static_cast<float>(hzBlock->hierarchicalDepth.getWidth())
-                                                / 8.0f));
+                                                / 16.0f));
       uint iHeight = static_cast<uint>(glm::ceil(static_cast<float>(hzBlock->hierarchicalDepth.getHeight())
-                                                 / 8.0f));
+                                                 / 16.0f));
       this->passData.aoCompute->launchCompute(iWidth, iHeight, 1);
       Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
 
       // Blur the SSHBAO texture to get rid of noise from the jittering.
-      this->passData.downsampleAO.bind(1);
-      rendererData->halfResBuffer1.bindAsImage(0, 0, ImageAccessPolicy::Write);
-      this->passData.aoBlur->launchCompute(iWidth, iHeight, 1);
+      rendererData->halfResBuffer1.bind(1);
+      rendererData->fullResBuffer1.bindAsImage(0, 0, ImageAccessPolicy::Write);
+      this->passData.aoBlur->launchCompute(2 * iWidth, 2 * iHeight, 1);
       Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
 
       hbaoData.aoParams2 = glm::vec4(0.0f, 1.0f, 0.0f, 0.0f);
       this->passData.aoParamsBuffer.setData(sizeof(glm::vec4), sizeof(glm::vec4), &(hbaoData.aoParams2.x));
-      rendererData->halfResBuffer1.bind(1);
-      this->passData.downsampleAO.bindAsImage(0, 0, ImageAccessPolicy::Write);
-      this->passData.aoBlur->launchCompute(iWidth, iHeight, 1);
+      rendererData->fullResBuffer1.bind(1);
+      this->passData.ao.bindAsImage(0, 0, ImageAccessPolicy::Write);
+      this->passData.aoBlur->launchCompute(2 * iWidth, 2 * iHeight, 1);
       Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
     }
   }

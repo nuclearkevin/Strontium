@@ -5,8 +5,8 @@
  * https://github.com/nvpro-samples/gl_ssao/blob/master/hbao_blur.frag.glsl
 */
 
-#define KERNEL_RADIUS 3
-#define SHARPNESS 1.0
+#define KERNEL_RADIUS 6
+#define SHARPNESS 5.0
 
 layout(local_size_x = 8, local_size_y = 8) in;
 
@@ -38,6 +38,7 @@ float linearizeDepth(float d, float zNear, float zFar)
   return 2.0 * zNear * zFar / (zFar + zNear - zN * (zFar - zNear));
 }
 
+
 float blurFunction(vec2 uv, float r, float centerDepth, sampler2D depthMap,
                    sampler2D blurMap, vec2 nearFar, inout float totalWeight)
 {
@@ -47,17 +48,31 @@ float blurFunction(vec2 uv, float r, float centerDepth, sampler2D depthMap,
   const float blurSigma = float(KERNEL_RADIUS) * 0.5;
   const float blurFalloff = 1.0 / (2.0 * blurSigma * blurSigma);
 
-  float ddiff = (d - centerDepth) * SHARPNESS;
+  float ddiff = abs(d - centerDepth) * SHARPNESS;
   float w = exp2(-r * r * blurFalloff - ddiff * ddiff);
   totalWeight += w;
 
   return aoSample * w;
 }
+/*
+float blurFunction(vec2 uv, float r, float centerDepth, sampler2D depthMap,
+                   sampler2D blurMap, vec2 nearFar, inout float totalWeight)
+{
+  totalWeight += 1.0;
+
+  return texture(blurMap, uv).r;
+}
+*/
 
 void main()
 {
   ivec2 invoke = ivec2(gl_GlobalInvocationID.xy);
-  vec2 texelSize = 1.0.xx / vec2(textureSize(inTexture, 0).xy);
+
+  // Quit early for threads that aren't in bounds of the screen.
+  if (any(greaterThanEqual(invoke, textureSize(gDepth, 0).xy)))
+    return;
+
+  vec2 texelSize = 1.0.xx / vec2(textureSize(gDepth, 0).xy);
   vec2 uvs = (vec2(invoke) + 0.5.xx) * texelSize;
 
   float center = texture(inTexture, uvs).r;
@@ -79,5 +94,6 @@ void main()
   }
 
   float result = cTotal / wTotal;
+
   imageStore(outImage, invoke, vec4(result.xxx, 1.0));
 }

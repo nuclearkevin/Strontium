@@ -5,6 +5,7 @@
 // Project includes.
 #include "Graphics/RenderPasses/RenderPass.h"
 #include "Graphics/RenderPasses/GeometryPass.h"
+#include "Graphics/RenderPasses/HiZPass.h"
 #include "Graphics/RenderPasses/HBAOPass.h"
 #include "Graphics/RenderPasses/DynamicSkyIBLPass.h"
 #include "Graphics/Shaders.h"
@@ -48,6 +49,7 @@ namespace Strontium
   public:
 	IBLApplicationPass(Renderer3D::GlobalRendererData* globalRendererData, 
                        GeometryPass* previousGeoPass,
+                       HiZPass* previousHiZPass,
                        HBAOPass* previousHBAOPass,
 					   DynamicSkyIBLPass* previousDynSkyIBLPass);
 	~IBLApplicationPass() override;
@@ -66,6 +68,7 @@ namespace Strontium
     IBLApplicationPassDataBlock passData;
 
     GeometryPass* previousGeoPass;
+    HiZPass* previousHiZPass;
     DynamicSkyIBLPass* previousDynSkyIBLPass;
     HBAOPass* previousHBAOPass;
 

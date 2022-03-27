@@ -36,8 +36,8 @@ namespace Strontium
     glm::vec3& getMaxPos() { return this->maxPos; }
     std::vector<Mesh>& getSubmeshes() { return this->subMeshes; }
     std::vector<Animation>& getAnimations() { return this->storedAnimations; }
-    std::unordered_map<std::string, SceneNode>& getSceneNodes() { return this->sceneNodes; }
-    std::unordered_map<std::string, uint>& getBoneMap() { return this->boneMap; }
+    robin_hood::unordered_flat_map<std::string, SceneNode>& getSceneNodes() { return this->sceneNodes; }
+    robin_hood::unordered_flat_map<std::string, uint>& getBoneMap() { return this->boneMap; }
     std::vector<VertexBone>& getBones() { return this->storedBones; }
     glm::mat4& getGlobalInverseTransform() { return this->globalInverseTransform; }
     glm::mat4& getGlobalTransform() { return this->globalTransform; }
@@ -57,7 +57,7 @@ namespace Strontium
     glm::mat4 globalInverseTransform;
     glm::mat4 globalTransform;
     SceneNode rootNode;
-    std::unordered_map<std::string, SceneNode> sceneNodes;
+    robin_hood::unordered_flat_map<std::string, SceneNode> sceneNodes;
 
     // Submeshes of this model.
     std::vector<Mesh> subMeshes;
@@ -65,7 +65,7 @@ namespace Strontium
     // Animation information for this model.
     std::vector<Animation> storedAnimations;
     std::vector<VertexBone> storedBones;
-    std::unordered_map<std::string, uint> boneMap;
+    robin_hood::unordered_flat_map<std::string, uint> boneMap;
 
     // Is the model loaded or not?
     bool loaded;

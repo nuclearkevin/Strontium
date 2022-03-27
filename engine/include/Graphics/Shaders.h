@@ -86,7 +86,7 @@ namespace Strontium
 
   private:
     void loadFile(const std::string &filepath);
-    uint compileStage(const ShaderStage &stage, const std::string &stageSource);
+    uint compileStage(const ShaderStage &stage, const std::string &stageSource, bool &status);
     void linkProgram(const std::vector<uint> &binaries);
 
     uint progID;

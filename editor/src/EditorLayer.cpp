@@ -220,9 +220,7 @@ namespace Strontium
         this->currentScene->onUpdateRuntime(dt);
 
         // Update the physics system.
-        this->currentScene->prePhysics();
-        PhysicsEngine::onUpdate(dt);
-        this->currentScene->postPhysics();
+        this->currentScene->simulatePhysics(dt);
 
         // Fetch the primary camera entity.
         auto primaryCameraEntity = this->currentScene->getPrimaryCameraEntity();
@@ -680,8 +678,6 @@ namespace Strontium
     this->backupScene->getSaveFilepath() = this->currentScene->getSaveFilepath();
 
     this->currentScene->initPhysics();
-
-    PhysicsEngine::onSimulationBegin();
   }
 
   void
@@ -695,8 +691,6 @@ namespace Strontium
     this->currentScene->clearForRuntime();
     this->currentScene->copyForRuntime(*this->backupScene);
     this->currentScene->getSaveFilepath() = this->backupScene->getSaveFilepath();
-
-    PhysicsEngine::onSimulationEnd();
   }
 
   Entity

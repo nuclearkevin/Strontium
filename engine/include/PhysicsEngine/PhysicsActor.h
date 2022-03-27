@@ -10,7 +10,6 @@
 namespace JPH
 {
   class BodyInterface;
-  class Body;
 }
 
 namespace Strontium::PhysicsEngine

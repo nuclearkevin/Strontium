@@ -101,7 +101,7 @@ namespace Strontium
 	ShaderStorageBuffer boneBuffer;
 
 	uint numUniqueEntities;
-	robin_hood::unordered_map<GeomStaticDrawData, std::vector<PerEntityData>> staticInstanceMap;
+	robin_hood::unordered_flat_map<GeomStaticDrawData, std::vector<PerEntityData>> staticInstanceMap;
 	std::vector<GeomDynamicDrawData> dynamicDrawList;
 
 	// Some statistics to display.

@@ -94,7 +94,7 @@ namespace Strontium
 	uint numUniqueEntities;
 	glm::vec3 minPos;
 	glm::vec3 maxPos;
-	robin_hood::unordered_map<ShadowStaticDrawData, std::vector<glm::mat4>> staticInstanceMap;
+	robin_hood::unordered_flat_map<ShadowStaticDrawData, std::vector<glm::mat4>> staticInstanceMap;
 	std::vector<ShadowDynamicDrawData> dynamicDrawList;
 
 	// Shadow settings.

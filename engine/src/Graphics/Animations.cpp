@@ -41,7 +41,7 @@ namespace Strontium
       aiNodeAnim* node = animation->mChannels[i];
       if (this->animationNodes.find(node->mNodeName.C_Str()) == this->animationNodes.end())
       {
-        this->animationNodes.insert(std::make_pair<std::string, AnimationNode>(node->mNodeName.C_Str(), AnimationNode(node->mNodeName.C_Str())));
+        this->animationNodes.emplace(std::string(node->mNodeName.C_Str()), AnimationNode(node->mNodeName.C_Str()));
 
         // Load translations.
         this->animationNodes[node->mNodeName.C_Str()].keyTranslations.reserve(node->mNumPositionKeys);
@@ -70,15 +70,22 @@ namespace Strontium
     }
   }
 
+  uint 
+  Animation::getNumBones() const
+  { 
+    return this->parentModel->getBones().size(); 
+  }
+
   void
   Animation::computeBoneTransforms(float aniTime, std::vector<glm::mat4>& outBonesSkinned, 
-                                   std::unordered_map<std::string, glm::mat4> &outBonesUnskinned)
+                                   robin_hood::unordered_flat_map<std::string, glm::mat4> &outBonesUnskinned)
   {
     if (this->parentModel->hasSkins())
     {
       // Compute the transformations for a skinned model.
       outBonesSkinned.clear();
       outBonesSkinned.resize(this->parentModel->getBones().size(), glm::mat4(1.0f));
+
       this->readSkinnedNodeHierarchy(aniTime, this->parentModel->getRootNode(), 
                                      parentModel->getGlobalTransform(), outBonesSkinned);
     }
@@ -94,7 +101,7 @@ namespace Strontium
   void 
   Animation::readUnSkinnedNodeHierarchy(float aniTime, const SceneNode& node,
                                         const glm::mat4 parentTransform,
-                                        std::unordered_map<std::string, glm::mat4>& outBones)
+                                        robin_hood::unordered_flat_map<std::string, glm::mat4>& outBones)
   {
     auto nodeName = node.name;
     auto nodeTransform = node.localTransform;
@@ -144,7 +151,7 @@ namespace Strontium
       auto& modelBones = this->parentModel->getBones();
       unsigned int index = boneMap[nodeName];
       auto boneOffset = this->parentModel->getBones()[index].offsetMatrix;
-      outBones.at(index) = this->parentModel->getGlobalInverseTransform() * globalTransform * boneOffset;
+      outBones[index] = this->parentModel->getGlobalInverseTransform() * globalTransform * boneOffset;
     }
 
     auto& sceneNodes = this->parentModel->getSceneNodes();
@@ -161,7 +168,7 @@ namespace Strontium
     unsigned int currentIndex = 0;
     for (unsigned int i = 0; i < node.keyTranslations.size() - 1; i++)
     {
-    bool animating;
+      bool animating;
       if (aniTime < node.keyTranslations[i + 1].first)
       {
         currentIndex = i;

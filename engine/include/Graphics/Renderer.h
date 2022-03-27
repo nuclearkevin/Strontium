@@ -26,8 +26,11 @@ namespace Strontium::Renderer3D
 
     VertexArray blankVAO;
 
+    Unique<Texture2D> blueNoise;
+
     Texture2D lightingBuffer;
     Texture2D halfResBuffer1;
+    Texture2D fullResBuffer1;
 
     GlobalRendererData()
       : blankVAO()

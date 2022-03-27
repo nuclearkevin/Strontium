@@ -73,7 +73,7 @@ layout(binding = 3) uniform sampler2D gMatProp;
 layout(binding = 4) uniform sampler2D cascadeMaps[NUM_CASCADES];
 
 // Decode the g-buffer.
-SurfaceProperties decodeGBuffer(vec2 gBufferUVs);
+SurfaceProperties decodeGBuffer(vec2 gBufferUVs, ivec2 gBufferTexel);
 
 // Evaluate a single directional light.
 vec3 evaluateDirectionalLight(DirectionalLight light, SurfaceProperties props);
@@ -85,12 +85,18 @@ float calcShadow(uint cascadeIndex, vec3 position, vec3 normal, DirectionalLight
 void main()
 {
   ivec2 invoke = ivec2(gl_GlobalInvocationID.xy);
+  ivec2 gBufferSize = ivec2(textureSize(gDepth, 0).xy);
+
+  // Quit early for threads that aren't in bounds of the screen.
+  if (any(greaterThanEqual(invoke, gBufferSize)))
+    return;
+    
   vec2 gBufferUVs = (vec2(invoke) + 0.5.xx) / vec2(textureSize(gDepth, 0).xy);
 
   if (texelFetch(gDepth, invoke, 0).r >= (1.0 - 1e-6))
     return;
 
-  SurfaceProperties gBuffer = decodeGBuffer(gBufferUVs);
+  SurfaceProperties gBuffer = decodeGBuffer(gBufferUVs, invoke);
   vec3 totalRadiance = imageLoad(lightingBuffer, invoke).rgb;
 
   // Cascaded shadow mapping.
@@ -131,9 +137,9 @@ void main()
 }
 
 // Decodes the worldspace position of the fragment from depth.
-vec3 decodePosition(vec2 texCoords, sampler2D depthMap, mat4 invMVP)
+vec3 decodePosition(vec2 texCoords, sampler2D depthMap, mat4 invMVP, ivec2 texel)
 {
-  float depth = texture(depthMap, texCoords).r;
+  float depth = texelFetch(depthMap, texel, 0).r;
   vec3 clipCoords = 2.0 * vec3(texCoords, depth) - 1.0.xxx;
   vec4 temp = invMVP * vec4(clipCoords, 1.0);
   return temp.xyz / temp.w;
@@ -144,29 +150,29 @@ vec2 signNotZero(vec2 v)
 {
   return vec2((v.x >= 0.0) ? 1.0 : -1.0, (v.y >= 0.0) ? 1.0 : -1.0);
 }
-vec3 decodeNormal(vec2 texCoords, sampler2D encodedNormals)
+vec3 decodeNormal(vec2 texCoords, sampler2D encodedNormals, ivec2 texel)
 {
-  vec2 e = texture(encodedNormals, texCoords).xy;
+  vec2 e = texelFetch(encodedNormals, texel, 0).xy;
   vec3 v = vec3(e.xy, 1.0 - abs(e.x) - abs(e.y));
   if (v.z < 0)
     v.xy = (1.0 - abs(v.yx)) * signNotZero(v.xy);
   return normalize(v);
 }
 
-SurfaceProperties decodeGBuffer(vec2 gBufferUVs)
+SurfaceProperties decodeGBuffer(vec2 gBufferUVs, ivec2 gBufferTexel)
 {
   SurfaceProperties decoded;
-  decoded.position = decodePosition(gBufferUVs, gDepth, u_invViewProjMatrix);
+  decoded.position = decodePosition(gBufferUVs, gDepth, u_invViewProjMatrix, gBufferTexel);
   decoded.view = normalize(u_camPosition - decoded.position);
-  decoded.normal = decodeNormal(gBufferUVs, gNormal);
+  decoded.normal = decodeNormal(gBufferUVs, gNormal, gBufferTexel);
 
-  vec3 mra = texture(gMatProp, gBufferUVs).rgb;
+  vec3 mra = texelFetch(gMatProp, gBufferTexel, 0).rgb;
   decoded.metalness = mra.r;
   decoded.roughness = mra.g;
   decoded.ao = mra.b;
 
   // Remap material properties.
-  vec4 albedoReflectance = texture(gAlbedo, gBufferUVs).rgba;
+  vec4 albedoReflectance = texelFetch(gAlbedo, gBufferTexel, 0).rgba;
   decoded.albedo = albedoReflectance.rgb;
   decoded.dielectricF0 = 0.16 * albedoReflectance.aaa * albedoReflectance.aaa;
   decoded.metallicF0 = decoded.albedo * decoded.metalness;
