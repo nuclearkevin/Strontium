@@ -201,8 +201,8 @@ namespace Strontium
     this->bind();
     glReadBuffer(static_cast<GLenum>(target));
     float data;
-    glReadPixels((int) mousePos.x, (int) mousePos.y, 1, 1, GL_RED, GL_FLOAT, &data);
-    return static_cast<int>(data);
+    glReadPixels(static_cast<int>(mousePos.x), static_cast<int>(mousePos.y), 1, 1, GL_RED, GL_FLOAT, &data);
+    return static_cast<int>(glm::round(data));
   }
 
   // Resize the framebuffer.
@@ -314,13 +314,14 @@ namespace Strontium
     this->bind();
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
     {
-      std::cout << "The framebuffer is not valid for a drawcall." << std::endl;
+      Logs::log("The framebuffer is not valid for a drawcall.");
+      this->unbind();
       return false;
     }
     else
     {
+      this->unbind();
       return true;
     }
-    this->unbind();
   }
 }

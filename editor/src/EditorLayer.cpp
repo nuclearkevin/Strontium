@@ -40,6 +40,7 @@ namespace Strontium
     // framebuffer.
     glm::ivec2 wDims = Application::getInstance()->getWindow()->getSize();
     this->drawBuffer.resize(static_cast<uint>(wDims.x), static_cast<uint>(wDims.y));
+    this->drawBuffer.setClearColour(glm::vec4(0.0f));
 
     // Fetch a default floating point FBO spec and attach it. Also attach a single
     // float spec for entity IDs.

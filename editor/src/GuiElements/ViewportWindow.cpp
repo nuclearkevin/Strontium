@@ -167,7 +167,7 @@ namespace Strontium
         mousePos.x < (this->parentLayer->getEditorSize()).x && mousePos.y < (this->parentLayer->getEditorSize()).y)
     {
       int id = this->parentLayer->getFrontBuffer().readPixel(FBOTargetParam::Colour1, glm::vec2(mousePos.x, mousePos.y)) - 1;
-
+      
       EventDispatcher* dispatcher = EventDispatcher::getInstance();
       dispatcher->queueEvent(new EntitySwapEvent(id, this->parentLayer->getActiveScene().get()));
     }
@@ -287,15 +287,6 @@ namespace Strontium
   {
     auto flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoDocking
                | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_AlwaysAutoResize;
-
-    // Bounding box detection to make sure this thing doesn't leave the editor
-    // viewport.
-    /*
-    this->gizmoSelPos.x = this->gizmoSelPos.x < this->bounds[0].x ? this->bounds[0].x : this->gizmoSelPos.x;
-    this->gizmoSelPos.y = this->gizmoSelPos.y < this->bounds[0].y ? this->bounds[0].y : this->gizmoSelPos.y;
-    this->gizmoSelPos.x = this->gizmoSelPos.x > this->bounds[1].x ? this->bounds[1].x : this->gizmoSelPos.x;
-    this->gizmoSelPos.y = this->gizmoSelPos.y > this->bounds[1].y ? this->bounds[1].y : this->gizmoSelPos.y;
-    */
 
     auto windowPos = ImGui::GetWindowPos();
     auto windowSize = ImVec2(bounds[1].x - bounds[0].x, bounds[1].y - bounds[0].y);

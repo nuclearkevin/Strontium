@@ -349,5 +349,5 @@ vec3 applyOutline(vec3 colour, sampler2D idMask, vec2 uvs, vec2 texel)
   float sobelEdgeV = kernel[0] + (2.0 * kernel[1]) + kernel[2] - (kernel[6] + (2.0 * kernel[7]) + kernel[8]);
   float sobel = sqrt((sobelEdgeH * sobelEdgeH) + (sobelEdgeV * sobelEdgeV));
 
-  return mix(colour, vec3(sobel, 0.0, 0.0), float(sobel > 1e-4));
+  return mix(colour, vec3(sobel, 0.0, 0.0), float(sobel >= 1e-2));
 }
