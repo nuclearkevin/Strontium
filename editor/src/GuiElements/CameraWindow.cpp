@@ -34,9 +34,11 @@ namespace Strontium
     
     if (ImGui::CollapsingHeader("Editor Viewport Settings"))
     {
+      auto& debugRendererData = DebugRenderer::getStorage();
       auto& passManager3D  = Renderer3D::getPassManager();
       auto postBlock = passManager3D.getRenderPass<PostProcessingPass>()->getInternalDataBlock<PostProcessingPassDataBlock>();
 
+      ImGui::Checkbox("Visualize all Colliders", &debugRendererData.visualizeAllColliders);
       ImGui::Checkbox("Draw Grid", &postBlock->useGrid);
     }
     ImGui::End();

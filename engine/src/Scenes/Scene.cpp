@@ -515,6 +515,7 @@ namespace Strontium
   void 
   Scene::onRenderDebug(float viewportAspect)
   {
+    auto& debugRendererData = DebugRenderer::getStorage();
     auto& debugPassManager = DebugRenderer::getPassManager();
     auto wireframePass = debugPassManager.getRenderPass<WireframePass>();
     
@@ -550,7 +551,7 @@ namespace Strontium
       for (auto entity : sphereColliders)
       {
         auto& collider = this->sceneECS.get<SphereColliderComponent>(entity);
-        if (collider.visualize)
+        if (collider.visualize || debugRendererData.visualizeAllColliders)
         {
           auto& transform = this->sceneECS.get<TransformComponent>(entity);
           auto matrix = glm::translate(transform.translation) * glm::toMat4(glm::quat(transform.rotation));
@@ -569,7 +570,7 @@ namespace Strontium
       for (auto entity : boxColliders)
       {
         auto& collider = this->sceneECS.get<BoxColliderComponent>(entity);
-        if (collider.visualize)
+        if (collider.visualize || debugRendererData.visualizeAllColliders)
         {
           auto& transform = this->sceneECS.get<TransformComponent>(entity);
           auto matrix = glm::translate(transform.translation) * glm::toMat4(glm::quat(transform.rotation));
@@ -589,7 +590,7 @@ namespace Strontium
       for (auto entity : cylinderColliders)
       {
         auto& collider = this->sceneECS.get<CylinderColliderComponent>(entity);
-        if (collider.visualize)
+        if (collider.visualize || debugRendererData.visualizeAllColliders)
         {
           auto& transform = this->sceneECS.get<TransformComponent>(entity);
           auto matrix = glm::translate(transform.translation) * glm::toMat4(glm::quat(transform.rotation));
@@ -608,7 +609,7 @@ namespace Strontium
       for (auto entity : capsuleColliders)
       {
         auto& collider = this->sceneECS.get<CapsuleColliderComponent>(entity);
-        if (collider.visualize)
+        if (collider.visualize || debugRendererData.visualizeAllColliders)
         {
           auto& transform = this->sceneECS.get<TransformComponent>(entity);
           auto matrix = glm::translate(transform.translation) * glm::toMat4(glm::quat(transform.rotation));

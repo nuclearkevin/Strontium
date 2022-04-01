@@ -72,9 +72,12 @@ namespace Strontium::DebugRenderer
 
     VertexArray blankVAO;
 
+    bool visualizeAllColliders;
+
     GlobalRendererData()
       : sceneCam()
       , blankVAO()
+      , visualizeAllColliders(false)
     { }
   };
 
