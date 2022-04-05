@@ -1,131 +1,143 @@
 #pragma once
 
-// Macro include file.
 #include "StrontiumPCH.h"
 
 // Project includes.
 #include "Core/ApplicationBase.h"
 #include "Core/Logs.h"
 
-// STL includes. Mutex for thread safety.
+#include "Assets/Assets.h"
+#include "Assets/AssetPool.h"
+
+// STL includes.
+#include <filesystem>
 #include <mutex>
-#include <functional>
 
 namespace Strontium
 {
-  // Define an asset handle to distinguish when an internal handle is used or not.
-  typedef std::string AssetHandle;
-
-  class Shader;
-
-  // A class to handle asset creation, destruction and file loading.
-  template <class T>
   class AssetManager
   {
   public:
-    ~AssetManager()
-    { }
+	AssetManager(const std::filesystem::path &assetRegistryPath);
+	~AssetManager();
 
-    static std::mutex assetMutex;
+	template <typename T>
+	bool has(const Asset::Handle &handle)
+	{
+	  static_assert(std::is_base_of<Asset, T>::value, "Class must derive from Asset.");
 
-    // Get an asset manager instance.
-    static AssetManager<T>* getManager(T* defaultAsset = nullptr)
-    {
-      std::lock_guard<std::mutex> guard(assetMutex);
+	  auto typeHash = typeid(T).hash_code();
+	  if (this->assetStorage.find(typeHash) != this->assetStorage.end())
+		return this->assetStorage.at(typeHash).has(handle);
 
-      if (instance == nullptr)
-      {
-        instance = new AssetManager<T>(defaultAsset);
-        return instance;
-      }
-      else
-        return instance;
-    }
+	  return false;
+	}
 
-    // Check to see if the map has an asset.
-    bool hasAsset(const AssetHandle &handle)
-    {
-      return this->assetStorage.count(handle) > 0;
-    }
+	template <typename T>
+	void attach(T* asset, const Asset::Handle &handle)
+	{
+	  static_assert(std::is_base_of<Asset, T>::value, "Class must derive from Asset.");
 
-    // Attach an asset to the manager.
-    void attachAsset(const AssetHandle &handle, T* asset)
-    {
-      std::lock_guard<std::mutex> guard(assetMutex);
+	  std::size_t typeHash = this->createPoolIfRequired<T>();
+	  auto& pool = this->assetStorage.at(typeHash);
+	  pool.attach<T>(asset, handle);
+	  this->registerAsset(assetPath, handle, asset);
+	}
 
-      if (!this->hasAsset(handle))
-      {
-        this->assetNames.push_back(handle);
-        this->assetStorage.insert({ handle, Unique<T>(asset) });
-      }
-      else
-      {
-        this->assetStorage.erase(handle);
+	template <typename T, typename ... Args>
+	T* emplace(const std::filesystem::path &assetPath, const Asset::Handle &handle, Args ... args)
+	{
+	  static_assert(std::is_base_of<Asset, T>::value, "Class must derive from Asset.");
 
-        auto loc = std::find(this->assetNames.begin(), this->assetNames.end(), handle);
-        if (loc != this->assetNames.end())
-          this->assetNames.erase(loc);
+	  std::size_t typeHash = this->createPoolIfRequired<T>();
+	  auto& pool = this->assetStorage.at(typeHash);
+	  T* result = pool.emplace<T>(handle, std::forward<Args>(args)...);
+	  this->registerAsset(assetPath, handle, result);
 
-        this->assetNames.push_back(handle);
-        this->assetStorage.insert({ handle, Unique<T>(asset) });
-      }
-    }
+	  return result;
+	}
 
-    // Get the asset reference.
-    T* getAsset(const AssetHandle &handle)
-    {
-      if (handle == "None")
-        return this->defaultAsset.get();
+	template <typename T, typename ... Args>
+	T* emplaceReplace(const std::filesystem::path &assetPath, const Asset::Handle &handle, Args ... args)
+	{
+	  static_assert(std::is_base_of<Asset, T>::value, "Class must derive from Asset.");
 
-      if (this->hasAsset(handle))
-        return this->assetStorage.at(handle).get();
-      else
-        return this->defaultAsset.get();
-    }
+	  std::size_t typeHash = this->createPoolIfRequired<T>();
+	  auto& pool = this->assetStorage.at(typeHash);
+	  T* result = pool.emplaceReplace<T>(handle, std::forward<Args>(args)...);
+	  this->registerAsset(assetPath, handle, result);
 
-    // Delete the asset.
-    void deleteAsset(const AssetHandle &handle)
-    {
-      std::lock_guard<std::mutex> guard(assetMutex);
+	  return result;
+	}
 
-      this->assetStorage.erase(handle);
+	template <typename T>
+	T* get(const Asset::Handle& handle)
+	{
+	  static_assert(std::is_base_of<Asset, T>::value, "Class must derive from Asset.");
 
-      auto loc = std::find(this->assetNames.begin(), this->assetNames.end(), handle);
-      if (loc != this->assetNames.end())
-        this->assetNames.erase(loc);
-    }
+	  T* result = this->assetStorage.at(typeid(T).hash_code()).get<T>(handle);
 
-    void setDefaultAsset(T* asset)
-    {
-      std::lock_guard<std::mutex> guard(assetMutex);
+	  return result;
+	}
 
-      this->defaultAsset.reset(asset);
-    }
+	template <typename T>
+	void setDefaultAsset(T* asset)
+	{
+	  static_assert(std::is_base_of<Asset, T>::value, "Class must derive from Asset.");
 
-    void getDefaultAsset()
-    {
-      std::lock_guard<std::mutex> guard(assetMutex);
+	  std::size_t typeHash = this->createPoolIfRequired<T>();
+	  this->assetStorage.at(typeHash).setDefaultAsset<T>(asset);
+	}
 
-      return this->defaultAsset.get();
-    }
+	template <typename T, typename ... Args>
+	T* emplaceDefaultAsset(Args ... args)
+	{
+	  static_assert(std::is_base_of<Asset, T>::value, "Class must derive from Asset.");
 
-    // Get a reference to the asset name storage.
-    std::vector<AssetHandle>& getStorage() { return this->assetNames; }
+	  std::size_t typeHash = this->createPoolIfRequired<T>();
+	  T* result = this->assetStorage.at(typeHash).emplaceDefaultAsset<T>(std::forward<Args>(args)...);
+
+	  return result;
+	}
+
+	template <typename T>
+	T* getDefaultAsset()
+	{
+	  static_assert(std::is_base_of<Asset, T>::value, "Class must derive from Asset.");
+
+	  T* result = this->assetStorage.at(typeid(T).hash_code()).getDefaultAsset<T>();
+
+	  return result;
+	}
+
+	template <typename T>
+	AssetPool& getPool()
+	{
+	  static_assert(std::is_base_of<Asset, T>::value, "Class must derive from Asset.");
+
+	  auto& result = this->assetStorage.at(typeid(T).hash_code());
+
+	  return result;
+	}
+
   private:
-    AssetManager(T* defaultAsset)
-      : defaultAsset(defaultAsset)
-    { }
+	template <typename T>
+	std::size_t createPoolIfRequired()
+	{
+	  auto typeHash = typeid(T).hash_code();
+	  if (this->assetStorage.find(typeHash) == this->assetStorage.end())
+        this->assetStorage.emplace(typeHash, AssetPool(nullptr));
 
-    static AssetManager<T>* instance;
+	  return typeHash;
+	}
 
-    std::unordered_map<AssetHandle, Unique<T>> assetStorage;
-    std::vector<AssetHandle> assetNames;
-    Unique<T> defaultAsset;
+	void registerAsset(const std::filesystem::path& assetPath, const Asset::Handle& handle, 
+					   Asset* asset);
+
+	void bakeAsset(const std::filesystem::path& assetPath, const Asset::Handle& handle, 
+				  Asset::Type type);
+
+	robin_hood::unordered_node_map<std::size_t, AssetPool> assetStorage;
+	std::filesystem::path registryPath;
   };
-
-  template <typename T>
-  AssetManager<T>* AssetManager<T>::instance = nullptr;
-
-  template <typename T>
-  std::mutex AssetManager<T>::assetMutex;
 }

@@ -5,9 +5,11 @@
 #include "Core/Events.h"
 #include "Core/Logs.h"
 
-#include "Graphics/Model.h"
-#include "Graphics/Material.h"
+#include "Assets/ModelAsset.h"
+#include "Assets/Image2DAsset.h"
+#include "Assets/MaterialAsset.h"
 #include "Utils/AsyncAssetLoading.h"
+
 #include "Graphics/RendererCommands.h"
 
 #include "PhysicsEngine/PhysicsEngine.h"
@@ -22,6 +24,7 @@ namespace Strontium
     , running(true)
     , isMinimized(false)
     , lastTime(0.0f)
+    , assetCache("./assets/registry.yaml")
   {
     assert(("Error: Already have an instance of the application.", Application::appInstance == nullptr));
 
@@ -45,21 +48,16 @@ namespace Strontium
     // Init the physics system.
     PhysicsEngine::init();
 
-    // Initialize the asset managers.
-    this->modelAssets.reset(AssetManager<Model>::getManager());
-    this->texture2DAssets.reset(AssetManager<Texture2D>::getManager());
-    this->materialAssets.reset(AssetManager<Material>::getManager());
-
     // Load the default assets.
     // Default texture (an ugly purple) and the default material properties
     // texture (white) and default normal map.
-    this->texture2DAssets->setDefaultAsset(Texture2D::createMonoColour(
-      glm::vec4(1.0f, 0.0f, 1.0f, 1.0f), Texture2DParams(), false));
+    auto image2DDefault = this->assetCache.emplaceDefaultAsset<Image2DAsset>();
+    Texture2D::createMonoColour(*(image2DDefault->getTexture()), glm::vec4(1.0f, 0.0f, 1.0f, 1.0f));
     Texture2D::createMonoColour(glm::vec4(1.0f));
     Texture2D::createMonoColour(glm::vec4(0.5f, 0.5f, 1.0f, 1.0f));
 
     // Default material.
-    this->materialAssets->setDefaultAsset(new Material());
+    this->assetCache.emplaceDefaultAsset<MaterialAsset>();
 
     this->imLayer = new ImGuiLayer();
     this->pushOverlay(this->imLayer);

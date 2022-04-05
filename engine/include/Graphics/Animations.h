@@ -104,7 +104,7 @@ namespace Strontium
     Animator();
     ~Animator() = default;
 
-    void setAnimation(Animation* animation, const AssetHandle &modelHandle);
+    void setAnimation(Animation* animation, const Asset::Handle &modelHandle);
 
     void onUpdate(float dt);
 
@@ -124,7 +124,7 @@ namespace Strontium
     bool isScrubbing() { return this->scrubbing; }
   private:
     float currentAniTime;
-    AssetHandle storedModel;
+    Asset::Handle storedModel;
     Animation* storedAnimation;
     std::vector<glm::mat4> finalBoneTransforms;
     robin_hood::unordered_flat_map<std::string, glm::mat4> unSkinnedFinalTransforms;

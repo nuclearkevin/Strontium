@@ -8,6 +8,9 @@
 #include "Assets/AssetManager.h"
 #include "Scenes/Scene.h"
 
+// STL includes.
+
+
 namespace Strontium
 {
   class Shader;
@@ -16,13 +19,13 @@ namespace Strontium
   {
     void serializeScene(Shared<Scene> scene, const std::string &filepath,
                         const std::string &name = "Untitled");
-    void serializeMaterial(const AssetHandle &materialHandle,
+    void serializeMaterial(const Asset::Handle &materialHandle,
                            const std::string &filepath);
     void serializePrefab(Entity prefab, const std::string &filepath, 
                          Shared<Scene> scene, const std::string &name = "Untitled Prefab");
 
     bool deserializeScene(Shared<Scene> scene, const std::string &filepath);
-    bool deserializeMaterial(const std::string &filepath, AssetHandle &handle, bool override = false);
+    bool deserializeMaterial(const std::string &filepath, Asset::Handle &handle, bool override = false);
     bool deserializePrefab(Shared<Scene> scene, const std::string &filepath);
   }
 }

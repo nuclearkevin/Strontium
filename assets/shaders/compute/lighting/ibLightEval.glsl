@@ -122,10 +122,11 @@ SurfaceProperties decodeGBuffer(vec2 gBufferUVs, ivec2 gBufferTexel)
   decoded.view = normalize(u_camPosition - decoded.position);
   decoded.normal = decodeNormal(gBufferUVs, gNormal, gBufferTexel);
 
-  vec3 mra = texelFetch(gMatProp, gBufferTexel, 0).rgb;
+  vec4 mra = texelFetch(gMatProp, gBufferTexel, 0);
   decoded.metalness = mra.r;
   decoded.roughness = mra.g;
   decoded.ao = mra.b;
+  decoded.emission = mra.a;
 
   // Remap material properties.
   vec4 albedoReflectance = texelFetch(gAlbedo, gBufferTexel, 0).rgba;

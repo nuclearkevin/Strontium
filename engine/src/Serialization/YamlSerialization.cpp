@@ -1,8 +1,16 @@
 #include "Serialization/YamlSerialization.h"
 
 // Project includes.
+#include "Core/ApplicationBase.h"
+#include "Core/Application.h"
+
 #include "Scenes/Components.h"
 #include "Scenes/Entity.h"
+
+#include "Assets/AssetManager.h"
+#include "Assets/MaterialAsset.h"
+#include "Assets/ModelAsset.h"
+#include "Assets/Image2DAsset.h"
 #include "Utils/AsyncAssetLoading.h"
 
 #include "Graphics/RenderPasses/RenderPassManager.h"
@@ -133,26 +141,26 @@ namespace Strontium
     }
 
     void
-    serializeMaterial(YAML::Emitter &out, const AssetHandle &materialHandle, bool override = false)
+    serializeMaterial(YAML::Emitter &out, const Asset::Handle &materialHandle, bool override = false)
     {
-      auto textureCache = AssetManager<Texture2D>::getManager();
-      auto materialAssets = AssetManager<Material>::getManager();
+      auto& assetCache = Application::getInstance()->getAssetCache();
 
-      auto material = materialAssets->getAsset(materialHandle);
+      auto materialAsset = assetCache.get<MaterialAsset>(materialHandle);
+      auto material = materialAsset->getMaterial();
 
       out << YAML::BeginMap;
 
       // Save the material name.
       out << YAML::Key << "MaterialName" << YAML::Value << materialHandle;
-      if (material->getFilepath() != "" && override)
+      if (materialAsset->getPath().empty() && override)
       {
-        out << YAML::Key << "MaterialPath" << YAML::Value << material->getFilepath();
+        out << YAML::Key << "MaterialPath" << YAML::Value << materialAsset->getPath().string();
         out << YAML::EndMap;
         return;
       }
 
       // Save the material type.
-      if (material->getType() == MaterialType::PBR)
+      if (material->getType() == Material::Type::PBR)
         out << YAML::Key << "MaterialType" << YAML::Value << "pbr_shader";
       else
         out << YAML::Key << "MaterialType" << YAML::Value << "unknown_shader";
@@ -197,7 +205,7 @@ namespace Strontium
         out << YAML::BeginMap;
         out << YAML::Key << "SamplerName" << YAML::Value << uSampler2D.first;
         out << YAML::Key << "SamplerHandle" << YAML::Value << uSampler2D.second;
-        out << YAML::Key << "ImagePath" << YAML::Value << textureCache->getAsset(uSampler2D.second)->getFilepath();
+        out << YAML::Key << "ImagePath" << YAML::Value << assetCache.get<Image2DAsset>(uSampler2D.second)->getPath().string();
         out << YAML::EndMap;
       }
       out << YAML::EndSeq;
@@ -205,7 +213,7 @@ namespace Strontium
       out << YAML::EndMap;
     }
 
-    void serializeMaterial(const AssetHandle &materialHandle,
+    void serializeMaterial(const Asset::Handle &materialHandle,
                            const std::string &filepath)
     {
       YAML::Emitter out;
@@ -222,7 +230,7 @@ namespace Strontium
       if (!entity)
         return;
 
-      auto materialAssets = AssetManager<Material>::getManager();
+      auto& assetCache = Application::getInstance()->getAssetCache();
 
       // Serialize the entity.
       out << YAML::BeginMap;
@@ -279,10 +287,8 @@ namespace Strontium
 
       if (entity.hasComponent<RenderableComponent>())
       {
-        auto modelAssets = AssetManager<Model>::getManager();
-
         auto& component = entity.getComponent<RenderableComponent>();
-        auto model = modelAssets->getAsset(component.meshName);
+        auto model = assetCache.get<ModelAsset>(component.meshName);
         auto& material = component.materials;
 
         if (model != nullptr)
@@ -291,7 +297,7 @@ namespace Strontium
           out << YAML::BeginMap;
 
           // Serialize the model path and name.
-          out << YAML::Key << "ModelPath" << YAML::Value << model->getFilepath();
+          out << YAML::Key << "ModelPath" << YAML::Value << model->getPath().string();
           out << YAML::Key << "ModelName" << YAML::Value << component.meshName;
 
           auto currentAnimation = component.animator.getStoredAnimation();
@@ -304,7 +310,6 @@ namespace Strontium
           out << YAML::BeginSeq;
           for (auto& pair : material.getStorage())
           {
-            auto material = materialAssets->getAsset(pair.first);
             out << YAML::BeginMap;
             out << YAML::Key << "SubmeshName" << YAML::Value << pair.first;
             out << YAML::Key << "MaterialHandle" << YAML::Value << pair.second;
@@ -484,7 +489,7 @@ namespace Strontium
     serializeScene(Shared<Scene> scene, const std::string &filepath,
                    const std::string &name)
     {
-      auto materialAssets = AssetManager<Material>::getManager();
+      auto& assetCache = Application::getInstance()->getAssetCache();
 
       YAML::Emitter out;
       out << YAML::BeginMap;
@@ -610,7 +615,7 @@ namespace Strontium
 
       out << YAML::Key << "Materials";
       out << YAML::BeginSeq;
-      for (auto& materialHandle : materialAssets->getStorage())
+      for (auto& [materialHandle, asset] : assetCache.getPool<MaterialAsset>())
         serializeMaterial(out, materialHandle, true);
       out << YAML::EndSeq;
 
@@ -643,7 +648,7 @@ namespace Strontium
     deserializeMaterial(YAML::Node &mat, std::vector<std::string> &texturePaths,
                         bool override = false, const std::string &filepath = "")
     {
-      auto materialAssets = AssetManager<Material>::getManager();
+      auto& assetCache = Application::getInstance()->getAssetCache();
 
       auto parsedMaterialName = mat["MaterialName"];
       auto parsedMaterialPath = mat["MaterialPath"];
@@ -652,7 +657,7 @@ namespace Strontium
       if (parsedMaterialPath && override)
       {
         materialPath = parsedMaterialPath.as<std::string>();
-        AssetHandle handle;
+        Asset::Handle handle;
         deserializeMaterial(materialPath, handle);
         return;
       }
@@ -664,18 +669,11 @@ namespace Strontium
       std::string shaderName, materialName;
       if (matType && parsedMaterialName)
       {
-        Material* outMat;
-
         shaderName = matType.as<std::string>();
         materialName = parsedMaterialName.as<std::string>();
-        if (shaderName == "pbr_shader")
-          outMat = new Material(MaterialType::PBR);
-        else
-          outMat = new Material(MaterialType::Unknown);
-
-        materialAssets->attachAsset(materialName, outMat);
-
-        outMat->getFilepath() = materialPath;
+        auto outMat = assetCache.emplace<MaterialAsset>(materialPath, materialName);
+        if (shaderName != "pbr_shader")
+          outMat->getMaterial()->setType(Material::Type::Unknown);
 
         auto floats = mat["Floats"];
         if (floats)
@@ -684,7 +682,7 @@ namespace Strontium
           {
             auto uName = uFloat["UniformName"];
             if (uName)
-              outMat->set(uFloat["UniformValue"].as<float>(), uName.as<std::string>());
+              outMat->getMaterial()->set(uFloat["UniformValue"].as<float>(), uName.as<std::string>());
           }
         }
 
@@ -695,7 +693,7 @@ namespace Strontium
           {
             auto uName = uVec2["UniformName"];
             if (uName)
-              outMat->set(uVec2["UniformValue"].as<glm::vec2>(), uName.as<std::string>());
+              outMat->getMaterial()->set(uVec2["UniformValue"].as<glm::vec2>(), uName.as<std::string>());
           }
         }
 
@@ -706,15 +704,13 @@ namespace Strontium
           {
             auto uName = uVec3["UniformName"];
             if (uName)
-              outMat->set(uVec3["UniformValue"].as<glm::vec3>(), uName.as<std::string>());
+              outMat->getMaterial()->set(uVec3["UniformValue"].as<glm::vec3>(), uName.as<std::string>());
           }
         }
 
         auto sampler2Ds = mat["Sampler2Ds"];
         if (sampler2Ds)
         {
-          auto textureCache = AssetManager<Texture2D>::getManager();
-
           for (auto uSampler2D : sampler2Ds)
           {
             auto uName = uSampler2D["SamplerName"];
@@ -725,21 +721,21 @@ namespace Strontium
 
               bool shouldLoad = std::find(texturePaths.begin(),
                                           texturePaths.end(),
-                                          uSampler2D["ImagePath"].as<std::string>()
-                                          ) == texturePaths.end();
+                                          uSampler2D["ImagePath"].as<std::string>()) 
+                                          == texturePaths.end();
 
-              if (!textureCache->hasAsset(uSampler2D["SamplerHandle"].as<std::string>()) && shouldLoad)
+              if (!assetCache.has<Image2DAsset>(uSampler2D["SamplerHandle"].as<std::string>()) && shouldLoad)
                 texturePaths.emplace_back(uSampler2D["ImagePath"].as<std::string>());
 
-              outMat->attachSampler2D(uSampler2D["SamplerName"].as<std::string>(),
-                                      uSampler2D["SamplerHandle"].as<std::string>());
+              outMat->getMaterial()->attachSampler2D(uSampler2D["SamplerName"].as<std::string>(),
+                                                     uSampler2D["SamplerHandle"].as<std::string>());
             }
           }
         }
       }
     }
 
-    bool deserializeMaterial(const std::string &filepath, AssetHandle &handle, bool override)
+    bool deserializeMaterial(const std::string &filepath, Asset::Handle &handle, bool override)
     {
       YAML::Node data = YAML::LoadFile(filepath);
 

@@ -134,7 +134,7 @@ namespace Strontium
   {
     // Model handle and a collection of materials for the model's submeshes.
     ModelMaterial materials;
-    AssetHandle meshName;
+    Asset::Handle meshName;
 
     // An animator and the handle of the current animation.
     Animator animator;
@@ -151,22 +151,6 @@ namespace Strontium
       : meshName(meshName)
       , animationHandle("")
     { }
-
-    operator Model*()
-    {
-      auto modelAssets = AssetManager<Model>::getManager();
-
-      return modelAssets->getAsset(meshName);
-    }
-
-    operator ModelMaterial&() { return materials; }
-
-    operator bool()
-    {
-      auto modelAssets = AssetManager<Model>::getManager();
-
-      return modelAssets->getAsset(meshName) != nullptr;
-    }
   };
 
   // The camera component contants some of the information required to construct

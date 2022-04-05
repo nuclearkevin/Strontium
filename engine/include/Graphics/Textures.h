@@ -6,6 +6,9 @@
 // Project includes.
 #include "Core/ApplicationBase.h"
 
+// STL includes.
+#include <filesystem>
+
 namespace Strontium
 {
   // Parameters for textures.
@@ -174,14 +177,15 @@ namespace Strontium
   public:
     // Other members to load and generate textures.
     static Texture2D* createMonoColour(const glm::vec4 &colour, std::string &outName,
-                                       const Texture2DParams &params = Texture2DParams(),
+                                       const Texture2DParams &params = getFloatColourParams(),
                                        bool cache = true);
-    static Texture2D* createMonoColour(const glm::vec4 &colour, const Texture2DParams &params = Texture2DParams(),
+    static Texture2D* createMonoColour(const glm::vec4 &colour, const Texture2DParams &params = getFloatColourParams(),
                                        bool cache = true);
+    static void createMonoColour(Texture2D &outTex, const glm::vec4 &colour, const Texture2DParams &params = getFloatColourParams());
 
     // This loads an image and generates the texture all at once, does so on the
     // main thread due to OpenGL thread safety.
-    static Texture2D* loadTexture2D(const std::string &filepath, const Texture2DParams &params
+    static Texture2D* loadTexture2D(const std::filesystem::path &filepath, const Texture2DParams &params
                                     = Texture2DParams(), bool cache = true);
 
     static Texture2DParams getDefaultColourParams();
@@ -227,16 +231,13 @@ namespace Strontium
     int getWidth() { return this->width; }
     int getHeight() { return this->height; }
 
-    uint& getID() { return this->textureID; }
-    std::string& getFilepath() { return this->filepath; }
+    uint getID() { return this->textureID; }
   private:
     uint textureID;
 
     int width;
     int height;
     Texture2DParams params;
-
-    std::string filepath;
   };
 
   class Texture2DArray
@@ -335,15 +336,12 @@ namespace Strontium
     int getHeight(uint face) { return this->height[face]; }
 
     uint& getID() { return this->textureID; }
-    std::string& getFilepath() { return this->filepath; }
   private:
     uint textureID;
 
     int width[6];
     int height[6];
     TextureCubeMapParams params;
-
-    std::string filepath;
   };
 
   class CubeMapArrayTexture

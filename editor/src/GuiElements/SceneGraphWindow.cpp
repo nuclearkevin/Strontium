@@ -4,11 +4,20 @@
 #include <cstring>
 
 // Project includes.
-#include "Graphics/Renderer.h"
-#include "GuiElements/Styles.h"
+#include "Core/Application.h"
+
+#include "Assets/AssetManager.h"
+#include "Assets/Image2DAsset.h"
+#include "Assets/MaterialAsset.h"
+#include "Assets/ModelAsset.h"
+
 #include "Scenes/Components.h"
 #include "Serialization/YamlSerialization.h"
 #include "Utils/AsyncAssetLoading.h"
+
+#include "Graphics/Renderer.h"
+
+#include "GuiElements/Styles.h"
 
 // ImGui includes.
 #include "imgui/imgui.h"
@@ -19,6 +28,9 @@
 
 // ImGizmo goodies.
 #include "imguizmo/ImGuizmo.h"
+
+// STL includes.
+#include <filesystem>
 
 namespace Strontium
 {
@@ -290,8 +302,6 @@ namespace Strontium
         {
           case FileLoadTargets::TargetModel:
           {
-            auto modelAssets = AssetManager<Model>::getManager();
-
             // If it already has a mesh component, remove it and add a new one.
             if (this->selectedEntity.hasComponent<RenderableComponent>())
               this->selectedEntity.removeComponent<RenderableComponent>();
@@ -753,11 +763,12 @@ namespace Strontium
       drawComponentProperties<RenderableComponent>("Renderable Component",
         this->selectedEntity, [this](auto& component)
       {
-        Model* componentModel = component;
+        auto& assetCache = Application::getInstance()->getAssetCache();
+        Model* componentModel = assetCache.get<ModelAsset>(component.meshName)->getModel();
         char nameBuffer[256];
         memset(nameBuffer, 0, sizeof(nameBuffer));
         if (componentModel)
-          std::strncpy(nameBuffer, componentModel->getFilepath().c_str(), sizeof(nameBuffer));
+          std::strncpy(nameBuffer, component.meshName.c_str(), sizeof(nameBuffer));
 
         ImGui::Text("Mesh Information");
         ImGui::Separator();
@@ -840,8 +851,8 @@ namespace Strontium
 
               if (ImGui::Button("Create##newMaterial"))
               {
-                auto newMat = new Material();
-                AssetManager<Material>::getManager()->attachAsset(newMaterialname, newMat);
+                auto& assetCache = Application::getInstance()->getAssetCache();
+                assetCache.emplace<MaterialAsset>("", newMaterialname);
                 component.materials.swapMaterial(submeshName, newMaterialname);
                 makingNewmaterial = false;
               }
@@ -1214,11 +1225,9 @@ namespace Strontium
     {
       if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH"))
       {
-        auto modelAssets = AssetManager<Model>::getManager();
-
-        std::string filepath = (char*) payload->Data;
-        std::string filename = filepath.substr(filepath.find_last_of('/') + 1);
-        std::string filetype = filename.substr(filename.find_last_of('.'));
+        std::filesystem::path filepath (std::string(static_cast<char*>(payload->Data)));
+        std::string filename(filepath.filename().string());
+        std::string filetype(filepath.extension().string());
 
         // Attach a mesh component.
         if (filetype == ".obj" || filetype == ".FBX" || filetype == ".fbx"
@@ -1249,19 +1258,17 @@ namespace Strontium
     {
       if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH"))
       {
-        auto materialAssets = AssetManager<Material>::getManager();
+        auto& assetCache = Application::getInstance()->getAssetCache();
 
-        std::string filepath = (char*) payload->Data;
-        std::string filename = filepath.substr(filepath.find_last_of('/') + 1);
-        std::string filetype = filename.substr(filename.find_last_of('.'));
+        std::filesystem::path filepath(std::string(static_cast<char*>(payload->Data)));
+        std::string filename(filepath.filename().string());
+        std::string filetype(filepath.extension().string());
 
         if (filetype == ".smtl")
         {
-          AssetHandle handle;
-          if (YAMLSerialization::deserializeMaterial(filepath, handle))
+          Asset::Handle handle;
+          if (YAMLSerialization::deserializeMaterial(filepath.string(), handle))
           {
-            materialAssets->getAsset(handle)->getFilepath() = filepath;
-
             auto& rComponent = this->selectedEntity.getComponent<RenderableComponent>();
             rComponent.materials.swapMaterial(submeshName, handle);
           }

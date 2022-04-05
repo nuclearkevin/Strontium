@@ -571,9 +571,9 @@ Entities:
       Name: Panel
       Description: ""
     TransformComponent:
-      Translation: [-8.33605766, 2.18469906, 4.36121845]
+      Translation: [-8.33605766, 2.25683117, 4.36121845]
       Rotation: [1.57079601, -0, 0]
-      Scale: [1, 0.999805808, 0.0999762043]
+      Scale: [1, 0.999729037, 0.099966608]
     RenderableComponent:
       ModelPath: ./assets/tests\cube.gltf
       ModelName: cube.gltf

@@ -13,23 +13,24 @@
 
 namespace Strontium
 {
-  // Type of the material.
-  enum class MaterialType
-  {
-    PBR, Unknown
-  };
-
-  struct MaterialBlockData
-  {
-    glm::vec4 mRAE; // Metallic (r), roughness (g), AO (b) and emission (a);
-    glm::vec4 albedoReflectance; // Albedo (r, g, b) and reflectance (a);  
-  };
-
   // Individual material class to hold shaders and shader data.
   class Material
   {
   public:
-    Material(MaterialType type = MaterialType::PBR, const std::string &filepath = "");
+    // Type of the material.
+    enum class Type
+    {
+      PBR = 0u, 
+      Unknown = 1u
+    };
+    
+    struct BlockData
+    {
+      glm::vec4 mRAE; // Metallic (r), roughness (g), AO (b) and emission (a);
+      glm::vec4 albedoReflectance; // Albedo (r, g, b) and reflectance (a);  
+    };
+
+    Material(Type type = Type::PBR);
     ~Material();
 
     // Prepare for drawing.
@@ -37,25 +38,23 @@ namespace Strontium
 
     // Sampler configuration.
     bool hasSampler1D(const std::string &samplerName);
-    void attachSampler1D(const std::string &samplerName, const Strontium::AssetHandle &handle);
+    void attachSampler1D(const std::string &samplerName, const Asset::Handle &handle);
     bool hasSampler2D(const std::string &samplerName);
-    void attachSampler2D(const std::string &samplerName, const Strontium::AssetHandle &handle);
+    void attachSampler2D(const std::string &samplerName, const Asset::Handle &handle);
     bool hasSampler3D(const std::string &samplerName);
-    void attachSampler3D(const std::string &samplerName, const Strontium::AssetHandle &handle);
+    void attachSampler3D(const std::string &samplerName, const Asset::Handle &handle);
     bool hasSamplerCubemap(const std::string &samplerName);
-    void attachSamplerCubemap(const std::string &samplerName, const Strontium::AssetHandle &handle);
+    void attachSamplerCubemap(const std::string &samplerName, const Asset::Handle &handle);
 
     // TODO: Implement 1D and 3D texture fetching.
     Texture2D* getSampler2D(const std::string &samplerName);
-    Strontium::AssetHandle& getSampler2DHandle(const std::string &samplerName);
+    Asset::Handle& getSampler2DHandle(const std::string &samplerName);
 
-    MaterialBlockData getPackedUniformData();
-
-    // Get the filepath.
-    std::string& getFilepath() { return this->filepath; }
+    BlockData getPackedUniformData();
 
     // Get the shader and pipeline type.
-    MaterialType& getType() { return this->type; }
+    void setType(Type type) { this->type = type; }
+    Type getType() { return this->type; }
 
     // Get the shader program.
     Shader* getShader() { return this->program; }
@@ -161,19 +160,16 @@ namespace Strontium
     std::vector<std::pair<std::string, glm::vec4>>& getVec4s() { return this->vec4s; }
     std::vector<std::pair<std::string, glm::mat3>>& getMat3s() { return this->mat3s; }
     std::vector<std::pair<std::string, glm::mat4>>& getMat4s() { return this->mat4s; }
-    std::vector<std::pair<std::string, Strontium::AssetHandle>>& getSampler1Ds() { return this->sampler1Ds; }
-    std::vector<std::pair<std::string, Strontium::AssetHandle>>& getSampler2Ds() { return this->sampler2Ds; }
-    std::vector<std::pair<std::string, Strontium::AssetHandle>>& getSampler3Ds() { return this->sampler3Ds; }
-    std::vector<std::pair<std::string, Strontium::AssetHandle>>& getSamplerCubemaps() { return this->samplerCubes; }
+    std::vector<std::pair<std::string, Asset::Handle>>& getSampler1Ds() { return this->sampler1Ds; }
+    std::vector<std::pair<std::string, Asset::Handle>>& getSampler2Ds() { return this->sampler2Ds; }
+    std::vector<std::pair<std::string, Asset::Handle>>& getSampler3Ds() { return this->sampler3Ds; }
+    std::vector<std::pair<std::string, Asset::Handle>>& getSamplerCubemaps() { return this->samplerCubes; }
   private:
     // Reflect the attached shader.
     void reflect();
 
-    // The location (if any) on disk.
-    std::string filepath;
-
     // The material type and pipeline.
-    MaterialType type;
+    Type type;
     bool pipeline;
 
     // The shader and shader data.
@@ -185,10 +181,10 @@ namespace Strontium
     std::vector<std::pair<std::string, glm::mat3>> mat3s;
     std::vector<std::pair<std::string, glm::mat4>> mat4s;
 
-    std::vector<std::pair<std::string, Strontium::AssetHandle>> sampler1Ds;
-    std::vector<std::pair<std::string, Strontium::AssetHandle>> sampler2Ds;
-    std::vector<std::pair<std::string, Strontium::AssetHandle>> sampler3Ds;
-    std::vector<std::pair<std::string, Strontium::AssetHandle>> samplerCubes;
+    std::vector<std::pair<std::string, Asset::Handle>> sampler1Ds;
+    std::vector<std::pair<std::string, Asset::Handle>> sampler2Ds;
+    std::vector<std::pair<std::string, Asset::Handle>> sampler3Ds;
+    std::vector<std::pair<std::string, Asset::Handle>> samplerCubes;
   };
 
   // Macro material which holds all the individual material objects for each
@@ -199,17 +195,17 @@ namespace Strontium
     ModelMaterial() = default;
     ~ModelMaterial() = default;
 
-    void attachMesh(const std::string &meshName, MaterialType type = MaterialType::PBR);
-    void attachMesh(const std::string &meshName, const AssetHandle &material);
-    void swapMaterial(const std::string &meshName, const AssetHandle &newMaterial);
+    void attachMesh(const std::string &meshName, Material::Type type = Material::Type::PBR);
+    void attachMesh(const std::string &meshName, const Asset::Handle &material);
+    void swapMaterial(const std::string &meshName, const Asset::Handle &newMaterial);
 
     Material* getMaterial(const std::string &meshName);
-    AssetHandle getMaterialHandle(const std::string &meshName);
+    Asset::Handle getMaterialHandle(const std::string &meshName);
     uint getNumStored() { return this->materials.size(); }
 
     // Get the storage.
-    std::vector<std::pair<std::string, AssetHandle>>& getStorage() { return this->materials; };
+    std::vector<std::pair<std::string, Asset::Handle>>& getStorage() { return this->materials; };
   private:
-    std::vector<std::pair<std::string, AssetHandle>> materials;
+    std::vector<std::pair<std::string, Asset::Handle>> materials;
   };
 }

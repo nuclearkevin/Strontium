@@ -22,11 +22,11 @@ namespace Strontium
     void onUpdate(float dt, Shared<Scene> activeScene);
     void onEvent(Event &event);
 
-    void setSelectedMaterial(const AssetHandle &matHandle) { this->selectedMaterial = matHandle; }
+    void setSelectedMaterial(const Asset::Handle &matHandle) { this->selectedMaterial = matHandle; }
 
-    AssetHandle getSelectedMaterialHandle() const { return this->selectedMaterial; }
+    Asset::Handle getSelectedMaterialHandle() const { return this->selectedMaterial; }
   private:
-    AssetHandle selectedMaterial;
+    Asset::Handle selectedMaterial;
     FileLoadTargets fileLoadTargets;
   };
 }

@@ -3,7 +3,11 @@
 // Project includes.
 #include "Core/Logs.h"
 #include "Core/Events.h"
+#include "Core/Application.h"
+
 #include "Assets/AssetManager.h"
+#include "Assets/Image2DAsset.h"
+
 #include "Utils/Utilities.h"
 
 // OpenGL includes.
@@ -22,242 +26,154 @@ namespace Strontium
   Texture2D::createMonoColour(const glm::vec4 &colour, std::string &outName,
                               const Texture2DParams &params, bool cache)
   {
-    auto textureCache = AssetManager<Texture2D>::getManager();
+    auto& assetCache = Application::getInstance()->getAssetCache();
 
-    Texture2D* outTex;
+    outName = "Monocolour texture: " + Utilities::colourToHex(colour);
     if (cache)
     {
-      if (!textureCache->hasAsset("Monocolour texture: " + Utilities::colourToHex(colour)))
+      if (!assetCache.has<Image2DAsset>(outName))
       {
-        outTex = new Texture2D(1, 1, params);
-        textureCache->attachAsset("Monocolour texture: "
-                                  + Utilities::colourToHex(colour), outTex);
+        auto outTex = assetCache.emplace<Image2DAsset>("", outName);
+        outTex->getTexture()->setSize(1, 1);
+        outTex->getTexture()->setParams(params);
+        outTex->getTexture()->loadData(&colour.x);
 
         Logs::log("Generated monocolour texture: " + Utilities::colourToHex(colour) + ".");
+        return outTex->getTexture();
       }
       else
       {
-        outName = "Monocolour texture: " + Utilities::colourToHex(colour);
-        return textureCache->getAsset("Monocolour texture: "
-                                      + Utilities::colourToHex(colour));
+        Logs::log("Fetched monocolour texture: " + Utilities::colourToHex(colour) + ".");
+        return assetCache.get<Image2DAsset>(outName)->getTexture();
       }
     }
     else
-      outTex = new Texture2D(1, 1, params);
+    {
+      auto outTex = new Texture2D(1, 1, params);
+      outTex->loadData(&colour.x);
 
-    outName = "Monocolour texture: " + Utilities::colourToHex(colour);
-
-    outTex->bind();
-
-    float* data = new float[4];
-    data[0] = colour.r;
-    data[1] = colour.g;
-    data[2] = colour.b;
-    data[3] = colour.a;
-
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, 1, 1, 0,
-                 GL_RGBA, GL_FLOAT, data);
-    return outTex;
+      Logs::log("Generated monocolour texture: " + Utilities::colourToHex(colour) + ".");
+      return outTex;
+    }
   }
 
   Texture2D*
   Texture2D::createMonoColour(const glm::vec4 &colour,
                               const Texture2DParams &params, bool cache)
   {
-    auto textureCache = AssetManager<Texture2D>::getManager();
+    auto& assetCache = Application::getInstance()->getAssetCache();
 
-    Texture2D* outTex;
+    auto handle = "Monocolour texture: " + Utilities::colourToHex(colour);
+    Texture2D* outTex = nullptr;
     if (cache)
     {
-      if (!textureCache->hasAsset("Monocolour texture: " + Utilities::colourToHex(colour)))
-      {
-        outTex = new Texture2D(1, 1, params);
-        textureCache->attachAsset("Monocolour texture: "
-                                  + Utilities::colourToHex(colour), outTex);
-
-        Logs::log("Generated monocolour texture: " + Utilities::colourToHex(colour) + ".");
-      }
+      if (!assetCache.has<Image2DAsset>(handle))
+        outTex = assetCache.emplace<Image2DAsset>("", handle)->getTexture();
       else
       {
-        return textureCache->getAsset("Monocolour texture: "
-                                      + Utilities::colourToHex(colour));
+        Logs::log("Fetched texture at: " + handle + ".");
+        return assetCache.get<Image2DAsset>(handle)->getTexture();
       }
     }
     else
-      outTex = new Texture2D(1, 1, params);
+      outTex = new Texture2D();
 
-    outTex->bind();
+    outTex->setSize(1, 1);
+    outTex->setParams(params);
+    outTex->loadData(&colour.x);
 
-    float* data = new float[4];
-    data[0] = colour.r;
-    data[1] = colour.g;
-    data[2] = colour.b;
-    data[3] = colour.a;
-
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, 1, 1, 0,
-                 GL_RGBA, GL_FLOAT, data);
-
+    Logs::log("Generated monocolour texture: " + Utilities::colourToHex(colour) + ".");
     return outTex;
   }
 
+  void 
+  Texture2D::createMonoColour(Texture2D &outTex, const glm::vec4 &colour, const Texture2DParams &params)
+  {
+    outTex.setSize(1, 1);
+    outTex.setParams(params);
+    outTex.loadData(&colour.x);
+
+    Logs::log("Generated monocolour texture: " + Utilities::colourToHex(colour) + ".");
+  }
+
   Texture2D*
-  Texture2D::loadTexture2D(const std::string &filepath, const Texture2DParams &params,
+  Texture2D::loadTexture2D(const std::filesystem::path &filepath, const Texture2DParams &params,
                            bool cache)
   {
-    auto textureCache = AssetManager<Texture2D>::getManager();
+    auto& assetCache = Application::getInstance()->getAssetCache();
 
-    bool isHDR = (filepath.substr(filepath.find_last_of("."), 4) == ".hdr");
-
-    std::string name = filepath.substr(filepath.find_last_of('/') + 1);
-
-    // The data.
-    float* dataF = nullptr;
-    unsigned char* dataU = nullptr;
-
-    int width, height, n;
+    auto handle = filepath.filename().string();
 
     // Load the texture.
+    unsigned char* dataU = nullptr;
+    int width, height, n;
     stbi_set_flip_vertically_on_load(true);
-    if (isHDR)
-      dataF = stbi_loadf(filepath.c_str(), &width, &height, &n, 0);
-    else
-      dataU = stbi_load(filepath.c_str(), &width, &height, &n, 0);
+    dataU = stbi_load(filepath.string().c_str(), &width, &height, &n, 0);
 
     // Something went wrong while loading, abort.
-    if (!dataU && !isHDR)
+    if (!dataU)
     {
-      Logs::log("Failed to load image at: " + filepath + ".");
+      Logs::log("Failed to load image at: " + filepath.string() + ".");
       stbi_image_free(dataU);
-    }
-    else if (!dataF && isHDR)
-    {
-      Logs::log("Failed to load HDR image at: " + filepath + ".");
-      stbi_image_free(dataF);
+      return nullptr;
     }
 
     // The loaded texture.
     Texture2D* outTex;
     if (cache)
     {
-      if (!textureCache->hasAsset(filepath))
-      {
-        outTex = new Texture2D(width, height, params);
-        textureCache->attachAsset(name, outTex);
-      }
+      if (!assetCache.has<Image2DAsset>(handle))
+        outTex = assetCache.emplace<Image2DAsset>(filepath.string(), handle)->getTexture();
       else
       {
-        Logs::log("Fetched texture at: " + name + ".");
-        return textureCache->getAsset(name);
+        Logs::log("Fetched texture at: " + handle + ".");
+        return assetCache.get<Image2DAsset>(handle)->getTexture();
       }
     }
     else
-      outTex = new Texture2D(width, height, params);
-    outTex->bind();
+      outTex = new Texture2D();
 
-    // Generate a 2D texture. Currently supports both bytes and floating point
-    // HDR images!
-    if (n == 1)
+    auto tempParams = params;
+    switch (n)
     {
-      if (isHDR)
+      case 1:
       {
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_R16F, width, height, 0,
-                     GL_RED, GL_FLOAT, dataF);
-        outTex->params.dataType = TextureDataType::Floats;
-        outTex->params.format = TextureFormats::Red;
-        outTex->params.internal = TextureInternalFormats::R16f;
+        tempParams.format = TextureFormats::Red;
+        tempParams.internal = TextureInternalFormats::Red;
+        break;
       }
-      else
+      case 2:
       {
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, width, height, 0,
-                     GL_RED, GL_UNSIGNED_BYTE, dataU);
-        outTex->params.format = TextureFormats::Red;
-        outTex->params.internal = TextureInternalFormats::Red;
+        tempParams.format = TextureFormats::RG;
+        tempParams.internal = TextureInternalFormats::RG;
+        break;
       }
-      glGenerateMipmap(GL_TEXTURE_2D);
+      case 3:
+      {
+        tempParams.format = TextureFormats::RGB;
+        tempParams.internal = TextureInternalFormats::RGB;
+        break;
+      }
+      case 4:
+      {
+        tempParams.format = TextureFormats::RGBA;
+        tempParams.internal = TextureInternalFormats::RGBA;
+        break;
+      }
+      default: break;
     }
-    else if (n == 2)
-    {
-      if (isHDR)
-      {
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RG16F, width, height, 0,
-                     GL_RG, GL_FLOAT, dataF);
-        outTex->params.dataType = TextureDataType::Floats;
-        outTex->params.format = TextureFormats::RG;
-        outTex->params.internal = TextureInternalFormats::RG16f;
-      }
-      else
-      {
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RG, width, height, 0,
-                     GL_RG, GL_UNSIGNED_BYTE, dataU);
-        outTex->params.format = TextureFormats::RG;
-        outTex->params.internal = TextureInternalFormats::RG;
-      }
-      glGenerateMipmap(GL_TEXTURE_2D);
-    }
-    else if (n == 3)
-    {
-      // If its HDR, needs to be GL_RGBA16F instead of GL_RGB16F. Thanks OpenGL....
-      if (isHDR)
-      {
-        float* dataFNew = new float[width * height * 4];
-        uint offset = 0;
+    tempParams.dataType = TextureDataType::Bytes;
+    tempParams.minFilter = TextureMinFilterParams::LinearMipMapLinear;
 
-        for (uint i = 0; i < (width * height * 4); i+=4)
-        {
-          // Copy over the data from the image loading.
-          dataFNew[i] = dataF[i - offset];
-          dataFNew[i + 1] = dataF[i + 1 - offset];
-          dataFNew[i + 2] = dataF[i + 2 - offset];
-          // Make the 4th component (alpha) equal to 1.0f. Could make this a param :thinking:.
-          dataFNew[i + 3] = 1.0f;
-          // Increment the offset to we don't segfault. :D
-          offset ++;
-        }
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, width, height, 0,
-                     GL_RGBA, GL_FLOAT, dataFNew);
-        outTex->params.dataType = TextureDataType::Floats;
-        outTex->params.format = TextureFormats::RGBA;
-        outTex->params.internal = TextureInternalFormats::RGBA16f;
-        stbi_image_free(dataFNew);
-      }
-      else
-      {
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0,
-                     GL_RGB, GL_UNSIGNED_BYTE, dataU);
-        outTex->params.format = TextureFormats::RGB;
-        outTex->params.internal = TextureInternalFormats::RGB;
-      }
-      glGenerateMipmap(GL_TEXTURE_2D);
-    }
-    else if (n == 4)
-    {
-      if (isHDR)
-      {
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, width, height, 0,
-                     GL_RGBA, GL_FLOAT, dataF);
-        outTex->params.dataType = TextureDataType::Floats;
-        outTex->params.format = TextureFormats::RGBA;
-        outTex->params.internal = TextureInternalFormats::RGBA16f;
-      }
-      else
-      {
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0,
-                     GL_RGBA, GL_UNSIGNED_BYTE, dataU);
-        outTex->params.format = TextureFormats::RGBA;
-        outTex->params.internal = TextureInternalFormats::RGBA;
-      }
-      glGenerateMipmap(GL_TEXTURE_2D);
-    }
+    outTex->setSize(width, height);
+    outTex->setParams(tempParams);
+    outTex->loadData(dataU);
+    outTex->generateMips();
 
-    // Free memory.
-    if (isHDR)
-      stbi_image_free(dataF);
-    else
-      stbi_image_free(dataU);
+    stbi_image_free(dataU);
 
-    Logs::log("Loaded texture at: " + filepath + ".");
+    Logs::log("Loaded texture at: " + filepath.string() + ".");
 
-    outTex->getFilepath() = filepath;
     return outTex;
   }
 
@@ -304,8 +220,7 @@ namespace Strontium
   }
 
   Texture2D::Texture2D()
-    : filepath("")
-    , width(0)
+    : width(0)
     , height(0)
   {
     glGenTextures(1, &this->textureID);
@@ -316,7 +231,6 @@ namespace Strontium
     : width(width)
     , height(height)
     , params(params)
-    , filepath("")
   {
     glGenTextures(1, &this->textureID);
     glBindTexture(GL_TEXTURE_2D, this->textureID);

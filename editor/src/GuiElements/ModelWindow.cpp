@@ -1,9 +1,14 @@
 #include "GuiElements/ModelWindow.h"
 
 // Project includes.
-#include "GuiElements/Styles.h"
+#include "Core/Application.h"
+#include "Assets/AssetManager.h"
+#include "Assets/ModelAsset.h"
+
 #include "Serialization/YamlSerialization.h"
 #include "Utils/AsyncAssetLoading.h"
+
+#include "GuiElements/Styles.h"
 
 // ImGui includes.
 #include "imgui/imgui.h"
@@ -31,9 +36,7 @@ namespace Strontium
   void
   ModelWindow::onImGuiRender(bool &isOpen, Shared<Scene> activeScene)
   {
-    auto modelAssets = AssetManager<Model>::getManager();
-    auto materialAssets = AssetManager<Material>::getManager();
-
+    auto& assetCache = Application::getInstance()->getAssetCache();
     float fontSize = ImGui::GetFontSize();
     static bool showMaterialWindow = false;
     static std::string selectedType, submeshHandle;
@@ -47,11 +50,10 @@ namespace Strontium
     ImGui::Begin("Model Information", &isOpen);
 
     auto& rComponent = this->selectedEntity.getComponent<RenderableComponent>();
-    auto model = modelAssets->getAsset(rComponent.meshName);
-    if (rComponent)
+    auto model = assetCache.get<ModelAsset>(rComponent.meshName)->getModel();
+    if (model)
     {
       ImGui::Text("Model name: %s", rComponent.meshName.c_str());
-      ImGui::Text("Model path: %s", model->getFilepath().c_str());
       auto min = model->getMinPos();
       auto max = model->getMaxPos();
       ImGui::Text("AABB: \n\tMin: (%f, %f, %f) \n\tMax: (%f, %f, %f)", min.x, min.y, min.z, max.x, max.y, max.z);

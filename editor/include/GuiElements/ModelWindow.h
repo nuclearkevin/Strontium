@@ -26,7 +26,7 @@ namespace Strontium
     void setSelectedEntity(Entity newEnt) { this->selectedEntity = newEnt; }
   private:
     Entity selectedEntity;
-    AssetHandle selectedHandle;
+    Asset::Handle selectedHandle;
     std::string newMaterialName;
     std::string searched;
     FileLoadTargets fileLoadTargets;

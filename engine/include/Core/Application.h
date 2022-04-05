@@ -36,38 +36,22 @@ namespace Strontium
     static Application* getInstance() { return Application::appInstance; }
     Shared<Window> getWindow() { return this->appWindow; }
     bool isRunning() { return this->running; }
+    AssetManager& getAssetCache() { return this->assetCache; }
 
   protected:
-    // The application instance.
     static Application* appInstance;
-
-    // Determines if the application should continue to run or not.
+    AssetManager assetCache;
     bool running, isMinimized;
-
-    // Application name.
     std::string name;
 
-    // The layer stack for the application.
     LayerCollection layerStack;
-
-    // The main application window.
+    ImGuiLayer* imLayer;
     Shared<Window> appWindow;
 
-    // The ImGui layer. Implements the ImGui boilerplate behavior.
-    ImGuiLayer* imLayer;
-
-    // The last frame time.
     float lastTime;
-
-    // Asset managers for the different assets loaded in.
-    Unique<AssetManager<Model>> modelAssets;
-    Unique<AssetManager<Material>> materialAssets;
-    Unique<AssetManager<Texture2D>> texture2DAssets;
   private:
-    // The main function.
     friend int ::main(int argc, char** argv);
 
-    // Functions for application behavior.
     void run();
     void dispatchEvents();
     void onEvent(Event &event);

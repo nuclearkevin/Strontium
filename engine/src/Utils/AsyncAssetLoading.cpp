@@ -3,8 +3,14 @@
 // Project includes.
 #include "Core/Events.h"
 #include "Core/JobSystem.h"
+#include "Core/Application.h"
 #include "Core/DataStructures/ThreadSafeQueue.h"
+
+#include "Assets/Image2DAsset.h"
+#include "Assets/ModelAsset.h"
+
 #include "Graphics/Material.h"
+
 #include "Scenes/Entity.h"
 #include "Scenes/Components.h"
 
@@ -13,7 +19,6 @@
 #include "stb/stb_image_write.h"
 
 // STL includes.
-#include <mutex>
 #include <filesystem>
 
 namespace Strontium
@@ -28,17 +33,17 @@ namespace Strontium
     void
     bulkGenerateMaterials()
     {
-      auto textureCache = AssetManager<Texture2D>::getManager();
-
       // Filepaths of the textures that need to be loaded.
       std::vector<std::string> texturesToLoad;
       // Reserve for the worst case scenario.
       texturesToLoad.reserve(asyncModelQueue.size() * 6);
 
+      auto& assetCache = Application::getInstance()->getAssetCache();
+
       while (!asyncModelQueue.empty())
       {
         auto [model, activeScene, entityID] = asyncModelQueue.front();
-        Entity entity((entt::entity) entityID, activeScene);
+        Entity entity(static_cast<entt::entity>(entityID), activeScene);
 
         if (entity)
         {
@@ -69,7 +74,7 @@ namespace Strontium
                 std::string submeshName = submesh.getName();
                 auto submeshTexturePaths = submesh.getMaterialInfo();
 
-                materials.attachMesh(submeshName, MaterialType::PBR);
+                materials.attachMesh(submeshName, Material::Type::PBR);
                 auto submeshMaterial = materials.getMaterial(submeshName);
 
                 std::string texName;
@@ -84,7 +89,7 @@ namespace Strontium
                                               submeshTexturePaths.albedoTexturePath
                                               ) == texturesToLoad.end();
 
-                  if (!textureCache->hasAsset(texName) && shouldLoad)
+                  if (!assetCache.has<Image2DAsset>(texName) && shouldLoad)
                     texturesToLoad.emplace_back(submeshTexturePaths.albedoTexturePath);
                 }
 
@@ -99,7 +104,7 @@ namespace Strontium
                                               submeshTexturePaths.roughnessTexturePath
                                               ) == texturesToLoad.end();
 
-                  if (!textureCache->hasAsset(texName) && shouldLoad)
+                  if (!assetCache.has<Image2DAsset>(texName) && shouldLoad)
                     texturesToLoad.emplace_back(submeshTexturePaths.roughnessTexturePath);
                 }
 
@@ -114,7 +119,7 @@ namespace Strontium
                                               submeshTexturePaths.metallicTexturePath
                                               ) == texturesToLoad.end();
 
-                  if (!textureCache->hasAsset(texName) && shouldLoad)
+                  if (!assetCache.has<Image2DAsset>(texName) && shouldLoad)
                     texturesToLoad.emplace_back(submeshTexturePaths.metallicTexturePath);
                 }
 
@@ -129,7 +134,7 @@ namespace Strontium
                                               submeshTexturePaths.aoTexturePath
                                               ) == texturesToLoad.end();
 
-                  if (!textureCache->hasAsset(texName) && shouldLoad)
+                  if (!assetCache.has<Image2DAsset>(texName) && shouldLoad)
                     texturesToLoad.emplace_back(submeshTexturePaths.aoTexturePath);
                 }
 
@@ -144,7 +149,7 @@ namespace Strontium
                                               submeshTexturePaths.specularTexturePath
                                               ) == texturesToLoad.end();
 
-                  if (!textureCache->hasAsset(texName) && shouldLoad)
+                  if (!assetCache.has<Image2DAsset>(texName) && shouldLoad)
                     texturesToLoad.emplace_back(submeshTexturePaths.specularTexturePath);
                 }
 
@@ -158,7 +163,7 @@ namespace Strontium
                                               submeshTexturePaths.normalTexturePath
                                               ) == texturesToLoad.end();
 
-                  if (!textureCache->hasAsset(texName) && shouldLoad)
+                  if (!assetCache.has<Image2DAsset>(texName) && shouldLoad)
                     texturesToLoad.emplace_back(submeshTexturePaths.normalTexturePath);
                 }
               }
@@ -173,36 +178,31 @@ namespace Strontium
     }
 
     void
-    asyncLoadModel(const std::string &filepath, const std::string &name,
+    asyncLoadModel(const std::filesystem::path &filepath, const std::string &name,
                    uint entityID, Scene* activeScene)
     {
       // Check if the file is valid or not.
       std::ifstream test(filepath);
       if (!test)
       {
-        Logs::log("Error, file " + filepath + " cannot be opened.");
+        Logs::log("Error, file " + filepath.string() + " cannot be opened.");
         return;
       }
 
-      auto loaderImpl = [](const std::string &filepath, const std::string &name,
+      auto loaderImpl = [](const std::filesystem::path &filepath, const std::string &name,
                            uint entityID, Scene* activeScene)
       {
-        auto modelAssets = AssetManager<Model>::getManager();
+        auto& assetCache = Application::getInstance()->getAssetCache();
 
-        Model* loadable;
-        if (!modelAssets->hasAsset(name))
+        if (!assetCache.has<ModelAsset>(name))
         {
-          loadable = new Model();
-          loadable->load(filepath);
+          auto loadable = assetCache.emplace<ModelAsset>(filepath, name);
+          loadable->getModel()->load(filepath);
 
-          modelAssets->attachAsset(name, loadable);
-          asyncModelQueue.push({ loadable, activeScene, entityID });
+          asyncModelQueue.push({ loadable->getModel(), activeScene, entityID });
         }
         else
-        {
-          loadable = modelAssets->getAsset(name);
-          asyncModelQueue.push({ loadable, activeScene, entityID });
-        }
+          asyncModelQueue.push({ assetCache.get<ModelAsset>(name)->getModel(), activeScene, entityID });
       };
 
       JobSystem::push(loaderImpl, filepath, name, entityID, activeScene);
@@ -216,122 +216,58 @@ namespace Strontium
     void
     bulkGenerateTextures()
     {
-      auto textureCache = AssetManager<Texture2D>::getManager();
+      auto& assetCache = Application::getInstance()->getAssetCache();
 
       while (!asyncTexQueue.empty())
       {
         ImageData2D& image = asyncTexQueue.front();
 
-        // Generate a 2D texture. Currently supports both bytes and floating point
-        // HDR images!
+        Texture2D* outTex = nullptr;
+        if (!assetCache.has<Image2DAsset>(image.name))
+          outTex = assetCache.emplace<Image2DAsset>(image.filepath, image.name)->getTexture();
+        else
+        {
+          stbi_image_free(image.data);
+          asyncTexQueue.pop();
+          continue;
+        }
+
+        auto tempParams = Texture2D::getDefaultColourParams();
         switch (image.n)
         {
           case 1:
           {
-            if (image.isHDR)
-            {
-              image.params.internal = TextureInternalFormats::R32f;
-              image.params.format = TextureFormats::Red;
-              image.params.dataType = TextureDataType::Floats;
-            }
-            else
-            {
-              image.params.internal = TextureInternalFormats::Red;
-              image.params.format = TextureFormats::Red;
-              image.params.dataType = TextureDataType::Bytes;
-            }
+            tempParams.format = TextureFormats::Red;
+            tempParams.internal = TextureInternalFormats::Red;
             break;
           }
-
           case 2:
           {
-            if (image.isHDR)
-            {
-              image.params.internal = TextureInternalFormats::RG32f;
-              image.params.format = TextureFormats::RG;
-              image.params.dataType = TextureDataType::Floats;
-            }
-            else
-            {
-              image.params.internal = TextureInternalFormats::RG;
-              image.params.format = TextureFormats::RG;
-              image.params.dataType = TextureDataType::Bytes;
-            }
+            tempParams.format = TextureFormats::RG;
+            tempParams.internal = TextureInternalFormats::RG;
             break;
           }
-
           case 3:
           {
-            // If its HDR, needs to be GL_RGBA16F instead of GL_RGB16F. Thanks OpenGL....
-            if (image.isHDR)
-            {
-              float* dataFNew;
-              dataFNew = new float[image.width * image.height * 4];
-              uint offset = 0;
-
-              for (uint i = 0; i < (image.width * image.height * 4); i+=4)
-              {
-                // Copy over the data from the image loading.
-                dataFNew[i] = ((float*) image.data)[i - offset];
-                dataFNew[i + 1] = ((float*) image.data)[i + 1 - offset];
-                dataFNew[i + 2] = ((float*) image.data)[i + 2 - offset];
-                // Make the 4th component (alpha) equal to 1.0f. Could make this a param :thinking:.
-                dataFNew[i + 3] = 1.0f;
-                // Increment the offset to we don't segfault. :D
-                offset ++;
-              }
-
-              image.n = 4;
-              image.params.internal = TextureInternalFormats::RGBA32f;
-              image.params.format = TextureFormats::RGBA;
-              image.params.dataType = TextureDataType::Floats;
-
-              stbi_image_free(image.data);
-              image.data = dataFNew;
-            }
-            else
-            {
-              image.params.internal = TextureInternalFormats::RGB;
-              image.params.format = TextureFormats::RGB;
-              image.params.dataType = TextureDataType::Bytes;
-            }
-
+            tempParams.format = TextureFormats::RGB;
+            tempParams.internal = TextureInternalFormats::RGB;
             break;
           }
-
           case 4:
           {
-            if (image.isHDR)
-            {
-              image.params.internal = TextureInternalFormats::RGBA32f;
-              image.params.format = TextureFormats::RGBA;
-              image.params.dataType = TextureDataType::Floats;
-            }
-            else
-            {
-              image.params.internal = TextureInternalFormats::RGBA;
-              image.params.format = TextureFormats::RGBA;
-              image.params.dataType = TextureDataType::Bytes;
-            }
-
+            tempParams.format = TextureFormats::RGBA;
+            tempParams.internal = TextureInternalFormats::RGBA;
             break;
           }
-
           default: break;
         }
+        tempParams.dataType = TextureDataType::Bytes;
+        tempParams.minFilter = TextureMinFilterParams::LinearMipMapLinear;
 
-        image.params.minFilter = TextureMinFilterParams::LinearMipMapLinear;
-        Texture2D* outTex = new Texture2D(image.width, image.height, image.params);
-        outTex->bind();
-        outTex->getFilepath() = image.filepath;
-
-        if (image.isHDR)
-          outTex->loadData((float*) image.data);
-        else
-          outTex->loadData((unsigned char*) image.data);
+        outTex->setSize(image.width, image.height);
+        outTex->setParams(tempParams);
+        outTex->loadData(static_cast<unsigned char*>(image.data));
         outTex->generateMips();
-
-        textureCache->attachAsset(image.name, outTex);
 
         Logs::log("Loaded texture: " + image.name + " " +
                   "(W: " + std::to_string(image.width) + ", H: " +
@@ -344,24 +280,19 @@ namespace Strontium
     }
 
     void
-    loadImageAsync(const std::string &filepath, const Texture2DParams &params)
+    loadImageAsync(const std::filesystem::path &filepath, const Texture2DParams &params)
     {
-      // Fetch the texture cache.
-      auto textureCache = AssetManager<Texture2D>::getManager();
-
       // Check if the file is valid or not.
       std::ifstream test(filepath);
       if (!test)
       {
-        Logs::log("Error, file " + filepath + " cannot be opened.");
+        Logs::log("Error, file " + filepath.string() + " cannot be opened.");
         return;
       }
 
-      std::filesystem::path fsPath(filepath);
-
-      if (fsPath.extension().string() == ".dds")
+      if (filepath.extension().string() == ".dds")
       {
-        Logs::log("Error loading " + fsPath.filename().string() + ": .dds files are not supported.");
+        Logs::log("Error loading " + filepath.filename().string() + ": .dds files are not supported.");
         return;
       }
 
@@ -371,7 +302,6 @@ namespace Strontium
         eventDispatcher->queueEvent(new GuiEvent(GuiEventType::StartSpinnerEvent, path.string()));
 
         ImageData2D outImage;
-        outImage.isHDR = (path.extension().string() == ".hdr");
         outImage.params = params;
 
         std::string filename = path.filename().string();
@@ -381,10 +311,7 @@ namespace Strontium
 
         // Load the image.
         stbi_set_flip_vertically_on_load(true);
-        if (outImage.isHDR)
-          outImage.data = stbi_loadf(outImage.filepath.c_str(), &outImage.width, &outImage.height, &outImage.n, 0);
-        else
-          outImage.data = stbi_load(outImage.filepath.c_str(), &outImage.width, &outImage.height, &outImage.n, 0);
+        outImage.data = stbi_load(outImage.filepath.c_str(), &outImage.width, &outImage.height, &outImage.n, 0);
 
         if (!outImage.data)
         {
@@ -396,7 +323,7 @@ namespace Strontium
         eventDispatcher->queueEvent(new GuiEvent(GuiEventType::EndSpinnerEvent, ""));
       };
 
-      JobSystem::push(loaderImpl, fsPath, params);
+      JobSystem::push(loaderImpl, filepath, params);
     }
   }
 }

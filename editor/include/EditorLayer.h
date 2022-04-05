@@ -11,7 +11,9 @@
 #include "Layers/Layers.h"
 #include "Scenes/Scene.h"
 #include "Scenes/Entity.h"
+
 #include "GuiElements/GuiWindow.h"
+#include "GuiElements/WindowManager.h"
 
 // ImGui includes.
 #include "imgui/imgui.h"
@@ -22,7 +24,8 @@ namespace Strontium
   enum class SceneState
   {
     Edit = 0,
-    Play = 1
+    Simulate = 1,
+    Play = 2
   };
 
   class EditorLayer : public Layer
@@ -50,6 +53,7 @@ namespace Strontium
     void onMouseEvent(MouseClickEvent &mouseEvent);
 
     void onScenePlay();
+    void onSceneSimulate();
     void onSceneStop();
 
     // The current scene.
@@ -68,9 +72,8 @@ namespace Strontium
     FileSaveTargets saveTarget;
     std::string dndScenePath;
 
-    // The various external windows. Kinda janky.
-    // TODO: use an unordered map?
-    std::vector<GuiWindow*> windows;
+    // Various external windows.
+    WindowManager windowManager;
 
     // Stuff for ImGui and the GUI. TODO: Move to other windows?
     bool showPerf;

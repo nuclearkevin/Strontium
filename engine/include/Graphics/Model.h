@@ -17,7 +17,7 @@ struct aiMesh;
 namespace Strontium
 {
   // Model class
-  class Model : public Asset
+  class Model
   {
   public:
     Model();
@@ -25,8 +25,7 @@ namespace Strontium
     ~Model();
 
     // Load a model.
-    void load(const std::string& filepath);
-    void unload();
+    void load(const std::filesystem::path& filepath);
 
     // Is the model loaded or not.
     bool isLoaded() { return this->loaded; }
@@ -42,7 +41,6 @@ namespace Strontium
     glm::mat4& getGlobalInverseTransform() { return this->globalInverseTransform; }
     glm::mat4& getGlobalTransform() { return this->globalTransform; }
     SceneNode& getRootNode() { return this->rootNode; }
-    std::string& getFilepath() { return this->filepath; }
 
     bool hasSkins() { return this->isSkinned; }
   private:
@@ -74,7 +72,6 @@ namespace Strontium
     glm::vec3 minPos;
     glm::vec3 maxPos;
 
-    std::string filepath;
     std::string name;
 
     friend class Mesh;

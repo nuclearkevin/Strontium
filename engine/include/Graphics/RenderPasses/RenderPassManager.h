@@ -13,22 +13,20 @@ namespace Strontium
   {
   public:
 	RenderPassManager() = default;
-	~RenderPassManager();
+	~RenderPassManager() = default;
 
 	template <typename T, typename ... Args>
 	T* insertRenderPass(Args ... args)
 	{
 	  static_assert(std::is_base_of<RenderPass, T>::value, "Class must derive from RenderPass.");
 
-	  RenderPass* retPass = nullptr;
-	  for (auto& pass : this->renderPasses)
-	  {
-		retPass = dynamic_cast<T*>(pass.get());
-		assert((!retPass, " Cannot have multiples of the same type of renderpass!"));
-	  }
+	  auto typeHash = typeid(T).hash_code();
+	  assert((this->hashToLinear.find(typeHash) != this->hashToLinear.end(), " Cannot have multiples of the same renderpass."));
 
 	  this->renderPasses.emplace_back(new T(std::forward<Args>(args)...));
 	  this->renderPasses.back()->manager = this;
+
+	  this->hashToLinear.emplace(typeHash, this->renderPasses.size() - 1);
 
 	  return static_cast<T*>(this->renderPasses.back().get());
 	}
@@ -38,15 +36,8 @@ namespace Strontium
 	{
 	  static_assert(std::is_base_of<RenderPass, T>::value, "Class must derive from RenderPass.");
 
-	  T* retPass = nullptr;
-	  for (auto& pass : this->renderPasses)
-	  {
-		retPass = dynamic_cast<T*>(pass.get());
-		if (retPass)
-		  break;
-	  }
-
-	  return retPass;
+	  auto typeHash = typeid(T).hash_code();
+	  return static_cast<T*>(this->renderPasses[this->hashToLinear.at(typeHash)].get());
 	}
 
 	void onInit();
@@ -57,5 +48,6 @@ namespace Strontium
 
   private:
 	std::vector<Unique<RenderPass>> renderPasses;
+	robin_hood::unordered_flat_map<std::size_t, std::size_t> hashToLinear;
   };
 }

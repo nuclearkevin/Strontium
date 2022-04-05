@@ -39,10 +39,10 @@ namespace Strontium
   { }
 
   void
-  Model::load(const std::string &filepath)
+  Model::load(const std::filesystem::path &filepath)
   {
     auto eventDispatcher = EventDispatcher::getInstance();
-    eventDispatcher->queueEvent(new GuiEvent(GuiEventType::StartSpinnerEvent, filepath));
+    eventDispatcher->queueEvent(new GuiEvent(GuiEventType::StartSpinnerEvent, filepath.string()));
 
     auto flags = aiProcess_Triangulate | aiProcess_GenNormals | aiProcess_GenUVCoords 
                 | aiProcess_OptimizeMeshes | aiProcess_ValidateDataStructure 
@@ -50,10 +50,10 @@ namespace Strontium
 
     Assimp::Importer importer;
 
-    const aiScene* scene = importer.ReadFile(filepath, flags);
+    const aiScene* scene = importer.ReadFile(filepath.string(), flags);
     if (!scene)
     {
-      Logs::log("Model failed to load at the path " + filepath +
+      Logs::log("Model failed to load at the path " + filepath.string() +
                 ", with the error: " + importer.GetErrorString()
                 + ".");
       eventDispatcher->queueEvent(new GuiEvent(GuiEventType::EndSpinnerEvent, ""));
@@ -61,20 +61,12 @@ namespace Strontium
     }
     else if (scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
     {
-      Logs::log("Model failed to load at the path " + filepath +
+      Logs::log("Model failed to load at the path " + filepath.string() +
                 ", with the error: " + importer.GetErrorString()
                 + ".");
       eventDispatcher->queueEvent(new GuiEvent(GuiEventType::EndSpinnerEvent, ""));
       return;
     }
-
-    this->filepath = filepath;
-
-#ifdef WIN32
-    std::string directory = filepath.substr(0, filepath.find_last_of('\\'));
-#else
-    std::string directory = filepath.substr(0, filepath.find_last_of('/'));
-#endif
     
     // Load the model data.
     this->globalInverseTransform = glm::inverse(Utilities::mat4ToGLM(scene->mRootNode->mTransformation));
@@ -84,7 +76,7 @@ namespace Strontium
     for (uint i = 0; i < scene->mRootNode->mNumChildren; i++)
       this->rootNode.childNames.emplace_back(scene->mRootNode->mChildren[i]->mName.C_Str());
     
-    this->processNode(scene->mRootNode, scene, directory);
+    this->processNode(scene->mRootNode, scene, filepath.parent_path().string());
 
     // Load in animations.
     if (scene->HasAnimations())
@@ -96,13 +88,7 @@ namespace Strontium
     this->loaded = true;
 
     eventDispatcher->queueEvent(new GuiEvent(GuiEventType::EndSpinnerEvent, ""));
-    Logs::log("Model loaded at path " + filepath + ".");
-  }
-
-  void 
-  Model::unload()
-  {
-
+    Logs::log("Model loaded at path " + filepath.string() + ".");
   }
 
   // Recursively process all the nodes in the mesh.

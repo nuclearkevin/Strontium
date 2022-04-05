@@ -405,8 +405,6 @@ namespace Strontium
         || filetype == ".blend" || filetype == ".gltf" || filetype == ".glb"
         || filetype == ".dae")
     {
-      auto modelAssets = AssetManager<Model>::getManager();
-
       auto model = activeScene->createEntity(filename.substr(0, filename.find_last_of('.')));
       model.addComponent<TransformComponent>();
       auto& rComponent = model.addComponent<RenderableComponent>(filename);

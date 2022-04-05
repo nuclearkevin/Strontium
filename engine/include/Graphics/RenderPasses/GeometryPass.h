@@ -38,10 +38,10 @@ namespace Strontium
   {
 	glm::mat4 transform;
 	glm::vec4 idMask;
-	MaterialBlockData materialData;
+	Material::BlockData materialData;
 
 	PerEntityData(const glm::mat4 &transform, const glm::vec4 &idMask,
-				  const MaterialBlockData&materialData)
+				  const Material::BlockData& materialData)
 	  : transform(transform)
 	  , idMask(idMask)
 	  , materialData(materialData)

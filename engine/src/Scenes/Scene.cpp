@@ -1,9 +1,10 @@
 #include "Scenes/Scene.h"
 
 // Project includes.
-#include "Core/Window.h"
 #include "Core/Application.h"
-#include "Core/KeyCodes.h"
+
+#include "Assets/AssetManager.h"
+#include "Assets/ModelAsset.h"
 
 #include "Scenes/Components.h"
 #include "Scenes/Entity.h"
@@ -258,6 +259,9 @@ namespace Strontium
   void
   Scene::onRenderEditor(float viewportAspect, Entity selectedEntity)
   {
+    // Grab the asset cache.
+    auto& assetCache = Application::getInstance()->getAssetCache();
+
     // Grab the required renderpasses for submission.
     auto& passManager = Renderer3D::getPassManager();
     auto shadow = passManager.getRenderPass<ShadowPass>();
@@ -331,19 +335,20 @@ namespace Strontium
       drawOutline = drawOutline || selected;
 
       // Submit the mesh + material + transform to the static deferred renderer queue.
-      if (renderable && !renderable.animator.animationRenderable())
+      auto modelAsset = assetCache.get<ModelAsset>(renderable.meshName);
+      if (modelAsset && !renderable.animator.animationRenderable())
       {
-        geomet->submit(static_cast<Model*>(renderable), renderable.materials, transformMatrix, 
+        geomet->submit(modelAsset->getModel(), renderable.materials, transformMatrix,
                        static_cast<float>(entity), selected);
-        shadow->submit(static_cast<Model*>(renderable), transformMatrix);
+        shadow->submit(modelAsset->getModel(), transformMatrix);
       }
       // If it has a valid animation, instead submit it to the dynamic deferred renderer queue.
-      else if (renderable && renderable.animator.animationRenderable())
+      else if (modelAsset && renderable.animator.animationRenderable())
       {
-        geomet->submit(static_cast<Model*>(renderable), &renderable.animator, 
+        geomet->submit(modelAsset->getModel(), &renderable.animator,
                        renderable.materials, transformMatrix, static_cast<float>(entity), 
                        selected);
-        shadow->submit(static_cast<Model*>(renderable), &renderable.animator, transformMatrix);
+        shadow->submit(modelAsset->getModel(), &renderable.animator, transformMatrix);
       }
     }
 
@@ -389,6 +394,9 @@ namespace Strontium
   void
   Scene::onRenderRuntime(float viewportAspect)
   {
+    // Grab the asset cache.
+    auto& assetCache = Application::getInstance()->getAssetCache();
+
     // Grab the required renderpasses for submission.
     auto& passManager = Renderer3D::getPassManager();
     auto shadow = passManager.getRenderPass<ShadowPass>();
@@ -459,17 +467,18 @@ namespace Strontium
         transformMatrix = computeGlobalTransform(currentEntity);
 
       // Submit the mesh + material + transform to the static deferred renderer queue.
-      if (renderable && !renderable.animator.animationRenderable())
+      auto modelAsset = assetCache.get<ModelAsset>(renderable.meshName);
+      if (modelAsset && !renderable.animator.animationRenderable())
       {
-        geomet->submit(static_cast<Model*>(renderable), renderable.materials, transformMatrix);
-        shadow->submit(static_cast<Model*>(renderable), transformMatrix);
+        geomet->submit(modelAsset->getModel(), renderable.materials, transformMatrix);
+        shadow->submit(modelAsset->getModel(), transformMatrix);
       }
       // If it has a valid animation, instead submit it to the dynamic deferred renderer queue.
-      else if (renderable && renderable.animator.animationRenderable())
+      else if (modelAsset && renderable.animator.animationRenderable())
       {
-        geomet->submit(static_cast<Model*>(renderable), &renderable.animator, 
+        geomet->submit(modelAsset->getModel(), &renderable.animator,
                        renderable.materials, transformMatrix);
-        shadow->submit(static_cast<Model*>(renderable), &renderable.animator, transformMatrix);
+        shadow->submit(modelAsset->getModel(), &renderable.animator, transformMatrix);
       }
     }
 

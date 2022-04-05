@@ -1,18 +1,23 @@
 #include "Graphics/Material.h"
 
 // Project includes.
+#include "Core/Application.h"
+
+#include "Assets/AssetManager.h"
+#include "Assets/Image2DAsset.h"
+#include "Assets/MaterialAsset.h"
+
 #include "Graphics/Buffers.h"
 
 namespace Strontium
 {
-  Material::Material(MaterialType type, const std::string &filepath)
-    : filepath(filepath)
-    , type(type)
+  Material::Material(Type type)
+    : type(type)
     , pipeline(false)
   {
     switch (type)
     {
-      case MaterialType::PBR:
+      case Type::PBR:
       {
         this->program = ShaderCache::getShader("geometry_pass_shader");
 
@@ -47,7 +52,7 @@ namespace Strontium
   Material::~Material()
   { }
 
-  MaterialBlockData 
+  Material::BlockData
   Material::getPackedUniformData()
   {
     return { { this->getfloat("uMetallic"), this->getfloat("uRoughness"), 
@@ -105,7 +110,7 @@ namespace Strontium
     return Utilities::pairSearch<std::string, std::string>(this->sampler1Ds, samplerName);
   }
   void
-  Material::attachSampler1D(const std::string &samplerName, const Strontium::AssetHandle &handle)
+  Material::attachSampler1D(const std::string &samplerName, const Asset::Handle &handle)
   {
     if (!this->hasSampler1D(samplerName))
       this->sampler1Ds.push_back(std::pair(samplerName, handle));
@@ -124,7 +129,7 @@ namespace Strontium
     return Utilities::pairSearch<std::string, std::string>(this->sampler2Ds, samplerName);
   }
   void
-  Material::attachSampler2D(const std::string &samplerName, const Strontium::AssetHandle &handle)
+  Material::attachSampler2D(const std::string &samplerName, const Asset::Handle &handle)
   {
     if (!this->hasSampler2D(samplerName))
       this->sampler2Ds.push_back(std::pair(samplerName, handle));
@@ -143,7 +148,7 @@ namespace Strontium
     return Utilities::pairSearch<std::string, std::string>(this->sampler3Ds, samplerName);
   }
   void
-  Material::attachSampler3D(const std::string &samplerName, const Strontium::AssetHandle &handle)
+  Material::attachSampler3D(const std::string &samplerName, const Asset::Handle &handle)
   {
     if (!this->hasSampler3D(samplerName))
       this->sampler3Ds.push_back(std::pair(samplerName, handle));
@@ -162,7 +167,7 @@ namespace Strontium
     return Utilities::pairSearch<std::string, std::string>(this->samplerCubes, samplerName);
   }
   void
-  Material::attachSamplerCubemap(const std::string &samplerName, const Strontium::AssetHandle &handle)
+  Material::attachSamplerCubemap(const std::string &samplerName, const Asset::Handle &handle)
   {
     if (!this->hasSamplerCubemap(samplerName))
       this->samplerCubes.push_back(std::pair(samplerName, handle));
@@ -178,13 +183,13 @@ namespace Strontium
   Texture2D*
   Material::getSampler2D(const std::string &samplerName)
   {
-    auto textureCache = AssetManager<Texture2D>::getManager();
+    auto& assetCache = Application::getInstance()->getAssetCache();
 
     auto loc = Utilities::pairGet<std::string, std::string>(this->sampler2Ds, samplerName);
 
-    return textureCache->getAsset(loc->second);
+    return assetCache.get<Image2DAsset>(loc->second)->getTexture();
   }
-  Strontium::AssetHandle&
+  Asset::Handle&
   Material::getSampler2DHandle(const std::string &samplerName)
   {
     auto loc = Utilities::pairGet<std::string, std::string>(this->sampler2Ds, samplerName);
@@ -193,29 +198,29 @@ namespace Strontium
 
   // Attach a mesh-material pair.
   void
-  ModelMaterial::attachMesh(const std::string &meshName, MaterialType type)
+  ModelMaterial::attachMesh(const std::string &meshName, Material::Type type)
   {
-    auto materialAssets = AssetManager<Material>::getManager();
+    auto& assetCache = Application::getInstance()->getAssetCache();
 
-    if (!Utilities::pairSearch<std::string, AssetHandle>(this->materials, meshName))
+    if (!Utilities::pairSearch<std::string, Asset::Handle>(this->materials, meshName))
     {
-      if (!materialAssets->hasAsset(meshName))
-        materialAssets->attachAsset(meshName, new Material(type));
+      if (!assetCache.has<MaterialAsset>(meshName))
+        assetCache.emplace<MaterialAsset>("", meshName);
       this->materials.emplace_back(meshName, meshName);
     }
   }
 
   void
-  ModelMaterial::attachMesh(const std::string &meshName, const AssetHandle &material)
+  ModelMaterial::attachMesh(const std::string &meshName, const Asset::Handle &material)
   {
-    if (!Utilities::pairSearch<std::string, AssetHandle>(this->materials, meshName))
+    if (!Utilities::pairSearch<std::string, Asset::Handle>(this->materials, meshName))
       this->materials.emplace_back(meshName, material);
   }
 
   void
-  ModelMaterial::swapMaterial(const std::string &meshName, const AssetHandle &newMaterial)
+  ModelMaterial::swapMaterial(const std::string &meshName, const Asset::Handle &newMaterial)
   {
-    auto loc = Utilities::pairGet<std::string, AssetHandle>(this->materials, meshName);
+    auto loc = Utilities::pairGet<std::string, Asset::Handle>(this->materials, meshName);
 
     if (loc != this->materials.end())
       loc->second = newMaterial;
@@ -225,24 +230,24 @@ namespace Strontium
   Material*
   ModelMaterial::getMaterial(const std::string &meshName)
   {
-    auto materialAssets = AssetManager<Material>::getManager();
+    auto& assetCache = Application::getInstance()->getAssetCache();
 
-    auto loc = Utilities::pairGet<std::string, AssetHandle>(this->materials, meshName);
+    auto loc = Utilities::pairGet<std::string, Asset::Handle>(this->materials, meshName);
 
     if (loc != this->materials.end())
-      return materialAssets->getAsset(loc->second);
+      return assetCache.get<MaterialAsset>(loc->second)->getMaterial();
 
     return nullptr;
   }
 
-  AssetHandle
+  Asset::Handle
   ModelMaterial::getMaterialHandle(const std::string &meshName)
   {
-    auto loc = Utilities::pairGet<std::string, AssetHandle>(this->materials, meshName);
+    auto loc = Utilities::pairGet<std::string, Asset::Handle>(this->materials, meshName);
 
     if (loc != this->materials.end())
       return loc->second;
 
-    return AssetHandle();
+    return Asset::Handle();
   }
 }

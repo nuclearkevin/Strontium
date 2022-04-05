@@ -26,10 +26,7 @@ namespace Strontium
   { }
 
   EditorLayer::~EditorLayer()
-  {
-    for (auto& window : this->windows)
-      delete window;
-  }
+  { }
 
   void
   EditorLayer::onAttach()
@@ -42,8 +39,6 @@ namespace Strontium
     this->drawBuffer.resize(static_cast<uint>(wDims.x), static_cast<uint>(wDims.y));
     this->drawBuffer.setClearColour(glm::vec4(0.0f));
 
-    // Fetch a default floating point FBO spec and attach it. Also attach a single
-    // float spec for entity IDs.
     auto cSpec = Texture2D::getFloatColourParams();
     auto colourAttachment = FBOAttachment(FBOTargetParam::Colour0, FBOTextureParam::Texture2D,
                                           cSpec.internal, cSpec.format, cSpec.dataType);
@@ -56,29 +51,27 @@ namespace Strontium
     colourAttachment = FBOAttachment(FBOTargetParam::Colour1, FBOTextureParam::Texture2D,
                                      cSpec.internal, cSpec.format, cSpec.dataType);
     this->drawBuffer.attach(cSpec, colourAttachment);
-    this->drawBuffer.setDrawBuffers();
 
     auto dSpec = Texture2D::getDefaultDepthParams();
     auto depthAttachment = FBOAttachment(FBOTargetParam::Depth, FBOTextureParam::Texture2D,
                                            dSpec.internal, dSpec.format, dSpec.dataType);
   	this->drawBuffer.attach(dSpec, depthAttachment);
+    this->drawBuffer.setDrawBuffers();
 
     // Setup stuff for the scene.
     this->currentScene = createShared<Scene>();
     this->backupScene = createShared<Scene>();
 
-    // Init the editor camera.
+    // Init the editor camera and windows.
     this->editorCam.init(90.0f, 1.0f, 0.1f, 200.0f);
-
-    // All the windows!
-    this->windows.push_back(new SceneGraphWindow(this));
-    this->windows.push_back(new CameraWindow(this, &this->editorCam));
-    this->windows.push_back(new ShaderWindow(this));
-    this->windows.push_back(new FileBrowserWindow(this));
-    this->windows.push_back(new ModelWindow(this, false));
-    this->windows.push_back(new AssetBrowserWindow(this));
-    this->windows.push_back(new RendererWindow(this)); // 6
-    this->windows.push_back(new ViewportWindow(this));
+    this->windowManager.insertWindow<SceneGraphWindow>(this);
+    this->windowManager.insertWindow<CameraWindow>(this, &this->editorCam);
+    this->windowManager.insertWindow<ShaderWindow>(this);
+    this->windowManager.insertWindow<FileBrowserWindow>(this);
+    this->windowManager.insertWindow<ModelWindow>(this, false);
+    this->windowManager.insertWindow<AssetBrowserWindow>(this);
+    this->windowManager.insertWindow<RendererWindow>(this);
+    this->windowManager.insertWindow<ViewportWindow>(this);
   }
 
   void
@@ -92,8 +85,7 @@ namespace Strontium
   EditorLayer::onEvent(Event &event)
   {
     // Push the events through to all the gui elements.
-    for (auto& window : this->windows)
-      window->onEvent(event);
+    this->windowManager.onEvent(event);
 
     // Push the event through to the editor camera.
     this->editorCam.onEvent(event);
@@ -140,8 +132,8 @@ namespace Strontium
             Logs::log("Scene loaded from: " + loadEvent.getAbsPath());
             this->currentScene = tempScene;
             this->currentScene->getSaveFilepath() = loadEvent.getAbsPath();
-            static_cast<SceneGraphWindow*>(this->windows[0])->setSelectedEntity(Entity());
-            static_cast<ModelWindow*>(this->windows[4])->setSelectedEntity(Entity());
+            this->windowManager.getWindow<SceneGraphWindow>()->setSelectedEntity(Entity());
+            this->windowManager.getWindow<ModelWindow>()->setSelectedEntity(Entity());
           }
         }
 
@@ -175,8 +167,7 @@ namespace Strontium
   EditorLayer::onUpdate(float dt)
   {
     // Update each of the windows.
-    for (auto& window : this->windows)
-      window->onUpdate(dt, this->currentScene);
+    this->windowManager.onUpdate(dt, this->currentScene);
 
     // Update the size of the framebuffer to fit the editor window.
     glm::vec2 size = this->drawBuffer.getSize();
@@ -263,6 +254,30 @@ namespace Strontium
 
         break;
       }
+
+      case SceneState::Simulate:
+      {
+        // Update the scene.
+        this->currentScene->onUpdateEditor(dt);
+
+        // Update the physics system.
+        this->currentScene->simulatePhysics(dt);
+
+        this->drawBuffer.clear();
+        // Draw the scene.
+        Renderer3D::begin(this->editorSize.x, this->editorSize.y, static_cast<Camera>(this->editorCam));
+        this->currentScene->onRenderEditor(this->editorSize.x / this->editorSize.y, this->getSelectedEntity());
+        Renderer3D::end(this->drawBuffer);
+
+        // Draw debug information.
+        DebugRenderer::begin(this->editorSize.x, this->editorSize.y, static_cast<Camera>(this->editorCam));
+        this->currentScene->onRenderDebug(this->editorSize.x / this->editorSize.y);
+        DebugRenderer::end(this->drawBuffer);
+
+        // Update the editor camera.
+        this->editorCam.onUpdate(dt, glm::vec2(this->editorSize.x, this->editorSize.y));
+        break;
+      }
     }
   }
 
@@ -292,34 +307,32 @@ namespace Strontium
 
     // Remove window sizes and create the window.
     ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
-		ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
-		ImGui::Begin("DockSpace Demo", &dockspaceOpen, windowFlags);
-		ImGui::PopStyleVar(3);
+	ImGui::Begin("DockSpace Demo", &dockspaceOpen, windowFlags);
+	ImGui::PopStyleVar(3);
 
     // Prepare the dockspace context.
     ImGuiIO& io = ImGui::GetIO();
-		ImGuiStyle& style = ImGui::GetStyle();
-		float minWinSizeX = style.WindowMinSize.x;
-		style.WindowMinSize.x = 370.0f;
-		if (io.ConfigFlags & ImGuiConfigFlags_DockingEnable)
-		{
-			ImGuiID dockspaceId = ImGui::GetID("MainDockSpace");
-			ImGui::DockSpace(dockspaceId, ImVec2(0.0f, 0.0f), dockspaceFlags);
-		}
+	ImGuiStyle& style = ImGui::GetStyle();
+	float minWinSizeX = style.WindowMinSize.x;
+	style.WindowMinSize.x = 370.0f;
+	if (io.ConfigFlags & ImGuiConfigFlags_DockingEnable)
+	{
+	  ImGuiID dockspaceId = ImGui::GetID("MainDockSpace");
+	  ImGui::DockSpace(dockspaceId, ImVec2(0.0f, 0.0f), dockspaceFlags);
+	}
 
-		style.WindowMinSize.x = minWinSizeX;
+	style.WindowMinSize.x = minWinSizeX;
 
     // On ImGui render methods for all the GUI elements.
-    for (auto& window : this->windows)
-      if (window->isOpen)
-        window->onImGuiRender(window->isOpen, this->currentScene);
+    this->windowManager.onImGuiRender(this->currentScene);
 
   	if (ImGui::BeginMainMenuBar())
   	{
-    	if (ImGui::BeginMenu("File"))
-    	{
-       	if (ImGui::MenuItem(ICON_FA_FILE_O" New", "Ctrl+N"))
+      if (ImGui::BeginMenu("File"))
+      {
+        if (ImGui::MenuItem(ICON_FA_FILE_O" New", "Ctrl+N"))
        	{
           this->currentScene = createShared<Scene>();
        	}
@@ -360,23 +373,18 @@ namespace Strontium
           EventDispatcher* appEvents = EventDispatcher::getInstance();
           appEvents->queueEvent(new WindowCloseEvent());
         }
+
        	ImGui::EndMenu();
-     	}
-
-      if (ImGui::BeginMenu("Edit"))
-      {
-        ImGui::EndMenu();
       }
 
-      if (ImGui::BeginMenu("Add"))
-      {
+      if (ImGui::BeginMenu("Edit")) 
         ImGui::EndMenu();
-      }
 
-      if (ImGui::BeginMenu("Scripts"))
-      {
+      if (ImGui::BeginMenu("Add")) 
         ImGui::EndMenu();
-      }
+
+      if (ImGui::BeginMenu("Scripts")) 
+        ImGui::EndMenu();
 
       if (ImGui::BeginMenu("Settings"))
       {
@@ -385,14 +393,10 @@ namespace Strontium
           if (ImGui::BeginMenu("Scene Menu Settings"))
           {
             if (ImGui::MenuItem("Show Scene Graph"))
-            {
-              this->windows[0]->isOpen = true;
-            }
+              this->windowManager.getWindow<SceneGraphWindow>()->isOpen = true;
 
             if (ImGui::MenuItem("Show Model Information"))
-            {
-              this->windows[4]->isOpen = true;
-            }
+              this->windowManager.getWindow<ModelWindow>()->isOpen = true;
 
             ImGui::EndMenu();
           }
@@ -400,32 +404,22 @@ namespace Strontium
           if (ImGui::BeginMenu("Editor Menu Settings"))
           {
             if (ImGui::MenuItem("Show Content Browser"))
-            {
-              this->windows[5]->isOpen = true;
-            }
+              this->windowManager.getWindow<AssetBrowserWindow>()->isOpen = true;
 
             if (ImGui::MenuItem("Show Performance Stats Menu"))
-            {
               this->showPerf = true;
-            }
 
             if (ImGui::MenuItem("Show Camera Menu"))
-            {
-              this->windows[1]->isOpen = true;
-            }
+              this->windowManager.getWindow<CameraWindow>()->isOpen = true;
 
             if (ImGui::MenuItem("Show Shader Menu"))
-            {
-              this->windows[2]->isOpen = true;
-            }
+              this->windowManager.getWindow<ShaderWindow>()->isOpen = true;
 
             ImGui::EndMenu();
           }
 
           if (ImGui::MenuItem("Show Renderer Settings"))
-          {
-            this->windows[6]->isOpen = true;
-          }
+            this->windowManager.getWindow<RendererWindow>()->isOpen = true;
 
           ImGui::EndMenu();
         }
@@ -434,10 +428,9 @@ namespace Strontium
       }
 
       if (ImGui::BeginMenu("Help"))
-      {
         ImGui::EndMenu();
-      }
-     	ImGui::EndMainMenuBar();
+
+      ImGui::EndMainMenuBar();
   	}
 
     // The log menu.
@@ -495,17 +488,49 @@ namespace Strontium
     const auto& buttonActive = colors[ImGuiCol_ButtonActive];
     ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(buttonActive.x, buttonActive.y, buttonActive.z, 0.5f));
 
-    auto icon = this->sceneState == SceneState::Edit ? ICON_FA_PLAY : ICON_FA_STOP;
     ImGui::Begin("##buttonBar", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
     float size = ImGui::GetWindowHeight() - 4.0f;
-    ImGui::SetCursorPosX((ImGui::GetWindowContentRegionMax().x * 0.5f) - (size * 0.5f));
-    if (ImGui::Button(icon, ImVec2(size, size)))
+    ImGui::SetCursorPosX((ImGui::GetWindowContentRegionMax().x * 0.5f) - size);
+    if (this->sceneState == SceneState::Simulate)
     {
-      if (this->sceneState == SceneState::Edit)
-        this->onScenePlay();
-      else if (this->sceneState == SceneState::Play)
-        this->onSceneStop();
+      ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+      ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
+      ImGui::Button(ICON_FA_PLAY, ImVec2(size, size));
+      ImGui::PopItemFlag();
+      ImGui::PopStyleVar();
     }
+    else
+    {
+      if (ImGui::Button(this->sceneState == SceneState::Edit ? ICON_FA_PLAY : ICON_FA_STOP, ImVec2(size, size)))
+      {
+        if (this->sceneState == SceneState::Edit)
+          this->onScenePlay();
+        else if (this->sceneState == SceneState::Play)
+          this->onSceneStop();
+      }
+    }
+
+    //ImGui::SetCursorPosX((ImGui::GetWindowContentRegionMax().x * 0.5f) + (size * 1.5f));
+    ImGui::SameLine();
+    if (this->sceneState == SceneState::Play)
+    {
+      ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+      ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
+      ImGui::Button(ICON_FA_FORWARD, ImVec2(size, size));
+      ImGui::PopItemFlag();
+      ImGui::PopStyleVar();
+    }
+    else
+    {
+      if (ImGui::Button(this->sceneState == SceneState::Edit ? ICON_FA_FORWARD : ICON_FA_STOP, ImVec2(size, size)))
+      {
+        if (this->sceneState == SceneState::Edit)
+          this->onSceneSimulate();
+        else if (this->sceneState == SceneState::Simulate)
+          this->onSceneStop();
+      }
+    }
+    
     ImGui::PopStyleVar(2);
     ImGui::PopStyleColor(3);
     ImGui::End();
@@ -532,8 +557,8 @@ namespace Strontium
           YAMLSerialization::serializeScene(this->currentScene, path, name);
           Logs::log("Scene saved at: " + path);
 
-          static_cast<SceneGraphWindow*>(this->windows[0])->setSelectedEntity(Entity());
-          static_cast<ModelWindow*>(this->windows[4])->setSelectedEntity(Entity());
+          this->windowManager.getWindow<SceneGraphWindow>()->setSelectedEntity(Entity());
+          this->windowManager.getWindow<ModelWindow>()->setSelectedEntity(Entity());
 
           Shared<Scene> tempScene = createShared<Scene>();
           if (YAMLSerialization::deserializeScene(tempScene, this->dndScenePath))
@@ -556,8 +581,8 @@ namespace Strontium
       ImGui::SameLine();
       if (ImGui::Button("Continue"))
       {
-        static_cast<SceneGraphWindow*>(this->windows[0])->setSelectedEntity(Entity());
-        static_cast<ModelWindow*>(this->windows[4])->setSelectedEntity(Entity());
+        this->windowManager.getWindow<SceneGraphWindow>()->setSelectedEntity(Entity());
+        this->windowManager.getWindow<ModelWindow>()->setSelectedEntity(Entity());
 
         Shared<Scene> tempScene = createShared<Scene>();
         if (YAMLSerialization::deserializeScene(tempScene, this->dndScenePath))
@@ -577,8 +602,8 @@ namespace Strontium
     }
     else if (this->dndScenePath != "")
     {
-      static_cast<SceneGraphWindow*>(this->windows[0])->setSelectedEntity(Entity());
-      static_cast<ModelWindow*>(this->windows[4])->setSelectedEntity(Entity());
+      this->windowManager.getWindow<SceneGraphWindow>()->setSelectedEntity(Entity());
+      this->windowManager.getWindow<ModelWindow>()->setSelectedEntity(Entity());
 
       Shared<Scene> tempScene = createShared<Scene>();
       if (YAMLSerialization::deserializeScene(tempScene, this->dndScenePath))
@@ -612,8 +637,8 @@ namespace Strontium
         if (lControlHeld && keyEvent.getRepeatCount() == 0)
         {
           this->currentScene = createShared<Scene>();
-          static_cast<SceneGraphWindow*>(this->windows[0])->setSelectedEntity(Entity());
-          static_cast<ModelWindow*>(this->windows[4])->setSelectedEntity(Entity());
+          this->windowManager.getWindow<SceneGraphWindow>()->setSelectedEntity(Entity());
+          this->windowManager.getWindow<ModelWindow>()->setSelectedEntity(Entity());
 
           Logs::log("New scene created.");
         }
@@ -682,6 +707,19 @@ namespace Strontium
   }
 
   void
+  EditorLayer::onSceneSimulate()
+  {
+    this->sceneState = SceneState::Simulate;
+
+    // Copy the current scene to the editor scene.
+    this->backupScene->clearForRuntime();
+    this->backupScene->copyForRuntime(*this->currentScene);
+    this->backupScene->getSaveFilepath() = this->currentScene->getSaveFilepath();
+
+    this->currentScene->initPhysics();
+  }
+
+  void
   EditorLayer::onSceneStop()
   {
     this->sceneState = SceneState::Edit;
@@ -697,6 +735,6 @@ namespace Strontium
   Entity
   EditorLayer::getSelectedEntity()
   {
-    return static_cast<SceneGraphWindow*>(this->windows[0])->getSelectedEntity();
+    return this->windowManager.getWindow<SceneGraphWindow>()->getSelectedEntity();
   }
 }

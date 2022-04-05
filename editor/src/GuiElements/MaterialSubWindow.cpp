@@ -1,11 +1,18 @@
 #include "GuiElements/MaterialSubWindow.h"
 
 // Project includes.
+#include "Core/Application.h"
+
 #include "Assets/AssetManager.h"
-#include "Scenes/Components.h"
-#include "GuiElements/Styles.h"
+#include "Assets/Image2DAsset.h"
+#include "Assets/MaterialAsset.h"
+
 #include "Serialization/YamlSerialization.h"
 #include "Utils/AsyncAssetLoading.h"
+
+#include "Scenes/Components.h"
+
+#include "GuiElements/Styles.h"
 
 // ImGui includes.
 #include "imgui/imgui.h"
@@ -66,7 +73,7 @@ namespace Strontium
     if (samplerName == "" || !isOpen)
       return;
 
-    auto textureCache = AssetManager<Texture2D>::getManager();
+    auto& assetCache = Application::getInstance()->getAssetCache();
 
     static std::string searched = "";
 
@@ -100,12 +107,12 @@ namespace Strontium
     ImGui::PopStyleVar();
 
     ImGui::Columns(numColumns, 0, false);
-    for (auto& handle : textureCache->getStorage())
+    for (auto& [handle, asset] : assetCache.getPool<Image2DAsset>())
     {
       if (searched != "" && handle.find(searched) == std::string::npos)
         continue;
 
-      auto texture = textureCache->getAsset(handle);
+      auto texture = static_cast<Image2DAsset*>(asset.get())->getTexture();
       ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
       ImGui::ImageButton(reinterpret_cast<ImTextureID>(texture->getID()),
                          ImVec2(64.0f, 64.0f), ImVec2(0, 1), ImVec2(1, 0));
@@ -142,8 +149,9 @@ namespace Strontium
     if (this->selectedMaterial == "")
       return;
 
-    auto materialAssets = AssetManager<Material>::getManager();
-    auto material = materialAssets->getAsset(this->selectedMaterial);
+    auto& assetCache = Application::getInstance()->getAssetCache();
+    auto materialAsset = assetCache.get<MaterialAsset>(this->selectedMaterial);
+    auto material = materialAsset->getMaterial();
 
     if (!material)
       return;
@@ -157,8 +165,8 @@ namespace Strontium
     memset(pathBuffer, 0, sizeof(pathBuffer));
 
     std::strncpy(nameBuffer, this->selectedMaterial.c_str(), sizeof(nameBuffer));
-    if (material->getFilepath() != "")
-      std::strncpy(pathBuffer, material->getFilepath().c_str(), sizeof(pathBuffer));
+    if (!materialAsset->getPath().empty())
+      std::strncpy(pathBuffer, materialAsset->getPath().string().c_str(), sizeof(pathBuffer));
 
     float fontSize = ImGui::GetFontSize();
     ImGui::Begin("Material Editor", &isOpen);
@@ -167,7 +175,7 @@ namespace Strontium
     ImGui::SameLine();
     ImGui::InputText("##MaterialName", nameBuffer, sizeof(nameBuffer), ImGuiInputTextFlags_ReadOnly);
 
-    if (material->getFilepath() != "")
+    if (!materialAsset->getPath().empty())
     {
       ImGui::Text("Material Path:");
       ImGui::SameLine();

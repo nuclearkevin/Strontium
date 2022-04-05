@@ -1,7 +1,12 @@
 #include "Graphics/Animations.h"
 
 // Project includes.
+#include "Core/Application.h"
+
+#include "Assets/AssetManager.h"
+#include "Assets/ModelAsset.h"
 #include "Utils/AssimpUtilities.h"
+
 #include "Graphics/Model.h"
 
 // Assimp includes.
@@ -248,11 +253,11 @@ namespace Strontium
   { }
 
   void
-  Animator::setAnimation(Animation* animation, const AssetHandle &modelHandle)
+  Animator::setAnimation(Animation* animation, const Asset::Handle &modelHandle)
   {
-    auto modelAssets = AssetManager<Model>::getManager();
+    auto& assetCache = Application::getInstance()->getAssetCache();
 
-    if (modelAssets->hasAsset(modelHandle))
+    if (assetCache.has<ModelAsset>(modelHandle))
     {
       this->storedModel = modelHandle;
       this->storedAnimation = animation;

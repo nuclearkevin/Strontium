@@ -2,9 +2,6 @@
 
 namespace Strontium
 {
-  RenderPassManager::~RenderPassManager()
-  { }
-
   void 
   RenderPassManager::onInit()
   {
