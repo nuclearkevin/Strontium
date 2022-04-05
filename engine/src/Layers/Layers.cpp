@@ -13,32 +13,6 @@ namespace Strontium
   Layer::~Layer()
   { }
 
-  void
-  Layer::onAttach()
-  { }
-
-  void
-  Layer::onDetach()
-  { }
-
-  void
-  Layer::onImGuiRender()
-  { }
-
-  void
-  Layer::onEvent(Event &event)
-  { }
-
-  void
-  Layer::onUpdate(float dt)
-  { }
-
-  // Getter for the name.
-  std::string Layer::getName()
-  {
-    return this->layerName;
-  }
-
   //----------------------------------------------------------------------------
   // Layer collection begins here.
   //----------------------------------------------------------------------------

@@ -13,6 +13,7 @@ namespace Strontium
   ModelAsset::load(const std::filesystem::path &path)
   {
 	this->path = path;
+	this->model.load(path);
   }
 
   void ModelAsset::unload()

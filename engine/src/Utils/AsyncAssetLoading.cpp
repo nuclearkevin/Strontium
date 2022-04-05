@@ -197,7 +197,7 @@ namespace Strontium
         if (!assetCache.has<ModelAsset>(name))
         {
           auto loadable = assetCache.emplace<ModelAsset>(filepath, name);
-          loadable->getModel()->load(filepath);
+          loadable->load(filepath);
 
           asyncModelQueue.push({ loadable->getModel(), activeScene, entityID });
         }

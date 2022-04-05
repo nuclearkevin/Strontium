@@ -56,11 +56,17 @@ namespace Strontium
   	ImGui::DestroyContext();
   }
 
+  void 
+  ImGuiLayer::onImGuiRender()
+  { }
+
   void
   ImGuiLayer::onEvent(Event &event)
-  {
+  { }
 
-  }
+  void 
+  ImGuiLayer::onUpdate(float dt)
+  { }
 
   void
   ImGuiLayer::beginImGui()

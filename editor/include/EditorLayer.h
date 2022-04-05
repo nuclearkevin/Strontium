@@ -28,11 +28,11 @@ namespace Strontium
     Play = 2
   };
 
-  class EditorLayer : public Layer
+  class EditorLayer final : public Layer
   {
   public:
     EditorLayer();
-    virtual ~EditorLayer();
+    virtual ~EditorLayer() override;
 
     virtual void onAttach() override;
     virtual void onDetach() override;

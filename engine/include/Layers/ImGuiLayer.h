@@ -13,15 +13,17 @@
 
 namespace Strontium
 {
-  class ImGuiLayer : public Layer
+  class ImGuiLayer final : public Layer
   {
   public:
     ImGuiLayer();
     ~ImGuiLayer() = default;
 
-    virtual void onAttach() override;
-    virtual void onDetach() override;
-    virtual void onEvent(Event &event) override;
+    void onAttach() override;
+    void onDetach() override;
+    void onImGuiRender() override;
+    void onEvent(Event &event) override;
+    void onUpdate(float dt) override;
 
     void beginImGui();
     void endImGui();

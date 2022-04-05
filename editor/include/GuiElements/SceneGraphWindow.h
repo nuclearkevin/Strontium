@@ -30,7 +30,7 @@ namespace Strontium
     void onUpdate(float dt, Shared<Scene> activeScene);
     void onEvent(Event &event);
 
-    Entity& getSelectedEntity() { return this->selectedEntity; }
+    Entity getSelectedEntity() const { return this->selectedEntity; }
     void setSelectedEntity(Entity newEntity) { this->selectedEntity = newEntity; }
 
   private:

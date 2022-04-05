@@ -54,15 +54,6 @@ float blurFunction(vec2 uv, float r, float centerDepth, sampler2D depthMap,
 
   return aoSample * w;
 }
-/*
-float blurFunction(vec2 uv, float r, float centerDepth, sampler2D depthMap,
-                   sampler2D blurMap, vec2 nearFar, inout float totalWeight)
-{
-  totalWeight += 1.0;
-
-  return texture(blurMap, uv).r;
-}
-*/
 
 void main()
 {

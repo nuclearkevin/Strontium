@@ -17,14 +17,14 @@ namespace Strontium
     virtual ~Layer();
 
     // Functions to determine layer behavior. Must override these.
-    virtual void onAttach();
-    virtual void onDetach();
-    virtual void onImGuiRender();
-    virtual void onEvent(Event &event);
-    virtual void onUpdate(float dt);
+    virtual void onAttach() = 0;
+    virtual void onDetach() = 0;
+    virtual void onImGuiRender() = 0;
+    virtual void onEvent(Event &event) = 0;
+    virtual void onUpdate(float dt) = 0;
 
     // Get the name of the layer.
-    auto getName() -> std::string;
+    std::string getName() const { return this->layerName; }
 
   protected:
     std::string layerName;
