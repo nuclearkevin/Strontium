@@ -23,10 +23,21 @@ namespace Strontium
     this->passData.lineApplyShader = ShaderCache::getShader("apply_lines");
 
     this->passData.debugSphere.load("./assets/.internal/debug/sphere.gltf");
+    for (auto& mesh : this->passData.debugSphere.getSubmeshes())
+      mesh.init();
+
     this->passData.debugHalfSphere.load("./assets/.internal/debug/halfSphere.gltf");
+    for (auto& mesh : this->passData.debugHalfSphere.getSubmeshes())
+      mesh.init();
+
     this->passData.debugCube.load("./assets/.internal/debug/cube.gltf");
-    this->passData.debugCylinder.load("./assets/.internal/debug/cylinder.gltf");
+    for (auto& mesh : this->passData.debugCube.getSubmeshes())
+      mesh.init();
     
+    this->passData.debugCylinder.load("./assets/.internal/debug/cylinder.gltf");
+    for (auto& mesh : this->passData.debugCylinder.getSubmeshes())
+      mesh.init();
+
     this->passData.lineVAO.setData(this->passData.lineBuffer);
     this->passData.lineVAO.addAttribute(0, AttribType::Vec3, false, sizeof(LineVertex), 0);
     this->passData.lineVAO.addAttribute(1, AttribType::Vec3, false, sizeof(LineVertex), offsetof(LineVertex, colour));
@@ -107,7 +118,9 @@ namespace Strontium
 
     this->passData.wireframeShader->bind();
     RendererCommands::setPolygonMode(PolygonMode::Line);
-    this->passData.instancedData.bindToPoint(0);
+    this->passData.instancedData.bindToPoint(2);
+
+    static_cast<DebugRenderer::GlobalRendererData*>(this->globalBlock)->blankVAO.bind();
 
     // Render spheres.
     if (this->passData.sphereQueue.size() > 0u)
@@ -119,12 +132,14 @@ namespace Strontium
       
       for (auto& submesh : this->passData.debugSphere.getSubmeshes())
       {
-        VertexArray* vao = submesh.hasVAO() ? submesh.getVAO() : submesh.generateVAO();
-        vao->bind();
-        RendererCommands::drawElementsInstanced(PrimativeType::Triangle, 
-                                                vao->numToRender(), 
-                                                this->passData.sphereQueue.size());
-        vao->unbind();
+        if (!submesh.isDrawable())
+          continue;
+
+        submesh.getVertexBuffer()->bindToPoint(0);
+        submesh.getIndexBuffer()->bindToPoint(1);
+
+        RendererCommands::drawArraysInstanced(PrimativeType::Triangle, 0, submesh.numToRender(),
+                                              this->passData.sphereQueue.size());
       }
     }
 
@@ -138,12 +153,14 @@ namespace Strontium
       
       for (auto& submesh : this->passData.debugHalfSphere.getSubmeshes())
       {
-        VertexArray* vao = submesh.hasVAO() ? submesh.getVAO() : submesh.generateVAO();
-        vao->bind();
-        RendererCommands::drawElementsInstanced(PrimativeType::Triangle, 
-                                                vao->numToRender(), 
-                                                this->passData.halfSphereQueue.size());
-        vao->unbind();
+        if (!submesh.isDrawable())
+          continue;
+
+        submesh.getVertexBuffer()->bindToPoint(0);
+        submesh.getIndexBuffer()->bindToPoint(1);
+
+        RendererCommands::drawArraysInstanced(PrimativeType::Triangle, 0, submesh.numToRender(),
+                                              this->passData.halfSphereQueue.size());
       }
     }
 
@@ -157,12 +174,14 @@ namespace Strontium
       
       for (auto& submesh : this->passData.debugCube.getSubmeshes())
       {
-        VertexArray* vao = submesh.hasVAO() ? submesh.getVAO() : submesh.generateVAO();
-        vao->bind();
-        RendererCommands::drawElementsInstanced(PrimativeType::Triangle, 
-                                                vao->numToRender(), 
-                                                this->passData.obbQueue.size());
-        vao->unbind();
+        if (!submesh.isDrawable())
+          continue;
+
+        submesh.getVertexBuffer()->bindToPoint(0);
+        submesh.getIndexBuffer()->bindToPoint(1);
+
+        RendererCommands::drawArraysInstanced(PrimativeType::Triangle, 0, submesh.numToRender(),
+                                              this->passData.obbQueue.size());
       }
     }
 
@@ -175,12 +194,14 @@ namespace Strontium
 
       for (auto& submesh : this->passData.debugCylinder.getSubmeshes())
       {
-        VertexArray* vao = submesh.hasVAO() ? submesh.getVAO() : submesh.generateVAO();
-        vao->bind();
-        RendererCommands::drawElementsInstanced(PrimativeType::Triangle, 
-                                                vao->numToRender(), 
-                                                this->passData.cylinderQueue.size());
-        vao->unbind();
+        if (!submesh.isDrawable())
+          continue;
+
+        submesh.getVertexBuffer()->bindToPoint(0);
+        submesh.getIndexBuffer()->bindToPoint(1);
+
+        RendererCommands::drawArraysInstanced(PrimativeType::Triangle, 0, submesh.numToRender(),
+                                              this->passData.cylinderQueue.size());
       }
     }
 

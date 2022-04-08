@@ -75,6 +75,7 @@ namespace Strontium
   public:
     // Constructor and destructor.
     IndexBuffer(const uint* bufferData, uint numIndices, BufferType type);
+    IndexBuffer(BufferType type);
     ~IndexBuffer();
 
     // Delete the copy constructor and the assignment operator. Prevents
@@ -88,11 +89,15 @@ namespace Strontium
     void bind();
     void unbind();
 
+    // Modify the buffer's contents.
+    void resize(uint newCount, BufferType bufferType);
+    void setData(uint start, uint newDataCount, const uint* newData);
+
     // Getters.
-    uint getCount();
+    uint getCount() const { return this->count; }
 
     uint getID() { return this->bufferID; }
-  protected:
+  private:
     // OpenGL buffer ID.
     uint bufferID;
 
@@ -137,18 +142,18 @@ namespace Strontium
 
     uint getID() { return this->bufferID; }
     bool hasData() { return this->filled; }
-  protected:
+  private:
     // OpenGL buffer ID.
-    uint      bufferID;
+    uint bufferID;
 
     // If the buffer has data or not.
-    bool        filled;
+    bool filled;
 
     // Type of the buffer to prevent mismatching.
-    BufferType  type;
+    BufferType type;
 
     // The data currently in the buffer.
-    unsigned    dataSize;
+    uint dataSize;
   };
 
   //----------------------------------------------------------------------------
@@ -186,7 +191,7 @@ namespace Strontium
     uint getID() { return this->bufferID; }
     bool hasData() { return this->filled; }
     uint size() const { return this->dataSize; }
-  protected:
+  private:
     // OpenGL buffer ID.
     uint bufferID;
 

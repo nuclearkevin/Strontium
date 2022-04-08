@@ -73,6 +73,7 @@ namespace Strontium
     void drawArrays(PrimativeType primative, uint start, uint count);
     void drawElementsInstanced(PrimativeType primative, uint count, uint numInstances = 1, 
                                const void* indices = nullptr);
+    void drawArraysInstanced(PrimativeType primative, uint start, uint count, uint numInstances = 1);
     void cullType(FaceType face);
     void setPolygonMode(const PolygonMode& mode);
   };

@@ -108,9 +108,10 @@ namespace Strontium
 
     this->passData.lightSpaceBuffer.bindToPoint(0);
     this->passData.perDrawUniforms.bindToPoint(1);
-    this->passData.transformBuffer.bindToPoint(0);
+    this->passData.transformBuffer.bindToPoint(2);
 
     // Run the Strontium render pipeline for each shadow cascade.
+    static_cast<Renderer3D::GlobalRendererData*>(this->globalBlock)->blankVAO.bind();
     for (uint i = 0; i < NUM_CASCADES; i++)
     {
       this->passData.lightSpaceBuffer.setData(0, sizeof(glm::mat4), glm::value_ptr(this->passData.cascades[i]));
@@ -127,48 +128,44 @@ namespace Strontium
         // Set the index offset. 
         this->passData.perDrawUniforms.setData(0, sizeof(int), &bufferPointer);
       
-        auto vao = drawable.primatives;
-        vao->bind();
-        RendererCommands::drawElementsInstanced(PrimativeType::Triangle, 
-                                                vao->numToRender(), 
-                                                instancedTransforms.size());
-        vao->unbind();
+        drawable.vertexBuffer->bindToPoint(0);
+        drawable.indexBuffer->bindToPoint(1);
+        RendererCommands::drawArraysInstanced(PrimativeType::Triangle, 0, drawable.numToRender, 
+                                              instancedTransforms.size());
         
         bufferPointer += instancedTransforms.size();
       
         // Record some statistics.
         this->passData.numDrawCalls++;
         this->passData.numInstances += instancedTransforms.size();
-        this->passData.numTrianglesDrawn += (instancedTransforms.size() * vao->numToRender()) / 3;
+        this->passData.numTrianglesDrawn += (instancedTransforms.size() * drawable.numToRender) / 3;
       }
       
       // Dynamic geometry pass for skinned objects.
       // TODO: Improve this with compute shader skinning. 
       // Could probably get rid of this pass all together.
       this->passData.dynamicShadow->bind();
-      this->passData.boneBuffer.bindToPoint(1);
+      this->passData.boneBuffer.bindToPoint(3);
       for (auto& drawable : this->passData.dynamicDrawList)
       {
-        auto& bones = static_cast<Animator*>(drawable)->getFinalBoneTransforms();
+        auto& bones = drawable.animations->getFinalBoneTransforms();
         this->passData.boneBuffer.setData(0, bones.size() * sizeof(glm::mat4),
                                           bones.data());
         
         // Set the index offset. 
         this->passData.perDrawUniforms.setData(0, sizeof(int), &bufferPointer);
 
-        auto vao = static_cast<VertexArray*>(drawable);
-        vao->bind();
-        RendererCommands::drawElementsInstanced(PrimativeType::Triangle, 
-                                                vao->numToRender(), 
-                                                drawable.instanceCount);
-        vao->unbind();
+        drawable.vertexBuffer->bindToPoint(0);
+        drawable.indexBuffer->bindToPoint(1);
+        RendererCommands::drawArraysInstanced(PrimativeType::Triangle, 0, drawable.numToRender, 
+                                              drawable.instanceCount);
       
         bufferPointer += drawable.instanceCount;
       
         // Record some statistics.
         this->passData.numDrawCalls++;
         this->passData.numInstances += drawable.instanceCount;
-        this->passData.numTrianglesDrawn += (drawable.instanceCount * vao->numToRender()) / 3;
+        this->passData.numTrianglesDrawn += (drawable.instanceCount * drawable.numToRender) / 3;
       }
     }
     this->passData.dynamicShadow->unbind();
@@ -190,7 +187,13 @@ namespace Strontium
   { 
 	for (auto& submesh : data->getSubmeshes())
 	{
-      VertexArray* vao = submesh.hasVAO() ? submesh.getVAO() : submesh.generateVAO();
+      if (!submesh.isDrawable())
+      {
+        if (!submesh.init())
+          continue;
+      }
+      auto indexBuffer = submesh.getIndexBuffer();
+      auto vertexBuffer = submesh.getVertexBuffer();
       
       // Compute the scene AABB.
       auto localTransform = model * submesh.getTransform();
@@ -198,7 +201,7 @@ namespace Strontium
       this->passData.maxPos = glm::max(this->passData.maxPos, glm::vec3(localTransform * glm::vec4(submesh.getMaxPos(), 1.0f)));
     
       // Populate the draw list.
-      auto drawData = this->passData.staticInstanceMap.find(ShadowStaticDrawData(vao));
+      auto drawData = this->passData.staticInstanceMap.find(ShadowStaticDrawData(indexBuffer, vertexBuffer, submesh.numToRender()));
     
       this->passData.numUniqueEntities++;
       if (drawData != this->passData.staticInstanceMap.end())
@@ -208,7 +211,7 @@ namespace Strontium
       }
       else 
       {
-        auto& item = this->passData.staticInstanceMap.emplace(ShadowStaticDrawData(vao), std::vector<glm::mat4>());
+        auto& item = this->passData.staticInstanceMap.emplace(ShadowStaticDrawData(indexBuffer, vertexBuffer, submesh.numToRender()), std::vector<glm::mat4>());
         item.first->second.emplace_back(localTransform);
       }
 	}
@@ -222,16 +225,20 @@ namespace Strontium
       // Skinned animated mesh, store the static transform.
       for (auto& submesh : data->getSubmeshes())
 	  {    
-        VertexArray* vao = submesh.hasVAO() ? submesh.getVAO() : submesh.generateVAO();
-        if (!vao)
-          continue;
+        if (!submesh.isDrawable())
+        {
+          if (!submesh.init())
+            continue;
+        }
+        auto indexBuffer = submesh.getIndexBuffer();
+        auto vertexBuffer = submesh.getVertexBuffer();
         
         this->passData.minPos = glm::min(this->passData.minPos, glm::vec3(model * glm::vec4(submesh.getMinPos(), 1.0f)));
         this->passData.maxPos = glm::max(this->passData.maxPos, glm::vec3(model * glm::vec4(submesh.getMaxPos(), 1.0f)));
     
         // Populate the dynamic draw list.
         this->passData.numUniqueEntities++;
-        this->passData.dynamicDrawList.emplace_back(vao, animation, model);
+        this->passData.dynamicDrawList.emplace_back(indexBuffer, vertexBuffer, submesh.numToRender(), animation, model);
 	  }
     }
     else
@@ -240,16 +247,20 @@ namespace Strontium
 	  auto& bones = animation->getFinalUnSkinnedTransforms();
 	  for (auto& submesh : data->getSubmeshes())
 	  {
-        VertexArray* vao = submesh.hasVAO() ? submesh.getVAO() : submesh.generateVAO();
-        if (!vao)
-          continue;
+        if (!submesh.isDrawable())
+        {
+          if (!submesh.init())
+            continue;
+        }
+        auto indexBuffer = submesh.getIndexBuffer();
+        auto vertexBuffer = submesh.getVertexBuffer();
     
         auto localTransform = model * bones[submesh.getName()];
         this->passData.minPos = glm::min(this->passData.minPos, glm::vec3(localTransform * glm::vec4(submesh.getMinPos(), 1.0f)));
         this->passData.maxPos = glm::max(this->passData.maxPos, glm::vec3(localTransform * glm::vec4(submesh.getMaxPos(), 1.0f)));
     
         // Populate the draw list.
-        auto drawData = this->passData.staticInstanceMap.find(ShadowStaticDrawData(vao));
+        auto drawData = this->passData.staticInstanceMap.find(ShadowStaticDrawData(indexBuffer, vertexBuffer, submesh.numToRender()));
         
         this->passData.numUniqueEntities++;
         if (drawData != this->passData.staticInstanceMap.end())
@@ -259,7 +270,7 @@ namespace Strontium
         }
         else 
         {
-          auto& item = this->passData.staticInstanceMap.emplace(ShadowStaticDrawData(vao), std::vector<glm::mat4>());
+          auto& item = this->passData.staticInstanceMap.emplace(ShadowStaticDrawData(indexBuffer, vertexBuffer, submesh.numToRender()), std::vector<glm::mat4>());
           item.first->second.emplace_back(localTransform);
         }
 	  }

@@ -42,10 +42,7 @@ namespace Strontium
         return outTex->getTexture();
       }
       else
-      {
-        Logs::log("Fetched monocolour texture: " + Utilities::colourToHex(colour) + ".");
         return assetCache.get<Image2DAsset>(outName)->getTexture();
-      }
     }
     else
     {

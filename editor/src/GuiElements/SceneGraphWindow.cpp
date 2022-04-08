@@ -45,23 +45,23 @@ namespace Strontium
 
     if (parent.hasComponent<T>())
     {
+      char buttonLabel[256];
+      std::sprintf(buttonLabel, ICON_FA_TRASH_O"##%s", name.c_str());
+
       auto& component = parent.getComponent<T>();
       if (ImGui::CollapsingHeader(name.c_str(), ImGuiTreeNodeFlags_AllowItemOverlap))
       {
         ImGui::SameLine(ImGui::GetWindowWidth() - 30);
-        if (ImGui::Button(ICON_FA_TRASH_O))
-        {
+        if (ImGui::Button(buttonLabel))
           parent.removeComponent<T>();
-        }
+
         ui(component);
       }
       else
       {
         ImGui::SameLine(ImGui::GetWindowWidth() - 30);
-        if (ImGui::Button(ICON_FA_TRASH_O))
-        {
+        if (ImGui::Button(buttonLabel))
           parent.removeComponent<T>();
-        }
       }
     }
   }

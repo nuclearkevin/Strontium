@@ -11,42 +11,22 @@ namespace Strontium
 {
   class Model;
 
-  // Vertex datatypes to store vertex attributes.
-  struct Vertex
-  {
-    glm::vec4 position;
-    glm::vec3 normal;
-    glm::vec2 uv;
-    glm::vec3 tangent;
-    glm::vec3 bitangent;
-    glm::ivec4 boneIDs;
-    glm::vec4 boneWeights;
-
-    Vertex()
-      : position(0.0f, 0.0f, 0.0f, 1.0f)
-      , normal(0.0f)
-      , uv(0.0f)
-      , tangent(0.0f)
-      , bitangent(0.0f)
-      , boneIDs(-1)
-      , boneWeights(0.0f)
-    { }
-  };
-
   struct PackedVertex
   {
-    glm::vec4 position;
-    glm::quat tangentFrame; 
-    glm::vec4 boneWeights;
-    glm::ivec4 boneIndices;
-    glm::vec2 texCoords;
+    glm::vec4 normal; // Uncompressed normal. w is padding.
+    glm::vec4 tangent; // Uncompressed tangent. w is padding.
+    glm::vec4 position; // Uncompressed position (x, y, z). w is padding.
+    glm::vec4 boneWeights; // Uncompressed bone weights.
+    glm::ivec4 boneIDs; // Bone IDs.
+    glm::vec4 texCoord;
 
     PackedVertex()
-      : position(0.0f)
-      , tangentFrame()
+      : normal(0.0f)
+      , tangent(0.0f)
+      , position(0.0f)
       , boneWeights(0.0f)
-      , boneIndices(-1)
-      , texCoords(0.0f)
+      , boneIDs(-1)
+      , texCoord(0.0f)
     { }
   };
 
@@ -76,36 +56,41 @@ namespace Strontium
     // Construct an empty mesh.
     Mesh(const std::string &name, Model* parent);
     // Mesh class. Must be loaded in as a part of a parent model.
-    Mesh(const std::string &name, const std::vector<Vertex> &vertices,
+    Mesh(const std::string &name, const std::vector<PackedVertex> &vertices,
          const std::vector<uint> &indices, Model* parent);
     ~Mesh();
     Mesh(Mesh&&) = default;
 
-    // Generate/delete the vertex array object.
-    VertexArray* generateVAO();
+    // For rendering.
+    bool init();
+    ShaderStorageBuffer* getIndexBuffer() { return this->indexBuffer.get(); }
+    ShaderStorageBuffer* getVertexBuffer() { return this->vertexBuffer.get(); }
+    uint numToRender() const { return this->indices.size(); }
 
     // Set the loaded state.
     void setLoaded(bool isLoaded) { this->loaded = isLoaded; }
 
     // Getters.
-    std::vector<Vertex>& getData() { return this->data; }
+    std::vector<PackedVertex>& getData() { return this->data; }
     std::vector<uint>& getIndices() { return this->indices; }
-    glm::vec3& getMinPos() { return this->minPos; }
-    glm::vec3& getMaxPos() { return this->maxPos; }
-    glm::mat4& getTransform() { return this->localTransform; }
-    VertexArray* getVAO() { return this->vArray.get(); }
-    std::string& getFilepath() { return this->filepath; }
-    std::string& getName() { return this->name; }
+
+    glm::vec3 getMinPos() const { return this->minPos; }
+    glm::vec3 getMaxPos() const { return this->maxPos; }
+    glm::mat4 getTransform() const { return this->localTransform; }
+
+    std::string getName() const { return this->name; }
+
     UnloadedMaterialInfo& getMaterialInfo() { return this->materialInfo; }
 
     // Check for states.
-    bool hasVAO() { return this->vArray != nullptr; }
-    bool isLoaded() { return this->loaded; }
+    bool isLoaded() const { return this->loaded; }
+    bool isDrawable() const { return this->drawable; }
   protected:
     // Mesh properties.
     bool loaded;
     bool skinned;
-    std::vector<Vertex> data;
+    bool drawable;
+    std::vector<PackedVertex> data;
     std::vector<uint> indices;
 
     glm::vec3 minPos;
@@ -119,7 +104,9 @@ namespace Strontium
 
     Model* parent;
 
-    // Vertex array object for the mesh data.
-    Unique<VertexArray> vArray;
+    Unique<ShaderStorageBuffer> vertexBuffer;
+    Unique<ShaderStorageBuffer> indexBuffer;
+
+    friend class Model;
   };
 }

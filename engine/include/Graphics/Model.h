@@ -49,7 +49,7 @@ namespace Strontium
     void processMesh(aiMesh* mesh, const aiScene* scene, const std::string &directory, 
                      const glm::mat4& localTransform = glm::mat4(1.0f));
 
-    void addBoneData(unsigned int boneIndex, float boneWeight, Vertex &toMod);
+    void addBoneData(unsigned int boneIndex, float boneWeight, PackedVertex &toMod);
 
     // Scene information for this model.
     glm::mat4 globalInverseTransform;

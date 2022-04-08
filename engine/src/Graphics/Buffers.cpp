@@ -25,7 +25,11 @@ namespace Strontium
     : hasData(false)
     , type(bufferType)
     , dataSize(0u)
-  { }
+  {
+    glGenBuffers(1, &this->bufferID);
+    glBindBuffer(GL_ARRAY_BUFFER, this->bufferID);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+  }
 
   VertexBuffer::~VertexBuffer()
   {
@@ -85,6 +89,16 @@ namespace Strontium
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
   }
 
+  IndexBuffer::IndexBuffer(BufferType type)
+    : count(0u)
+    , hasData(false)
+    , type(type)
+  {
+    glGenBuffers(1, &this->bufferID);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, this->bufferID);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+  }
+
   IndexBuffer::~IndexBuffer()
   {
     glDeleteBuffers(1, &this->bufferID);
@@ -104,11 +118,24 @@ namespace Strontium
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
   }
 
-  // Get the number of stored vertices.
-  uint
-  IndexBuffer::getCount()
+  // Modify the buffer's contents.
+  void 
+  IndexBuffer::resize(uint newCount, BufferType bufferType)
   {
-    return this->count;
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, this->bufferID);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, newCount * sizeof(uint), nullptr, static_cast<GLenum>(bufferType));
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+    this->count = newCount;
+  }
+
+  void 
+  IndexBuffer::setData(uint start, uint newDataCount, const uint* newData)
+  {
+    assert(("New data exceeds buffer size.", !(start + newDataCount > this->count)));
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, this->bufferID);
+    glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, start * sizeof(uint), newDataCount * sizeof(uint), newData);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
   }
 
   //----------------------------------------------------------------------------

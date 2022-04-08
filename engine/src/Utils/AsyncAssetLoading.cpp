@@ -42,11 +42,13 @@ namespace Strontium
 
       while (!asyncModelQueue.empty())
       {
-        auto [modelAsset, handle, path, activeScene, entityID] = asyncModelQueue.front();
+        auto [result, handle, path, activeScene, entityID] = asyncModelQueue.front();
         Entity entity(static_cast<entt::entity>(entityID), activeScene);
 
-        if (!assetCache.has<ModelAsset>(handle))
-          assetCache.attach<ModelAsset>(modelAsset, path, handle);
+        if (!assetCache.has<ModelAsset>(handle) && result)
+          assetCache.attach<ModelAsset>(result, path, handle);
+
+        auto modelAsset = assetCache.get<ModelAsset>(handle);
 
         if (entity)
         {
@@ -192,24 +194,24 @@ namespace Strontium
         return;
       }
 
-      auto loaderImpl = [](const std::filesystem::path &filepath, const std::string &name,
-                           uint entityID, Scene* activeScene)
-      {
-        auto& assetCache = Application::getInstance()->getAssetCache();
+      auto& assetCache = Application::getInstance()->getAssetCache();
+      bool hasAsset = assetCache.has<ModelAsset>(name);
 
-        if (!assetCache.has<ModelAsset>(name))
+      auto loaderImpl = [](const std::filesystem::path &filepath, const std::string &name,
+                           uint entityID, Scene* activeScene, bool hasAsset)
+      {
+        if (!hasAsset)
         {
-          std::cout << "Hello from the loading thread" << std::endl;
           ModelAsset* loadable = new ModelAsset();
           loadable->load(filepath);
 
           asyncModelQueue.push({ loadable, name, filepath, activeScene, entityID });
         }
         else
-          asyncModelQueue.push({ assetCache.get<ModelAsset>(name), name, filepath, activeScene, entityID });
+          asyncModelQueue.push({ nullptr, name, filepath, activeScene, entityID });
       };
 
-      JobSystem::push(loaderImpl, filepath, name, entityID, activeScene);
+      JobSystem::push(loaderImpl, filepath, name, entityID, activeScene, hasAsset);
     }
 
     //--------------------------------------------------------------------------

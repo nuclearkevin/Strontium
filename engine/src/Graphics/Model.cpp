@@ -3,6 +3,7 @@
 // Project includes.
 #include "Core/Logs.h"
 #include "Core/Events.h"
+#include "Core/Math.h"
 #include "Utils/AssimpUtilities.h"
 
 // GLM stuff.
@@ -122,16 +123,14 @@ namespace Strontium
   {
     std::string meshName = std::string(mesh->mName.C_Str());
     this->subMeshes.emplace_back(meshName, this);
-    auto& meshVertices = this->subMeshes.back().getData();
-    auto& meshIndicies = this->subMeshes.back().getIndices();
-    this->subMeshes.back().getTransform() = localTransform;
+    auto& meshVertices = this->subMeshes.back().data;
+    auto& meshIndicies = this->subMeshes.back().indices;
+    this->subMeshes.back().localTransform = localTransform;
 
-    auto& meshMin = this->subMeshes.back().getMinPos();
-    auto& meshMax = this->subMeshes.back().getMaxPos();
-    meshMin = glm::vec3(std::numeric_limits<float>::max());
-    meshMax = glm::vec3(std::numeric_limits<float>::min());
+    auto& meshMin = this->subMeshes.back().minPos;
+    auto& meshMax = this->subMeshes.back().maxPos;
 
-    auto& materialInfo = this->subMeshes.back().getMaterialInfo();
+    auto& materialInfo = this->subMeshes.back().materialInfo;
 
     // Get the positions.
     if (mesh->HasPositions())
@@ -160,13 +159,15 @@ namespace Strontium
     this->minPos = glm::min(this->minPos, meshMin);
     this->maxPos = glm::max(this->maxPos, meshMax);
 
-    if (mesh->HasNormals())
+    if (mesh->HasNormals() && mesh->HasTangentsAndBitangents())
     {
       for (uint i = 0; i < mesh->mNumVertices; i++)
       {
-        meshVertices[i].normal.x = mesh->mNormals[i].x;
-        meshVertices[i].normal.y = mesh->mNormals[i].y;
-        meshVertices[i].normal.z = mesh->mNormals[i].z;
+        glm::vec3 normal(mesh->mNormals[i].x, mesh->mNormals[i].y, mesh->mNormals[i].z);
+        glm::vec3 tangent(mesh->mTangents[i].x, mesh->mTangents[i].y, mesh->mTangents[i].z);
+
+        meshVertices[i].normal = glm::vec4(mesh->mNormals[i].x, mesh->mNormals[i].y, mesh->mNormals[i].z, 0.0f);
+        meshVertices[i].tangent = glm::vec4(mesh->mTangents[i].x, mesh->mTangents[i].y, mesh->mTangents[i].z, 0.0f);
       }
     }
 
@@ -176,30 +177,15 @@ namespace Strontium
       // Loop over the texture coords and assign them.
       for (uint i = 0; i < mesh->mNumVertices; i++)
       {
-        meshVertices[i].uv.x = mesh->mTextureCoords[0][i].x;
-        meshVertices[i].uv.y = mesh->mTextureCoords[0][i].y;
+        meshVertices[i].texCoord.x = mesh->mTextureCoords[0][i].x;
+        meshVertices[i].texCoord.y = mesh->mTextureCoords[0][i].y;
       }
     }
     else
     {
       for (uint i = 0; i < mesh->mNumVertices; i++)
       {
-        meshVertices[i].uv = glm::vec2(0.0f);
-      }
-    }
-
-    // Fetch the tangents and bitangents.
-    if (mesh->HasTangentsAndBitangents())
-    {
-      for (uint i = 0; i <mesh->mNumVertices; i++)
-      {
-        meshVertices[i].tangent.x = mesh->mTangents[i].x;
-        meshVertices[i].tangent.y = mesh->mTangents[i].y;
-        meshVertices[i].tangent.z = mesh->mTangents[i].z;
-
-        meshVertices[i].bitangent.x = mesh->mBitangents[i].x;
-        meshVertices[i].bitangent.y = mesh->mBitangents[i].y;
-        meshVertices[i].bitangent.z = mesh->mBitangents[i].z;
+        meshVertices[i].texCoord = glm::vec4(0.0f);
       }
     }
 
@@ -333,7 +319,7 @@ namespace Strontium
   }
 
   void
-  Model::addBoneData(unsigned int boneIndex, float boneWeight, Vertex &toMod)
+  Model::addBoneData(unsigned int boneIndex, float boneWeight, PackedVertex &toMod)
   {
     for (unsigned int i = 0; i < MAX_BONES_PER_VERTEX; i++)
     {

@@ -17,6 +17,16 @@ struct EntityData
   MaterialData u_material;
 };
 
+struct VertexData
+{
+  vec4 normal;
+  vec4 tangent;
+  vec4 position; // Uncompressed position (x, y, z). w is padding.
+  vec4 boneWeights; // Uncompressed bone weights.
+  ivec4 boneIDs; // Bone IDs.
+  vec4 texCoord; // UV coordinates (x, y). z and w are padding.
+};
+
 // Camera specific uniforms.
 layout(std140, binding = 0) uniform CameraBlock
 {
@@ -27,30 +37,32 @@ layout(std140, binding = 0) uniform CameraBlock
   vec4 u_nearFarGamma; // Near plane (x), far plane (y), gamma correction factor (z). w is unused.
 };
 
+#type vertex
+#define MAX_BONES_PER_MODEL 512
+
 // An index for fetching data from the transform and editor SSBOs.
 layout(std140, binding = 1) uniform PerDrawBlock
 {
   int u_drawData; // Transform ID (x). Y, z and w are unused.
 };
 
+layout(std140, binding = 0) readonly buffer VertexBuffer
+{
+  VertexData v_vertices[];
+};
+
+layout(std430, binding = 1) readonly buffer IndexBuffer
+{
+  uint v_indices[];
+};
+
 // The per-entity data.
-layout(std140, binding = 0) readonly buffer EntityBlock
+layout(std140, binding = 2) readonly buffer EntityBlock
 {
   EntityData u_entityData[];
 };
 
-#type vertex
-#define MAX_BONES_PER_MODEL 512
-
-layout(location = 0) in vec4 vPosition;
-layout(location = 1) in vec3 vNormal;
-layout(location = 2) in vec2 vTexCoord;
-layout(location = 3) in vec3 vTangent;
-layout(location = 4) in vec3 vBitangent;
-layout(location = 5) in vec4 vBoneWeight;
-layout(location = 6) in ivec4 vBoneID;
-
-layout(std140, binding = 4) readonly buffer BoneBlock
+layout(std140, binding = 3) readonly buffer BoneBlock
 {
   mat4 u_boneMatrices[MAX_BONES_PER_MODEL];
 };
@@ -67,33 +79,37 @@ out VERT_OUT
 
 void main()
 {
+  const uint vIndex = v_indices[gl_VertexID];
+  const VertexData vertex = v_vertices[vIndex];
+
   // Compute the index of this draw into the global buffer.
-  const int index = gl_InstanceID + u_drawData;
+  const int instance = gl_InstanceID + u_drawData;
 
   // Fetch the transform from the global buffer.
-  const mat4 modelMatrix = u_entityData[index].u_transform;
+  const mat4 modelMatrix = u_entityData[instance].u_transform;
 
   // Skinning calculations.
-  mat4 skinMatrix = vBoneID.x > -1 ? u_boneMatrices[vBoneID.x] * vBoneWeight.x
-                                   : mat4(1.0);
-  skinMatrix += u_boneMatrices[vBoneID.y] * vBoneWeight.y;
-  skinMatrix += u_boneMatrices[vBoneID.z] * vBoneWeight.z;
-  skinMatrix += u_boneMatrices[vBoneID.w] * vBoneWeight.w;
+  mat4 skinMatrix = vertex.boneIDs.x > -1 ? u_boneMatrices[vertex.boneIDs.x]
+                                          * vertex.boneWeights.x
+                                          : mat4(1.0);
+  skinMatrix += u_boneMatrices[vertex.boneIDs.y] * vertex.boneWeights.y;
+  skinMatrix += u_boneMatrices[vertex.boneIDs.z] * vertex.boneWeights.z;
+  skinMatrix += u_boneMatrices[vertex.boneIDs.w] * vertex.boneWeights.w;
 
   mat4 worldSpaceMatrix = modelMatrix * skinMatrix;
 
   // Tangent to world matrix calculation.
-  vec3 T = normalize(vec3(modelMatrix * vec4(vTangent, 0.0)));
-  vec3 N = normalize(vec3(modelMatrix * vec4(vNormal, 0.0)));
-  T = normalize(T - dot(T, N) * N);
-  vec3 B = cross(N, T);
+  vec3 normal = normalize(vec3(modelMatrix * vertex.normal));
+  vec3 tangent = normalize(vec3(modelMatrix * vertex.tangent));
+  tangent = normalize(tangent - dot(tangent, normal) * normal);
+  vec3 bitangent = cross(normal, tangent);
 
-  gl_Position = u_projMatrix * u_viewMatrix * worldSpaceMatrix * vPosition;
-  vertOut.fNormal = N;
-  vertOut.fTexCoords = vTexCoord;
-  vertOut.fTBN = mat3(T, B, N);
-  vertOut.fMaskID = u_entityData[index].u_maskID.xy;
-  vertOut.fMaterialData = u_entityData[index].u_material;
+  gl_Position = u_projMatrix * u_viewMatrix * worldSpaceMatrix * vec4(vertex.position.xyz, 1.0);
+  vertOut.fNormal = normal;
+  vertOut.fTexCoords = vertex.texCoord.xy;
+  vertOut.fTBN = mat3(tangent, bitangent, normal);
+  vertOut.fMaskID = u_entityData[instance].u_maskID.xy;
+  vertOut.fMaterialData = u_entityData[instance].u_material;
 }
 
 #type fragment

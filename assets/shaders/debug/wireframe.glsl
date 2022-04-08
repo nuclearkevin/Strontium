@@ -10,6 +10,17 @@ struct WireframeData
   vec4 colour;
 };
 
+struct VertexData
+{
+  vec4 normal;
+  vec4 tangent;
+  vec4 position; // Uncompressed position (x, y, z). w is padding.
+  vec4 boneWeights; // Uncompressed bone weights.
+  ivec4 boneIDs; // Bone IDs.
+  vec4 texCoord; // UV coordinates (x, y). z and w are padding.
+};
+
+#type vertex
 // Camera specific uniforms.
 layout(std140, binding = 0) uniform CameraBlock
 {
@@ -20,13 +31,20 @@ layout(std140, binding = 0) uniform CameraBlock
   vec4 u_nearFarGamma; // Near plane (x), far plane (y), gamma correction factor (z). w is unused.
 };
 
-layout(std140, binding = 0) readonly buffer ModelBlock
+layout(std140, binding = 0) readonly buffer VertexBuffer
+{
+  VertexData v_vertices[];
+};
+
+layout(std430, binding = 1) readonly buffer IndexBuffer
+{
+  uint v_indices[];
+};
+
+layout(std140, binding = 2) readonly buffer ModelBlock
 {
   WireframeData u_data[];
 };
-
-#type vertex
-layout(location = 0) in vec4 vPosition;
 
 // Vertex properties for shading.
 out VERT_OUT
@@ -36,12 +54,15 @@ out VERT_OUT
 
 void main()
 {
-  const int index = gl_InstanceID;
-  const mat4 modelMatrix = u_data[index].transform;
+  const uint vIndex = v_indices[gl_VertexID];
+  const VertexData vertex = v_vertices[vIndex];
 
-  gl_Position = u_projMatrix * u_viewMatrix * modelMatrix * vPosition;
+  const int instance = gl_InstanceID;
+  const mat4 modelMatrix = u_data[instance].transform;
 
-  vertOut.fColour = u_data[index].colour;
+  gl_Position = u_projMatrix * u_viewMatrix * modelMatrix * vec4(vertex.position.xyz, 1.0);
+
+  vertOut.fColour = u_data[instance].colour;
 }
 
 #type fragment

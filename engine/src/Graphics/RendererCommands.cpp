@@ -94,6 +94,12 @@ namespace Strontium
   }
 
   void 
+  RendererCommands::drawArraysInstanced(PrimativeType primative, uint start, uint count, uint numInstances)
+  {
+    glDrawArraysInstanced(static_cast<GLenum>(primative), start, count, numInstances);
+  }
+
+  void 
   RendererCommands::cullType(FaceType face)
   {
     glCullFace(static_cast<GLenum>(face));

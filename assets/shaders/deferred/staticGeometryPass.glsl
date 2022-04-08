@@ -17,6 +17,16 @@ struct EntityData
   MaterialData u_material;
 };
 
+struct VertexData
+{
+  vec4 normal;
+  vec4 tangent;
+  vec4 position; // Uncompressed position (x, y, z). w is padding.
+  vec4 boneWeights; // Uncompressed bone weights.
+  ivec4 boneIDs; // Bone IDs.
+  vec4 texCoord; // UV coordinates (x, y). z and w are padding.
+};
+
 // Camera specific uniforms.
 layout(std140, binding = 0) uniform CameraBlock
 {
@@ -27,24 +37,28 @@ layout(std140, binding = 0) uniform CameraBlock
   vec4 u_nearFarGamma; // Near plane (x), far plane (y), gamma correction factor (z). w is unused.
 };
 
+#type vertex
 // An index for fetching data from the transform and editor SSBOs.
 layout(std140, binding = 1) uniform PerDrawBlock
 {
   int u_drawData; // Transform ID (x). Y, z and w are unused.
 };
 
+layout(std140, binding = 0) readonly buffer VertexBuffer
+{
+  VertexData v_vertices[];
+};
+
+layout(std430, binding = 1) readonly buffer IndexBuffer
+{
+  uint v_indices[];
+};
+
 // The per-entity data.
-layout(std140, binding = 0) readonly buffer EntityBlock
+layout(std140, binding = 2) readonly buffer EntityBlock
 {
   EntityData u_entityData[];
 };
-
-#type vertex
-layout(location = 0) in vec4 vPosition;
-layout(location = 1) in vec3 vNormal;
-layout(location = 2) in vec2 vTexCoord;
-layout(location = 3) in vec3 vTangent;
-layout(location = 4) in vec3 vBitangent;
 
 // Vertex properties for shading.
 out VERT_OUT
@@ -56,26 +70,60 @@ out VERT_OUT
   MaterialData fMaterialData;
 } vertOut;
 
+// qTangent decoding.
+// https://developer.android.com/games/optimize/vertex-data-management
+vec3 xAxis(vec4 qQuat)
+{
+  float fTy = 2.0 * qQuat.y;
+  float fTz = 2.0 * qQuat.z;
+  float fTwy = fTy * qQuat.w;
+  float fTwz = fTz * qQuat.w;
+  float fTxy = fTy * qQuat.x;
+  float fTxz = fTz * qQuat.x;
+  float fTyy = fTy * qQuat.y;
+  float fTzz = fTz * qQuat.z;
+
+  return vec3(1.0 - (fTyy +fTzz), fTxy + fTwz, fTxz - fTwy);
+}
+
+vec3 yAxis(vec4 qQuat)
+{
+  float fTx = 2.0 * qQuat.x;
+  float fTy = 2.0 * qQuat.y;
+  float fTz  = 2.0 * qQuat.z;
+  float fTwx = fTx * qQuat.w;
+  float fTwz = fTz * qQuat.w;
+  float fTxx = fTx * qQuat.x;
+  float fTxy = fTy * qQuat.x;
+  float fTyz = fTz * qQuat.y;
+  float fTzz = fTz * qQuat.z;
+
+  return vec3(fTxy - fTwz, 1.0 - (fTxx + fTzz), fTyz + fTwx);
+}
+
 void main()
 {
+  const uint vIndex = v_indices[gl_VertexID];
+  const VertexData vertex = v_vertices[vIndex];
+
   // Compute the index of this draw into the global buffer.
-  const int index = gl_InstanceID + u_drawData;
+  const int instance = gl_InstanceID + u_drawData;
 
   // Fetch the transform from the global buffer.
-  const mat4 modelMatrix = u_entityData[index].u_transform;
+  const mat4 modelMatrix = u_entityData[instance].u_transform;
 
   // Tangent to world matrix calculation.
-  vec3 T = normalize(vec3(modelMatrix * vec4(vTangent, 0.0)));
-  vec3 N = normalize(vec3(modelMatrix * vec4(vNormal, 0.0)));
-  T = normalize(T - dot(T, N) * N);
-  vec3 B = cross(N, T);
+  vec3 normal = normalize(vec3(modelMatrix * vertex.normal));
+  vec3 tangent = normalize(vec3(modelMatrix * vertex.tangent));
+  tangent = normalize(tangent - dot(tangent, normal) * normal);
+  vec3 bitangent = cross(normal, tangent);
 
-  gl_Position = u_projMatrix * u_viewMatrix * modelMatrix * vPosition;
-  vertOut.fNormal = N;
-  vertOut.fTexCoords = vTexCoord;
-  vertOut.fTBN = mat3(T, B, N);
-  vertOut.fMaskID = u_entityData[index].u_maskID.xy;
-  vertOut.fMaterialData = u_entityData[index].u_material;
+  gl_Position = u_projMatrix * u_viewMatrix * modelMatrix * vec4(vertex.position.xyz, 1.0);
+  vertOut.fNormal = normal;
+  vertOut.fTexCoords = vertex.texCoord.xy;
+  vertOut.fTBN = mat3(tangent, bitangent, normal);
+  vertOut.fMaskID = u_entityData[instance].u_maskID.xy;
+  vertOut.fMaterialData = u_entityData[instance].u_material;
 }
 
 #type fragment
