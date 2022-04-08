@@ -191,8 +191,6 @@ namespace Strontium
 	for (auto& submesh : data->getSubmeshes())
 	{
       VertexArray* vao = submesh.hasVAO() ? submesh.getVAO() : submesh.generateVAO();
-      if (!vao)
-        continue;
       
       // Compute the scene AABB.
       auto localTransform = model * submesh.getTransform();

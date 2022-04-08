@@ -90,7 +90,7 @@ void main()
   // Quit early for threads that aren't in bounds of the screen.
   if (any(greaterThanEqual(invoke, gBufferSize)))
     return;
-    
+
   vec2 gBufferUVs = (vec2(invoke) + 0.5.xx) / vec2(textureSize(gDepth, 0).xy);
 
   if (texelFetch(gDepth, invoke, 0).r >= (1.0 - 1e-6))
@@ -388,9 +388,6 @@ vec2 samplePoissonDisk(uint index)
 }
 
 //------------------------------------------------------------------------------
-// Shadow calculations for exponentially warped variance shadow maps.
-//------------------------------------------------------------------------------
-//------------------------------------------------------------------------------
 // Shadow calculations for PCF shadow maps.
 //------------------------------------------------------------------------------
 float offsetLookup(sampler2D map, vec2 loc, vec2 offset, float depth)
@@ -456,27 +453,17 @@ float calcPCFKernelSize(sampler2D map, vec3 projCoords, float bias, float lightS
 float calcShadow(uint cascadeIndex, vec3 position, vec3 normal, DirectionalLight light,
                  int quality)
 {
-  float depthRange = 0.0;
-  if (cascadeIndex == 0)
-  {
-    depthRange = u_cascadeData[cascadeIndex].x;
-  }
-  else
-  {
-    depthRange = u_cascadeData[cascadeIndex].x - u_cascadeData[cascadeIndex - 1].x;
-  }
-
   float bias = u_shadowParams.x / 1000.0;
 
   float normalOffsetScale = clamp(1.0 - dot(normal, light.directionSize.xyz), 0.0, 1.0);
   normalOffsetScale /= textureSize(cascadeMaps[cascadeIndex], 0).x;
-  normalOffsetScale *= depthRange * u_shadowParams.y;
+  normalOffsetScale *= u_shadowParams.y;
 
   vec4 shadowOffset = vec4(position + normal * normalOffsetScale, 1.0);
   shadowOffset = u_lightVP[cascadeIndex] * shadowOffset;
 
   vec4 lightClipPos = u_lightVP[cascadeIndex] * vec4(position, 1.0);
-  lightClipPos.xy = shadowOffset.xy;
+  lightClipPos.xy = shadowOffset.xy / shadowOffset.w;
   vec3 projCoords = lightClipPos.xyz / lightClipPos.w;
   projCoords = 0.5 * projCoords + 0.5;
 

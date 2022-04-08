@@ -19,7 +19,7 @@ Entities:
       IsPrimary: true
       Near: 0.550000012
       Far: 30
-      FOV: 0.839503348
+      FOV: 1.04719758
   - EntityID: 24
     NameComponent:
       Name: Cylinder 11
@@ -617,7 +617,7 @@ RendererSettings:
   GeneralSettings:
     Gamma: 2.20000005
   ShadowSettings:
-    ShadowQuality: 1
+    ShadowQuality: 2
     MinimumRadius: 3
     CascadeLambda: 0.899999976
     ConstantBias: 2
@@ -643,24 +643,24 @@ RendererSettings:
     UseFXAA: true
     ToneMapFunction: 5
 Materials:
-  - MaterialName: Cube
+  - MaterialName: Sphere
     MaterialType: pbr_shader
     Floats:
       - UniformName: uMetallic
         UniformValue: 0
       - UniformName: uRoughness
-        UniformValue: 0.5
+        UniformValue: 0
       - UniformName: uAO
         UniformValue: 1
       - UniformName: uEmiss
         UniformValue: 0
       - UniformName: uReflectance
-        UniformValue: 0.0399999991
+        UniformValue: 1
     Vec2s:
       []
     Vec3s:
       - UniformName: uAlbedo
-        UniformValue: [1, 1, 1]
+        UniformValue: [0.259066701, 1, 0]
     Sampler2Ds:
       - SamplerName: albedoMap
         SamplerHandle: "Monocolour texture: #ffffffff"
@@ -717,24 +717,24 @@ Materials:
       - SamplerName: specF0Map
         SamplerHandle: "Monocolour texture: #ffffffff"
         ImagePath: ""
-  - MaterialName: Sphere
+  - MaterialName: Cube
     MaterialType: pbr_shader
     Floats:
       - UniformName: uMetallic
         UniformValue: 0
       - UniformName: uRoughness
-        UniformValue: 0
+        UniformValue: 0.5
       - UniformName: uAO
         UniformValue: 1
       - UniformName: uEmiss
         UniformValue: 0
       - UniformName: uReflectance
-        UniformValue: 1
+        UniformValue: 0.0399999991
     Vec2s:
       []
     Vec3s:
       - UniformName: uAlbedo
-        UniformValue: [1, 0, 0]
+        UniformValue: [1, 1, 1]
     Sampler2Ds:
       - SamplerName: albedoMap
         SamplerHandle: "Monocolour texture: #ffffffff"
@@ -760,18 +760,18 @@ Materials:
       - UniformName: uMetallic
         UniformValue: 0
       - UniformName: uRoughness
-        UniformValue: 0.5
+        UniformValue: 1
       - UniformName: uAO
         UniformValue: 1
       - UniformName: uEmiss
         UniformValue: 0
       - UniformName: uReflectance
-        UniformValue: 0.0399999991
+        UniformValue: 0
     Vec2s:
       []
     Vec3s:
       - UniformName: uAlbedo
-        UniformValue: [1, 1, 1]
+        UniformValue: [1, 0, 0]
     Sampler2Ds:
       - SamplerName: albedoMap
         SamplerHandle: "Monocolour texture: #ffffffff"

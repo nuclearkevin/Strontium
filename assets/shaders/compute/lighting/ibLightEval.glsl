@@ -181,10 +181,9 @@ float gaussian(float sigma, float x)
 float getHBAO(sampler2D gDepth, sampler2D hbaoTexture, vec2 gBufferCoords,
               vec2 nearFar)
 {
-  vec2 halfUV = gBufferCoords;
   vec2 halfTexSize = vec2(textureSize(gDepth, 1).xy);
   vec2 halfTexelSize = 1.0.xx / halfTexSize;
-  vec2 pixel = halfUV * halfTexSize + 0.5.xx;
+  vec2 pixel = gBufferCoords * halfTexSize + 0.5.xx;
   vec2 f = fract(pixel);
   pixel = (floor(pixel) / halfTexSize) - (halfTexelSize / 2.0);
 

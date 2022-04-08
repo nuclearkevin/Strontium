@@ -152,7 +152,7 @@ namespace Strontium
 
       // Save the material name.
       out << YAML::Key << "MaterialName" << YAML::Value << materialHandle;
-      if (materialAsset->getPath().empty() && override)
+      if (!materialAsset->getPath().empty() && override)
       {
         out << YAML::Key << "MaterialPath" << YAML::Value << materialAsset->getPath().string();
         out << YAML::EndMap;
@@ -653,13 +653,16 @@ namespace Strontium
       auto parsedMaterialName = mat["MaterialName"];
       auto parsedMaterialPath = mat["MaterialPath"];
 
-      std::string materialPath = "";
+      std::filesystem::path materialPath;
       if (parsedMaterialPath && override)
       {
         materialPath = parsedMaterialPath.as<std::string>();
-        Asset::Handle handle;
-        deserializeMaterial(materialPath, handle);
-        return;
+        if (!materialPath.empty())
+        {
+          Asset::Handle handle;
+          deserializeMaterial(materialPath.string(), handle);
+          return;
+        }
       }
       else if (!parsedMaterialPath && filepath != "")
         materialPath = filepath;

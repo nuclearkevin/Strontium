@@ -34,7 +34,7 @@ namespace Strontium
 	}
 
 	template <typename T>
-	void attach(T* asset, const Asset::Handle &handle)
+	void attach(T* asset, const std::filesystem::path &assetPath, const Asset::Handle &handle)
 	{
 	  static_assert(std::is_base_of<Asset, T>::value, "Class must derive from Asset.");
 
@@ -75,9 +75,10 @@ namespace Strontium
 	{
 	  static_assert(std::is_base_of<Asset, T>::value, "Class must derive from Asset.");
 
-	  T* result = this->assetStorage.at(typeid(T).hash_code()).get<T>(handle);
+	  if (this->assetStorage.find(typeid(T).hash_code()) != this->assetStorage.end())
+	    return this->assetStorage.at(typeid(T).hash_code()).get<T>(handle);
 
-	  return result;
+	  return nullptr;
 	}
 
 	template <typename T>

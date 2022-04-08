@@ -28,7 +28,7 @@ namespace Strontium
     //--------------------------------------------------------------------------
     // Models, materials and meshes.
     //--------------------------------------------------------------------------
-    ThreadSafeQueue<std::tuple<Model*, Scene*, uint>> asyncModelQueue;
+    ThreadSafeQueue<std::tuple<ModelAsset*, Asset::Handle, std::filesystem::path, Scene*, uint>> asyncModelQueue;
 
     void
     bulkGenerateMaterials()
@@ -42,8 +42,11 @@ namespace Strontium
 
       while (!asyncModelQueue.empty())
       {
-        auto [model, activeScene, entityID] = asyncModelQueue.front();
+        auto [modelAsset, handle, path, activeScene, entityID] = asyncModelQueue.front();
         Entity entity(static_cast<entt::entity>(entityID), activeScene);
+
+        if (!assetCache.has<ModelAsset>(handle))
+          assetCache.attach<ModelAsset>(modelAsset, path, handle);
 
         if (entity)
         {
@@ -51,11 +54,11 @@ namespace Strontium
           {
             auto& rComponent = entity.getComponent<RenderableComponent>();
             auto& materials = rComponent.materials;
-            auto& submeshes = model->getSubmeshes();
+            auto& submeshes = modelAsset->getModel()->getSubmeshes();
 
             if (rComponent.animationHandle != "")
             {
-              for (auto& animation : model->getAnimations())
+              for (auto& animation : modelAsset->getModel()->getAnimations())
               {
                 if (animation.getName() == rComponent.animationHandle)
                 {
@@ -196,13 +199,14 @@ namespace Strontium
 
         if (!assetCache.has<ModelAsset>(name))
         {
-          auto loadable = assetCache.emplace<ModelAsset>(filepath, name);
+          std::cout << "Hello from the loading thread" << std::endl;
+          ModelAsset* loadable = new ModelAsset();
           loadable->load(filepath);
 
-          asyncModelQueue.push({ loadable->getModel(), activeScene, entityID });
+          asyncModelQueue.push({ loadable, name, filepath, activeScene, entityID });
         }
         else
-          asyncModelQueue.push({ assetCache.get<ModelAsset>(name)->getModel(), activeScene, entityID });
+          asyncModelQueue.push({ assetCache.get<ModelAsset>(name), name, filepath, activeScene, entityID });
       };
 
       JobSystem::push(loaderImpl, filepath, name, entityID, activeScene);
