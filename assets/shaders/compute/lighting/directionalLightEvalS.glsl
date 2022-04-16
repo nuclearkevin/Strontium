@@ -59,7 +59,7 @@ layout(std140, binding = 2) uniform CascadedShadowBlock
 {
   mat4 u_lightVP[NUM_CASCADES];
   vec4 u_cascadeData[NUM_CASCADES]; // Cascade split distance (x). y, z and w are unused.
-  vec4 u_shadowParams; // The constant bias (x), normal bias (y), and the minimum PCF radius (z). w is unused.
+  vec4 u_shadowParams; // The constant bias (x), normal bias (y), the minimum PCF radius (z) and the cascade blend fraction (w).
 };
 
 layout(rgba16f, binding = 0) restrict uniform image2D lightingBuffer;
@@ -116,8 +116,12 @@ void main()
 
       float currentSplit = i == 0 ? 0.0 : u_cascadeData[i - 1].x;
       float nextSplit = u_cascadeData[i].x;
-      float splitDelta = nextSplit - currentSplit;
-      float fadeFactor = (nextSplit + clipSpacePos.z) / splitDelta;
+      float maxNextSplit = mix(currentSplit, nextSplit, u_shadowParams.w);
+      float splitDelta = max(nextSplit - maxNextSplit, 1e-4);
+
+      float fadeFactor = 1.0;
+      if (-clipSpacePos.z >= maxNextSplit)
+        fadeFactor = (nextSplit + clipSpacePos.z) / splitDelta;
 
       if (i < (NUM_CASCADES - 1))
       {
@@ -455,15 +459,21 @@ float calcShadow(uint cascadeIndex, vec3 position, vec3 normal, DirectionalLight
 {
   float bias = u_shadowParams.x / 1000.0;
 
+  float depthRange;
+  if (cascadeIndex == 0)
+    depthRange = u_cascadeData[cascadeIndex].x;
+  else
+    depthRange = u_cascadeData[cascadeIndex].x - u_cascadeData[cascadeIndex - 1].x;
+
   float normalOffsetScale = clamp(1.0 - dot(normal, light.directionSize.xyz), 0.0, 1.0);
   normalOffsetScale /= textureSize(cascadeMaps[cascadeIndex], 0).x;
-  normalOffsetScale *= u_shadowParams.y;
+  normalOffsetScale *= depthRange * u_shadowParams.y;
 
   vec4 shadowOffset = vec4(position + normal * normalOffsetScale, 1.0);
   shadowOffset = u_lightVP[cascadeIndex] * shadowOffset;
 
   vec4 lightClipPos = u_lightVP[cascadeIndex] * vec4(position, 1.0);
-  lightClipPos.xy = shadowOffset.xy / shadowOffset.w;
+  lightClipPos.xy = shadowOffset.xy;
   vec3 projCoords = lightClipPos.xyz / lightClipPos.w;
   projCoords = 0.5 * projCoords + 0.5;
 

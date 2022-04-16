@@ -94,7 +94,7 @@ namespace Strontium
       this->passData.aoParamsBuffer.bindToPoint(1);
 
       // Bind the blue noise texture.
-      rendererData->blueNoise->bind(1);
+      rendererData->spatialBlueNoise->bind(1);
 
       // Compute the SSHBAO.
       rendererData->halfResBuffer1.bindAsImage(0, 0, ImageAccessPolicy::Write);
@@ -120,7 +120,7 @@ namespace Strontium
     }
   }
 
-  void HBAOPass::onRendererEnd(FrameBuffer& frontBuffer)
+  void HBAOPass::onRendererEnd(FrameBuffer &frontBuffer)
   {
     this->timer.msRecordTime(this->passData.frameTime);
   }

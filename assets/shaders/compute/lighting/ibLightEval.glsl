@@ -62,7 +62,7 @@ SurfaceProperties decodeGBuffer(vec2 gBufferUVs, ivec2 gBufferTexel);
 vec3 evaluateIBL(float iblIndex, SurfaceProperties gBuffer, float diffAO);
 
 // Fetches and upsamples the horizon-based ambient occlusion.
-float getHBAO(sampler2D gDepth, sampler2D hbaoTexture, vec2 gBufferCoords, vec2 nearFar);
+float getHBAO(sampler2D gDepth, sampler2D hbaoTexture, vec2 gBufferCoords);
 
 void main()
 {
@@ -84,7 +84,7 @@ void main()
 
   float ao = gBuffer.ao;
   if (u_iblParams.z > 0.0)
-    ao = min(getHBAO(gDepth, hbaoTexture, gBufferUVs, u_nearFar.xy), ao);
+    ao = min(getHBAO(gDepth, hbaoTexture, gBufferUVs), ao);
 
   totalRadiance += evaluateIBL(u_iblParams.x, gBuffer, ao) * u_iblParams.y;
   totalRadiance += gBuffer.albedo * gBuffer.emission;
@@ -178,8 +178,7 @@ float gaussian(float sigma, float x)
   return exp(-(x * x) / (2.0 * sigma * sigma));
 }
 
-float getHBAO(sampler2D gDepth, sampler2D hbaoTexture, vec2 gBufferCoords,
-              vec2 nearFar)
+float getHBAO(sampler2D gDepth, sampler2D hbaoTexture, vec2 gBufferCoords)
 {
   vec2 halfTexSize = vec2(textureSize(gDepth, 1).xy);
   vec2 halfTexelSize = 1.0.xx / halfTexSize;
@@ -210,5 +209,7 @@ float getHBAO(sampler2D gDepth, sampler2D hbaoTexture, vec2 gBufferCoords,
 
   float result = halfResEffect[0] * weights[0] + halfResEffect[1] * weights[1]
                + halfResEffect[2] * weights[2] + halfResEffect[3] * weights[3];
-  return result / (weights[0] + weights[1] + weights[2] + weights[3]);
+
+  float weightSum = max(weights[0] + weights[1] + weights[2] + weights[3], 1e-4);
+  return result / weightSum;
 }

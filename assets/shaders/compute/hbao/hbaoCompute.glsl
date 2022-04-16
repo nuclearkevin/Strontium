@@ -37,8 +37,8 @@ layout(std140, binding = 1) uniform AOBlock
   vec4 u_aoParams2; // Blur direction (x, y). Z and w are unused.
 };
 
-float computeHBAO(ivec2 coords, vec2 uv, vec4 aoParams, sampler2D depthTex,
-                  mat4 view, mat4 invVP, vec2 fullResTexel);
+float computeHBAO(ivec2 coords, vec4 aoParams, sampler2D depthTex,
+                  mat4 view, mat4 invVP);
 
 void main()
 {
@@ -48,13 +48,8 @@ void main()
   if (any(greaterThanEqual(invoke, imageSize(aoOut).xy)))
     return;
 
-  // Half resolution.
-  vec2 gTexel = 1.0.xx / vec2(textureSize(gDepth, 0).xy);
-  vec2 coords = (vec2(2 * invoke) + 0.5.xx);
-  vec2 gBufferUV = coords * gTexel;
-
-  float ao = computeHBAO(invoke, gBufferUV, u_aoParams1, gDepth, u_viewMatrix,
-                         u_invViewProjMatrix, gTexel);
+  float ao = computeHBAO(invoke, u_aoParams1, gDepth, u_viewMatrix,
+                         u_invViewProjMatrix);
 
   float result = pow(ao, u_aoParams1.z);
   imageStore(aoOut, invoke, vec4(result.xxx, 1.0));
@@ -94,17 +89,19 @@ float falloff(float distanceSquare, float invR2)
 }
 
 // Decodes the worldspace position of the fragment from depth.
-vec3 decodePosition(vec2 texCoords, sampler2D depthMap, mat4 invVP)
+vec3 decodePosition(ivec2 coords, sampler2D depthMap, mat4 invVP)
 {
-  float depth = textureLod(depthMap, texCoords, 0.0).r;
+  float depth = texelFetch(depthMap, coords, 1).r;
+  vec2 texCoords = (vec2(coords) + 0.5.xx) / vec2(textureSize(depthMap, 1).xy);
   vec3 clipCoords = 2.0 * vec3(texCoords, depth) - 1.0.xxx;
   vec4 temp = invVP * vec4(clipCoords, 1.0);
   return temp.xyz / temp.w;
 }
 
-vec4 decodePositionWithDepth(vec2 texCoords, sampler2D depthMap, mat4 invVP)
+vec4 decodePositionWithDepth(ivec2 coords, sampler2D depthMap, mat4 invVP)
 {
-  float depth = textureLod(depthMap, texCoords, 0.0).r;
+  float depth = texelFetch(depthMap, coords, 1).r;
+  vec2 texCoords = (vec2(coords) + 0.5.xx) / vec2(textureSize(depthMap, 1).xy);
   vec3 clipCoords = 2.0 * vec3(texCoords, depth) - 1.0.xxx;
   vec4 temp = invVP * vec4(clipCoords, 1.0);
   return vec4(temp.xyz / temp.w, depth);
@@ -113,14 +110,13 @@ vec4 decodePositionWithDepth(vec2 texCoords, sampler2D depthMap, mat4 invVP)
 // Reconstruct the view-space normal from depth
 // (normal maps don't play well with SSAO).
 // TODO: Cache the lookups to minimize matrix multiplications.
-vec3 reconstructNormal(vec2 centerUVs, sampler2D depthMap, vec3 center,
+vec3 reconstructNormal(ivec2 centerCoord, sampler2D depthMap, vec3 center,
                        float centerDepth, mat4 invVP)
 {
-  const vec2 texel = 1.0.xx / vec2(textureSize(depthMap, 0).xy);
-  const vec2 leftUV = centerUVs - vec2(1.0, 0.0) * texel;
-  const vec2 rightUV = centerUVs + vec2(1.0, 0.0) * texel;
-  const vec2 downUV = centerUVs - vec2(0.0, 1.0) * texel;
-  const vec2 upUV = centerUVs + vec2(0.0, 1.0) * texel;
+  const ivec2 leftUV = centerCoord - ivec2(1.0, 0.0);
+  const ivec2 rightUV = centerCoord + ivec2(1.0, 0.0);
+  const ivec2 downUV = centerCoord - ivec2(0.0, 1.0);
+  const ivec2 upUV = centerCoord + ivec2(0.0, 1.0);
 
   const vec4 left = decodePositionWithDepth(leftUV, depthMap, invVP);
   const vec4 right = decodePositionWithDepth(rightUV, depthMap, invVP);
@@ -166,14 +162,17 @@ float computeAO(vec3 p, vec3 n, vec3 s, float invR2)
   return clamp(nDotV - BIAS, 0.0, 1.0) * clamp(falloff(vDotV, invR2), 0.0, 1.0);
 }
 
-float computeHBAO(ivec2 coords, vec2 uv, vec4 aoParams, sampler2D depthTex,
-                  mat4 view, mat4 invVP, vec2 fullResTexel)
+float computeHBAO(ivec2 coords, vec4 aoParams, sampler2D depthTex,
+                  mat4 view, mat4 invVP)
 {
   // Compute the view-space position and normal.
-  vec4 pos = decodePositionWithDepth(uv, depthTex, invVP);
+  vec4 pos = decodePositionWithDepth(coords, depthTex, invVP);
   vec3 viewPos = (view * vec4(pos.xyz, 1.0)).xyz;
-  vec3 normal = reconstructNormal(uv, depthTex, pos.xyz, pos.w, invVP);
+  vec3 normal = reconstructNormal(coords, depthTex, pos.xyz, pos.w, invVP);
   vec3 viewNormal = normalize((view * vec4(normal, 0.0)).xyz);
+
+  vec2 halfResTexel = vec2(textureSize(depthTex, 1).xy);
+  vec2 halfResTexCoords = (vec2(coords) + 0.5.xx) / halfResTexel;
 
   // Screen-space radius of the sample disk.
   float sRadius = aoParams.x / max(abs(viewPos.z), 1e-4);
@@ -199,8 +198,8 @@ float computeHBAO(ivec2 coords, vec2 uv, vec4 aoParams, sampler2D depthTex,
     // Inner loop raymarches through the depth buffer gathering AO contributions.
     for (uint j = 0; j < NUM_STEPS; j++)
     {
-      vec2 snappedUV = round(ray * direction) * fullResTexel + uv;
-      vec3 samplePos = (view * vec4(decodePosition(snappedUV, depthTex, invVP), 1.0)).xyz;
+      vec2 snappedUV = round(ray * direction) / halfResTexel + halfResTexCoords;
+      vec3 samplePos = (view * vec4(decodePosition(ivec2(snappedUV * halfResTexel), depthTex, invVP), 1.0)).xyz;
 
       ray += stepSize;
 
@@ -211,5 +210,4 @@ float computeHBAO(ivec2 coords, vec2 uv, vec4 aoParams, sampler2D depthTex,
   ao *= aoParams.y / (float(NUM_STEPS) * float(NUM_DIRECTIONS));
 
   return clamp(1.0 - 2.0 * ao, 0.0, 1.0);
-  //return sampleDither(coords).r;
 }

@@ -54,6 +54,7 @@ namespace Strontium
 					      const glm::mat4 & transform)
 	  : indexBuffer(indexBuffer)
 	  , vertexBuffer(vertexBuffer)
+	  , numToRender(numToRender)
 	  , animations(animations)
 	  , transform(transform)
 	  , instanceCount(1)
@@ -110,6 +111,7 @@ namespace Strontium
 	// Shadow settings.
 	uint shadowQuality;
 	float minRadius;
+	float blendFraction;
 	float normalBias;
 	float constBias;
 
@@ -138,6 +140,7 @@ namespace Strontium
 	  , maxPos(std::numeric_limits<float>::min())
 	  , shadowQuality(0)
 	  , minRadius(1.0f)
+	  , blendFraction(0.5f)
 	  , normalBias(50.0f)
 	  , constBias(0.01f)
 	  , frameTime(0.0f)

@@ -12,6 +12,8 @@
 #include "Graphics/RenderPasses/IBLApplicationPass.h"
 #include "Graphics/RenderPasses/DirectionalLightPass.h"
 
+#include "Graphics/RenderPasses/GodrayPass.h"
+
 #include "Graphics/RenderPasses/SkyboxPass.h"
 
 #include "Graphics/RenderPasses/BloomPass.h"
@@ -103,6 +105,7 @@ namespace Strontium
       ImGui::Text("");
 
       ImGui::DragFloat("Cascade Lambda", &shadowBlock->cascadeLambda, 0.01f, 0.5f, 1.0f);
+      ImGui::DragFloat("Cascade Blend Fraction", &shadowBlock->blendFraction, 0.01f, 0.0f, 1.0f);
 
       int shadowWidth = static_cast<int>(shadowBlock->shadowMapRes);
       if (ImGui::InputInt("Shadowmap Size", &shadowWidth))
@@ -219,6 +222,50 @@ namespace Strontium
       {
         ImGui::Text("HBAO Texture");
         ImGui::Image(reinterpret_cast<ImTextureID>(hbaoBlock->ao.getID()),
+                     ImVec2(128.0f * ratio, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
+      }
+    }
+
+    if (ImGui::CollapsingHeader("Screen-Space Godray Pass"))
+    {
+      auto& renderPassManger = Renderer3D::getPassManager();
+      auto ssgrPass = renderPassManger.getRenderPass<GodrayPass>();
+      auto ssgrBlock = ssgrPass->getInternalDataBlock<GodrayPassDataBlock>();
+      float width = static_cast<float>(ssgrBlock->godrays.getWidth());
+      float height = static_cast<float>(ssgrBlock->godrays.getHeight());
+      float ratio = width / height;
+
+      ImGui::Checkbox("Enable Godrays", &ssgrBlock->enableGodrays);
+
+      ImGui::Separator();
+      ImGui::Text("Frametime: %f ms", ssgrBlock->frameTime);
+      ImGui::Separator();
+
+      ImGui::Separator();
+      int numSteps = static_cast<int>(ssgrBlock->numSteps);
+      ImGui::SliderInt("Number of Steps", &numSteps, 1, 128);
+      ssgrBlock->numSteps = static_cast<uint>(numSteps);
+      ImGui::Separator();
+
+      Styles::drawFloatControl("Mie Phase", 0.8f, ssgrBlock->miePhase, 0.0f, 0.01f, -1.0f, 1.0f);
+      glm::vec3 mieScattering(ssgrBlock->mieScat);
+      float mieScatteringDensity = ssgrBlock->mieScat.w;
+      Styles::drawVec3Controls("Mie Scattering", glm::vec3(1.0f), mieScattering);
+      Styles::drawFloatControl("Mie Scattering Density", 1.0f, mieScatteringDensity);
+      ssgrBlock->mieScat = glm::max(glm::vec4(mieScattering, mieScatteringDensity), glm::vec4(0.0f));
+      glm::vec3 mieAbsorption(ssgrBlock->mieAbs);
+      float mieAbsorptionDensity = ssgrBlock->mieAbs.w;
+      Styles::drawVec3Controls("Mie Absorption", glm::vec3(1.0f), mieAbsorption);
+      Styles::drawFloatControl("Mie Absorption Density", 1.0f, mieAbsorptionDensity);
+      ssgrBlock->mieAbs = glm::max(glm::vec4(mieAbsorption, mieAbsorptionDensity), glm::vec4(0.0f));
+
+      static bool showGodrayTexture = false;
+      ImGui::Checkbox("Show Godray Texture", &showGodrayTexture);
+
+      if (showGodrayTexture)
+      {
+        ImGui::Text("Godray Texture");
+        ImGui::Image(reinterpret_cast<ImTextureID>(ssgrBlock->godrays.getID()),
                      ImVec2(128.0f * ratio, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
       }
     }

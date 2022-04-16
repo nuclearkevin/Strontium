@@ -71,6 +71,7 @@ namespace Strontium
     this->passData.skyboxParams.setData(0, sizeof(glm::vec4), &(this->passData.skyboxes[0])); 
 
     // Apply the skybox.
+    rendererData->lightingBuffer.bindAsImage(0, 0, ImageAccessPolicy::ReadWrite);
     uint iWidth = static_cast<uint>(glm::ceil(static_cast<float>(rendererData->lightingBuffer.getWidth())
                                               / 8.0f));
     uint iHeight = static_cast<uint>(glm::ceil(static_cast<float>(rendererData->lightingBuffer.getHeight())

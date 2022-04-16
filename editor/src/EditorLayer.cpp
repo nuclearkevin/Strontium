@@ -191,7 +191,7 @@ namespace Strontium
 
         this->drawBuffer.clear();
         // Draw the scene.
-        Renderer3D::begin(this->editorSize.x, this->editorSize.y, static_cast<Camera>(this->editorCam));
+        Renderer3D::begin(this->editorSize.x, this->editorSize.y, static_cast<Camera>(this->editorCam), dt);
         this->currentScene->onRenderEditor(this->editorSize.x / this->editorSize.y, this->getSelectedEntity());
         Renderer3D::end(this->drawBuffer);
 
@@ -243,7 +243,7 @@ namespace Strontium
 
         this->drawBuffer.clear();
         // Draw the scene.
-        Renderer3D::begin(this->editorSize.x, this->editorSize.y, primaryCamera);
+        Renderer3D::begin(this->editorSize.x, this->editorSize.y, primaryCamera, dt);
         this->currentScene->onRenderRuntime(this->editorSize.x / this->editorSize.y);
         Renderer3D::end(this->drawBuffer);
 
@@ -265,7 +265,7 @@ namespace Strontium
 
         this->drawBuffer.clear();
         // Draw the scene.
-        Renderer3D::begin(this->editorSize.x, this->editorSize.y, static_cast<Camera>(this->editorCam));
+        Renderer3D::begin(this->editorSize.x, this->editorSize.y, static_cast<Camera>(this->editorCam), dt);
         this->currentScene->onRenderEditor(this->editorSize.x / this->editorSize.y, this->getSelectedEntity());
         Renderer3D::end(this->drawBuffer);
 

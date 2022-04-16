@@ -24,9 +24,12 @@ namespace Strontium::Renderer3D
     float gamma;
     Frustum camFrustum;
 
+    float time;
+
     VertexArray blankVAO;
 
-    Unique<Texture2D> blueNoise;
+    Unique<Texture2D> spatialBlueNoise;
+    Unique<Texture2D> temporalBlueNoise;
 
     Texture2D lightingBuffer;
     Texture2D halfResBuffer1;
@@ -36,6 +39,7 @@ namespace Strontium::Renderer3D
       : blankVAO()
       , gamma(2.2f)
       , camFrustum()
+      , time(0.0f)
     { }
   };
 
@@ -47,7 +51,7 @@ namespace Strontium::Renderer3D
   void shutdown();
 
   // Generic begin and end for the renderer.
-  void begin(uint width, uint height, const Camera &sceneCamera);
+  void begin(uint width, uint height, const Camera &sceneCamera, float dt);
   void end(FrameBuffer& frontBuffer);
 }
 

@@ -137,7 +137,7 @@ namespace Strontium
                                                  NUM_CASCADES * sizeof(glm::vec4), 
                                                  shadowBlock->cascadeSplits);
 
-      glm::vec4 shadowParams(shadowBlock->constBias, shadowBlock->normalBias, shadowBlock->minRadius, 0.0f);
+      glm::vec4 shadowParams(shadowBlock->constBias, shadowBlock->normalBias, shadowBlock->minRadius, shadowBlock->blendFraction);
       this->passData.cascadedShadowBlock.setData(NUM_CASCADES * (sizeof(glm::mat4) + sizeof(glm::vec4)), 
                                                  sizeof(glm::vec4), &(shadowParams.x));
 

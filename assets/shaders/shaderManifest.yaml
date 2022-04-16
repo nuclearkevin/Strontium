@@ -54,6 +54,13 @@ ShaderCache:
   - Handle: split_sums_brdf
     Filepath: ./assets/shaders/compute/ibl/integrateBRDF.glsl
     #
+    # Volumetrics
+    #
+  - Handle: screen_space_godrays
+    Filepath: ./assets/shaders/compute/volumetric/godrayCompute.glsl
+  - Handle: screen_space_godrays_blur
+    Filepath: ./assets/shaders/compute/volumetric/godrayBlurCompute.glsl
+    #
     # Lighting
     #
   - Handle: point_evaluation

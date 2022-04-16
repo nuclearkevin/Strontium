@@ -10,6 +10,15 @@ layout(local_size_x = 8, local_size_y = 8) in;
 #define KERNEL_RADIUS 6
 #define SHARPNESS 5.0
 
+// TODO: Get density from a volume texture instead.
+struct ScatteringParams
+{
+  vec4 mieScat; //  Mie scattering base (x, y, z) and density (w).
+  vec4 mieAbs; //  Mie absorption base (x, y, z) and density (w).
+  vec4 lightDirMiePhase; // Light direction (x, y, z) and the Mie phase (w).
+  vec4 lightColourIntensity; // Light colour (x, y, z) and intensity (w).
+};
+
 layout(rgba16f, binding = 0) restrict writeonly uniform image2D outImage;
 
 layout(binding = 0) uniform sampler2D gDepth;
@@ -25,10 +34,10 @@ layout(std140, binding = 0) uniform CameraBlock
   vec4 u_nearFarGamma; // Near plane (x), far plane (y), gamma correction factor (z). w is unused.
 };
 
-layout(std140, binding = 1) uniform AOBlock
+layout(std140, binding = 1) uniform GodrayBlock
 {
-  vec4 u_aoParams1; // World-space radius (x), ao multiplier (y), ao exponent (z).
-  vec4 u_aoParams2; // Blur direction (x, y). z and w are unused.
+  ScatteringParams u_params;
+  vec4 u_godrayParams; // Blur direction (x, y), number of steps (z).
 };
 
 // https://stackoverflow.com/questions/51108596/linearize-depth
@@ -38,10 +47,10 @@ float linearizeDepth(float d, float zNear, float zFar)
   return 2.0 * zNear * zFar / (zFar + zNear - zN * (zFar - zNear));
 }
 
-float blurFunction(vec2 uv, float r, float centerDepth, sampler2D depthMap,
+vec4 blurFunction(vec2 uv, float r, float centerDepth, sampler2D depthMap,
                    sampler2D blurMap, vec2 nearFar, inout float totalWeight)
 {
-  float aoSample = texture(blurMap, uv).r;
+  vec4 aoSample = texture(blurMap, uv);
   float d = linearizeDepth(textureLod(depthMap, uv, 1.0).r, nearFar.x, nearFar.y);
 
   const float blurSigma = float(KERNEL_RADIUS) * 0.5;
@@ -57,33 +66,32 @@ float blurFunction(vec2 uv, float r, float centerDepth, sampler2D depthMap,
 void main()
 {
   ivec2 invoke = ivec2(gl_GlobalInvocationID.xy);
+  ivec2 outSize = ivec2(imageSize(outImage).xy);
 
   // Quit early for threads that aren't in bounds of the screen.
-  if (any(greaterThanEqual(invoke, textureSize(gDepth, 0).xy)))
+  if (any(greaterThanEqual(invoke, outSize)))
     return;
 
-  vec2 texelSize = 1.0.xx / vec2(textureSize(gDepth, 0).xy);
+  vec2 texelSize = 1.0.xx / vec2(outSize);
   vec2 uvs = (vec2(invoke) + 0.5.xx) * texelSize;
 
-  float center = texture(inTexture, uvs).r;
+  vec4 center = texture(inTexture, uvs);
   float centerDepth = linearizeDepth(textureLod(gDepth, uvs, 1.0).r, u_nearFarGamma.x, u_nearFarGamma.y);
 
-  float cTotal = center;
+  vec4 cTotal = center;
   float wTotal = 1.0;
 
   for (uint r = 1; r <= KERNEL_RADIUS; r++)
   {
-    vec2 uv = uvs + (texelSize * float(r) * u_aoParams2.xy);
-    cTotal += blurFunction(uv, r, centerDepth, gDepth, inTexture, u_nearFarGamma.xy, wTotal);
+    vec2 uv = uvs + (2.0 * texelSize * float(r) * u_godrayParams.xy);
+    cTotal += blurFunction(uv, float(r), centerDepth, gDepth, inTexture, u_nearFarGamma.xy, wTotal);
   }
 
   for (uint r = 1; r <= KERNEL_RADIUS; r++)
   {
-    vec2 uv = uvs - (texelSize * float(r) * u_aoParams2.xy);
-    cTotal += blurFunction(uv, r, centerDepth, gDepth, inTexture, u_nearFarGamma.xy, wTotal);
+    vec2 uv = uvs - (2.0 * texelSize * float(r) * u_godrayParams.xy);
+    cTotal += blurFunction(uv, float(r), centerDepth, gDepth, inTexture, u_nearFarGamma.xy, wTotal);
   }
 
-  float result = cTotal / wTotal;
-
-  imageStore(outImage, invoke, vec4(result.xxx, 1.0));
+  imageStore(outImage, invoke, cTotal / max(wTotal, 1e-4));
 }

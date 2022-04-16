@@ -16,6 +16,7 @@
 #include "Graphics/RenderPasses/RenderPassManager.h"
 #include "Graphics/RenderPasses/ShadowPass.h"
 #include "Graphics/RenderPasses/HBAOPass.h"
+#include "Graphics/RenderPasses/GodrayPass.h"
 #include "Graphics/RenderPasses/SkyAtmospherePass.h"
 #include "Graphics/RenderPasses/DynamicSkyIBLPass.h"
 #include "Graphics/RenderPasses/BloomPass.h"
@@ -535,6 +536,7 @@ namespace Strontium
           out << YAML::Key << "ShadowQuality" << YAML::Value << shadowPassData->shadowQuality;
           out << YAML::Key << "MinimumRadius" << YAML::Value << shadowPassData->minRadius;
           out << YAML::Key << "CascadeLambda" << YAML::Value << shadowPassData->cascadeLambda;
+          out << YAML::Key << "CascadeBlendFraction" << YAML::Value << shadowPassData->blendFraction;
           out << YAML::Key << "ConstantBias" << YAML::Value << shadowPassData->constBias;
           out << YAML::Key << "NormalBias" << YAML::Value << shadowPassData->normalBias;
           out << YAML::Key << "ShadowMapResolution" << YAML::Value << shadowPassData->shadowMapRes;
@@ -553,6 +555,22 @@ namespace Strontium
           out << YAML::Key << "AORadius" << YAML::Value << aoPassData->aoRadius;
           out << YAML::Key << "AOMultiplier" << YAML::Value << aoPassData->aoMultiplier;
           out << YAML::Key << "AOExponent" << YAML::Value << aoPassData->aoExponent;
+
+          out << YAML::EndMap;
+        }
+
+        // Godray settings.
+        {
+          auto godrayPass = passManager.getRenderPass<GodrayPass>();
+          auto godrayPassData = godrayPass->getInternalDataBlock<GodrayPassDataBlock>();
+
+          out << YAML::Key << "GodraySettings" << YAML::BeginMap;
+
+          out << YAML::Key << "UseGodrays" << YAML::Value << godrayPassData->enableGodrays;
+          out << YAML::Key << "NumSteps" << YAML::Value << godrayPassData->numSteps;
+          out << YAML::Key << "MiePhase" << YAML::Value << godrayPassData->miePhase;
+          out << YAML::Key << "MieScatteringFunction" << YAML::Value << godrayPassData->mieScat;
+          out << YAML::Key << "MieAbsorptionFunction" << YAML::Value << godrayPassData->mieAbs;
 
           out << YAML::EndMap;
         }
@@ -995,6 +1013,7 @@ namespace Strontium
             shadowPassData->shadowQuality = shadowSettings["ShadowQuality"].as<uint>();
             shadowPassData->minRadius = shadowSettings["MinimumRadius"].as<float>();
             shadowPassData->cascadeLambda = shadowSettings["CascadeLambda"].as<float>();
+            shadowPassData->blendFraction = shadowSettings["CascadeBlendFraction"].as<float>();
             shadowPassData->constBias = shadowSettings["ConstantBias"].as<float>();
             shadowPassData->normalBias = shadowSettings["NormalBias"].as<float>();
             shadowPassData->shadowMapRes = shadowSettings["ShadowMapResolution"].as<uint>();
@@ -1013,6 +1032,21 @@ namespace Strontium
             aoPassData->aoRadius = hbaoSettings["AORadius"].as<float>();
             aoPassData->aoMultiplier = hbaoSettings["AOMultiplier"].as<float>();
             aoPassData->aoExponent = hbaoSettings["AOExponent"].as<float>();
+          }
+        }
+
+        {
+          auto godraySettings = rendererSettings["GodraySettings"];
+          if (godraySettings)
+          {
+            auto godrayPass = passManager.getRenderPass<GodrayPass>();
+            auto godrayPassData = godrayPass->getInternalDataBlock<GodrayPassDataBlock>();
+
+            godrayPassData->enableGodrays = godraySettings["UseGodrays"].as<bool>();
+            godrayPassData->numSteps = godraySettings["NumSteps"].as<uint>();
+            godrayPassData->miePhase = godraySettings["MiePhase"].as<float>();
+            godrayPassData->mieScat = godraySettings["MieScatteringFunction"].as<glm::vec4>();
+            godrayPassData->mieAbs = godraySettings["MieAbsorptionFunction"].as<glm::vec4>();
           }
         }
 

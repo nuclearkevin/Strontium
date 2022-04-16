@@ -10,6 +10,9 @@
 #include "Graphics/RenderPasses/SkyAtmospherePass.h"
 #include "Graphics/RenderPasses/DynamicSkyIBLPass.h"
 
+#include "Graphics/RenderPasses/GodrayPass.h"
+#include "Graphics/RenderPasses/VolumetricLightPass.h"
+
 #include "Graphics/RenderPasses/IBLApplicationPass.h"
 #include "Graphics/RenderPasses/DirectionalLightPass.h"
 
@@ -48,7 +51,8 @@ namespace Strontium::Renderer3D
     rendererData->gamma = 2.2f;
 
     // Some noise textures.
-    rendererData->blueNoise.reset(Texture2D::loadTexture2D("./assets/.internal/noise/HDR_RGBA_0.png", Texture2DParams(), false));
+    rendererData->spatialBlueNoise.reset(Texture2D::loadTexture2D("./assets/.internal/noise/HDR_RGBA_0.png", Texture2DParams(), false));
+    rendererData->temporalBlueNoise.reset(Texture2D::loadTexture2D("./assets/.internal/noise/HDR_RGBA_1.png", Texture2DParams(), false));
 
     // The lighting pass buffer.
     Texture2DParams lightingParams = Texture2DParams();
@@ -93,6 +97,10 @@ namespace Strontium::Renderer3D
     auto iblApp = passManager->insertRenderPass<IBLApplicationPass>(rendererData, geomet, hiZ, hbao, dynIBL);
     auto dirApp = passManager->insertRenderPass<DirectionalLightPass>(rendererData, geomet, shadow, skyatmo);
 
+    // Screen-space godray pass.
+    auto ssgr = passManager->insertRenderPass<GodrayPass>(rendererData, geomet, shadow, hiZ, dirApp);
+    auto volApp = passManager->insertRenderPass<VolumetricLightPass>(rendererData, geomet, hiZ, ssgr);
+
     // Skybox pass. This should be applied last.
     auto skyboxApp = passManager->insertRenderPass<SkyboxPass>(rendererData, geomet, skyatmo);
 
@@ -120,11 +128,15 @@ namespace Strontium::Renderer3D
 
   // Generic begin and end for the renderer.
   void
-  begin(uint width, uint height, const Camera &sceneCamera)
+  begin(uint width, uint height, const Camera &sceneCamera, float dt)
   {
     // Set the camera.
     rendererData->sceneCam = sceneCamera;
     rendererData->camFrustum = buildCameraFrustum(sceneCamera);
+
+    rendererData->time += dt;
+    // Handle overflows.
+    rendererData->time = glm::max(rendererData->time, 0.0f);
 
     // Resize the global buffers.
     if (static_cast<uint>(rendererData->lightingBuffer.getWidth()) != width ||
