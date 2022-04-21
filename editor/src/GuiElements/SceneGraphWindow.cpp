@@ -764,11 +764,15 @@ namespace Strontium
         this->selectedEntity, [this](auto& component)
       {
         auto& assetCache = Application::getInstance()->getAssetCache();
-        Model* componentModel = assetCache.get<ModelAsset>(component.meshName)->getModel();
+        auto assetModel = assetCache.get<ModelAsset>(component.meshName);
+        Model* componentModel = nullptr;
         char nameBuffer[256];
         memset(nameBuffer, 0, sizeof(nameBuffer));
-        if (componentModel)
+        if (assetModel)
+        {
+          componentModel = assetModel->getModel();
           std::strncpy(nameBuffer, component.meshName.c_str(), sizeof(nameBuffer));
+        }
 
         ImGui::Text("Mesh Information");
         ImGui::Separator();

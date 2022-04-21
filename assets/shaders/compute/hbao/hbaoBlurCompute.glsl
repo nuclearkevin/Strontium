@@ -57,12 +57,13 @@ float blurFunction(vec2 uv, float r, float centerDepth, sampler2D depthMap,
 void main()
 {
   ivec2 invoke = ivec2(gl_GlobalInvocationID.xy);
+  ivec2 outSize = ivec2(imageSize(outImage).xy);
 
   // Quit early for threads that aren't in bounds of the screen.
-  if (any(greaterThanEqual(invoke, textureSize(gDepth, 0).xy)))
+  if (any(greaterThanEqual(invoke, outSize)))
     return;
 
-  vec2 texelSize = 1.0.xx / vec2(textureSize(gDepth, 0).xy);
+  vec2 texelSize = 1.0.xx / vec2(outSize);
   vec2 uvs = (vec2(invoke) + 0.5.xx) * texelSize;
 
   float center = texture(inTexture, uvs).r;

@@ -209,20 +209,22 @@ namespace Strontium
     {
       // Fetch the transform component.
       auto& transform = entity.getComponent<TransformComponent>();
-      glm::mat4 transformMatrix = transform;
+      auto globalTransform = static_cast<Scene*>(entity)->computeGlobalTransform(entity);
+      auto globalTransformNoLocal = globalTransform * glm::inverse(static_cast<glm::mat4>(transform));
 
       // Manipulate the matrix. TODO: Add snapping.
       ImGuizmo::Manipulate(glm::value_ptr(camView), glm::value_ptr(camProjection),
                            (ImGuizmo::OPERATION) this->gizmoType,
-                           ImGuizmo::WORLD, glm::value_ptr(transformMatrix),
+                           ImGuizmo::WORLD, glm::value_ptr(globalTransform),
                            nullptr, nullptr);
 
       if (ImGuizmo::IsUsing())
       {
+        auto localTransform = glm::inverse(globalTransformNoLocal) * globalTransform;
         glm::vec3 skew;
         glm::vec4 perspective;
         glm::quat rotation;
-        glm::decompose(transformMatrix, transform.scale, rotation, transform.translation, skew, perspective);
+        glm::decompose(localTransform, transform.scale, rotation, transform.translation, skew, perspective);
 
         transform.rotation = glm::eulerAngles(rotation);
       }

@@ -125,10 +125,11 @@ namespace Strontium
     {
       // Upload and bind the lightspace properties and shadow params.
       auto shadowBlock = this->previousShadowPass->getInternalDataBlock<ShadowPassDataBlock>();
-      int shadowQuality = static_cast<int>(shadowBlock->shadowQuality);
+      glm::ivec4 shadowSettings(static_cast<int>(shadowBlock->numPCFTaps), static_cast<int>(shadowBlock->numSearchSteps), 
+                                static_cast<int>(shadowBlock->shadowQuality), static_cast<int>(shadowBlock->useSSShadows));
       this->passData.lightBlock.setData(0, sizeof(DirectionalLight), &this->passData.primaryLight);
-      this->passData.lightBlock.setData(MAX_NUM_DIRECTIONAL_LIGHTS * sizeof(DirectionalLight) 
-                                        + 3 * sizeof(int), sizeof(int), &shadowQuality);
+      this->passData.lightBlock.setData(MAX_NUM_DIRECTIONAL_LIGHTS * sizeof(DirectionalLight), 
+                                        sizeof(glm::ivec4), &shadowSettings.x);
 
       this->passData.cascadedShadowBlock.bindToPoint(2);
       this->passData.cascadedShadowBlock.setData(0, NUM_CASCADES * sizeof(glm::mat4), 

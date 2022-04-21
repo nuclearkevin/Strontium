@@ -75,8 +75,16 @@ namespace Strontium
         ImGui::EndCombo();
       }
 
+      ImGui::Checkbox("Use Screen-Space Shadows", &shadowBlock->useSSShadows);
+
       if (shadowBlock->shadowQuality == 1)
       {
+        /*
+        int numPCFTaps = static_cast<int>(shadowBlock->numPCFTaps);
+        ImGui::SliderInt("Filter Taps", &numPCFTaps, 1, 128);
+        shadowBlock->numPCFTaps = static_cast<uint>(numPCFTaps);
+        */
+
         if (ImGui::DragFloat("Filter Radius", &(shadowBlock->minRadius), 0.01f))
         {
           shadowBlock->minRadius = glm::max(shadowBlock->minRadius, 0.0f);
@@ -85,6 +93,16 @@ namespace Strontium
 
       if (shadowBlock->shadowQuality == 2)
       {
+        /*
+        int numPCFTaps = static_cast<int>(shadowBlock->numPCFTaps);
+        ImGui::SliderInt("Filter Taps", &numPCFTaps, 1, 128);
+        shadowBlock->numPCFTaps = static_cast<uint>(numPCFTaps);
+
+        int numSearchSteps = static_cast<int>(shadowBlock->numSearchSteps);
+        ImGui::SliderInt("Blocker Search Steps", &numSearchSteps, 1, 128);
+        shadowBlock->numSearchSteps = static_cast<uint>(numSearchSteps);
+        */
+
         if (ImGui::DragFloat("Minimum Radius", &(shadowBlock->minRadius), 0.01f))
         {
           shadowBlock->minRadius = glm::max(shadowBlock->minRadius, 0.0f);

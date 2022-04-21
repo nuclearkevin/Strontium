@@ -31,12 +31,14 @@ namespace Strontium::PhysicsEngine
             !(!owningEntity.hasComponent<RigidBody3DComponent>() || !owningEntity.hasComponent<TransformComponent>())));
     assert(("JPH::BodyInterface* was null.", owningInterface));
 
+    /*
     if (owningEntity.hasComponent<ParentEntityComponent>())
     {
       Logs::log("Warning: Entities with parents cannot be physics objects.");
       newActor.valid = false;
       return PhysicsActor();
     }
+    */
 
     JPH::ShapeRefC shapeRef;
     glm::vec3 offset(0.0f);
@@ -145,10 +147,16 @@ namespace Strontium::PhysicsEngine
     auto& transform = owningEntity.getComponent<TransformComponent>();
     auto& rigidBody = owningEntity.getComponent<RigidBody3DComponent>();
 
-    auto matrix = glm::translate(transform.translation) * glm::toMat4(glm::quat(transform.rotation));
+    auto localTransformMatrix = static_cast<glm::mat4>(transform);
+    auto localTransformNoScale = glm::translate(transform.translation) * glm::toMat4(glm::quat(transform.rotation));
+    auto globalTransform = static_cast<Scene*>(owningEntity)->computeGlobalTransform(owningEntity);
+    auto globalTransformNoLocalScale = globalTransform * glm::inverse(localTransformMatrix);
+    globalTransformNoLocalScale = globalTransformNoLocalScale * localTransformNoScale;
 
-    newActor.previousPosition = glm::vec3(matrix * glm::vec4(offset, 1.0f));
-    newActor.previousOrientation = glm::quat(transform.rotation);
+    auto rotation = static_cast<Scene*>(owningEntity)->computeGlobalRotation(owningEntity);
+
+    newActor.previousPosition = glm::vec3(globalTransformNoLocalScale * glm::vec4(offset, 1.0f));
+    newActor.previousOrientation = glm::quat(rotation);
 
     auto pos = PhysicsUtils::convertGLMToJolt(newActor.previousPosition);
     auto rot = PhysicsUtils::convertGLMToJolt(newActor.previousOrientation);

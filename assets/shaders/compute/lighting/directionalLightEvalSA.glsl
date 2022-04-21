@@ -13,9 +13,6 @@
 #define MAX_NUM_LIGHTS 8
 #define NUM_CASCADES 4
 
-#define PCF_SAMPLES 64
-#define PCSS_SAMPLES 16
-
 layout(local_size_x = 8, local_size_y = 8) in;
 
 struct DirectionalLight
@@ -83,9 +80,7 @@ layout(std140, binding = 0) uniform CameraBlock
 layout(std140, binding = 1) uniform DirectionalBlock
 {
   DirectionalLight dLights[MAX_NUM_LIGHTS];
-  // Number of directional lights (x) with a maximum of 8, lighting settings
-  // bitmask (y), the directional light to be shadowed (z), and the shadow quality (w).
-  ivec4 u_lightingSettings;
+  ivec4 u_lightingSettings; // PCF taps (x), blocker search steps (y), shadow quality (z), use screen-space shadows (w).
 };
 
 layout(std140, binding = 2) uniform CascadedShadowBlock
@@ -161,7 +156,7 @@ void main()
       // Interpolate between the current and the next cascade to smooth the
       // transition between shadows.
       shadowFactor = calcShadow(i, gBuffer.position, gBuffer.normal, shadowedLight,
-                                u_lightingSettings.w);
+                                u_lightingSettings.z);
 
       float currentSplit = i == 0 ? 0.0 : u_cascadeData[i - 1].x;
       float nextSplit = u_cascadeData[i].x;
@@ -175,7 +170,7 @@ void main()
       if (i < (NUM_CASCADES - 1))
       {
         float nextShadowFactor = calcShadow(i + 1, gBuffer.position, gBuffer.normal, shadowedLight,
-                                            u_lightingSettings.w);
+                                            u_lightingSettings.z);
         float lerpFactor = smoothstep(0.0, 1.0, fadeFactor);
         shadowFactor = mix(nextShadowFactor, shadowFactor, lerpFactor);
       }
@@ -198,6 +193,15 @@ vec3 decodePosition(vec2 texCoords, sampler2D depthMap, mat4 invMVP, ivec2 texel
   vec4 temp = invMVP * vec4(clipCoords, 1.0);
   return temp.xyz / temp.w;
 }
+
+vec3 decodePosition(vec2 texCoords, sampler2D depthMap, mat4 invMVP)
+{
+  float depth = texture(depthMap, texCoords).r;
+  vec3 clipCoords = 2.0 * vec3(texCoords, depth) - 1.0.xxx;
+  vec4 temp = invMVP * vec4(clipCoords, 1.0);
+  return temp.xyz / temp.w;
+}
+
 // Fast octahedron normal vector decoding.
 // https://jcgt.org/published/0003/02/01/
 vec2 signNotZero(vec2 v)
@@ -468,21 +472,23 @@ float offsetLookup(sampler2D map, vec2 loc, vec2 offset, float depth)
 //------------------------------------------------------------------------------
 // Shadow calculations for PCSS shadow maps.
 //------------------------------------------------------------------------------
-float calculateSearchWidth(float receiverDepth, float lightSize, vec2 texelSize)
+float calculateSearchWidth(float receiverDepth, float lightSize)
 {
-  return lightSize * receiverDepth;
+  return lightSize / receiverDepth;
 }
 
 float calcBlockerDistance(sampler2D map, vec3 projCoords, float bias, float lightSize)
 {
+  //const uint searchSteps = uint(u_lightingSettings.y);
+  const uint searchSteps = 16u;
+
   vec2 texel = 1.0 / textureSize(map, 0).xy;
   float blockerDistances = 0.0;
   float numBlockerDistances = 0.0;
-  float receiverDepth = projCoords.z;
 
-  float searchWidth = calculateSearchWidth(receiverDepth, lightSize, texel);
+  float searchWidth = calculateSearchWidth(projCoords.z, lightSize);
   mat2 rotation = randomRotation();
-  for (uint i = 0; i < PCSS_SAMPLES; i++)
+  for (uint i = 0; i < searchSteps; i++)
   {
     vec2 disk = searchWidth * samplePoissonDisk(i);
     disk = rotation * disk;
@@ -503,14 +509,13 @@ float calcBlockerDistance(sampler2D map, vec3 projCoords, float bias, float ligh
 
 float calcPCFKernelSize(sampler2D map, vec3 projCoords, float bias, float lightSize)
 {
-  float receiverDepth = projCoords.z;
   float blockerDepth = calcBlockerDistance(map, projCoords, bias, lightSize);
 
   float kernelSize = 1.0;
   if (blockerDepth > 0.0)
   {
-    float penumbraWidth = lightSize * (receiverDepth - blockerDepth) / blockerDepth;
-    kernelSize = penumbraWidth / (receiverDepth);
+    float penumbraWidth = lightSize * (projCoords.z - blockerDepth) / blockerDepth;
+    kernelSize = penumbraWidth / (projCoords.z);
   }
 
   return kernelSize;
@@ -522,6 +527,9 @@ float calcPCFKernelSize(sampler2D map, vec3 projCoords, float bias, float lightS
 float calcShadow(uint cascadeIndex, vec3 position, vec3 normal, DirectionalLight light,
                  int quality)
 {
+  //const uint pcfSamples = uint(u_lightingSettings.x);
+  const uint pcfSamples = 64u;
+
   float bias = u_shadowParams.x / 1000.0;
 
   float depthRange;
@@ -550,7 +558,7 @@ float calcShadow(uint cascadeIndex, vec3 position, vec3 normal, DirectionalLight
     float radius = calcPCFKernelSize(cascadeMaps[cascadeIndex], projCoords, bias, light.directionSize.w);
     radius += u_shadowParams.z;
     mat2 rotation = randomRotation();
-    for (uint i = 0; i < PCF_SAMPLES; i++)
+    for (uint i = 0; i < pcfSamples; i++)
     {
       vec2 disk = radius * samplePoissonDisk(i);
       disk = rotation * disk;
@@ -559,7 +567,7 @@ float calcShadow(uint cascadeIndex, vec3 position, vec3 normal, DirectionalLight
                                    disk, projCoords.z - bias);
     }
 
-    shadowFactor /= float(PCF_SAMPLES);
+    shadowFactor /= float(pcfSamples);
   }
   // PCF shadows, medium quality.
   else if (quality == 1)
@@ -567,7 +575,7 @@ float calcShadow(uint cascadeIndex, vec3 position, vec3 normal, DirectionalLight
     shadowFactor = 0.0;
     float radius = u_shadowParams.z;
     mat2 rotation = randomRotation();
-    for (uint i = 0; i < PCF_SAMPLES; i++)
+    for (uint i = 0; i < pcfSamples; i++)
     {
       vec2 disk = radius * samplePoissonDisk(i);
       disk = rotation * disk;
@@ -575,7 +583,7 @@ float calcShadow(uint cascadeIndex, vec3 position, vec3 normal, DirectionalLight
                                    disk, projCoords.z - bias);
     }
 
-    shadowFactor /= float(PCF_SAMPLES);
+    shadowFactor /= float(pcfSamples);
   }
   // Hard shadows, low quality.
   else if (quality == 0)
@@ -583,6 +591,6 @@ float calcShadow(uint cascadeIndex, vec3 position, vec3 normal, DirectionalLight
     shadowFactor = offsetLookup(cascadeMaps[cascadeIndex], projCoords.xy, 0.0.xx,
                                 projCoords.z - bias);
   }
-
+  
   return shadowFactor;
 }

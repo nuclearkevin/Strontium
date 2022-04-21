@@ -48,7 +48,8 @@ namespace Strontium
     void setPrimaryDirectionalEntity(Entity entity);
     void clearPrimaryDirectionalEntity() { this->primaryDirLightID = entt::null; }
 
-    glm::mat4 computeGlobalTransform(Entity parent);
+    glm::mat4 computeGlobalTransform(Entity entity);
+    glm::quat computeGlobalRotation(Entity entity);
 
     // Copy the components of other into a new scene.
     void copyForRuntime(Scene &other);

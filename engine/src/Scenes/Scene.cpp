@@ -164,13 +164,20 @@ namespace Strontium
           continue;
 
         auto transformData = actor.getUpdatedTransformData();
-        auto& transform = this->sceneECS.get<TransformComponent>(entity);
+        auto& localTransform = this->sceneECS.get<TransformComponent>(entity);
         auto& collider = this->sceneECS.get<SphereColliderComponent>(entity);
 
-        auto matrix = glm::toMat4(glm::quat(transformData.rotation));
+        auto prePhysicsTransform = this->computeGlobalTransform(Entity(entity, this));
+        auto prePhysicsNoLocal = prePhysicsTransform * glm::inverse(static_cast<glm::mat4>(localTransform));
+        auto localSpaceCenter = glm::vec3(glm::inverse(prePhysicsNoLocal) * glm::vec4(transformData.translation, 1.0f));
 
-        transform.translation = transformData.translation - glm::vec3(matrix * glm::vec4(collider.offset, 1.0f));
-        transform.rotation = glm::eulerAngles(transformData.rotation);
+        auto globalRotation = this->computeGlobalRotation(Entity(entity, this));
+        auto prePhysicsNoLocalRot = globalRotation * glm::normalize(glm::inverse(glm::quat(localTransform.rotation)));
+        auto newLocalRot = glm::quat(transformData.rotation) * glm::inverse(glm::normalize(prePhysicsNoLocalRot));
+        auto localRotation = glm::toMat4(newLocalRot);
+
+        localTransform.translation = localSpaceCenter - glm::vec3(localRotation * glm::vec4(collider.offset, 1.0f));
+        localTransform.rotation = glm::eulerAngles(newLocalRot);
       }
     }
 
@@ -185,13 +192,20 @@ namespace Strontium
           continue;
 
         auto transformData = actor.getUpdatedTransformData();
-        auto& transform = this->sceneECS.get<TransformComponent>(entity);
+        auto& localTransform = this->sceneECS.get<TransformComponent>(entity);
         auto& collider = this->sceneECS.get<BoxColliderComponent>(entity);
 
-        auto matrix = glm::toMat4(glm::quat(transformData.rotation));
+        auto prePhysicsTransform = this->computeGlobalTransform(Entity(entity, this));
+        auto prePhysicsNoLocal = prePhysicsTransform * glm::inverse(static_cast<glm::mat4>(localTransform));
+        auto localSpaceCenter = glm::vec3(glm::inverse(prePhysicsNoLocal) * glm::vec4(transformData.translation, 1.0f));
 
-        transform.translation = transformData.translation - glm::vec3(matrix * glm::vec4(collider.offset, 1.0f));
-        transform.rotation = glm::eulerAngles(transformData.rotation);
+        auto globalRotation = this->computeGlobalRotation(Entity(entity, this));
+        auto prePhysicsNoLocalRot = globalRotation * glm::normalize(glm::inverse(glm::quat(localTransform.rotation)));
+        auto newLocalRot = glm::quat(transformData.rotation) * glm::inverse(glm::normalize(prePhysicsNoLocalRot));
+        auto localRotation = glm::toMat4(newLocalRot);
+
+        localTransform.translation = localSpaceCenter - glm::vec3(localRotation * glm::vec4(collider.offset, 1.0f));
+        localTransform.rotation = glm::eulerAngles(newLocalRot);
       }
     }
 
@@ -206,13 +220,20 @@ namespace Strontium
           continue;
 
         auto transformData = actor.getUpdatedTransformData();
-        auto& transform = this->sceneECS.get<TransformComponent>(entity);
+        auto& localTransform = this->sceneECS.get<TransformComponent>(entity);
         auto& collider = this->sceneECS.get<CylinderColliderComponent>(entity);
 
-        auto matrix = glm::toMat4(glm::quat(transformData.rotation));
+        auto prePhysicsTransform = this->computeGlobalTransform(Entity(entity, this));
+        auto prePhysicsNoLocal = prePhysicsTransform * glm::inverse(static_cast<glm::mat4>(localTransform));
+        auto localSpaceCenter = glm::vec3(glm::inverse(prePhysicsNoLocal) * glm::vec4(transformData.translation, 1.0f));
 
-        transform.translation = transformData.translation - glm::vec3(matrix * glm::vec4(collider.offset, 1.0f));
-        transform.rotation = glm::eulerAngles(transformData.rotation);
+        auto globalRotation = this->computeGlobalRotation(Entity(entity, this));
+        auto prePhysicsNoLocalRot = globalRotation * glm::normalize(glm::inverse(glm::quat(localTransform.rotation)));
+        auto newLocalRot = glm::quat(transformData.rotation) * glm::inverse(glm::normalize(prePhysicsNoLocalRot));
+        auto localRotation = glm::toMat4(newLocalRot);
+
+        localTransform.translation = localSpaceCenter - glm::vec3(localRotation * glm::vec4(collider.offset, 1.0f));
+        localTransform.rotation = glm::eulerAngles(newLocalRot);
       }
     }
 
@@ -227,13 +248,20 @@ namespace Strontium
           continue;
 
         auto transformData = actor.getUpdatedTransformData();
-        auto& transform = this->sceneECS.get<TransformComponent>(entity);
+        auto& localTransform = this->sceneECS.get<TransformComponent>(entity);
         auto& collider = this->sceneECS.get<CapsuleColliderComponent>(entity);
 
-        auto matrix = glm::toMat4(glm::quat(transformData.rotation));
+        auto prePhysicsTransform = this->computeGlobalTransform(Entity(entity, this));
+        auto prePhysicsNoLocal = prePhysicsTransform * glm::inverse(static_cast<glm::mat4>(localTransform));
+        auto localSpaceCenter = glm::vec3(glm::inverse(prePhysicsNoLocal) * glm::vec4(transformData.translation, 1.0f));
 
-        transform.translation = transformData.translation - glm::vec3(matrix * glm::vec4(collider.offset, 1.0f));
-        transform.rotation = glm::eulerAngles(transformData.rotation);
+        auto globalRotation = this->computeGlobalRotation(Entity(entity, this));
+        auto prePhysicsNoLocalRot = globalRotation * glm::normalize(glm::inverse(glm::quat(localTransform.rotation)));
+        auto newLocalRot = glm::quat(transformData.rotation) * glm::inverse(glm::normalize(prePhysicsNoLocalRot));
+        auto localRotation = glm::toMat4(newLocalRot);
+
+        localTransform.translation = localSpaceCenter - glm::vec3(localRotation * glm::vec4(collider.offset, 1.0f));
+        localTransform.rotation = glm::eulerAngles(newLocalRot);
       }
     }
   }
@@ -562,8 +590,10 @@ namespace Strontium
         auto& collider = this->sceneECS.get<SphereColliderComponent>(entity);
         if (collider.visualize || debugRendererData.visualizeAllColliders)
         {
-          auto& transform = this->sceneECS.get<TransformComponent>(entity);
-          auto matrix = glm::translate(transform.translation) * glm::toMat4(glm::quat(transform.rotation));
+          auto globalTransform = this->computeGlobalTransform(Entity(entity, this));
+          auto& localTransform = this->sceneECS.get<TransformComponent>(entity);
+          globalTransform = globalTransform * glm::inverse(static_cast<glm::mat4>(localTransform));
+          auto matrix = globalTransform * glm::translate(localTransform.translation) * glm::toMat4(glm::quat(localTransform.rotation));
 
           wireframePass->submitSphere(Sphere(glm::vec3(matrix * glm::vec4(collider.offset, 1.0f)),
                                              collider.radius), 
@@ -581,12 +611,16 @@ namespace Strontium
         auto& collider = this->sceneECS.get<BoxColliderComponent>(entity);
         if (collider.visualize || debugRendererData.visualizeAllColliders)
         {
-          auto& transform = this->sceneECS.get<TransformComponent>(entity);
-          auto matrix = glm::translate(transform.translation) * glm::toMat4(glm::quat(transform.rotation));
+          auto globalTransform = this->computeGlobalTransform(Entity(entity, this));
+          auto& localTransform = this->sceneECS.get<TransformComponent>(entity);
+          globalTransform = globalTransform * glm::inverse(static_cast<glm::mat4>(localTransform));
+          auto matrix = globalTransform * glm::translate(localTransform.translation) * glm::toMat4(glm::quat(localTransform.rotation));
+
+          auto globalRotation = this->computeGlobalRotation(Entity(entity, this));
 
           wireframePass->submitOrientedBox(OrientedBoundingBox(glm::vec3(matrix * glm::vec4(collider.offset, 1.0f)),
                                                                collider.extents, 
-                                                               glm::quat(transform.rotation)), 
+                                                               glm::quat(globalRotation)),
                                             glm::vec3(0.0f, 1.0f, 0.0f));
         }
       }
@@ -601,11 +635,15 @@ namespace Strontium
         auto& collider = this->sceneECS.get<CylinderColliderComponent>(entity);
         if (collider.visualize || debugRendererData.visualizeAllColliders)
         {
-          auto& transform = this->sceneECS.get<TransformComponent>(entity);
-          auto matrix = glm::translate(transform.translation) * glm::toMat4(glm::quat(transform.rotation));
+          auto globalTransform = this->computeGlobalTransform(Entity(entity, this));
+          auto& localTransform = this->sceneECS.get<TransformComponent>(entity);
+          globalTransform = globalTransform * glm::inverse(static_cast<glm::mat4>(localTransform));
+          auto matrix = globalTransform * glm::translate(localTransform.translation) * glm::toMat4(glm::quat(localTransform.rotation));
+
+          auto globalRotation = this->computeGlobalRotation(Entity(entity, this));
 
           wireframePass->submitCylinder(Cylinder(glm::vec3(matrix * glm::vec4(collider.offset, 1.0f)), 
-                                                 collider.halfHeight, collider.radius, glm::quat(transform.rotation)), 
+                                                 collider.halfHeight, collider.radius, glm::quat(globalRotation)),
                                         glm::vec3(0.0f, 1.0f, 0.0f));
         }
       }
@@ -620,11 +658,15 @@ namespace Strontium
         auto& collider = this->sceneECS.get<CapsuleColliderComponent>(entity);
         if (collider.visualize || debugRendererData.visualizeAllColliders)
         {
-          auto& transform = this->sceneECS.get<TransformComponent>(entity);
-          auto matrix = glm::translate(transform.translation) * glm::toMat4(glm::quat(transform.rotation));
+          auto globalTransform = this->computeGlobalTransform(Entity(entity, this));
+          auto& localTransform = this->sceneECS.get<TransformComponent>(entity);
+          globalTransform = globalTransform * glm::inverse(static_cast<glm::mat4>(localTransform));
+          auto matrix = globalTransform * glm::translate(localTransform.translation) * glm::toMat4(glm::quat(localTransform.rotation));
+
+          auto globalRotation = this->computeGlobalRotation(Entity(entity, this));
 
           wireframePass->submitCapsule(Capsule(glm::vec3(matrix * glm::vec4(collider.offset, 1.0f)), 
-                                               collider.halfHeight, collider.radius, glm::quat(transform.rotation)), 
+                                               collider.halfHeight, collider.radius, glm::quat(globalRotation)),
                                        glm::vec3(0.0f, 1.0f, 0.0f));
         }
       }
@@ -695,12 +737,32 @@ namespace Strontium
     else
     {
       if (entity.hasComponent<TransformComponent>())
-      {
-        auto& localTransform = entity.getComponent<TransformComponent>();
-        return static_cast<glm::mat4>(localTransform);
-      }
+        return static_cast<glm::mat4>(entity.getComponent<TransformComponent>());
       else
         return glm::mat4(1.0f);
+    }
+  }
+
+  glm::quat 
+  Scene::computeGlobalRotation(Entity entity)
+  {
+    if (entity.hasComponent<ParentEntityComponent>())
+    {
+      auto& parent = entity.getComponent<ParentEntityComponent>().parent;
+      if (entity.hasComponent<TransformComponent>())
+      {
+        auto& localRotation = glm::quat(entity.getComponent<TransformComponent>().rotation);
+        return computeGlobalRotation(parent) * localRotation;
+      }
+      else
+        return computeGlobalRotation(parent);
+    }
+    else
+    {
+      if (entity.hasComponent<TransformComponent>())
+        return glm::quat(entity.getComponent<TransformComponent>().rotation);
+      else
+        return glm::quat(0.0f, 0.0f, 0.0f, 1.0f);
     }
   }
 

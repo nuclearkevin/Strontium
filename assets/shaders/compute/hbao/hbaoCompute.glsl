@@ -55,6 +55,13 @@ void main()
   imageStore(aoOut, invoke, vec4(result.xxx, 1.0));
 }
 
+// Fade out effects near the edge of the screen.
+float screenFade(vec2 uv)
+{
+  vec2 fade = max(0.0f.xx, 12.0f * abs(uv - 0.5f.xx) - 5.0f);
+  return clamp(1.0f - dot(fade, fade), 0.0, 1.0);
+}
+
 // Sample a dithering function.
 vec4 sampleDither(ivec2 coords)
 {
@@ -198,12 +205,13 @@ float computeHBAO(ivec2 coords, vec4 aoParams, sampler2D depthTex,
     // Inner loop raymarches through the depth buffer gathering AO contributions.
     for (uint j = 0; j < NUM_STEPS; j++)
     {
-      vec2 snappedUV = round(ray * direction) / halfResTexel + halfResTexCoords;
+      vec2 snappedUV = round(direction * ray) / halfResTexel + halfResTexCoords;
       vec3 samplePos = (view * vec4(decodePosition(ivec2(snappedUV * halfResTexel), depthTex, invVP), 1.0)).xyz;
 
-      ray += stepSize;
+      float fade = screenFade(snappedUV);
+      ao += computeAO(viewPos, viewNormal, samplePos, invR2) * fade;
 
-      ao += computeAO(viewPos, viewNormal, samplePos, invR2);
+      ray += stepSize;
     }
   }
 

@@ -110,6 +110,9 @@ namespace Strontium
 
 	// Shadow settings.
 	uint shadowQuality;
+	bool useSSShadows;
+	uint numSearchSteps;
+	uint numPCFTaps;
 	float minRadius;
 	float blendFraction;
 	float normalBias;
@@ -139,6 +142,9 @@ namespace Strontium
 	  , minPos(std::numeric_limits<float>::max())
 	  , maxPos(std::numeric_limits<float>::min())
 	  , shadowQuality(0)
+	  , useSSShadows(true)
+	  , numSearchSteps(16u)
+	  , numPCFTaps(64u)
 	  , minRadius(1.0f)
 	  , blendFraction(0.5f)
 	  , normalBias(50.0f)
