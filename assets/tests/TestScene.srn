@@ -2,12 +2,12 @@ Scene: tests\TestScene.srn
 Entities:
   - EntityID: 26
     NameComponent:
-      Name: Camera
+      Name: Pillar
       Description: ""
     TransformComponent:
-      Translation: [8.66581059, 4.06725216, 0]
-      Rotation: [0, 1.57045102, 0]
-      Scale: [0.499994695, 0.5, 0.499994695]
+      Translation: [7.859025, 5.06292868, -7.75722456]
+      Rotation: [0, -0, 0]
+      Scale: [1, 5, 1]
     RenderableComponent:
       ModelPath: ./assets/tests\cube.gltf
       ModelName: cube.gltf
@@ -15,19 +15,22 @@ Entities:
       Material:
         - SubmeshName: Cube
           MaterialHandle: Cube
-    CameraComponent:
-      IsPrimary: true
-      Near: 0.550000012
-      Far: 30
-      FOV: 1.04719758
+    BoxColliderComponent:
+      HalfExtents: [1, 5, 1]
+      Offset: [0, 0, 0]
+      Density: 1000
+    RigidBody3DComponent:
+      Type: 0
+      Friction: 0.5
+      Restitution: 0
   - EntityID: 25
     NameComponent:
-      Name: Cylinder 11
+      Name: Large Cylinder
       Description: ""
     TransformComponent:
-      Translation: [-7.68964005, 1.09896457, 3.92837596]
-      Rotation: [-0.000232756342, 0.0081677828, 0.0023880275]
-      Scale: [0.199988648, 0.999852061, 0.199994475]
+      Translation: [-8.39338589, 3.28709793, 4.42810202]
+      Rotation: [0.00357215782, -0.0112914285, 0.00789972208]
+      Scale: [0.999916613, 0.999916613, 1]
     RenderableComponent:
       ModelPath: ./assets/tests\cylinder.gltf
       ModelName: cylinder.gltf
@@ -37,7 +40,7 @@ Entities:
           MaterialHandle: Cylinder
     CylinderColliderComponent:
       HalfHeight: 1
-      Radius: 0.200000003
+      Radius: 1
       Offset: [0, 0, 0]
       Density: 1000
     RigidBody3DComponent:
@@ -46,22 +49,21 @@ Entities:
       Restitution: 0
   - EntityID: 24
     NameComponent:
-      Name: Cylinder 10
+      Name: Panel
       Description: ""
     TransformComponent:
-      Translation: [-7.68174219, 1.09985435, 4.78337812]
-      Rotation: [0.000285065093, 0.0239440016, -0.00013705343]
-      Scale: [0.199988648, 0.999852061, 0.199994475]
+      Translation: [-8.31901455, 2.19888735, 4.38426685]
+      Rotation: [1.57228255, -0.0063418597, -3.77512151e-05]
+      Scale: [1, 0.999729037, 0.099966608]
     RenderableComponent:
-      ModelPath: ./assets/tests\cylinder.gltf
-      ModelName: cylinder.gltf
+      ModelPath: ./assets/tests\cube.gltf
+      ModelName: cube.gltf
       CurrentAnimation: None
       Material:
-        - SubmeshName: Cylinder
-          MaterialHandle: Cylinder
-    CylinderColliderComponent:
-      HalfHeight: 1
-      Radius: 0.200000003
+        - SubmeshName: Cube
+          MaterialHandle: Cube
+    BoxColliderComponent:
+      HalfExtents: [1, 1, 0.100000001]
       Offset: [0, 0, 0]
       Density: 1000
     RigidBody3DComponent:
@@ -70,226 +72,223 @@ Entities:
       Restitution: 0
   - EntityID: 23
     NameComponent:
-      Name: Cylinder 9
+      Name: Ramp 2
       Description: ""
     TransformComponent:
-      Translation: [-7.85483217, 1.10036993, 4.34990788]
-      Rotation: [0.00187796424, 0.0230307896, 0.00183103827]
-      Scale: [0.199988648, 0.999852061, 0.199994475]
+      Translation: [-8.23172474, 0.999522567, 7.76080084]
+      Rotation: [-0.413294047, -5.74657975e-08, 1.04443963e-07]
+      Scale: [1, 0.100000024, 2.50000048]
     RenderableComponent:
-      ModelPath: ./assets/tests\cylinder.gltf
-      ModelName: cylinder.gltf
+      ModelPath: ./assets/tests\cube.gltf
+      ModelName: cube.gltf
       CurrentAnimation: None
       Material:
-        - SubmeshName: Cylinder
-          MaterialHandle: Cylinder
-    CylinderColliderComponent:
-      HalfHeight: 1
-      Radius: 0.200000003
+        - SubmeshName: Cube
+          MaterialHandle: Cube
+    BoxColliderComponent:
+      HalfExtents: [1, 0.100000001, 2.5]
       Offset: [0, 0, 0]
       Density: 1000
     RigidBody3DComponent:
-      Type: 2
-      Friction: 0.5
+      Type: 0
+      Friction: 0
       Restitution: 0
   - EntityID: 22
     NameComponent:
-      Name: Cylinder 8
+      Name: Fence 3
       Description: ""
     TransformComponent:
-      Translation: [-9.13540077, 1.09882677, 4.79294872]
-      Rotation: [-0.00243083155, 0.0302099306, -0.00710645271]
-      Scale: [0.199988648, 0.999852061, 0.199994475]
+      Translation: [10.1000004, 1, -9.31322575e-10]
+      Rotation: [0, 1.57045102, 0]
+      Scale: [9.99999905, 1.10000002, 0.0999999866]
     RenderableComponent:
-      ModelPath: ./assets/tests\cylinder.gltf
-      ModelName: cylinder.gltf
+      ModelPath: ./assets/tests\cube.gltf
+      ModelName: cube.gltf
       CurrentAnimation: None
       Material:
-        - SubmeshName: Cylinder
-          MaterialHandle: Cylinder
-    CylinderColliderComponent:
-      HalfHeight: 1
-      Radius: 0.200000003
+        - SubmeshName: Cube
+          MaterialHandle: Cube
+    BoxColliderComponent:
+      HalfExtents: [10, 1.10000002, 0.100000001]
       Offset: [0, 0, 0]
       Density: 1000
     RigidBody3DComponent:
-      Type: 2
-      Friction: 0.5
-      Restitution: 0
+      Type: 0
+      Friction: 0
+      Restitution: 1
   - EntityID: 21
     NameComponent:
-      Name: Cylinder 7
+      Name: Fence 2
       Description: ""
     TransformComponent:
-      Translation: [-8.18457985, 1.10045958, 4.79425621]
-      Rotation: [0.0141966958, -0.0709080398, -0.00686460733]
-      Scale: [0.199988648, 0.999852061, 0.199994475]
+      Translation: [0, 1, -10.1000004]
+      Rotation: [0, -0, 0]
+      Scale: [10.1999998, 1.10000002, 0.100000001]
     RenderableComponent:
-      ModelPath: ./assets/tests\cylinder.gltf
-      ModelName: cylinder.gltf
+      ModelPath: ./assets/tests\cube.gltf
+      ModelName: cube.gltf
       CurrentAnimation: None
       Material:
-        - SubmeshName: Cylinder
-          MaterialHandle: Cylinder
-    CylinderColliderComponent:
-      HalfHeight: 1
-      Radius: 0.200000003
+        - SubmeshName: Cube
+          MaterialHandle: Cube
+    BoxColliderComponent:
+      HalfExtents: [10.1999998, 1.10000002, 0.100000001]
       Offset: [0, 0, 0]
       Density: 1000
     RigidBody3DComponent:
-      Type: 2
-      Friction: 0.5
-      Restitution: 0
+      Type: 0
+      Friction: 0
+      Restitution: 1
   - EntityID: 20
     NameComponent:
-      Name: Cylinder 6
+      Name: Fence 1
       Description: ""
     TransformComponent:
-      Translation: [-8.64562416, 1.10008109, 4.77941608]
-      Rotation: [-0.000475276873, -0.0799707323, 0.000954435382]
-      Scale: [0.199988648, 0.999852061, 0.199994475]
+      Translation: [0, 1, 10.1000004]
+      Rotation: [0, -0, 0]
+      Scale: [10.1999998, 1.10000002, 0.100000001]
     RenderableComponent:
-      ModelPath: ./assets/tests\cylinder.gltf
-      ModelName: cylinder.gltf
+      ModelPath: ./assets/tests\cube.gltf
+      ModelName: cube.gltf
       CurrentAnimation: None
       Material:
-        - SubmeshName: Cylinder
-          MaterialHandle: Cylinder
-    CylinderColliderComponent:
-      HalfHeight: 1
-      Radius: 0.200000003
+        - SubmeshName: Cube
+          MaterialHandle: Cube
+    BoxColliderComponent:
+      HalfExtents: [10.1999998, 1.10000002, 0.100000001]
       Offset: [0, 0, 0]
       Density: 1000
     RigidBody3DComponent:
-      Type: 2
-      Friction: 0.5
-      Restitution: 0
+      Type: 0
+      Friction: 0
+      Restitution: 1
   - EntityID: 19
     NameComponent:
-      Name: Cylinder 5
+      Name: Skylight
       Description: ""
     TransformComponent:
-      Translation: [-8.86049175, 1.09453535, 4.3593545]
-      Rotation: [-0.0105929403, -0.00544118555, 0.00619917689]
-      Scale: [0.199988648, 0.999852061, 0.199994475]
-    RenderableComponent:
-      ModelPath: ./assets/tests\cylinder.gltf
-      ModelName: cylinder.gltf
-      CurrentAnimation: None
-      Material:
-        - SubmeshName: Cylinder
-          MaterialHandle: Cylinder
-    CylinderColliderComponent:
-      HalfHeight: 1
-      Radius: 0.200000003
-      Offset: [0, 0, 0]
-      Density: 1000
-    RigidBody3DComponent:
-      Type: 2
-      Friction: 0.5
-      Restitution: 0
+      Translation: [0, 0, 0]
+      Rotation: [-0.495731235, 0.444387168, -0.899124742]
+      Scale: [0.999992192, 0.999994278, 0.999996603]
+    SkyAtmosphereComponent:
+      RayleighScatteringFunction: [5.80200005, 13.5579996, 33.0999985, 8]
+      RayleighAbsorptionFunction: [0, 0, 0, 8]
+      MieScatteringFunction: [3.99600005, 3.99600005, 3.99600005, 1.20000005]
+      MieAbsorptionFunction: [4.4000001, 4.4000001, 4.4000001, 1.20000005]
+      OzoneAbsorptionFunction: [0.649999976, 1.88100004, 0.0850000009, 0.00200000009]
+      PlanetAlbedo: [0, 0, 0]
+      PlanetAndAtmosphereRadius: [6.36000013, 6.46000004]
+      UsePrimaryLight: false
+    DynamicSkyboxComponent:
+      SunSize: 1
+      Intensity: 1
+    DirectionalLightComponent:
+      Direction: [0, -1, 0]
+      Colour: [1, 1, 1]
+      Intensity: 5
+      Size: 10
+      CastShadows: true
+      PrimaryLight: true
+    DynamicSkylightComponent:
+      Intensity: 1
   - EntityID: 18
     NameComponent:
-      Name: Cylinder 4
+      Name: Ground
       Description: ""
     TransformComponent:
-      Translation: [-8.36503506, 1.08147216, 4.36658144]
-      Rotation: [-0.00492462469, 0.000929748872, 0.00506041711]
-      Scale: [0.199988648, 0.999852061, 0.199994475]
+      Translation: [0, 0, 0]
+      Rotation: [0, -0, 0]
+      Scale: [10, 0.100000001, 10]
     RenderableComponent:
-      ModelPath: ./assets/tests\cylinder.gltf
-      ModelName: cylinder.gltf
+      ModelPath: ./assets/tests\cube.gltf
+      ModelName: cube.gltf
       CurrentAnimation: None
       Material:
-        - SubmeshName: Cylinder
-          MaterialHandle: Cylinder
-    CylinderColliderComponent:
-      HalfHeight: 1
-      Radius: 0.200000003
+        - SubmeshName: Cube
+          MaterialHandle: Ground
+    BoxColliderComponent:
+      HalfExtents: [10, 0.100000001, 10]
       Offset: [0, 0, 0]
       Density: 1000
     RigidBody3DComponent:
-      Type: 2
-      Friction: 0.5
+      Type: 0
+      Friction: 0
       Restitution: 0
   - EntityID: 17
     NameComponent:
-      Name: Cylinder 3
+      Name: Wall
       Description: ""
     TransformComponent:
-      Translation: [-8.10374928, 1.10067213, 3.94266534]
-      Rotation: [-0.00293270894, 0.187995121, 0.00523088034]
-      Scale: [0.199988648, 0.999852061, 0.199994475]
+      Translation: [-10.1000004, 4.9000001, 0]
+      Rotation: [0, -0, 0]
+      Scale: [0.100000001, 5, 10]
     RenderableComponent:
-      ModelPath: ./assets/tests\cylinder.gltf
-      ModelName: cylinder.gltf
+      ModelPath: ./assets/tests\cube.gltf
+      ModelName: cube.gltf
       CurrentAnimation: None
       Material:
-        - SubmeshName: Cylinder
-          MaterialHandle: Cylinder
-    CylinderColliderComponent:
-      HalfHeight: 1
-      Radius: 0.200000003
+        - SubmeshName: Cube
+          MaterialHandle: Cube
+    BoxColliderComponent:
+      HalfExtents: [0.100000001, 5, 10]
       Offset: [0, 0, 0]
       Density: 1000
     RigidBody3DComponent:
-      Type: 2
-      Friction: 0.5
-      Restitution: 0
+      Type: 0
+      Friction: 0
+      Restitution: 1
   - EntityID: 16
     NameComponent:
-      Name: Cylinder 2
+      Name: Sphere 1
       Description: ""
     TransformComponent:
-      Translation: [-8.63544846, 1.10059977, 3.96669626]
-      Rotation: [-0.00407883106, 0.00816575717, 0.00205929368]
-      Scale: [0.199988648, 0.999852061, 0.199994475]
+      Translation: [-8.26329231, 12.3456078, -11.2941551]
+      Rotation: [-1.17655993, 0.359823585, -2.54552007]
+      Scale: [0.999998212, 0.999998391, 0.999999046]
     RenderableComponent:
-      ModelPath: ./assets/tests\cylinder.gltf
-      ModelName: cylinder.gltf
+      ModelPath: ./assets/tests\sphere.gltf
+      ModelName: sphere.gltf
       CurrentAnimation: None
       Material:
-        - SubmeshName: Cylinder
-          MaterialHandle: Cylinder
-    CylinderColliderComponent:
-      HalfHeight: 1
-      Radius: 0.200000003
+        - SubmeshName: Sphere
+          MaterialHandle: Sphere
+    SphereColliderComponent:
+      Radius: 1
       Offset: [0, 0, 0]
       Density: 1000
     RigidBody3DComponent:
       Type: 2
-      Friction: 0.5
-      Restitution: 0
+      Friction: 0
+      Restitution: 1
   - EntityID: 15
     NameComponent:
-      Name: Cylinder 1
+      Name: Ramp
       Description: ""
     TransformComponent:
-      Translation: [-9.11940479, 1.09975946, 3.98283172]
-      Rotation: [-0.000232930426, -0.023363471, 0.000618123042]
-      Scale: [0.199988648, 0.999852061, 0.199994475]
+      Translation: [-8.23172474, 6.61808443, -6.75436115]
+      Rotation: [0.707207441, -5.74657797e-08, 1.04443934e-07]
+      Scale: [1, 0.100000001, 10]
     RenderableComponent:
-      ModelPath: ./assets/tests\cylinder.gltf
-      ModelName: cylinder.gltf
+      ModelPath: ./assets/tests\cube.gltf
+      ModelName: cube.gltf
       CurrentAnimation: None
       Material:
-        - SubmeshName: Cylinder
-          MaterialHandle: Cylinder
-    CylinderColliderComponent:
-      HalfHeight: 1
-      Radius: 0.200000003
+        - SubmeshName: Cube
+          MaterialHandle: Cube
+    BoxColliderComponent:
+      HalfExtents: [1, 0.100000001, 10]
       Offset: [0, 0, 0]
       Density: 1000
     RigidBody3DComponent:
-      Type: 2
-      Friction: 0.5
+      Type: 0
+      Friction: 0
       Restitution: 0
   - EntityID: 14
     NameComponent:
-      Name: Sphere 4
+      Name: Sphere 2
       Description: ""
     TransformComponent:
-      Translation: [-8.90253448, 0.599999905, 1.88999844]
+      Translation: [-7.75093699, 0.600000024, 1.86242914]
       Rotation: [-1.83086932, 0.636829555, -2.87016368]
       Scale: [0.5, 0.5, 0.499999911]
     RenderableComponent:
@@ -332,10 +331,10 @@ Entities:
       Restitution: 1
   - EntityID: 12
     NameComponent:
-      Name: Sphere 2
+      Name: Sphere 4
       Description: ""
     TransformComponent:
-      Translation: [-7.75093699, 0.600000024, 1.86242914]
+      Translation: [-8.90253448, 0.599999905, 1.88999844]
       Rotation: [-1.83086932, 0.636829555, -2.87016368]
       Scale: [0.5, 0.5, 0.499999911]
     RenderableComponent:
@@ -355,248 +354,12 @@ Entities:
       Restitution: 1
   - EntityID: 11
     NameComponent:
-      Name: Ramp
+      Name: Cylinder 1
       Description: ""
     TransformComponent:
-      Translation: [-8.23172474, 6.61808443, -6.75436115]
-      Rotation: [0.707207441, -5.74657797e-08, 1.04443934e-07]
-      Scale: [1, 0.100000001, 10]
-    RenderableComponent:
-      ModelPath: ./assets/tests\cube.gltf
-      ModelName: cube.gltf
-      CurrentAnimation: None
-      Material:
-        - SubmeshName: Cube
-          MaterialHandle: Cube
-    BoxColliderComponent:
-      HalfExtents: [1, 0.100000001, 10]
-      Offset: [0, 0, 0]
-      Density: 1000
-    RigidBody3DComponent:
-      Type: 0
-      Friction: 0
-      Restitution: 0
-  - EntityID: 10
-    NameComponent:
-      Name: Sphere 1
-      Description: ""
-    TransformComponent:
-      Translation: [-8.26329231, 12.3456078, -11.2941551]
-      Rotation: [-1.17655993, 0.359823585, -2.54552007]
-      Scale: [0.999998212, 0.999998391, 0.999999046]
-    RenderableComponent:
-      ModelPath: ./assets/tests\sphere.gltf
-      ModelName: sphere.gltf
-      CurrentAnimation: None
-      Material:
-        - SubmeshName: Sphere
-          MaterialHandle: Sphere
-    SphereColliderComponent:
-      Radius: 1
-      Offset: [0, 0, 0]
-      Density: 1000
-    RigidBody3DComponent:
-      Type: 2
-      Friction: 0
-      Restitution: 1
-  - EntityID: 9
-    NameComponent:
-      Name: Wall
-      Description: ""
-    TransformComponent:
-      Translation: [-10.1000004, 4.9000001, 0]
-      Rotation: [0, -0, 0]
-      Scale: [0.100000001, 5, 10]
-    RenderableComponent:
-      ModelPath: ./assets/tests\cube.gltf
-      ModelName: cube.gltf
-      CurrentAnimation: None
-      Material:
-        - SubmeshName: Cube
-          MaterialHandle: Cube
-    BoxColliderComponent:
-      HalfExtents: [0.100000001, 5, 10]
-      Offset: [0, 0, 0]
-      Density: 1000
-    RigidBody3DComponent:
-      Type: 0
-      Friction: 0
-      Restitution: 1
-  - EntityID: 8
-    NameComponent:
-      Name: Ground
-      Description: ""
-    TransformComponent:
-      Translation: [0, 0, 0]
-      Rotation: [0, -0, 0]
-      Scale: [10, 0.100000001, 10]
-    RenderableComponent:
-      ModelPath: ./assets/tests\cube.gltf
-      ModelName: cube.gltf
-      CurrentAnimation: None
-      Material:
-        - SubmeshName: Cube
-          MaterialHandle: Ground
-    BoxColliderComponent:
-      HalfExtents: [10, 0.100000001, 10]
-      Offset: [0, 0, 0]
-      Density: 1000
-    RigidBody3DComponent:
-      Type: 0
-      Friction: 0
-      Restitution: 0
-  - EntityID: 7
-    NameComponent:
-      Name: Skylight
-      Description: ""
-    TransformComponent:
-      Translation: [0, 0, 0]
-      Rotation: [-0.495731235, 0.444387168, -0.899124742]
-      Scale: [0.999992192, 0.999994278, 0.999996603]
-    SkyAtmosphereComponent:
-      RayleighScatteringFunction: [5.80200005, 13.5579996, 33.0999985, 8]
-      RayleighAbsorptionFunction: [0, 0, 0, 8]
-      MieScatteringFunction: [3.99600005, 3.99600005, 3.99600005, 1.20000005]
-      MieAbsorptionFunction: [4.4000001, 4.4000001, 4.4000001, 1.20000005]
-      OzoneAbsorptionFunction: [0.649999976, 1.88100004, 0.0850000009, 0.00200000009]
-      PlanetAlbedo: [0, 0, 0]
-      PlanetAndAtmosphereRadius: [6.36000013, 6.46000004]
-      UsePrimaryLight: false
-    DynamicSkyboxComponent:
-      SunSize: 1
-      Intensity: 1
-    DirectionalLightComponent:
-      Direction: [0, -1, 0]
-      Colour: [1, 1, 1]
-      Intensity: 5
-      Size: 10
-      CastShadows: true
-      PrimaryLight: true
-    DynamicSkylightComponent:
-      Intensity: 1
-  - EntityID: 6
-    NameComponent:
-      Name: Fence 1
-      Description: ""
-    TransformComponent:
-      Translation: [0, 1, 10.1000004]
-      Rotation: [0, -0, 0]
-      Scale: [10.1999998, 1.10000002, 0.100000001]
-    RenderableComponent:
-      ModelPath: ./assets/tests\cube.gltf
-      ModelName: cube.gltf
-      CurrentAnimation: None
-      Material:
-        - SubmeshName: Cube
-          MaterialHandle: Cube
-    BoxColliderComponent:
-      HalfExtents: [10.1999998, 1.10000002, 0.100000001]
-      Offset: [0, 0, 0]
-      Density: 1000
-    RigidBody3DComponent:
-      Type: 0
-      Friction: 0
-      Restitution: 1
-  - EntityID: 5
-    NameComponent:
-      Name: Fence 2
-      Description: ""
-    TransformComponent:
-      Translation: [0, 1, -10.1000004]
-      Rotation: [0, -0, 0]
-      Scale: [10.1999998, 1.10000002, 0.100000001]
-    RenderableComponent:
-      ModelPath: ./assets/tests\cube.gltf
-      ModelName: cube.gltf
-      CurrentAnimation: None
-      Material:
-        - SubmeshName: Cube
-          MaterialHandle: Cube
-    BoxColliderComponent:
-      HalfExtents: [10.1999998, 1.10000002, 0.100000001]
-      Offset: [0, 0, 0]
-      Density: 1000
-    RigidBody3DComponent:
-      Type: 0
-      Friction: 0
-      Restitution: 1
-  - EntityID: 4
-    NameComponent:
-      Name: Fence 3
-      Description: ""
-    TransformComponent:
-      Translation: [10.1000004, 1, -9.31322575e-10]
-      Rotation: [0, 1.57045102, 0]
-      Scale: [9.99999905, 1.10000002, 0.0999999866]
-    RenderableComponent:
-      ModelPath: ./assets/tests\cube.gltf
-      ModelName: cube.gltf
-      CurrentAnimation: None
-      Material:
-        - SubmeshName: Cube
-          MaterialHandle: Cube
-    BoxColliderComponent:
-      HalfExtents: [10, 1.10000002, 0.100000001]
-      Offset: [0, 0, 0]
-      Density: 1000
-    RigidBody3DComponent:
-      Type: 0
-      Friction: 0
-      Restitution: 1
-  - EntityID: 3
-    NameComponent:
-      Name: Ramp 2
-      Description: ""
-    TransformComponent:
-      Translation: [-8.23172474, 0.999522567, 7.76080084]
-      Rotation: [-0.413294047, -5.74657975e-08, 1.04443963e-07]
-      Scale: [1, 0.100000024, 2.50000048]
-    RenderableComponent:
-      ModelPath: ./assets/tests\cube.gltf
-      ModelName: cube.gltf
-      CurrentAnimation: None
-      Material:
-        - SubmeshName: Cube
-          MaterialHandle: Cube
-    BoxColliderComponent:
-      HalfExtents: [1, 0.100000001, 2.5]
-      Offset: [0, 0, 0]
-      Density: 1000
-    RigidBody3DComponent:
-      Type: 0
-      Friction: 0
-      Restitution: 0
-  - EntityID: 2
-    NameComponent:
-      Name: Panel
-      Description: ""
-    TransformComponent:
-      Translation: [-8.31901455, 2.19888735, 4.38426685]
-      Rotation: [1.57228255, -0.0063418597, -3.77512151e-05]
-      Scale: [1, 0.999729037, 0.099966608]
-    RenderableComponent:
-      ModelPath: ./assets/tests\cube.gltf
-      ModelName: cube.gltf
-      CurrentAnimation: None
-      Material:
-        - SubmeshName: Cube
-          MaterialHandle: Cube
-    BoxColliderComponent:
-      HalfExtents: [1, 1, 0.100000001]
-      Offset: [0, 0, 0]
-      Density: 1000
-    RigidBody3DComponent:
-      Type: 2
-      Friction: 0.5
-      Restitution: 0
-  - EntityID: 1
-    NameComponent:
-      Name: Large Cylinder
-      Description: ""
-    TransformComponent:
-      Translation: [-8.39338589, 3.28709793, 4.42810202]
-      Rotation: [0.00357215782, -0.0112914285, 0.00789972208]
-      Scale: [0.999916613, 0.999916613, 1]
+      Translation: [-9.11940479, 1.09975946, 3.98283172]
+      Rotation: [-0.000232930426, -0.023363471, 0.000618123042]
+      Scale: [0.199988648, 0.999852061, 0.199994475]
     RenderableComponent:
       ModelPath: ./assets/tests\cylinder.gltf
       ModelName: cylinder.gltf
@@ -606,7 +369,247 @@ Entities:
           MaterialHandle: Cylinder
     CylinderColliderComponent:
       HalfHeight: 1
-      Radius: 1
+      Radius: 0.200000003
+      Offset: [0, 0, 0]
+      Density: 1000
+    RigidBody3DComponent:
+      Type: 2
+      Friction: 0.5
+      Restitution: 0
+  - EntityID: 10
+    NameComponent:
+      Name: Cylinder 2
+      Description: ""
+    TransformComponent:
+      Translation: [-8.63544846, 1.10059977, 3.96669626]
+      Rotation: [-0.00407883106, 0.00816575717, 0.00205929368]
+      Scale: [0.199988648, 0.999852061, 0.199994475]
+    RenderableComponent:
+      ModelPath: ./assets/tests\cylinder.gltf
+      ModelName: cylinder.gltf
+      CurrentAnimation: None
+      Material:
+        - SubmeshName: Cylinder
+          MaterialHandle: Cylinder
+    CylinderColliderComponent:
+      HalfHeight: 1
+      Radius: 0.200000003
+      Offset: [0, 0, 0]
+      Density: 1000
+    RigidBody3DComponent:
+      Type: 2
+      Friction: 0.5
+      Restitution: 0
+  - EntityID: 9
+    NameComponent:
+      Name: Cylinder 3
+      Description: ""
+    TransformComponent:
+      Translation: [-8.10374928, 1.10067213, 3.94266534]
+      Rotation: [-0.00293270894, 0.187995121, 0.00523088034]
+      Scale: [0.199988648, 0.999852061, 0.199994475]
+    RenderableComponent:
+      ModelPath: ./assets/tests\cylinder.gltf
+      ModelName: cylinder.gltf
+      CurrentAnimation: None
+      Material:
+        - SubmeshName: Cylinder
+          MaterialHandle: Cylinder
+    CylinderColliderComponent:
+      HalfHeight: 1
+      Radius: 0.200000003
+      Offset: [0, 0, 0]
+      Density: 1000
+    RigidBody3DComponent:
+      Type: 2
+      Friction: 0.5
+      Restitution: 0
+  - EntityID: 8
+    NameComponent:
+      Name: Cylinder 4
+      Description: ""
+    TransformComponent:
+      Translation: [-8.36503506, 1.08147216, 4.36658144]
+      Rotation: [-0.00492462469, 0.000929748872, 0.00506041711]
+      Scale: [0.199988648, 0.999852061, 0.199994475]
+    RenderableComponent:
+      ModelPath: ./assets/tests\cylinder.gltf
+      ModelName: cylinder.gltf
+      CurrentAnimation: None
+      Material:
+        - SubmeshName: Cylinder
+          MaterialHandle: Cylinder
+    CylinderColliderComponent:
+      HalfHeight: 1
+      Radius: 0.200000003
+      Offset: [0, 0, 0]
+      Density: 1000
+    RigidBody3DComponent:
+      Type: 2
+      Friction: 0.5
+      Restitution: 0
+  - EntityID: 7
+    NameComponent:
+      Name: Cylinder 5
+      Description: ""
+    TransformComponent:
+      Translation: [-8.86049175, 1.09453535, 4.3593545]
+      Rotation: [-0.0105929403, -0.00544118555, 0.00619917689]
+      Scale: [0.199988648, 0.999852061, 0.199994475]
+    RenderableComponent:
+      ModelPath: ./assets/tests\cylinder.gltf
+      ModelName: cylinder.gltf
+      CurrentAnimation: None
+      Material:
+        - SubmeshName: Cylinder
+          MaterialHandle: Cylinder
+    CylinderColliderComponent:
+      HalfHeight: 1
+      Radius: 0.200000003
+      Offset: [0, 0, 0]
+      Density: 1000
+    RigidBody3DComponent:
+      Type: 2
+      Friction: 0.5
+      Restitution: 0
+  - EntityID: 6
+    NameComponent:
+      Name: Cylinder 6
+      Description: ""
+    TransformComponent:
+      Translation: [-8.64562416, 1.10008109, 4.77941608]
+      Rotation: [-0.000475276873, -0.0799707323, 0.000954435382]
+      Scale: [0.199988648, 0.999852061, 0.199994475]
+    RenderableComponent:
+      ModelPath: ./assets/tests\cylinder.gltf
+      ModelName: cylinder.gltf
+      CurrentAnimation: None
+      Material:
+        - SubmeshName: Cylinder
+          MaterialHandle: Cylinder
+    CylinderColliderComponent:
+      HalfHeight: 1
+      Radius: 0.200000003
+      Offset: [0, 0, 0]
+      Density: 1000
+    RigidBody3DComponent:
+      Type: 2
+      Friction: 0.5
+      Restitution: 0
+  - EntityID: 5
+    NameComponent:
+      Name: Cylinder 7
+      Description: ""
+    TransformComponent:
+      Translation: [-8.18457985, 1.10045958, 4.79425621]
+      Rotation: [0.0141966958, -0.0709080398, -0.00686460733]
+      Scale: [0.199988648, 0.999852061, 0.199994475]
+    RenderableComponent:
+      ModelPath: ./assets/tests\cylinder.gltf
+      ModelName: cylinder.gltf
+      CurrentAnimation: None
+      Material:
+        - SubmeshName: Cylinder
+          MaterialHandle: Cylinder
+    CylinderColliderComponent:
+      HalfHeight: 1
+      Radius: 0.200000003
+      Offset: [0, 0, 0]
+      Density: 1000
+    RigidBody3DComponent:
+      Type: 2
+      Friction: 0.5
+      Restitution: 0
+  - EntityID: 4
+    NameComponent:
+      Name: Cylinder 8
+      Description: ""
+    TransformComponent:
+      Translation: [-9.13540077, 1.09882677, 4.79294872]
+      Rotation: [-0.00243083155, 0.0302099306, -0.00710645271]
+      Scale: [0.199988648, 0.999852061, 0.199994475]
+    RenderableComponent:
+      ModelPath: ./assets/tests\cylinder.gltf
+      ModelName: cylinder.gltf
+      CurrentAnimation: None
+      Material:
+        - SubmeshName: Cylinder
+          MaterialHandle: Cylinder
+    CylinderColliderComponent:
+      HalfHeight: 1
+      Radius: 0.200000003
+      Offset: [0, 0, 0]
+      Density: 1000
+    RigidBody3DComponent:
+      Type: 2
+      Friction: 0.5
+      Restitution: 0
+  - EntityID: 3
+    NameComponent:
+      Name: Cylinder 9
+      Description: ""
+    TransformComponent:
+      Translation: [-7.85483217, 1.10036993, 4.34990788]
+      Rotation: [0.00187796424, 0.0230307896, 0.00183103827]
+      Scale: [0.199988648, 0.999852061, 0.199994475]
+    RenderableComponent:
+      ModelPath: ./assets/tests\cylinder.gltf
+      ModelName: cylinder.gltf
+      CurrentAnimation: None
+      Material:
+        - SubmeshName: Cylinder
+          MaterialHandle: Cylinder
+    CylinderColliderComponent:
+      HalfHeight: 1
+      Radius: 0.200000003
+      Offset: [0, 0, 0]
+      Density: 1000
+    RigidBody3DComponent:
+      Type: 2
+      Friction: 0.5
+      Restitution: 0
+  - EntityID: 2
+    NameComponent:
+      Name: Cylinder 10
+      Description: ""
+    TransformComponent:
+      Translation: [-7.68174219, 1.09985435, 4.78337812]
+      Rotation: [0.000285065093, 0.0239440016, -0.00013705343]
+      Scale: [0.199988648, 0.999852061, 0.199994475]
+    RenderableComponent:
+      ModelPath: ./assets/tests\cylinder.gltf
+      ModelName: cylinder.gltf
+      CurrentAnimation: None
+      Material:
+        - SubmeshName: Cylinder
+          MaterialHandle: Cylinder
+    CylinderColliderComponent:
+      HalfHeight: 1
+      Radius: 0.200000003
+      Offset: [0, 0, 0]
+      Density: 1000
+    RigidBody3DComponent:
+      Type: 2
+      Friction: 0.5
+      Restitution: 0
+  - EntityID: 1
+    NameComponent:
+      Name: Cylinder 11
+      Description: ""
+    TransformComponent:
+      Translation: [-7.68964005, 1.09896457, 3.92837596]
+      Rotation: [-0.000232756342, 0.0081677828, 0.0023880275]
+      Scale: [0.199988648, 0.999852061, 0.199994475]
+    RenderableComponent:
+      ModelPath: ./assets/tests\cylinder.gltf
+      ModelName: cylinder.gltf
+      CurrentAnimation: None
+      Material:
+        - SubmeshName: Cylinder
+          MaterialHandle: Cylinder
+    CylinderColliderComponent:
+      HalfHeight: 1
+      Radius: 0.200000003
       Offset: [0, 0, 0]
       Density: 1000
     RigidBody3DComponent:
@@ -615,12 +618,12 @@ Entities:
       Restitution: 0
   - EntityID: 0
     NameComponent:
-      Name: Pillar
+      Name: Camera
       Description: ""
     TransformComponent:
-      Translation: [7.859025, 5.06292868, -7.75722456]
-      Rotation: [0, -0, 0]
-      Scale: [1, 5, 1]
+      Translation: [8.66581059, 4.06725216, 0]
+      Rotation: [0, 1.57045102, 0]
+      Scale: [0.499994695, 0.5, 0.499994695]
     RenderableComponent:
       ModelPath: ./assets/tests\cube.gltf
       ModelName: cube.gltf
@@ -628,14 +631,11 @@ Entities:
       Material:
         - SubmeshName: Cube
           MaterialHandle: Cube
-    BoxColliderComponent:
-      HalfExtents: [1, 5, 1]
-      Offset: [0, 0, 0]
-      Density: 1000
-    RigidBody3DComponent:
-      Type: 0
-      Friction: 0.5
-      Restitution: 0
+    CameraComponent:
+      IsPrimary: true
+      Near: 0.550000012
+      Far: 30
+      FOV: 1.04719758
 RendererSettings:
   GeneralSettings:
     Gamma: 2.20000005
@@ -695,21 +695,27 @@ Materials:
       - SamplerName: albedoMap
         SamplerHandle: "Monocolour texture: #ffffffff"
         ImagePath: ""
+        ImageLoadingOverloads: 0
       - SamplerName: metallicMap
         SamplerHandle: "Monocolour texture: #ffffffff"
         ImagePath: ""
+        ImageLoadingOverloads: 0
       - SamplerName: roughnessMap
         SamplerHandle: "Monocolour texture: #ffffffff"
         ImagePath: ""
+        ImageLoadingOverloads: 0
       - SamplerName: normalMap
         SamplerHandle: "Monocolour texture: #7f7fffff"
         ImagePath: ""
+        ImageLoadingOverloads: 0
       - SamplerName: aOcclusionMap
         SamplerHandle: "Monocolour texture: #ffffffff"
         ImagePath: ""
+        ImageLoadingOverloads: 0
       - SamplerName: specF0Map
         SamplerHandle: "Monocolour texture: #ffffffff"
         ImagePath: ""
+        ImageLoadingOverloads: 0
   - MaterialName: Ground
     MaterialType: pbr_shader
     Floats:
@@ -732,21 +738,27 @@ Materials:
       - SamplerName: albedoMap
         SamplerHandle: "Monocolour texture: #ffffffff"
         ImagePath: ""
+        ImageLoadingOverloads: 0
       - SamplerName: metallicMap
         SamplerHandle: "Monocolour texture: #ffffffff"
         ImagePath: ""
+        ImageLoadingOverloads: 0
       - SamplerName: roughnessMap
         SamplerHandle: "Monocolour texture: #ffffffff"
         ImagePath: ""
+        ImageLoadingOverloads: 0
       - SamplerName: normalMap
         SamplerHandle: "Monocolour texture: #7f7fffff"
         ImagePath: ""
+        ImageLoadingOverloads: 0
       - SamplerName: aOcclusionMap
         SamplerHandle: "Monocolour texture: #ffffffff"
         ImagePath: ""
+        ImageLoadingOverloads: 0
       - SamplerName: specF0Map
         SamplerHandle: "Monocolour texture: #ffffffff"
         ImagePath: ""
+        ImageLoadingOverloads: 0
   - MaterialName: Cube
     MaterialType: pbr_shader
     Floats:
@@ -769,21 +781,27 @@ Materials:
       - SamplerName: albedoMap
         SamplerHandle: "Monocolour texture: #ffffffff"
         ImagePath: ""
+        ImageLoadingOverloads: 0
       - SamplerName: metallicMap
         SamplerHandle: "Monocolour texture: #ffffffff"
         ImagePath: ""
+        ImageLoadingOverloads: 0
       - SamplerName: roughnessMap
         SamplerHandle: "Monocolour texture: #ffffffff"
         ImagePath: ""
+        ImageLoadingOverloads: 0
       - SamplerName: normalMap
         SamplerHandle: "Monocolour texture: #7f7fffff"
         ImagePath: ""
+        ImageLoadingOverloads: 0
       - SamplerName: aOcclusionMap
         SamplerHandle: "Monocolour texture: #ffffffff"
         ImagePath: ""
+        ImageLoadingOverloads: 0
       - SamplerName: specF0Map
         SamplerHandle: "Monocolour texture: #ffffffff"
         ImagePath: ""
+        ImageLoadingOverloads: 0
   - MaterialName: Cylinder
     MaterialType: pbr_shader
     Floats:
@@ -806,18 +824,24 @@ Materials:
       - SamplerName: albedoMap
         SamplerHandle: "Monocolour texture: #ffffffff"
         ImagePath: ""
+        ImageLoadingOverloads: 0
       - SamplerName: metallicMap
         SamplerHandle: "Monocolour texture: #ffffffff"
         ImagePath: ""
+        ImageLoadingOverloads: 0
       - SamplerName: roughnessMap
         SamplerHandle: "Monocolour texture: #ffffffff"
         ImagePath: ""
+        ImageLoadingOverloads: 0
       - SamplerName: normalMap
         SamplerHandle: "Monocolour texture: #7f7fffff"
         ImagePath: ""
+        ImageLoadingOverloads: 0
       - SamplerName: aOcclusionMap
         SamplerHandle: "Monocolour texture: #ffffffff"
         ImagePath: ""
+        ImageLoadingOverloads: 0
       - SamplerName: specF0Map
         SamplerHandle: "Monocolour texture: #ffffffff"
         ImagePath: ""
+        ImageLoadingOverloads: 0

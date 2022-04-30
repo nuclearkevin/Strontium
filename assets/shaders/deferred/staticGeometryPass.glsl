@@ -70,37 +70,6 @@ out VERT_OUT
   MaterialData fMaterialData;
 } vertOut;
 
-// qTangent decoding.
-// https://developer.android.com/games/optimize/vertex-data-management
-vec3 xAxis(vec4 qQuat)
-{
-  float fTy = 2.0 * qQuat.y;
-  float fTz = 2.0 * qQuat.z;
-  float fTwy = fTy * qQuat.w;
-  float fTwz = fTz * qQuat.w;
-  float fTxy = fTy * qQuat.x;
-  float fTxz = fTz * qQuat.x;
-  float fTyy = fTy * qQuat.y;
-  float fTzz = fTz * qQuat.z;
-
-  return vec3(1.0 - (fTyy +fTzz), fTxy + fTwz, fTxz - fTwy);
-}
-
-vec3 yAxis(vec4 qQuat)
-{
-  float fTx = 2.0 * qQuat.x;
-  float fTy = 2.0 * qQuat.y;
-  float fTz  = 2.0 * qQuat.z;
-  float fTwx = fTx * qQuat.w;
-  float fTwz = fTz * qQuat.w;
-  float fTxx = fTx * qQuat.x;
-  float fTxy = fTy * qQuat.x;
-  float fTyz = fTz * qQuat.y;
-  float fTzz = fTz * qQuat.z;
-
-  return vec3(fTxy - fTwz, 1.0 - (fTxx + fTzz), fTyz + fTwx);
-}
-
 void main()
 {
   const uint vIndex = v_indices[gl_VertexID];
@@ -186,7 +155,7 @@ void main()
 
   gMatProp.r = texture(metallicMap, fragIn.fTexCoords).r * mrae.r;
   gMatProp.g = texture(roughnessMap, fragIn.fTexCoords).r * mrae.g;
-  gMatProp.b = texture(aOcclusionMap, fragIn.fTexCoords).r * mrae.b;
+  gMatProp.b = 1.0 + mrae.b * (texture(aOcclusionMap, fragIn.fTexCoords).r - 1.0);
   gMatProp.a = mrae.a;
 
   gIDMaskColour = vec4(fragIn.fMaskID.xxx, fragIn.fMaskID.y);

@@ -60,6 +60,13 @@ namespace Strontium
 
     // Setup stuff for the scene.
     this->currentScene = createShared<Scene>();
+    auto entity = this->currentScene->createEntity("Skylight");
+    entity.addComponent<TransformComponent>();
+    entity.addComponent<DirectionalLightComponent>().intensity = 10.0f;
+    entity.addComponent<SkyAtmosphereComponent>();
+    entity.addComponent<DynamicSkyboxComponent>();
+    entity.addComponent<DynamicSkylightComponent>();
+
     this->backupScene = createShared<Scene>();
 
     // Init the editor camera and windows.

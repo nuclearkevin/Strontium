@@ -33,20 +33,37 @@ namespace Strontium
   // Material info from assimp.
   struct UnloadedMaterialInfo
   {
+    glm::vec4 albedoTint;
     std::string albedoTexturePath;
+    float roughnessScale;
     std::string roughnessTexturePath;
+    float metallicScale;
     std::string metallicTexturePath;
+    float aoScale;
     std::string aoTexturePath;
+    float specularScale;
     std::string specularTexturePath;
+    glm::vec3 emissiveTint;
+    std::string emissiveTexturePath;
     std::string normalTexturePath;
 
+    bool hasCombinedMR;
+
     UnloadedMaterialInfo()
-      : albedoTexturePath("")
+      : albedoTint(1.0f)
+      , albedoTexturePath("")
+      , roughnessScale(1.0f)
       , roughnessTexturePath("")
+      , metallicScale(1.0f)
       , metallicTexturePath("")
+      , aoScale(1.0f)
       , aoTexturePath("")
+      , specularScale(1.0f)
       , specularTexturePath("")
+      , emissiveTint(1.0f)
+      , emissiveTexturePath("")
       , normalTexturePath("")
+      , hasCombinedMR(false)
     { }
   };
 

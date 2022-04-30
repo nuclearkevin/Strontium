@@ -172,7 +172,7 @@ void main()
 
   gMatProp.r = texture(metallicMap, fragIn.fTexCoords).r * mrae.r;
   gMatProp.g = texture(roughnessMap, fragIn.fTexCoords).r * mrae.g;
-  gMatProp.b = texture(aOcclusionMap, fragIn.fTexCoords).r * mrae.b;
+  gMatProp.b = 1.0 + mrae.b * (texture(aOcclusionMap, fragIn.fTexCoords).r - 1.0);
   gMatProp.a = mrae.a;
 
   gIDMaskColour = vec4(fragIn.fMaskID.xxx, fragIn.fMaskID.y);

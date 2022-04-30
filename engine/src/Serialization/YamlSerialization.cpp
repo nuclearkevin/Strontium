@@ -207,6 +207,7 @@ namespace Strontium
         out << YAML::Key << "SamplerName" << YAML::Value << uSampler2D.first;
         out << YAML::Key << "SamplerHandle" << YAML::Value << uSampler2D.second;
         out << YAML::Key << "ImagePath" << YAML::Value << assetCache.get<Image2DAsset>(uSampler2D.second)->getPath().string();
+        out << YAML::Key << "ImageLoadingOverloads" << YAML::Value << static_cast<uint>(assetCache.get<Image2DAsset>(uSampler2D.second)->getOverride());
         out << YAML::EndMap;
       }
       out << YAML::EndSeq;
@@ -663,7 +664,7 @@ namespace Strontium
     }
 
     void
-    deserializeMaterial(YAML::Node &mat, std::vector<std::string> &texturePaths,
+    deserializeMaterial(YAML::Node &mat, std::vector<std::pair<std::string, ImageLoadOverride>> &texturePaths,
                         bool override = false, const std::string &filepath = "")
     {
       auto& assetCache = Application::getInstance()->getAssetCache();
@@ -737,16 +738,20 @@ namespace Strontium
             auto uName = uSampler2D["SamplerName"];
             if (uName)
             {
-              if (uSampler2D["ImagePath"].as<std::string>() == "")
+              auto path = uSampler2D["ImagePath"].as<std::string>();
+              if (path == "")
                 continue;
 
-              bool shouldLoad = std::find(texturePaths.begin(),
-                                          texturePaths.end(),
-                                          uSampler2D["ImagePath"].as<std::string>()) 
-                                          == texturePaths.end();
+              bool shouldLoad = std::find_if(texturePaths.begin(),
+                                             texturePaths.end(), 
+                                             [path](const std::pair<std::string, ImageLoadOverride> &pair)
+              {
+                return path == pair.first;
+              }) == texturePaths.end();
 
               if (!assetCache.has<Image2DAsset>(uSampler2D["SamplerHandle"].as<std::string>()) && shouldLoad)
-                texturePaths.emplace_back(uSampler2D["ImagePath"].as<std::string>());
+                texturePaths.emplace_back(path,
+                                          static_cast<ImageLoadOverride>(uSampler2D["ImageLoadingOverloads"].as<uint>()));
 
               outMat->getMaterial()->attachSampler2D(uSampler2D["SamplerName"].as<std::string>(),
                                                      uSampler2D["SamplerHandle"].as<std::string>());
@@ -765,11 +770,11 @@ namespace Strontium
 
       handle = data["MaterialName"].as<std::string>();
 
-      std::vector<std::string> texturePaths;
+      std::vector<std::pair<std::string, ImageLoadOverride>> texturePaths;
       deserializeMaterial(data, texturePaths, false, filepath);
 
-      for (auto& texturePath : texturePaths)
-        AsyncLoading::loadImageAsync(texturePath);
+      for (auto& [texturePath, overload] : texturePaths)
+        AsyncLoading::loadImageAsync(texturePath, Texture2DParams(), overload);
 
       return true;
     }
@@ -1104,12 +1109,12 @@ namespace Strontium
       auto materials = data["Materials"];
       if (materials)
       {
-        std::vector<std::string> texturePaths;
+        std::vector<std::pair<std::string, ImageLoadOverride>> texturePaths;
         for (auto mat : materials)
           deserializeMaterial(mat, texturePaths, true);
 
-        for (auto& texturePath : texturePaths)
-          AsyncLoading::loadImageAsync(texturePath);
+        for (auto& [texturePath, overload] : texturePaths)
+          AsyncLoading::loadImageAsync(texturePath, Texture2DParams(), overload);
       }
       
 
