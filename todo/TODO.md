@@ -64,6 +64,9 @@
       - [ ] Height field collider
     - [x] Visualize camera frustums
 
+  - [ ] Bloom pass.
+      - [ ] Fix bloom pass resizing issues. On NVIDIA hardware (untested on AMD) the bloom texture doesn't get cleared and/or increases in intensity every resize.
+
   - [ ] Improve the animation system.
     - [ ] Animation and Animator class:
       - [ ] Replace the std::unordered_maps with robin_hood::unordered_flat_map

@@ -99,7 +99,7 @@ void main()
 layout(location = 0) out vec4 gNormal; // z and w components unused.
 layout(location = 1) out vec4 gAlbedo;
 layout(location = 2) out vec4 gMatProp;
-layout(location = 3) out vec4 gIDMaskColour; // This should be a 2-component buffer...
+layout(location = 3) out vec4 gEmission;
 
 in VERT_OUT
 {
@@ -116,6 +116,7 @@ layout(binding = 2) uniform sampler2D roughnessMap;
 layout(binding = 3) uniform sampler2D metallicMap;
 layout(binding = 4) uniform sampler2D aOcclusionMap;
 layout(binding = 5) uniform sampler2D specF0Map;
+layout(binding = 6) uniform sampler2D emissionMap;
 
 vec3 getNormal(sampler2D normalMap, mat3 tbn, vec2 texCoords)
 {
@@ -149,14 +150,15 @@ void main()
     discard;
 
   gAlbedo = vec4(pow(albedo.rgb * albedoReflectance.rgb, vec3(u_nearFarGamma.z)), 1.0);
-  gAlbedo.a = texture(specF0Map, fragIn.fTexCoords).r * albedoReflectance.a;
+  gAlbedo.a = dot(texture(specF0Map, fragIn.fTexCoords).rgb, (1.0 / 3.0).xxx) * albedoReflectance.a;
   gNormal.rg = encodeNormal(getNormal(normalMap, fragIn.fTBN, fragIn.fTexCoords));
-  gNormal.ba = 1.0.xx;
+  gNormal.ba = 1.0.xx; // TODO: per-fragment tangents.
 
   gMatProp.r = texture(metallicMap, fragIn.fTexCoords).r * mrae.r;
   gMatProp.g = texture(roughnessMap, fragIn.fTexCoords).r * mrae.g;
   gMatProp.b = 1.0 + mrae.b * (texture(aOcclusionMap, fragIn.fTexCoords).r - 1.0);
-  gMatProp.a = mrae.a;
+  gMatProp.a = 1.0; // Anisotropy.
 
-  gIDMaskColour = vec4(fragIn.fMaskID.xxx, fragIn.fMaskID.y);
+  vec3 emission = pow(texture(emissionMap, fragIn.fTexCoords).rgb, vec3(u_nearFarGamma.z));
+  gEmission = vec4(emission * mrae.a, 1.0);
 }

@@ -203,16 +203,12 @@ namespace Strontium
     ImGui::PopID();
     auto cursorPos = ImGui::GetCursorPos();
     ImGui::ColorEdit3("##Albedo", &uAlbedo.r);
-    ImGui::SetCursorPos(ImVec2(cursorPos.x, cursorPos.y + fontSize + 8.0f));
-    ImGui::Text("Emissivity");
-    ImGui::SetCursorPos(ImVec2(cursorPos.x, cursorPos.y + 2 * fontSize + 12.0f));
-    ImGui::SliderFloat("##Emiss", &uEmiss, 0.0f, 100.0f);
-    ImGui::SetCursorPos(endCursorPos);
 
+    materialMapSliderFloat("Emission Map", "emissionMap", material, uEmiss, selectedSampler, 0.0f, 100.0f);
     materialMapSliderFloat("Metallic Map", "metallicMap", material, uMetallic, selectedSampler);
     materialMapSliderFloat("Roughness Map", "roughnessMap", material, uRoughness, selectedSampler);
     materialMapSliderFloat("Ambient Occlusion Map", "aOcclusionMap", material, uAO, selectedSampler);
-    materialMapSliderFloat("Reflectance Map", "specF0Map", material, reflectance, selectedSampler, 0.0f, 1.0f);
+    materialMapSliderFloat("Reflectance Map", "specF0Map", material, reflectance, selectedSampler);
 
     material->set(uAlbedo, "uAlbedo");
     material->set(uMetallic, "uMetallic");

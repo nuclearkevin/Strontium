@@ -102,6 +102,24 @@ namespace Strontium
                     texturesToLoad.emplace_back(currentTexturePath.string(), ImageLoadOverride::None);
                 }
 
+                if (submeshTexturePaths.emissiveTexturePath != "")
+                {
+                  currentTexturePath = std::filesystem::path(submeshTexturePaths.emissiveTexturePath);
+                  submeshMaterial->set(1.0f, "uEmiss");
+                  texName = currentTexturePath.filename().string();
+                  submeshMaterial->attachSampler2D("emissionMap", texName);
+
+                  bool shouldLoad = std::find_if(texturesToLoad.begin(),
+                                                 texturesToLoad.end(), 
+                                                 [currentTexturePath](const std::pair<std::string, ImageLoadOverride> &pair)
+                  {
+                    return currentTexturePath.string() == pair.first;
+                  }) == texturesToLoad.end();
+
+                  if (!assetCache.has<Image2DAsset>(texName) && shouldLoad)
+                    texturesToLoad.emplace_back(currentTexturePath.string(), ImageLoadOverride::None);
+                }
+
                 if (submeshTexturePaths.roughnessTexturePath != "" && !submeshTexturePaths.hasCombinedMR)
                 {
                   currentTexturePath = std::filesystem::path(submeshTexturePaths.roughnessTexturePath);

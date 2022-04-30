@@ -58,6 +58,7 @@ namespace Strontium
   BloomPass::deleteRendererData(RendererDataHandle& handle)
   { }
 
+  // TODO: Bloom doesn't seem to clear the texture when they're resized on NVIDIA hardware.
   void 
   BloomPass::onRendererBegin(uint width, uint height)
   {

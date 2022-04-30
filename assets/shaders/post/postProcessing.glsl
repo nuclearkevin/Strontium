@@ -82,7 +82,7 @@ void main()
   colour = applyGamma(colour, u_nearFarGamma.z);
 
   fragColour = vec4(colour, 1.0);
-  fragID = texture(gEntityIDMask, fTexCoords).a;
+  fragID = texture(gEntityIDMask, fTexCoords).g;
 }
 
 // Helper functions.

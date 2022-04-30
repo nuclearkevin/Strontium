@@ -35,7 +35,7 @@ namespace Strontium
     PostProcessingPassDataBlock()
       : postProcessingShader(nullptr)
       , postProcessingParams(6 * sizeof(float), BufferType::Dynamic)
-      , toneMapOp(0u)
+      , toneMapOp(5u)
       , useFXAA(true)
       , useGrid(true)
       , drawOutline(false)
