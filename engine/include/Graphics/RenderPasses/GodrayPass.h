@@ -27,8 +27,15 @@ namespace Strontium
     Shader* godrayBlur;
 
     Texture2D godrays;
+    Texture3D scatExtinction;
+    Texture3D emissionPhase;
+
+    ShaderStorageBuffer obbFogBuffer;
 
     UniformBuffer godrayParamsBuffer;
+
+    // Fog volumes.
+    std::vector<OBBFogVolume> obbVolumes;
 
     bool enableGodrays;
     bool hasGodrays;
@@ -43,7 +50,8 @@ namespace Strontium
     GodrayPassDataBlock()
       : godrayCompute(nullptr)
       , godrayBlur(nullptr)
-      , godrayParamsBuffer(5 *  sizeof(glm::vec4), BufferType::Dynamic)
+      , obbFogBuffer(0, BufferType::Dynamic)
+      , godrayParamsBuffer(6 *  sizeof(glm::vec4), BufferType::Dynamic)
       , enableGodrays(false)
       , hasGodrays(false)
       , numSteps(64u)
@@ -70,6 +78,9 @@ namespace Strontium
     void onRender() override;
     void onRendererEnd(FrameBuffer& frontBuffer) override;
     void onShutdown() override;
+
+    // Submit fog volumes.
+    void submit(const OBBFogVolume &fogVolume);
 
   private:
     GodrayPassDataBlock passData;

@@ -19,6 +19,7 @@
 #include "Graphics/RenderPasses/DirectionalLightPass.h"
 #include "Graphics/RenderPasses/SkyboxPass.h"
 #include "Graphics/RenderPasses/PostProcessingPass.h"
+#include "Graphics/RenderPasses/GodrayPass.h"
 
 #include "Graphics/RenderPasses/WireframePass.h"
 
@@ -296,6 +297,7 @@ namespace Strontium
     auto geomet = passManager.getRenderPass<GeometryPass>();
     auto dirApp = passManager.getRenderPass<DirectionalLightPass>();
     auto skyAtm = passManager.getRenderPass<SkyAtmospherePass>();
+    auto godray = passManager.getRenderPass<GodrayPass>();
     auto dynIBL = passManager.getRenderPass<DynamicSkyIBLPass>();
     auto iblApp = passManager.getRenderPass<IBLApplicationPass>();
     auto skyboxApp = passManager.getRenderPass<SkyboxPass>();
@@ -416,6 +418,15 @@ namespace Strontium
       }
     }
 
+    // Group together and submit fog volumes.
+    auto obbFog = this->sceneECS.group<BoxFogVolumeComponent>(entt::get<TransformComponent>);
+    for (auto entity : obbFog)
+    {
+      auto [transform, boxFog] = obbFog.get<TransformComponent, BoxFogVolumeComponent>(entity);
+      godray->submit(OBBFogVolume(boxFog.phase, boxFog.density, boxFog.absorption, 
+                                  boxFog.mieScattering, boxFog.emission, static_cast<glm::mat4>(transform)));
+    }
+
     postProc->getInternalDataBlock<PostProcessingPassDataBlock>()->drawOutline = drawOutline;
   }
 
@@ -431,6 +442,7 @@ namespace Strontium
     auto geomet = passManager.getRenderPass<GeometryPass>();
     auto dirApp = passManager.getRenderPass<DirectionalLightPass>();
     auto skyAtm = passManager.getRenderPass<SkyAtmospherePass>();
+    auto godray = passManager.getRenderPass<GodrayPass>();
     auto dynIBL = passManager.getRenderPass<DynamicSkyIBLPass>();
     auto iblApp = passManager.getRenderPass<IBLApplicationPass>();
     auto skyboxApp = passManager.getRenderPass<SkyboxPass>();
@@ -546,7 +558,16 @@ namespace Strontium
       }
     }
 
-    postProc->getInternalDataBlock<PostProcessingPassDataBlock>()->drawOutline = drawOutline;
+    // Group together and submit fog volumes.
+    auto obbFog = this->sceneECS.group<BoxFogVolumeComponent>(entt::get<TransformComponent>);
+    for (auto entity : obbFog)
+    {
+      auto [transform, boxFog] = obbFog.get<TransformComponent, BoxFogVolumeComponent>(entity);
+      godray->submit(OBBFogVolume(boxFog.phase, boxFog.density, boxFog.absorption, 
+                                  boxFog.mieScattering, boxFog.emission, static_cast<glm::mat4>(transform)));
+    }
+
+    postProc->getInternalDataBlock<PostProcessingPassDataBlock>()->drawOutline = false;
   }
 
   void 
@@ -849,6 +870,7 @@ namespace Strontium
     copyComponent<CylinderColliderComponent>(source, destination);
     copyComponent<CapsuleColliderComponent>(source, destination);
     copyComponent<RigidBody3DComponent>(source, destination);
+    copyComponent<BoxFogVolumeComponent>(source, destination);
   }
 
   void 
@@ -978,6 +1000,7 @@ namespace Strontium
     deleteComponent<CylinderColliderComponent>(source);
     deleteComponent<CapsuleColliderComponent>(source);
     deleteComponent<RigidBody3DComponent>(source);
+    deleteComponent<BoxFogVolumeComponent>(source);
 
     Scene* scene = static_cast<Scene*>(source);
     scene->deleteEntity(source);

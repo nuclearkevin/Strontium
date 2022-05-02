@@ -159,4 +159,19 @@ namespace Strontium
       , attachedSkyAtmoHandle(attachedSkyAtmoHandle)
     { }
   };
+
+  struct OBBFogVolume
+  {
+    glm::vec4 mieScatteringPhase; // Mie scattering (x, y, z) and phase value (w).
+    glm::vec4 emissionAbsorption; // Emission (x, y, z) and absorption (w).
+    glm::mat4 invTransformMatrix; // Inverse model-space transform matrix.
+
+    OBBFogVolume(float phase, float density, float absorption, 
+                 const glm::vec3 &mieScattering, const glm::vec3 &emission, 
+                 const glm::mat4 &transformMatrix)
+      : mieScatteringPhase(density * mieScattering, phase)
+      , emissionAbsorption(density * emission, density * absorption)
+      , invTransformMatrix(glm::inverse(transformMatrix))
+    { }
+  };
 }

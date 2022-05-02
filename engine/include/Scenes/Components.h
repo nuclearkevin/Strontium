@@ -293,6 +293,25 @@ namespace Strontium
     { }
   };
 
+  struct BoxFogVolumeComponent
+  {
+    float phase;
+    float density; // Multiplied by the coefficients.
+    float absorption;
+    glm::vec3 mieScattering;
+    glm::vec3 emission;
+
+    BoxFogVolumeComponent(const BoxFogVolumeComponent&) = default;
+
+    BoxFogVolumeComponent()
+      : phase(0.8f)
+      , density(1.0f)
+      , absorption(1.0f)
+      , mieScattering(1.0f)
+      , emission(0.0f)
+    { }
+  };
+
   // TODO: Finish these.
   // Various light components for rendering the scene.
   struct DirectionalLightComponent

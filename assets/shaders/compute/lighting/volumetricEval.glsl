@@ -42,6 +42,7 @@ void main()
   if ((u_volumetricSettings.x & (1 << 0)) != 0)
   {
     vec4 godrays = getGodrays(godrays, gDepth, gBufferUVs);
+    totalRadiance *= godrays.a;
     totalRadiance += godrays.rgb;
   }
 

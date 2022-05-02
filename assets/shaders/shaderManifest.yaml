@@ -60,6 +60,8 @@ ShaderCache:
     Filepath: ./assets/shaders/compute/volumetric/godrayCompute.glsl
   - Handle: screen_space_godrays_blur
     Filepath: ./assets/shaders/compute/volumetric/godrayBlurCompute.glsl
+  - Handle: populate_froxels
+    Filepath: ./assets/shaders/compute/volumetric/populateVolumetric.glsl
     #
     # Lighting
     #
@@ -109,6 +111,8 @@ ShaderCache:
     Filepath: ./assets/shaders/compute/util/bilatBlur.glsl
   - Handle: clear_tex_2D
     Filepath: ./assets/shaders/compute/util/clearTex2D.glsl
+  - Handle: clear_tex_3D
+    Filepath: ./assets/shaders/compute/util/clearTex3D.glsl
     #
     # Widgets
     #

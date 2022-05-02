@@ -1,13 +1,27 @@
 Scene: tests\TestScene.srn
 Entities:
-  - EntityID: 26
+  - EntityID: 28
+    NameComponent:
+      Name: Emissive Fog Box
+      Description: ""
+    TransformComponent:
+      Translation: [-2.24609709, 1.81093788, 2.93451166]
+      Rotation: [0, 0.707715452, 0]
+      Scale: [3.6015358, 0.871441245, 3.16919613]
+    BoxFogVolumeComponent:
+      Phase: 0
+      Density: 1
+      Absorption: 0
+      MieScattering: [0, 0, 0]
+      Emission: [0, 0, 1]
+  - EntityID: 27
     NameComponent:
       Name: Camera
       Description: ""
     TransformComponent:
-      Translation: [8.66581059, 4.06725216, 0]
-      Rotation: [0, 1.57045102, 0]
-      Scale: [0.499994695, 0.5, 0.499994695]
+      Translation: [-6.81155729, 4.06726217, 10.6467133]
+      Rotation: [0, -0.59964633, 0]
+      Scale: [0.499993235, 0.5, 0.499993235]
     RenderableComponent:
       ModelPath: ./assets/tests\cube.gltf
       ModelName: cube.gltf
@@ -20,7 +34,7 @@ Entities:
       Near: 0.550000012
       Far: 30
       FOV: 1.04719758
-  - EntityID: 25
+  - EntityID: 26
     NameComponent:
       Name: Cylinder 11
       Description: ""
@@ -44,7 +58,7 @@ Entities:
       Type: 2
       Friction: 0.5
       Restitution: 0
-  - EntityID: 24
+  - EntityID: 25
     NameComponent:
       Name: Cylinder 10
       Description: ""
@@ -68,7 +82,7 @@ Entities:
       Type: 2
       Friction: 0.5
       Restitution: 0
-  - EntityID: 23
+  - EntityID: 24
     NameComponent:
       Name: Cylinder 9
       Description: ""
@@ -92,7 +106,7 @@ Entities:
       Type: 2
       Friction: 0.5
       Restitution: 0
-  - EntityID: 22
+  - EntityID: 23
     NameComponent:
       Name: Cylinder 8
       Description: ""
@@ -116,7 +130,7 @@ Entities:
       Type: 2
       Friction: 0.5
       Restitution: 0
-  - EntityID: 21
+  - EntityID: 22
     NameComponent:
       Name: Cylinder 7
       Description: ""
@@ -140,7 +154,7 @@ Entities:
       Type: 2
       Friction: 0.5
       Restitution: 0
-  - EntityID: 20
+  - EntityID: 21
     NameComponent:
       Name: Cylinder 6
       Description: ""
@@ -164,7 +178,7 @@ Entities:
       Type: 2
       Friction: 0.5
       Restitution: 0
-  - EntityID: 19
+  - EntityID: 20
     NameComponent:
       Name: Cylinder 5
       Description: ""
@@ -188,7 +202,7 @@ Entities:
       Type: 2
       Friction: 0.5
       Restitution: 0
-  - EntityID: 18
+  - EntityID: 19
     NameComponent:
       Name: Cylinder 4
       Description: ""
@@ -212,7 +226,7 @@ Entities:
       Type: 2
       Friction: 0.5
       Restitution: 0
-  - EntityID: 17
+  - EntityID: 18
     NameComponent:
       Name: Cylinder 3
       Description: ""
@@ -236,7 +250,7 @@ Entities:
       Type: 2
       Friction: 0.5
       Restitution: 0
-  - EntityID: 16
+  - EntityID: 17
     NameComponent:
       Name: Cylinder 2
       Description: ""
@@ -260,7 +274,7 @@ Entities:
       Type: 2
       Friction: 0.5
       Restitution: 0
-  - EntityID: 15
+  - EntityID: 16
     NameComponent:
       Name: Cylinder 1
       Description: ""
@@ -284,7 +298,7 @@ Entities:
       Type: 2
       Friction: 0.5
       Restitution: 0
-  - EntityID: 14
+  - EntityID: 15
     NameComponent:
       Name: Sphere 4
       Description: ""
@@ -307,7 +321,7 @@ Entities:
       Type: 2
       Friction: 0
       Restitution: 1
-  - EntityID: 13
+  - EntityID: 14
     NameComponent:
       Name: Sphere 3
       Description: ""
@@ -330,7 +344,7 @@ Entities:
       Type: 2
       Friction: 0
       Restitution: 1
-  - EntityID: 12
+  - EntityID: 13
     NameComponent:
       Name: Sphere 2
       Description: ""
@@ -353,7 +367,7 @@ Entities:
       Type: 2
       Friction: 0
       Restitution: 1
-  - EntityID: 11
+  - EntityID: 12
     NameComponent:
       Name: Ramp
       Description: ""
@@ -376,7 +390,7 @@ Entities:
       Type: 0
       Friction: 0
       Restitution: 0
-  - EntityID: 10
+  - EntityID: 11
     NameComponent:
       Name: Sphere 1
       Description: ""
@@ -399,7 +413,7 @@ Entities:
       Type: 2
       Friction: 0
       Restitution: 1
-  - EntityID: 9
+  - EntityID: 10
     NameComponent:
       Name: Wall
       Description: ""
@@ -422,7 +436,7 @@ Entities:
       Type: 0
       Friction: 0
       Restitution: 1
-  - EntityID: 8
+  - EntityID: 9
     NameComponent:
       Name: Ground
       Description: ""
@@ -445,7 +459,7 @@ Entities:
       Type: 0
       Friction: 0
       Restitution: 0
-  - EntityID: 7
+  - EntityID: 8
     NameComponent:
       Name: Skylight
       Description: ""
@@ -474,7 +488,7 @@ Entities:
       PrimaryLight: true
     DynamicSkylightComponent:
       Intensity: 1
-  - EntityID: 6
+  - EntityID: 7
     NameComponent:
       Name: Fence 1
       Description: ""
@@ -497,7 +511,7 @@ Entities:
       Type: 0
       Friction: 0
       Restitution: 1
-  - EntityID: 5
+  - EntityID: 6
     NameComponent:
       Name: Fence 2
       Description: ""
@@ -520,7 +534,7 @@ Entities:
       Type: 0
       Friction: 0
       Restitution: 1
-  - EntityID: 4
+  - EntityID: 5
     NameComponent:
       Name: Fence 3
       Description: ""
@@ -543,7 +557,7 @@ Entities:
       Type: 0
       Friction: 0
       Restitution: 1
-  - EntityID: 3
+  - EntityID: 4
     NameComponent:
       Name: Ramp 2
       Description: ""
@@ -566,7 +580,7 @@ Entities:
       Type: 0
       Friction: 0
       Restitution: 0
-  - EntityID: 2
+  - EntityID: 3
     NameComponent:
       Name: Panel
       Description: ""
@@ -589,7 +603,7 @@ Entities:
       Type: 2
       Friction: 0.5
       Restitution: 0
-  - EntityID: 1
+  - EntityID: 2
     NameComponent:
       Name: Large Cylinder
       Description: ""
@@ -613,7 +627,7 @@ Entities:
       Type: 2
       Friction: 0.5
       Restitution: 0
-  - EntityID: 0
+  - EntityID: 1
     NameComponent:
       Name: Pillar
       Description: ""
@@ -636,6 +650,20 @@ Entities:
       Type: 0
       Friction: 0.5
       Restitution: 0
+  - EntityID: 0
+    NameComponent:
+      Name: Large Fog Box
+      Description: ""
+    TransformComponent:
+      Translation: [0.25, 1, 0]
+      Rotation: [0, -0, 0]
+      Scale: [10, 1, 10]
+    BoxFogVolumeComponent:
+      Phase: 0
+      Density: 1
+      Absorption: 0
+      MieScattering: [1, 1, 1]
+      Emission: [0, 0, 0]
 RendererSettings:
   GeneralSettings:
     Gamma: 2.20000005
@@ -653,7 +681,7 @@ RendererSettings:
     AOMultiplier: 1
     AOExponent: 1
   GodraySettings:
-    UseGodrays: false
+    UseGodrays: true
     NumSteps: 64
     MiePhase: 0
     MieScatteringFunction: [1, 1, 1, 1]

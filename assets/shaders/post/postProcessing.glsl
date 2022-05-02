@@ -46,7 +46,7 @@ layout(location = 1) out float fragID;
 // Bloom.
 vec3 upsampleBoxTent(sampler2D bloomTexture, vec2 uv, float radius);
 // FXAA.
-vec3 applyFXAA(vec2 screenSize, vec2 uv, sampler2D screenTexture);
+vec3 applyFXAA(vec2 uv, bool useBloom, bool useGrid, bool useOutline);
 // Tone mapping.
 vec3 toneMap(vec3 colour, uint operator);
 // Gamma correct.
@@ -56,30 +56,34 @@ vec3 applyGamma(vec3 colour, float gamma);
 // Grid.
 vec3 applyGrid(vec3 colour, sampler2D gDepth, vec2 uvs, mat4 invVP, mat4 vP);
 // The outline.
-vec3 applyOutline(vec3 colour, sampler2D idMask, vec2 uvs, vec2 texel);
+vec3 applyOutline(vec3 colour, sampler2D idMask, vec2 uvs);
 
 void main()
 {
   vec2 screenSize = vec2(textureSize(screenColour, 0).xy);
   vec2 fTexCoords = gl_FragCoord.xy / screenSize;
 
-  vec3 colour;
-  if ((u_postSettings.x & (1 << 0)) != 0)
-    colour = applyFXAA(screenSize, fTexCoords, screenColour);
+  bool useFXAA = (u_postSettings.x & (1 << 0)) != 0;
+  bool useBloom = (u_postSettings.x & (1 << 1)) != 0;
+  bool useGrid = (u_postSettings.x & (1 << 2)) != 0;
+  bool useOutline = (u_postSettings.x & (1 << 3)) != 0;
+
+  vec3 colour = 0.0.xxx;
+  if (useFXAA)
+    colour = applyFXAA(fTexCoords, useBloom, useGrid, useOutline);
   else
+  {
     colour = texture(screenColour, fTexCoords).rgb;
+    if (useBloom)
+      colour += u_bloom.x * upsampleBoxTent(bloomColour, fTexCoords, u_bloom.y);
+    if (useGrid)
+      colour = applyGrid(colour, gDepth, fTexCoords, u_invViewProjMatrix, u_projMatrix * u_viewMatrix);
+    if (useOutline)
+      colour = applyOutline(colour, gEntityIDMask, fTexCoords);
 
-  if ((u_postSettings.x & (1 << 1)) != 0)
-    colour += u_bloom.x * upsampleBoxTent(bloomColour, fTexCoords, u_bloom.y);
-
-  if ((u_postSettings.x & (1 << 2)) != 0)
-    colour = applyGrid(colour, gDepth, fTexCoords, u_invViewProjMatrix, u_projMatrix * u_viewMatrix);
-
-  if ((u_postSettings.x & (1 << 3)) != 0)
-    colour = applyOutline(colour, gEntityIDMask, fTexCoords, 1.0.xx / screenSize);
-
-  colour = toneMap(colour, uint(u_postSettings.y));
-  colour = applyGamma(colour, u_nearFarGamma.z);
+    colour = toneMap(colour, uint(u_postSettings.y));
+    colour = applyGamma(colour, u_nearFarGamma.z);
+  }
 
   fragColour = vec4(colour, 1.0);
   fragID = texture(gEntityIDMask, fTexCoords).a;
@@ -116,16 +120,55 @@ vec3 upsampleBoxTent(sampler2D bloomTexture, vec2 uv, float radius)
 }
 
 // FXAA.
-vec3 applyFXAA(vec2 screenSize, vec2 uv, sampler2D screenTexture)
+vec3 applyFXAA(vec2 uv, bool useBloom, bool useGrid, bool useOutline)
 {
-  vec2 texelSize = 1.0 / screenSize;
+  vec2 texelSize = 1.0 / vec2(textureSize(gDepth, 0).xy);
   vec4 offsetPos = vec4(texelSize, texelSize) * vec4(-1.0, 1.0, 1.0, -1.0);
 
-  vec3 rgbNW = texture(screenTexture, uv + vec2(-1.0, -1.0) * texelSize).rgb;
-  vec3 rgbNE = texture(screenTexture, uv + vec2(1.0, -1.0) * texelSize).rgb;
-  vec3 rgbSW = texture(screenTexture, uv + vec2(-1.0, 1.0) * texelSize).rgb;
-  vec3 rgbSE = texture(screenTexture, uv + vec2(1.0, 1.0) * texelSize).rgb;
-  vec3 rgbM = texture(screenTexture, uv).rgb;
+  vec3 rgbNW = texture(screenColour, uv + vec2(-1.0, -1.0) * texelSize).rgb;
+  vec3 rgbNE = texture(screenColour, uv + vec2(1.0, -1.0) * texelSize).rgb;
+  vec3 rgbSW = texture(screenColour, uv + vec2(-1.0, 1.0) * texelSize).rgb;
+  vec3 rgbSE = texture(screenColour, uv + vec2(1.0, 1.0) * texelSize).rgb;
+  vec3 rgbM = texture(screenColour, uv).rgb;
+
+  if (useBloom)
+  {
+    rgbNW += u_bloom.x * upsampleBoxTent(bloomColour, uv + vec2(-1.0, -1.0) * texelSize, u_bloom.y);
+    rgbNE += u_bloom.x * upsampleBoxTent(bloomColour, uv + vec2(1.0, -1.0) * texelSize, u_bloom.y);
+    rgbSW += u_bloom.x * upsampleBoxTent(bloomColour, uv + vec2(-1.0, 1.0) * texelSize, u_bloom.y);
+    rgbSE += u_bloom.x * upsampleBoxTent(bloomColour, uv + vec2(1.0, 1.0) * texelSize, u_bloom.y);
+    rgbM += u_bloom.x * upsampleBoxTent(bloomColour, uv, u_bloom.y).rgb;
+  }
+
+  if (useGrid)
+  {
+    rgbNW = applyGrid(rgbNW, gDepth, uv + vec2(-1.0, -1.0) * texelSize, u_invViewProjMatrix, u_projMatrix * u_viewMatrix);
+    rgbNE = applyGrid(rgbNE, gDepth, uv + vec2(1.0, -1.0) * texelSize, u_invViewProjMatrix, u_projMatrix * u_viewMatrix);
+    rgbSW = applyGrid(rgbSW, gDepth, uv + vec2(-1.0, 1.0) * texelSize, u_invViewProjMatrix, u_projMatrix * u_viewMatrix);
+    rgbSE = applyGrid(rgbSE, gDepth, uv + vec2(1.0, 1.0) * texelSize, u_invViewProjMatrix, u_projMatrix * u_viewMatrix);
+    rgbM = applyGrid(rgbM, gDepth, uv, u_invViewProjMatrix, u_projMatrix * u_viewMatrix);
+  }
+
+  if (useOutline)
+  {
+    rgbNW = applyOutline(rgbNW, gEntityIDMask, uv + vec2(-1.0, -1.0) * texelSize);
+    rgbNE = applyOutline(rgbNE, gEntityIDMask, uv + vec2(1.0, -1.0) * texelSize);
+    rgbSW = applyOutline(rgbSW, gEntityIDMask, uv + vec2(-1.0, 1.0) * texelSize);
+    rgbSE = applyOutline(rgbSE, gEntityIDMask, uv + vec2(1.0, 1.0) * texelSize);
+    rgbM = applyOutline(rgbM, gEntityIDMask, uv);
+  }
+
+  rgbNW = toneMap(rgbNW, uint(u_postSettings.y));
+  rgbNE = toneMap(rgbNE, uint(u_postSettings.y));
+  rgbSW = toneMap(rgbSW, uint(u_postSettings.y));
+  rgbSE = toneMap(rgbSE, uint(u_postSettings.y));
+  rgbM = toneMap(rgbM, uint(u_postSettings.y));
+
+  rgbNW = applyGamma(rgbNW, u_nearFarGamma.z);
+  rgbNE = applyGamma(rgbNE, u_nearFarGamma.z);
+  rgbSW = applyGamma(rgbSW, u_nearFarGamma.z);
+  rgbSE = applyGamma(rgbSE, u_nearFarGamma.z);
+  rgbM = applyGamma(rgbM, u_nearFarGamma.z);
 
   float lumaNW = rgbToLuma(rgbNW);
   float lumaNE = rgbToLuma(rgbNE);
@@ -148,14 +191,48 @@ vec3 applyFXAA(vec2 screenSize, vec2 uv, sampler2D screenTexture)
 
   dir = min(vec2(FXAA_SPAN_MAX, FXAA_SPAN_MAX),
         max(vec2(-FXAA_SPAN_MAX, -FXAA_SPAN_MAX),
-        dir * rcpDirMin)) / screenSize;
+        dir * rcpDirMin)) * texelSize;
 
-  vec3 rgbA = 0.5 * (
-      max(texture(screenTexture, uv + dir * (1.0 / 3.0 - 0.5)).xyz, vec3(0.0)) +
-      max(texture(screenTexture, uv + dir * (2.0 / 3.0 - 0.5)).xyz, vec3(0.0)));
-  vec3 rgbB = 0.5 * rgbA + 0.25 * (
-      max(texture(screenTexture, uv + dir * -0.5).xyz, vec3(0.0)) +
-      max(texture(screenTexture, uv + dir * 0.5).xyz, vec3(0.0)));
+  // Compute the blending factors.
+  vec2 firstUV = uv + dir * (1.0 / 3.0 - 0.5);
+  vec2 secondUV = uv + dir * (2.0 / 3.0 - 0.5);
+  vec2 thirdUV = uv + dir * -0.5;
+  vec2 fourthUV = uv + dir * 0.5;
+  vec3 first = texture(screenColour, firstUV).rgb;
+  vec3 second = texture(screenColour, secondUV).rgb;
+  vec3 third = texture(screenColour, thirdUV).rgb;
+  vec3 fourth = texture(screenColour, fourthUV).rgb;
+  if (useBloom)
+  {
+    first += u_bloom.x * upsampleBoxTent(bloomColour, firstUV, u_bloom.y);
+    second += u_bloom.x * upsampleBoxTent(bloomColour, secondUV, u_bloom.y);
+    third += u_bloom.x * upsampleBoxTent(bloomColour, thirdUV, u_bloom.y);
+    fourth += u_bloom.x * upsampleBoxTent(bloomColour, fourthUV, u_bloom.y);
+  }
+  if (useGrid)
+  {
+    first = applyGrid(first, gDepth, firstUV, u_invViewProjMatrix, u_projMatrix * u_viewMatrix);
+    second = applyGrid(second, gDepth, secondUV, u_invViewProjMatrix, u_projMatrix * u_viewMatrix);
+    third = applyGrid(third, gDepth, thirdUV, u_invViewProjMatrix, u_projMatrix * u_viewMatrix);
+    fourth = applyGrid(fourth, gDepth, fourthUV, u_invViewProjMatrix, u_projMatrix * u_viewMatrix);
+  }
+  if (useOutline)
+  {
+    first = applyOutline(first, gEntityIDMask, firstUV);
+    second = applyOutline(second, gEntityIDMask, secondUV);
+    third = applyOutline(third, gEntityIDMask, thirdUV);
+    fourth = applyOutline(fourth, gEntityIDMask, fourthUV);
+  }
+  first = toneMap(first, uint(u_postSettings.y));
+  first = applyGamma(first, u_nearFarGamma.z);
+  second = toneMap(second, uint(u_postSettings.y));
+  second = applyGamma(second, u_nearFarGamma.z);
+  third = toneMap(third, uint(u_postSettings.y));
+  third = applyGamma(third, u_nearFarGamma.z);
+  fourth = toneMap(fourth, uint(u_postSettings.y));
+  fourth = applyGamma(fourth, u_nearFarGamma.z);
+  vec3 rgbA = 0.5 * (max(first, vec3(0.0)) + max(second, vec3(0.0)));
+  vec3 rgbB = 0.5 * rgbA + 0.25 * (max(third, vec3(0.0)) + max(fourth, vec3(0.0)));
 
   float lumaB = rgbToLuma(rgbB);
   if ((lumaB < lumaMin) || (lumaB > lumaMax))
@@ -330,8 +407,10 @@ vec3 applyGrid(vec3 colour, sampler2D gDepth, vec2 uvs, mat4 invVP, mat4 vP)
 }
 
 // Apply the outline.
-vec3 applyOutline(vec3 colour, sampler2D idMask, vec2 uvs, vec2 texel)
+vec3 applyOutline(vec3 colour, sampler2D idMask, vec2 uvs)
 {
+  vec2 texel = 1.0.xx / vec2(textureSize(idMask, 0).xy);
+
   // Populate the Sobel edge detection kernel.
   float kernel[9];
   kernel[0] = texture(idMask, uvs + vec2(-texel.x, -texel.y)).r;

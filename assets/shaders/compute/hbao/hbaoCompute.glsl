@@ -72,10 +72,15 @@ vec4 sampleDither(ivec2 coords)
 // Interleaved gradient noise from:
 // http://www.iryoku.com/next-generation-post-processing-in-call-of-duty-advanced-warfare
 // Create a rotation matrix with IGL.
-mat2 randomRotation()
+float igl()
 {
   const vec3 magic = vec3(0.06711056, 0.00583715, 52.9829189);
-  float theta = 2.0 * PI * fract(magic.z * fract(dot(vec2(gl_GlobalInvocationID.xy), magic.xy)));
+  return fract(magic.z * fract(dot(vec2(gl_GlobalInvocationID.xy), magic.xy)));
+}
+
+mat2 randomRotation()
+{
+  float theta = 2.0 * PI * igl();
   float sinTheta = sin(theta);
   float cosTheta = cos(theta);
   return mat2(cosTheta, sinTheta, -sinTheta, cosTheta);

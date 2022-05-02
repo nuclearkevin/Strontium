@@ -36,6 +36,7 @@ namespace Strontium
     , bloomDownSampleView("Bloom Downsample Image Pyramid")
     , bloomUpSampleView1("Bloom Upsample Image Pyramid 1")
     , bloomUpSampleView2("Bloom Upsample Image Pyramid 2")
+    , volumetricView("Volumetric Material View")
   { }
 
   RendererWindow::~RendererWindow()
@@ -276,6 +277,13 @@ namespace Strontium
       Styles::drawVec3Controls("Mie Absorption", glm::vec3(1.0f), mieAbsorption);
       Styles::drawFloatControl("Mie Absorption Density", 1.0f, mieAbsorptionDensity);
       ssgrBlock->mieAbs = glm::max(glm::vec4(mieAbsorption, mieAbsorptionDensity), glm::vec4(0.0f));
+
+      static bool showMaterials = false;
+      ImGui::Checkbox("Show Material Volume Textures", &showMaterials);
+      if (showMaterials)
+      {
+        this->volumetricView.texture3DImage(ssgrBlock->scatExtinction, ImVec2(128.0f * ratio, 128.0f));
+      }
 
       static bool showGodrayTexture = false;
       ImGui::Checkbox("Show Godray Texture", &showGodrayTexture);

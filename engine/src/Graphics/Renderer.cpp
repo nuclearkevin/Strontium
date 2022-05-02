@@ -44,6 +44,7 @@ namespace Strontium::Renderer3D
     // Initialize OpenGL parameters.
     RendererCommands::enable(RendererFunction::DepthTest);
     RendererCommands::enable(RendererFunction::CubeMapSeamless);
+    RendererCommands::enable(RendererFunction::CullFaces);
 
     // Setup global storage which gets used by multiple passes.
     rendererData = new GlobalRendererData();
