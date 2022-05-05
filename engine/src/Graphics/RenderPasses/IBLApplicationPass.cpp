@@ -70,10 +70,10 @@ namespace Strontium
     auto geometryBlock = this->previousGeoPass->getInternalDataBlock<GeometryPassDataBlock>();
     // Bind the GBuffer attachments.
     auto& gBuffer = geometryBlock->gBuffer;
-    //gBuffer.bindAttachment(FBOTargetParam::Depth, 0);
     gBuffer.bindAttachment(FBOTargetParam::Colour0, 1);
     gBuffer.bindAttachment(FBOTargetParam::Colour1, 2);
     gBuffer.bindAttachment(FBOTargetParam::Colour2, 3);
+    gBuffer.bindAttachment(FBOTargetParam::Colour3, 4);
 
     // Bind the downsampled depth.
     this->previousHiZPass->getInternalDataBlock<HiZPassDataBlock>()->hierarchicalDepth.bind(0);
@@ -82,12 +82,12 @@ namespace Strontium
     geometryBlock->cameraBuffer.bindToPoint(0);
 
     // Bind the BRDF LUT.
-    this->passData.brdfLUT.bind(6);
+    this->passData.brdfLUT.bind(7);
 
     // Bind the HBAO texture.
     auto hbaoBlock = this->previousHBAOPass->getInternalDataBlock<HBAOPassDataBlock>();
     if (hbaoBlock->enableAO)
-      hbaoBlock->ao.bind(7);
+      hbaoBlock->ao.bind(8);
 
     // Bind the lighting buffer.
     rendererData->lightingBuffer.bindAsImage(0, 0, ImageAccessPolicy::ReadWrite);
@@ -100,8 +100,8 @@ namespace Strontium
     //----------------------------------------------------------------------------
     // Bind the required cubemaps.
     auto dynIBLBlock = this->previousDynSkyIBLPass->getInternalDataBlock<DynamicSkyIBLPassDataBlock>();
-    dynIBLBlock->irradianceCubemaps.bind(4);
-    dynIBLBlock->radianceCubemaps.bind(5);
+    dynIBLBlock->irradianceCubemaps.bind(5);
+    dynIBLBlock->radianceCubemaps.bind(6);
 
     // Bind the IBL parameters buffer.
     this->passData.iblBuffer.bindToPoint(1);

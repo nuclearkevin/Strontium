@@ -29,12 +29,13 @@ layout(binding = 0) uniform sampler2D gDepth;
 layout(binding = 1) uniform sampler2D gNormal;
 layout(binding = 2) uniform sampler2D gAlbedo;
 layout(binding = 3) uniform sampler2D gMatProp;
+layout(binding = 4) uniform sampler2D gEmission;
 
-// TODO: Spherical harmonics instead of a cubemap.
-layout(binding = 4) uniform samplerCubeArray irradianceMap;
-layout(binding = 5) uniform samplerCubeArray radianceMap;
-layout(binding = 6) uniform sampler2D brdfLookUp;
-layout(binding = 7) uniform sampler2D hbaoTexture;
+// TODO: Spherical harmonics instead of a cubemap for irradiance.
+layout(binding = 5) uniform samplerCubeArray irradianceMap;
+layout(binding = 6) uniform samplerCubeArray radianceMap;
+layout(binding = 7) uniform sampler2D brdfLookUp;
+layout(binding = 8) uniform sampler2D hbaoTexture;
 
 // The lighting buffer.
 layout(rgba16f, binding = 0) restrict uniform image2D lightingBuffer;
@@ -87,7 +88,7 @@ void main()
     ao = min(getHBAO(gDepth, hbaoTexture, gBufferUVs), ao);
 
   totalRadiance += evaluateIBL(u_iblParams.x, gBuffer, ao) * u_iblParams.y;
-  totalRadiance += gBuffer.albedo * gBuffer.emission;
+  totalRadiance += texelFetch(gEmission, invoke, 0).rgb;
 
   imageStore(lightingBuffer, invoke, vec4(totalRadiance, 1.0));
 }
@@ -126,7 +127,7 @@ SurfaceProperties decodeGBuffer(vec2 gBufferUVs, ivec2 gBufferTexel)
   decoded.metalness = mra.r;
   decoded.roughness = mra.g;
   decoded.ao = mra.b;
-  decoded.emission = mra.a;
+  decoded.emission = 0.0;
 
   // Remap material properties.
   vec4 albedoReflectance = texelFetch(gAlbedo, gBufferTexel, 0).rgba;

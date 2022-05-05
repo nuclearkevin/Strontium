@@ -19,7 +19,7 @@ namespace Strontium
     {
       case Type::PBR:
       {
-        this->program = ShaderCache::getShader("geometry_pass_shader");
+        this->program = ShaderCache::getShader("static_geometry_pass");
 
         std::string texHandle;
         Texture2D::createMonoColour(glm::vec4(1.0f), texHandle);
@@ -31,6 +31,7 @@ namespace Strontium
         Texture2D::createMonoColour(glm::vec4(1.0f), texHandle);
         this->attachSampler2D("aOcclusionMap", texHandle);
         this->attachSampler2D("specF0Map", texHandle);
+        this->attachSampler2D("emissionMap", texHandle);
 
         this->vec3s.emplace_back("uAlbedo", glm::vec3(1.0f));
         this->floats.emplace_back("uMetallic", 0.0f);
@@ -101,6 +102,7 @@ namespace Strontium
     this->getSampler2D("metallicMap")->bind(3);
     this->getSampler2D("aOcclusionMap")->bind(4);
     this->getSampler2D("specF0Map")->bind(5);
+    this->getSampler2D("emissionMap")->bind(6);
   }
 
   // Search for and attach textures to a sampler.

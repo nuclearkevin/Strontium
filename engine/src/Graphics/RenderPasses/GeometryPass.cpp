@@ -17,8 +17,31 @@ namespace Strontium
   void 
   GeometryPass::onInit()
   {
-    this->passData.staticGeometry = ShaderCache::getShader("geometry_pass_shader");
+    this->passData.staticGeometry = ShaderCache::getShader("static_geometry_pass");
     this->passData.dynamicGeometry = ShaderCache::getShader("dynamic_geometry_pass");
+    this->passData.staticEditor = ShaderCache::getShader("static_editor_pass");
+    this->passData.dynamicEditor = ShaderCache::getShader("dynamic_editor_pass");
+
+    // Init the editor-specific drawable parameters.
+    auto cSpec = Texture2D::getFloatColourParams();
+    auto dSpec = Texture2D::getDefaultDepthParams();
+    
+    cSpec.internal = TextureInternalFormats::RG16f;
+    cSpec.format = TextureFormats::RG;
+    cSpec.sWrap = TextureWrapParams::ClampEdges;
+    cSpec.tWrap = TextureWrapParams::ClampEdges;
+    dSpec.sWrap = TextureWrapParams::ClampEdges;
+    dSpec.tWrap = TextureWrapParams::ClampEdges;
+
+    auto cAttachment = FBOAttachment(FBOTargetParam::Colour0, FBOTextureParam::Texture2D,
+                                     cSpec.internal, cSpec.format, cSpec.dataType);
+    auto dAttachment = FBOAttachment(FBOTargetParam::Depth, FBOTextureParam::Texture2D,
+                                     dSpec.internal, dSpec.format, dSpec.dataType);
+    // The entity ID and mask texture.
+    this->passData.idMaskBuffer.attach(cSpec, cAttachment);
+    this->passData.idMaskBuffer.attach(dSpec, dAttachment);
+    this->passData.idMaskBuffer.setDrawBuffers();
+    this->passData.idMaskBuffer.setClearColour(glm::vec4(0.0f));
   }
 
   void 
@@ -45,9 +68,16 @@ namespace Strontium
     // Resize the geometry buffer.
 	glm::uvec2 gBufferSize = this->passData.gBuffer.getSize();
 	if (width != gBufferSize.x || height != gBufferSize.y)
+    {
 	  this->passData.gBuffer.resize(width, height);
+      this->passData.idMaskBuffer.resize(width, height);
+    }
+
+    this->passData.idMaskBuffer.clear();
 
     this->passData.numUniqueEntities = 0u;
+    this->passData.drawingIDs = false;
+    this->passData.drawingMask = false;
 
     // Clear the statistics.
     this->passData.numDrawCalls = 0u;
@@ -165,6 +195,74 @@ namespace Strontium
     this->passData.dynamicGeometry->unbind();
 
     this->passData.gBuffer.endGeoPass();
+
+    // Start the editor pass.
+    if (this->passData.drawingIDs || this->passData.drawingMask)
+    {
+      this->passData.idMaskBuffer.setViewport();
+      this->passData.idMaskBuffer.bind();
+      
+      this->passData.cameraBuffer.bindToPoint(0);
+      this->passData.perDrawUniforms.bindToPoint(1);
+      
+      this->passData.entityDataBuffer.bindToPoint(2);
+      
+      bufferOffset = 0;
+      rendererData->blankVAO.bind();
+      // Static geometry pass.
+      this->passData.staticEditor->bind();
+      for (auto& [drawable, instancedData] : this->passData.staticInstanceMap)
+      {
+        // Set the index offset. 
+        this->passData.perDrawUniforms.setData(0, sizeof(int), &bufferOffset);
+      
+        drawable.technique->configureTextures();
+      
+        drawable.vertexBuffer->bindToPoint(0);
+        drawable.indexBuffer->bindToPoint(1);
+        RendererCommands::drawArraysInstanced(PrimativeType::Triangle, 0, drawable.numToRender, 
+                                              instancedData.size());
+        
+        bufferOffset += instancedData.size();
+      
+        // Record some statistics.
+        this->passData.numDrawCalls++;
+        this->passData.numInstances += instancedData.size();
+        this->passData.numTrianglesDrawn += (instancedData.size() * drawable.numToRender) / 3;
+      }
+      
+      // Dynamic geometry pass for skinned objects.
+      // TODO: Improve this with compute shader skinning. 
+      // Could probably get rid of this pass all together.
+      this->passData.dynamicEditor->bind();
+      this->passData.boneBuffer.bindToPoint(3);
+      for (auto& drawable : this->passData.dynamicDrawList)
+      {
+        auto& bones = drawable.animations->getFinalBoneTransforms();
+        this->passData.boneBuffer.setData(0, bones.size() * sizeof(glm::mat4),
+                                          bones.data());
+        
+        // Set the index offset. 
+        this->passData.perDrawUniforms.setData(0, sizeof(int), &bufferOffset);
+      
+        drawable.technique->configureTextures();
+        
+        drawable.vertexBuffer->bindToPoint(0);
+        drawable.indexBuffer->bindToPoint(1);
+        RendererCommands::drawArraysInstanced(PrimativeType::Triangle, 0, drawable.numToRender, 
+                                              drawable.instanceCount);
+      
+        bufferOffset += drawable.instanceCount;
+      
+        // Record some statistics.
+        this->passData.numDrawCalls++;
+        this->passData.numInstances += drawable.instanceCount;
+        this->passData.numTrianglesDrawn += (drawable.instanceCount * drawable.numToRender) / 3;
+      }
+      this->passData.dynamicGeometry->unbind();
+      
+      this->passData.idMaskBuffer.unbind();
+    }
   }
 
   void 
@@ -182,6 +280,9 @@ namespace Strontium
                        float id, bool drawSelectionMask)
   {
     auto rendererData = static_cast<Renderer3D::GlobalRendererData*>(this->globalBlock);
+
+    this->passData.drawingMask = this->passData.drawingMask || drawSelectionMask;
+    this->passData.drawingIDs = this->passData.drawingIDs || (id >= 0.0f);
 
 	for (auto& submesh : data->getSubmeshes())
 	{
@@ -229,6 +330,9 @@ namespace Strontium
                        const glm::mat4 &model, float id, bool drawSelectionMask)
   {
     auto rendererData = static_cast<Renderer3D::GlobalRendererData*>(this->globalBlock);
+
+    this->passData.drawingMask = this->passData.drawingMask || drawSelectionMask;
+    this->passData.drawingIDs = this->passData.drawingIDs || (id >= 0.0f);
 
     if (data->hasSkins())
     {

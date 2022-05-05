@@ -11,6 +11,12 @@
 
 namespace Strontium
 {
+  enum class ImageLoadOverride
+  {
+    None,
+    MetalnessRoughness
+  };
+
   // Parameters for textures.
   enum class TextureInternalFormats
   {
@@ -167,6 +173,7 @@ namespace Strontium
     Texture2DParams params;
     std::string name;
     std::string filepath;
+    ImageLoadOverride overload;
   };
 
   //----------------------------------------------------------------------------

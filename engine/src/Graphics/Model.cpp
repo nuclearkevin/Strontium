@@ -77,7 +77,9 @@ namespace Strontium
     for (uint i = 0; i < scene->mRootNode->mNumChildren; i++)
       this->rootNode.childNames.emplace_back(scene->mRootNode->mChildren[i]->mName.C_Str());
     
-    this->processNode(scene->mRootNode, scene, filepath.parent_path().string());
+    bool isGLTF = filepath.extension().string() == ".gltf";
+    this->processNode(scene->mRootNode, scene, filepath.parent_path().string(), 
+                      glm::mat4(1.0f), isGLTF);
 
     // Load in animations.
     if (scene->HasAnimations())
@@ -94,8 +96,8 @@ namespace Strontium
 
   // Recursively process all the nodes in the mesh.
   void
-  Model::processNode(aiNode* node, const aiScene* scene, const std::string &directory, 
-                     const glm::mat4& parentTransform)
+  Model::processNode(aiNode* node, const aiScene* scene, const std::filesystem::path &directory, 
+                     const glm::mat4& parentTransform, bool isGLTF)
   {
     if (this->sceneNodes.find(node->mName.C_Str()) == this->sceneNodes.end())
     {
@@ -109,17 +111,17 @@ namespace Strontium
     for (uint i = 0; i < node->mNumMeshes; i++)
     {
       aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
-      this->processMesh(mesh, scene, directory, globalTransform);
+      this->processMesh(mesh, scene, directory, globalTransform, isGLTF);
     }
 
     for (uint i = 0; i < node->mNumChildren; i++)
-      this->processNode(node->mChildren[i], scene, directory, globalTransform);
+      this->processNode(node->mChildren[i], scene, directory, globalTransform, isGLTF);
   }
 
   // Process each individual mesh.
   void
-  Model::processMesh(aiMesh* mesh, const aiScene* scene, const std::string &directory, 
-                     const glm::mat4& localTransform)
+  Model::processMesh(aiMesh* mesh, const aiScene* scene, const std::filesystem::path &directory, 
+                     const glm::mat4& localTransform, bool isGLTF)
   {
     std::string meshName = std::string(mesh->mName.C_Str());
     this->subMeshes.emplace_back(meshName, this);
@@ -206,80 +208,107 @@ namespace Strontium
 
       aiTextureType type = aiTextureType_DIFFUSE;
       aiString str;
-      for (unsigned int i = 0; i < mat->GetTextureCount(type); i++)
+      for (uint i = 0; i < mat->GetTextureCount(type); i++)
       {
         mat->GetTexture(type, i, &str);
-        materialInfo.albedoTexturePath = directory + "/" + str.C_Str();
+        materialInfo.albedoTexturePath = (directory / std::filesystem::path(str.C_Str())).string();
 
-        for (unsigned int i = 0; i < materialInfo.albedoTexturePath.size(); i++)
-          if (materialInfo.albedoTexturePath[i] == '\\')
-            materialInfo.albedoTexturePath[i] = '/';
+        // Grab GLTF specific material parameters.
+        aiColor4D colour(1.0f, 1.0f, 1.0f, 1.0f);
+        if (isGLTF)
+          mat->Get(AI_MATKEY_BASE_COLOR, colour);
+
+        materialInfo.albedoTint = glm::vec4(colour.r, colour.g, colour.b, colour.a);
       }
 
       type = aiTextureType_SPECULAR;
-      for (unsigned int i = 0; i < mat->GetTextureCount(type); i++)
+      for (uint i = 0; i < mat->GetTextureCount(type); i++)
       {
         mat->GetTexture(type, i, &str);
-        materialInfo.specularTexturePath = directory + "/" + str.C_Str();
+        materialInfo.specularTexturePath = (directory / std::filesystem::path(str.C_Str())).string();
 
-        for (unsigned int i = 0; i < materialInfo.specularTexturePath.size(); i++)
-          if (materialInfo.specularTexturePath[i] == '\\')
-            materialInfo.specularTexturePath[i] = '/';
+        // TODO: F0 tinting.
       }
 
       type = aiTextureType_NORMALS;
-      for (unsigned int i = 0; i < mat->GetTextureCount(type); i++)
+      for (uint i = 0; i < mat->GetTextureCount(type); i++)
       {
         mat->GetTexture(type, i, &str);
-        materialInfo.normalTexturePath = directory + "/" + str.C_Str();
-
-        for (unsigned int i = 0; i < materialInfo.normalTexturePath.size(); i++)
-          if (materialInfo.normalTexturePath[i] == '\\')
-            materialInfo.normalTexturePath[i] = '/';
+        materialInfo.normalTexturePath = (directory / std::filesystem::path(str.C_Str())).string();
       }
 
       type = aiTextureType_BASE_COLOR;
-      for (unsigned int i = 0; i < mat->GetTextureCount(type); i++)
+      for (uint i = 0; i < mat->GetTextureCount(type); i++)
       {
         mat->GetTexture(type, i, &str);
-        materialInfo.albedoTexturePath = directory + "/" + str.C_Str();
+        materialInfo.albedoTexturePath = (directory / std::filesystem::path(str.C_Str())).string();
 
-        for (unsigned int i = 0; i < materialInfo.albedoTexturePath.size(); i++)
-          if (materialInfo.albedoTexturePath[i] == '\\')
-            materialInfo.albedoTexturePath[i] = '/';
+        aiColor4D colour(1.0f, 1.0f, 1.0f, 1.0f);
+        if (isGLTF)
+          mat->Get(AI_MATKEY_BASE_COLOR, colour);
+
+        materialInfo.albedoTint = glm::vec4(colour.r, colour.g, colour.b, colour.a);
       }
 
       type = aiTextureType_METALNESS;
-      for (unsigned int i = 0; i < mat->GetTextureCount(type); i++)
+      for (uint i = 0; i < mat->GetTextureCount(type); i++)
       {
         mat->GetTexture(type, i, &str);
-        materialInfo.metallicTexturePath = directory + "/" + str.C_Str();
+        materialInfo.metallicTexturePath = (directory / std::filesystem::path(str.C_Str())).string();
 
-        for (unsigned int i = 0; i < materialInfo.metallicTexturePath.size(); i++)
-          if (materialInfo.metallicTexturePath[i] == '\\')
-            materialInfo.metallicTexturePath[i] = '/';
+        ai_real metalnessFactor = 1.0f;
+        if (isGLTF)
+          mat->Get(AI_MATKEY_METALLIC_FACTOR, metalnessFactor);
+
+        materialInfo.metallicScale = metalnessFactor;
       }
 
       type = aiTextureType_DIFFUSE_ROUGHNESS;
-      for (unsigned int i = 0; i < mat->GetTextureCount(type); i++)
+      for (uint i = 0; i < mat->GetTextureCount(type); i++)
       {
         mat->GetTexture(type, i, &str);
-        materialInfo.roughnessTexturePath = directory + "/" + str.C_Str();
+        materialInfo.roughnessTexturePath = (directory / std::filesystem::path(str.C_Str())).string();
 
-        for (unsigned int i = 0; i < materialInfo.roughnessTexturePath.size(); i++)
-          if (materialInfo.roughnessTexturePath[i] == '\\')
-            materialInfo.roughnessTexturePath[i] = '/';
+        ai_real roughnessFactor = 1.0f;
+        if (isGLTF)
+          mat->Get(AI_MATKEY_ROUGHNESS_FACTOR, roughnessFactor);
+
+        materialInfo.roughnessScale = roughnessFactor;
       }
 
       type = aiTextureType_AMBIENT_OCCLUSION;
-      for (unsigned int i = 0; i < mat->GetTextureCount(type); i++)
+      for (uint i = 0; i < mat->GetTextureCount(type); i++)
       {
         mat->GetTexture(type, i, &str);
-        materialInfo.aoTexturePath = directory + "/" + str.C_Str();
+        materialInfo.aoTexturePath = (directory / std::filesystem::path(str.C_Str())).string();
 
-        for (unsigned int i = 0; i < materialInfo.aoTexturePath.size(); i++)
-          if (materialInfo.aoTexturePath[i] == '\\')
-            materialInfo.aoTexturePath[i] = '/';
+        // TODO: AO factor. Assimp doesn't seem to support this.
+      }
+      
+      type = aiTextureType_EMISSIVE;
+      for (uint i = 0; i < mat->GetTextureCount(type); i++)
+      {
+        mat->GetTexture(type, i, &str);
+        materialInfo.emissiveTexturePath = (directory / std::filesystem::path(str.C_Str())).string();
+
+        aiColor3D colour(1.0f, 1.0f, 1.0f);
+        if (isGLTF)
+          mat->Get(AI_MATKEY_COLOR_EMISSIVE, colour);
+
+        materialInfo.emissiveTint = glm::vec3(colour.r, colour.g, colour.b);
+      }
+
+      // Need to handle GLTF combiend roughness + metalness textures separately.
+      if (isGLTF && materialInfo.roughnessTexturePath == "" && materialInfo.metallicTexturePath == "")
+      {
+        type = aiTextureType_UNKNOWN;
+        for (uint i = 0; i < mat->GetTextureCount(type); i++)
+        {
+          mat->GetTexture(type, i, &str);
+          materialInfo.hasCombinedMR = true;
+          materialInfo.metallicTexturePath = (directory / std::filesystem::path(str.C_Str())).string();
+          materialInfo.roughnessTexturePath = (directory / std::filesystem::path(str.C_Str())).string();
+        }
       }
     }
 

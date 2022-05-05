@@ -99,9 +99,12 @@ namespace Strontium
   {
 	// Required buffers and lists to draw stuff.
 	GeometryBuffer gBuffer;
+	FrameBuffer idMaskBuffer;
 
 	Shader* staticGeometry;
 	Shader* dynamicGeometry;
+	Shader* staticEditor;
+	Shader* dynamicEditor;
 
 	UniformBuffer cameraBuffer;
 	UniformBuffer perDrawUniforms;
@@ -112,6 +115,8 @@ namespace Strontium
 	uint numUniqueEntities;
 	robin_hood::unordered_flat_map<GeomStaticDrawData, std::vector<PerEntityData>> staticInstanceMap;
 	std::vector<GeomDynamicDrawData> dynamicDrawList;
+	bool drawingIDs;
+	bool drawingMask;
 
 	// Some statistics to display.
 	float frameTime;
@@ -121,14 +126,19 @@ namespace Strontium
 	uint numTrianglesDrawn;
 	
 	GeometryPassDataBlock()
-	  : gBuffer(RuntimeType::Editor, 1600, 900)
+	  : gBuffer(1600u, 900u)
+	  , idMaskBuffer(1600u, 900u)
 	  , staticGeometry(nullptr)
 	  , dynamicGeometry(nullptr)
+	  , staticEditor(nullptr)
+	  , dynamicEditor(nullptr)
       , cameraBuffer(3 * sizeof(glm::mat4) + 2 * sizeof(glm::vec4), BufferType::Dynamic)
 	  , perDrawUniforms(sizeof(int), BufferType::Dynamic)
 	  , entityDataBuffer(0, BufferType::Dynamic)
 	  , boneBuffer(MAX_BONES_PER_MODEL * sizeof(glm::mat4), BufferType::Dynamic)
 	  , numUniqueEntities(0u)
+	  , drawingIDs(false)
+	  , drawingMask(false)
 	  , frameTime(0.0f)
 	  , numInstances(0u)
 	  , numDrawCalls(0u)
@@ -153,9 +163,9 @@ namespace Strontium
 	void onShutdown() override;
 
 	void submit(Model* data, ModelMaterial &materials, const glm::mat4 &model,
-                float id = 0.0f, bool drawSelectionMask = false);
+                float id = -1.0f, bool drawSelectionMask = false);
     void submit(Model* data, Animator* animation, ModelMaterial& materials,
-                const glm::mat4 &model, float id = 0.0f,
+                const glm::mat4 &model, float id = -1.0f,
                 bool drawSelectionMask = false);
   private:
 	GeometryPassDataBlock passData;

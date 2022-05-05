@@ -2,8 +2,9 @@
 
 namespace Strontium
 {
-  Image2DAsset::Image2DAsset()
+  Image2DAsset::Image2DAsset(ImageLoadOverride overload)
 	: Asset(Type::Image2D)
+	, overload(overload)
   { }
 
   Image2DAsset::~Image2DAsset()

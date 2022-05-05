@@ -90,14 +90,11 @@ namespace Strontium
 
       float constBias = shadowBlock->constBias;
       if (ImGui::DragFloat("Constant Bias", &(constBias), 0.01f))
-      {
         shadowBlock->constBias = glm::max(constBias, 0.0f);
-      }
       float normalBias = shadowBlock->normalBias;
+
       if (ImGui::DragFloat("Normal Bias", &(normalBias), 0.01f))
-      {
         shadowBlock->normalBias = glm::max(normalBias, 0.0f);
-      }
 
       ImGui::Text("");
 
@@ -159,16 +156,16 @@ namespace Strontium
       ImGui::Separator();
       ImGui::Text("GBuffer:");
       ImGui::Separator();
-      ImGui::Text("Normals:");
+      ImGui::Text("Normals and Tangents:");
       ImGui::Image(reinterpret_cast<ImTextureID>(gBuffer.getAttachmentID(FBOTargetParam::Colour0)),
                    ImVec2(128.0f * ratio, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
-      ImGui::Text("Albedo:");
+      ImGui::Text("Albedo and Reflectance:");
       ImGui::Image(reinterpret_cast<ImTextureID>(gBuffer.getAttachmentID(FBOTargetParam::Colour1)),
                    ImVec2(128.0f * ratio, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
-      ImGui::Text("Materials:");
+      ImGui::Text("Materials (Metallic, Roughness, AO, Anisotropy):");
       ImGui::Image(reinterpret_cast<ImTextureID>(gBuffer.getAttachmentID(FBOTargetParam::Colour2)),
                    ImVec2(128.0f * ratio, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
-      ImGui::Text("Entity Mask:");
+      ImGui::Text("Emission:");
       ImGui::Image(reinterpret_cast<ImTextureID>(gBuffer.getAttachmentID(FBOTargetParam::Colour3)),
                    ImVec2(128.0f * ratio, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
       ImGui::Text("Depth:");

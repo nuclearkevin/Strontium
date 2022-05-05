@@ -9,6 +9,9 @@
 #include "Graphics/Meshes.h"
 #include "Graphics/Animations.h"
 
+// STL includes.
+#include <filesystem>
+
 // Forward declare Assimp garbage.
 struct aiScene;
 struct aiNode;
@@ -44,10 +47,10 @@ namespace Strontium
 
     bool hasSkins() { return this->isSkinned; }
   private:
-    void processNode(aiNode* node, const aiScene* scene, const std::string &directory, 
-                     const glm::mat4 &parentTransform = glm::mat4(1.0f));
-    void processMesh(aiMesh* mesh, const aiScene* scene, const std::string &directory, 
-                     const glm::mat4& localTransform = glm::mat4(1.0f));
+    void processNode(aiNode* node, const aiScene* scene, const std::filesystem::path &directory, 
+                     const glm::mat4 &parentTransform = glm::mat4(1.0f), bool isGLTF = false);
+    void processMesh(aiMesh* mesh, const aiScene* scene, const std::filesystem::path &directory, 
+                     const glm::mat4& localTransform = glm::mat4(1.0f), bool isGLTF = false);
 
     void addBoneData(unsigned int boneIndex, float boneWeight, PackedVertex &toMod);
 

@@ -22,7 +22,6 @@ set(INCLUDE_DIRS
     vendor/assimp/include
     vendor/yamlcpp/include
     vendor/joltphysics
-    vendor/joltphysics/Jolt
 )
 
 set(LIB_LINKS

@@ -34,7 +34,7 @@ namespace Strontium
     bulkGenerateMaterials()
     {
       // Filepaths of the textures that need to be loaded.
-      std::vector<std::string> texturesToLoad;
+      std::vector<std::pair<std::string, ImageLoadOverride>> texturesToLoad;
       // Reserve for the worst case scenario.
       texturesToLoad.reserve(asyncModelQueue.size() * 6);
 
@@ -83,93 +83,152 @@ namespace Strontium
                 auto submeshMaterial = materials.getMaterial(submeshName);
 
                 std::string texName;
+                std::filesystem::path currentTexturePath;
                 if (submeshTexturePaths.albedoTexturePath != "")
                 {
-                  submeshMaterial->set(glm::vec3(1.0f), "uAlbedo");
-                  texName = submeshTexturePaths.albedoTexturePath.substr(submeshTexturePaths.albedoTexturePath.find_last_of('/') + 1);
+                  currentTexturePath = std::filesystem::path(submeshTexturePaths.albedoTexturePath);
+                  submeshMaterial->set(glm::vec3(submeshTexturePaths.albedoTint), "uAlbedo");
+                  texName = currentTexturePath.filename().string();
                   submeshMaterial->attachSampler2D("albedoMap", texName);
 
-                  bool shouldLoad = std::find(texturesToLoad.begin(),
-                                              texturesToLoad.end(),
-                                              submeshTexturePaths.albedoTexturePath
-                                              ) == texturesToLoad.end();
+                  bool shouldLoad = std::find_if(texturesToLoad.begin(),
+                                                 texturesToLoad.end(), 
+                                                 [currentTexturePath](const std::pair<std::string, ImageLoadOverride> &pair)
+                  {
+                    return currentTexturePath.string() == pair.first;
+                  }) == texturesToLoad.end();
 
                   if (!assetCache.has<Image2DAsset>(texName) && shouldLoad)
-                    texturesToLoad.emplace_back(submeshTexturePaths.albedoTexturePath);
+                    texturesToLoad.emplace_back(currentTexturePath.string(), ImageLoadOverride::None);
                 }
 
-                if (submeshTexturePaths.roughnessTexturePath != "")
+                if (submeshTexturePaths.emissiveTexturePath != "")
                 {
-                  submeshMaterial->set(1.0f, "uRoughness");
-                  texName = submeshTexturePaths.roughnessTexturePath.substr(submeshTexturePaths.roughnessTexturePath.find_last_of('/') + 1);
+                  currentTexturePath = std::filesystem::path(submeshTexturePaths.emissiveTexturePath);
+                  submeshMaterial->set(1.0f, "uEmiss");
+                  texName = currentTexturePath.filename().string();
+                  submeshMaterial->attachSampler2D("emissionMap", texName);
+
+                  bool shouldLoad = std::find_if(texturesToLoad.begin(),
+                                                 texturesToLoad.end(), 
+                                                 [currentTexturePath](const std::pair<std::string, ImageLoadOverride> &pair)
+                  {
+                    return currentTexturePath.string() == pair.first;
+                  }) == texturesToLoad.end();
+
+                  if (!assetCache.has<Image2DAsset>(texName) && shouldLoad)
+                    texturesToLoad.emplace_back(currentTexturePath.string(), ImageLoadOverride::None);
+                }
+
+                if (submeshTexturePaths.roughnessTexturePath != "" && !submeshTexturePaths.hasCombinedMR)
+                {
+                  currentTexturePath = std::filesystem::path(submeshTexturePaths.roughnessTexturePath);
+                  submeshMaterial->set(submeshTexturePaths.roughnessScale, "uRoughness");
+                  texName = currentTexturePath.filename().string();
                   submeshMaterial->attachSampler2D("roughnessMap", texName);
 
-                  bool shouldLoad = std::find(texturesToLoad.begin(),
-                                              texturesToLoad.end(),
-                                              submeshTexturePaths.roughnessTexturePath
-                                              ) == texturesToLoad.end();
+                  bool shouldLoad = std::find_if(texturesToLoad.begin(),
+                                                 texturesToLoad.end(), 
+                                                 [currentTexturePath](const std::pair<std::string, ImageLoadOverride> &pair)
+                  {
+                    return currentTexturePath.string() == pair.first;
+                  }) == texturesToLoad.end();
 
                   if (!assetCache.has<Image2DAsset>(texName) && shouldLoad)
-                    texturesToLoad.emplace_back(submeshTexturePaths.roughnessTexturePath);
+                    texturesToLoad.emplace_back(currentTexturePath.string(), ImageLoadOverride::None);
                 }
 
-                if (submeshTexturePaths.metallicTexturePath != "")
+                if (submeshTexturePaths.metallicTexturePath != "" && !submeshTexturePaths.hasCombinedMR)
                 {
-                  submeshMaterial->set(1.0f, "uMetallic");
-                  texName = submeshTexturePaths.metallicTexturePath.substr(submeshTexturePaths.metallicTexturePath.find_last_of('/') + 1);
+                  currentTexturePath = std::filesystem::path(submeshTexturePaths.metallicTexturePath);
+                  submeshMaterial->set(submeshTexturePaths.metallicScale, "uMetallic");
+                  texName = currentTexturePath.filename().string();
                   submeshMaterial->attachSampler2D("metallicMap", texName);
 
-                  bool shouldLoad = std::find(texturesToLoad.begin(),
-                                              texturesToLoad.end(),
-                                              submeshTexturePaths.metallicTexturePath
-                                              ) == texturesToLoad.end();
+                  bool shouldLoad = std::find_if(texturesToLoad.begin(),
+                                                 texturesToLoad.end(), 
+                                                 [currentTexturePath](const std::pair<std::string, ImageLoadOverride> &pair)
+                  {
+                    return currentTexturePath.string() == pair.first;
+                  }) == texturesToLoad.end();
 
                   if (!assetCache.has<Image2DAsset>(texName) && shouldLoad)
-                    texturesToLoad.emplace_back(submeshTexturePaths.metallicTexturePath);
+                    texturesToLoad.emplace_back(currentTexturePath.string(), ImageLoadOverride::None);
                 }
 
                 if (submeshTexturePaths.aoTexturePath != "")
                 {
-                  submeshMaterial->set(1.0f, "uAO");
-                  texName = submeshTexturePaths.aoTexturePath.substr(submeshTexturePaths.aoTexturePath.find_last_of('/') + 1);
+                  currentTexturePath = std::filesystem::path(submeshTexturePaths.aoTexturePath);
+                  submeshMaterial->set(submeshTexturePaths.aoScale, "uAO");
+                  texName = currentTexturePath.filename().string();
                   submeshMaterial->attachSampler2D("aOcclusionMap", texName);
 
-                  bool shouldLoad = std::find(texturesToLoad.begin(),
-                                              texturesToLoad.end(),
-                                              submeshTexturePaths.aoTexturePath
-                                              ) == texturesToLoad.end();
+                  bool shouldLoad = std::find_if(texturesToLoad.begin(),
+                                                 texturesToLoad.end(), 
+                                                 [currentTexturePath](const std::pair<std::string, ImageLoadOverride> &pair)
+                  {
+                    return currentTexturePath.string() == pair.first;
+                  }) == texturesToLoad.end();
 
                   if (!assetCache.has<Image2DAsset>(texName) && shouldLoad)
-                    texturesToLoad.emplace_back(submeshTexturePaths.aoTexturePath);
+                    texturesToLoad.emplace_back(currentTexturePath.string(), ImageLoadOverride::None);
                 }
 
                 if (submeshTexturePaths.specularTexturePath != "")
                 {
+                  currentTexturePath = std::filesystem::path(submeshTexturePaths.specularTexturePath);
                   submeshMaterial->set(0.04f, "uF0");
-                  texName = submeshTexturePaths.specularTexturePath.substr(submeshTexturePaths.specularTexturePath.find_last_of('/') + 1);
+                  texName = currentTexturePath.filename().string();
                   submeshMaterial->attachSampler2D("specF0Map", texName);
 
-                  bool shouldLoad = std::find(texturesToLoad.begin(),
-                                              texturesToLoad.end(),
-                                              submeshTexturePaths.specularTexturePath
-                                              ) == texturesToLoad.end();
+                  bool shouldLoad = std::find_if(texturesToLoad.begin(),
+                                                 texturesToLoad.end(), 
+                                                 [currentTexturePath](const std::pair<std::string, ImageLoadOverride> &pair)
+                  {
+                    return currentTexturePath.string() == pair.first;
+                  }) == texturesToLoad.end();
 
                   if (!assetCache.has<Image2DAsset>(texName) && shouldLoad)
-                    texturesToLoad.emplace_back(submeshTexturePaths.specularTexturePath);
+                    texturesToLoad.emplace_back(currentTexturePath.string(), ImageLoadOverride::None);
                 }
 
                 if (submeshTexturePaths.normalTexturePath != "")
                 {
-                  texName = submeshTexturePaths.normalTexturePath.substr(submeshTexturePaths.normalTexturePath.find_last_of('/') + 1);
+                  currentTexturePath = std::filesystem::path(submeshTexturePaths.normalTexturePath);
+                  texName = currentTexturePath.filename().string();
                   submeshMaterial->attachSampler2D("normalMap", texName);
 
-                  bool shouldLoad = std::find(texturesToLoad.begin(),
-                                              texturesToLoad.end(),
-                                              submeshTexturePaths.normalTexturePath
-                                              ) == texturesToLoad.end();
+                  bool shouldLoad = std::find_if(texturesToLoad.begin(),
+                                                 texturesToLoad.end(), 
+                                                 [currentTexturePath](const std::pair<std::string, ImageLoadOverride> &pair)
+                  {
+                    return currentTexturePath.string() == pair.first;
+                  }) == texturesToLoad.end();
 
                   if (!assetCache.has<Image2DAsset>(texName) && shouldLoad)
-                    texturesToLoad.emplace_back(submeshTexturePaths.normalTexturePath);
+                    texturesToLoad.emplace_back(currentTexturePath.string(), ImageLoadOverride::None);
+                }
+
+                // Handle GLTF roughness and metalness parameters being combined in a single texture.
+                if (submeshTexturePaths.hasCombinedMR)
+                {
+                  // Metallic and roughness texture paths are the same.
+                  currentTexturePath = std::filesystem::path(submeshTexturePaths.metallicTexturePath);
+                  texName = currentTexturePath.filename().string();
+                  submeshMaterial->set(submeshTexturePaths.metallicScale, "uMetallic");
+                  submeshMaterial->attachSampler2D("metallicMap", texName + "_m");
+                  submeshMaterial->set(submeshTexturePaths.roughnessScale, "uRoughness");
+                  submeshMaterial->attachSampler2D("roughnessMap", texName + "_r");
+
+                  bool shouldLoad = std::find_if(texturesToLoad.begin(),
+                                                 texturesToLoad.end(), 
+                                                 [currentTexturePath](const std::pair<std::string, ImageLoadOverride> &pair)
+                  {
+                    return currentTexturePath.string() == pair.first;
+                  }) == texturesToLoad.end();
+
+                  if (!assetCache.has<Image2DAsset>(texName + "_m") && shouldLoad)
+                    texturesToLoad.emplace_back(currentTexturePath.string(), ImageLoadOverride::MetalnessRoughness);
                 }
               }
             }
@@ -178,8 +237,8 @@ namespace Strontium
         asyncModelQueue.pop();
       }
 
-      for (auto& texturePath : texturesToLoad)
-        loadImageAsync(texturePath);
+      for (auto& [texturePath, overload] : texturesToLoad)
+        loadImageAsync(texturePath, Texture2DParams(), overload);
     }
 
     void
@@ -230,7 +289,7 @@ namespace Strontium
 
         Texture2D* outTex = nullptr;
         if (!assetCache.has<Image2DAsset>(image.name))
-          outTex = assetCache.emplace<Image2DAsset>(image.filepath, image.name)->getTexture();
+          outTex = assetCache.emplace<Image2DAsset>(image.filepath, image.name, image.overload)->getTexture();
         else
         {
           stbi_image_free(image.data);
@@ -272,7 +331,7 @@ namespace Strontium
 
         outTex->setSize(image.width, image.height);
         outTex->setParams(tempParams);
-        outTex->loadData(static_cast<unsigned char*>(image.data));
+        outTex->loadData(reinterpret_cast<unsigned char*>(image.data));
         outTex->generateMips();
 
         Logs::log("Loaded texture: " + image.name + " " +
@@ -286,7 +345,8 @@ namespace Strontium
     }
 
     void
-    loadImageAsync(const std::filesystem::path &filepath, const Texture2DParams &params)
+    loadImageAsync(const std::filesystem::path &filepath, const Texture2DParams &params, 
+                   ImageLoadOverride overload)
     {
       // Check if the file is valid or not.
       std::ifstream test(filepath);
@@ -302,34 +362,97 @@ namespace Strontium
         return;
       }
 
-      auto loaderImpl = [](const std::filesystem::path& path, const Texture2DParams &params)
+      if (overload == ImageLoadOverride::MetalnessRoughness)
       {
-        auto eventDispatcher = EventDispatcher::getInstance();
-        eventDispatcher->queueEvent(new GuiEvent(GuiEventType::StartSpinnerEvent, path.string()));
-
-        ImageData2D outImage;
-        outImage.params = params;
-
-        std::string filename = path.filename().string();
-
-        outImage.name = filename;
-        outImage.filepath = path.string();
-
-        // Load the image.
-        stbi_set_flip_vertically_on_load(true);
-        outImage.data = stbi_load(outImage.filepath.c_str(), &outImage.width, &outImage.height, &outImage.n, 0);
-
-        if (!outImage.data)
+        auto loaderImpl = [](const std::filesystem::path &path, const Texture2DParams &params)
         {
-          stbi_image_free(outImage.data);
-          return;
-        }
-        asyncTexQueue.push(outImage);
+          auto eventDispatcher = EventDispatcher::getInstance();
+          eventDispatcher->queueEvent(new GuiEvent(GuiEventType::StartSpinnerEvent, path.string()));
+        
+          unsigned char* data;
+          ImageData2D outImageM;
+          ImageData2D outImageR;
+          outImageM.params = params;
+          outImageR.params = params;
+        
+          outImageM.name = path.filename().string() + "_m";
+          outImageR.name = path.filename().string() + "_r";
+        
+          outImageM.filepath = path.string();
+          outImageR.filepath = path.string();
+        
+          outImageM.overload = ImageLoadOverride::MetalnessRoughness;
+          outImageR.overload = ImageLoadOverride::MetalnessRoughness;
 
-        eventDispatcher->queueEvent(new GuiEvent(GuiEventType::EndSpinnerEvent, ""));
-      };
+          // Load the image.
+          stbi_set_flip_vertically_on_load(true);
+          int channels = 0;
+          data = stbi_load(outImageM.filepath.c_str(), &outImageM.width, &outImageM.height, &channels, 0);
+          outImageR.width = outImageM.width;
+          outImageR.height = outImageM.height;
+          outImageR.n = 1;
+          outImageM.n = 1;
+        
+          if (!data || channels <= 0)
+          {
+            stbi_image_free(data);
+            return;
+          }
 
-      JobSystem::push(loaderImpl, filepath, params);
+          unsigned char* dataM = new unsigned char[outImageM.width * outImageM.height];
+          unsigned char* dataR = new unsigned char[outImageM.width * outImageM.height];
+          
+          // Loop over the pixels and assign the metalness and roughness textures.
+          for (std::size_t i = 0; i < outImageR.width * outImageR.height; i++)
+          {
+            dataM[i] = data[channels * i + 2];
+            dataR[i] = data[channels * i + 1];
+          }
+  
+          outImageM.data = reinterpret_cast<void*>(dataM);
+          outImageR.data = reinterpret_cast<void*>(dataR);
+
+          asyncTexQueue.push(outImageM);
+          asyncTexQueue.push(outImageR);
+        
+          stbi_image_free(data);
+          eventDispatcher->queueEvent(new GuiEvent(GuiEventType::EndSpinnerEvent, ""));
+        };
+
+        JobSystem::push(loaderImpl, filepath, params);
+      }
+      else
+      {
+        auto loaderImpl = [](const std::filesystem::path &path, const Texture2DParams &params)
+        {
+          auto eventDispatcher = EventDispatcher::getInstance();
+          eventDispatcher->queueEvent(new GuiEvent(GuiEventType::StartSpinnerEvent, path.string()));
+        
+          ImageData2D outImage;
+          outImage.params = params;
+        
+          std::string filename = path.filename().string();
+        
+          outImage.name = filename;
+          outImage.filepath = path.string();
+          outImage.overload = ImageLoadOverride::None;
+        
+          // Load the image.
+          stbi_set_flip_vertically_on_load(true);
+          outImage.data = stbi_load(outImage.filepath.c_str(), &outImage.width, &outImage.height, &outImage.n, 0);
+        
+          if (!outImage.data)
+          {
+            stbi_image_free(outImage.data);
+            return;
+          }
+          asyncTexQueue.push(outImage);
+        
+          eventDispatcher->queueEvent(new GuiEvent(GuiEventType::EndSpinnerEvent, ""));
+        };
+
+        JobSystem::push(loaderImpl, filepath, params);
+      }
     }
   }
 }

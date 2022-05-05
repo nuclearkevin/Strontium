@@ -70,37 +70,6 @@ out VERT_OUT
   MaterialData fMaterialData;
 } vertOut;
 
-// qTangent decoding.
-// https://developer.android.com/games/optimize/vertex-data-management
-vec3 xAxis(vec4 qQuat)
-{
-  float fTy = 2.0 * qQuat.y;
-  float fTz = 2.0 * qQuat.z;
-  float fTwy = fTy * qQuat.w;
-  float fTwz = fTz * qQuat.w;
-  float fTxy = fTy * qQuat.x;
-  float fTxz = fTz * qQuat.x;
-  float fTyy = fTy * qQuat.y;
-  float fTzz = fTz * qQuat.z;
-
-  return vec3(1.0 - (fTyy +fTzz), fTxy + fTwz, fTxz - fTwy);
-}
-
-vec3 yAxis(vec4 qQuat)
-{
-  float fTx = 2.0 * qQuat.x;
-  float fTy = 2.0 * qQuat.y;
-  float fTz  = 2.0 * qQuat.z;
-  float fTwx = fTx * qQuat.w;
-  float fTwz = fTz * qQuat.w;
-  float fTxx = fTx * qQuat.x;
-  float fTxy = fTy * qQuat.x;
-  float fTyz = fTz * qQuat.y;
-  float fTzz = fTz * qQuat.z;
-
-  return vec3(fTxy - fTwz, 1.0 - (fTxx + fTzz), fTyz + fTwx);
-}
-
 void main()
 {
   const uint vIndex = v_indices[gl_VertexID];
@@ -130,7 +99,7 @@ void main()
 layout(location = 0) out vec4 gNormal; // z and w components unused.
 layout(location = 1) out vec4 gAlbedo;
 layout(location = 2) out vec4 gMatProp;
-layout(location = 3) out vec4 gIDMaskColour; // This should be a 2-component buffer...
+layout(location = 3) out vec4 gEmission;
 
 in VERT_OUT
 {
@@ -147,6 +116,7 @@ layout(binding = 2) uniform sampler2D roughnessMap;
 layout(binding = 3) uniform sampler2D metallicMap;
 layout(binding = 4) uniform sampler2D aOcclusionMap;
 layout(binding = 5) uniform sampler2D specF0Map;
+layout(binding = 6) uniform sampler2D emissionMap;
 
 vec3 getNormal(sampler2D normalMap, mat3 tbn, vec2 texCoords)
 {
@@ -180,14 +150,15 @@ void main()
     discard;
 
   gAlbedo = vec4(pow(albedo.rgb * albedoReflectance.rgb, vec3(u_nearFarGamma.z)), 1.0);
-  gAlbedo.a = texture(specF0Map, fragIn.fTexCoords).r * albedoReflectance.a;
+  gAlbedo.a = dot(texture(specF0Map, fragIn.fTexCoords).rgb, (1.0 / 3.0).xxx) * albedoReflectance.a;
   gNormal.rg = encodeNormal(getNormal(normalMap, fragIn.fTBN, fragIn.fTexCoords));
-  gNormal.ba = 1.0.xx;
+  gNormal.ba = 1.0.xx; // TODO: per-fragment tangents.
 
   gMatProp.r = texture(metallicMap, fragIn.fTexCoords).r * mrae.r;
   gMatProp.g = texture(roughnessMap, fragIn.fTexCoords).r * mrae.g;
-  gMatProp.b = texture(aOcclusionMap, fragIn.fTexCoords).r * mrae.b;
-  gMatProp.a = mrae.a;
+  gMatProp.b = 1.0 + mrae.b * (texture(aOcclusionMap, fragIn.fTexCoords).r - 1.0);
+  gMatProp.a = 1.0; // Anisotropy.
 
-  gIDMaskColour = vec4(fragIn.fMaskID.xxx, fragIn.fMaskID.y);
+  vec3 emission = pow(texture(emissionMap, fragIn.fTexCoords).rgb, vec3(u_nearFarGamma.z));
+  gEmission = vec4(emission * mrae.a, 1.0);
 }

@@ -23,10 +23,14 @@ ShaderCache:
     #
     # Geometrey pass
     #
-  - Handle: geometry_pass_shader
+  - Handle: static_geometry_pass
     Filepath: ./assets/shaders/deferred/staticGeometryPass.glsl
   - Handle: dynamic_geometry_pass
     Filepath: ./assets/shaders/deferred/dynamicGeometryPass.glsl
+  - Handle: static_editor_pass
+    Filepath: ./assets/shaders/deferred/staticEditorPass.glsl
+  - Handle: dynamic_editor_pass
+    Filepath: ./assets/shaders/deferred/dynamicEditorPass.glsl
     #
     # Sky
     #

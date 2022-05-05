@@ -24,6 +24,7 @@ namespace Strontium
     // Async load an image.
     void bulkGenerateTextures();
     void loadImageAsync(const std::filesystem::path &filepath,
-                        const Texture2DParams &params = Texture2DParams());
+                        const Texture2DParams &params = Texture2DParams(), 
+                        ImageLoadOverride overload = ImageLoadOverride::None);
   };
 }

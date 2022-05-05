@@ -57,7 +57,7 @@ namespace Strontium
     // Bind the scene depth, entity IDs and mask.
     auto geometryBlock = this->previousGeoPass->getInternalDataBlock<GeometryPassDataBlock>();
     geometryBlock->gBuffer.bindAttachment(FBOTargetParam::Depth, 0);
-    geometryBlock->gBuffer.bindAttachment(FBOTargetParam::Colour3, 1);
+    geometryBlock->idMaskBuffer.bindTextureID(FBOTargetParam::Colour0, 1);
 
     // Bind the lighting buffer.
     rendererData->lightingBuffer.bind(2);
