@@ -25,10 +25,8 @@ layout(std140, binding = 0) uniform CameraBlock
 
 layout(std140, binding = 1) uniform GodrayBlock
 {
-  vec4 padding[2];
-  vec4 u_lightDirMiePhase; // Light direction (x, y, z) and the Mie phase (w).
+  vec4 u_lightDir; // Light direction (x, y, z). w is unused.
   vec4 u_lightColourIntensity; // Light colour (x, y, z) and intensity (w).
-  vec4 u_godrayParams; // Blur direction (x, y), number of steps (z).
   ivec4 u_numFogVolumes; // Number of OBB fog volumes (x). y, z and w are unused.
 };
 
@@ -90,7 +88,7 @@ void main()
 
   // Light the voxel. Just cascaded shadow maps and voxel emission for now.
   // TODO: Sngle sample along the shadowed light's direction to account for out scattering.
-  float phaseFunction = getMiePhase(dot(normalize(direction), u_lightDirMiePhase.xyz), ep.w);
+  float phaseFunction = getMiePhase(dot(normalize(direction), u_lightDir.xyz), ep.w);
   vec3 mieScattering = se.xyz;
   vec3 extinction = se.www;
   vec3 voxelAlbedo = mieScattering / extinction;

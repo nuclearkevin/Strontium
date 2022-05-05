@@ -582,10 +582,6 @@ namespace Strontium
           out << YAML::Key << "GodraySettings" << YAML::BeginMap;
 
           out << YAML::Key << "UseGodrays" << YAML::Value << godrayPassData->enableGodrays;
-          out << YAML::Key << "NumSteps" << YAML::Value << godrayPassData->numSteps;
-          out << YAML::Key << "MiePhase" << YAML::Value << godrayPassData->miePhase;
-          out << YAML::Key << "MieScatteringFunction" << YAML::Value << godrayPassData->mieScat;
-          out << YAML::Key << "MieAbsorptionFunction" << YAML::Value << godrayPassData->mieAbs;
 
           out << YAML::EndMap;
         }
@@ -1103,10 +1099,6 @@ namespace Strontium
             auto godrayPassData = godrayPass->getInternalDataBlock<GodrayPassDataBlock>();
 
             godrayPassData->enableGodrays = godraySettings["UseGodrays"].as<bool>();
-            godrayPassData->numSteps = godraySettings["NumSteps"].as<uint>();
-            godrayPassData->miePhase = godraySettings["MiePhase"].as<float>();
-            godrayPassData->mieScat = godraySettings["MieScatteringFunction"].as<glm::vec4>();
-            godrayPassData->mieAbs = godraySettings["MieAbsorptionFunction"].as<glm::vec4>();
           }
         }
 

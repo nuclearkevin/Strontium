@@ -40,8 +40,8 @@ layout(std140, binding = 0) uniform CameraBlock
 
 layout(std140, binding = 1) uniform GodrayBlock
 {
-  ScatteringParams u_params;
-  vec4 u_godrayParams; // Blur direction (x, y), number of steps (z).
+  vec4 u_lightDir; // Light direction (x, y, z). w is unused.
+  vec4 u_lightColourIntensity; // Light colour (x, y, z) and intensity (w).
   ivec4 u_numFogVolumes; // Number of OBB fog volumes (x). y, z and w are unused.
 };
 
@@ -98,20 +98,25 @@ void main()
   vec4 ep = 0.0.xxxx;
 
   float numVolumesInPixel = 0.0;
+  OBBFogVolume volume;
+  float extinction;
+  bool texelIntersects;
   for (uint i = 0; i < u_numFogVolumes.x; i++)
   {
-    const OBBFogVolume volume = u_volumes[i];
+    volume = u_volumes[i];
 
-    bool texelIntersects = false;
+    texelIntersects = false;
+    // Check to see if the corners of the froxel are in the box.
     for (uint i = 0; i < 8; i++)
     {
-      bool test = pointInOBB(worldSpacePostions[i], volume);
-      texelIntersects = texelIntersects || test;
+      texelIntersects = texelIntersects || pointInOBB(worldSpacePostions[i], volume);
+      if (texelIntersects)
+        break;
     }
 
     if (texelIntersects)
     {
-      float extinction = dot(volume.mieScatteringPhase.xyz, (1.0 / 3.0).xxx) + volume.emissionAbsorption.w;
+      extinction = dot(volume.mieScatteringPhase.xyz, (1.0 / 3.0).xxx) + volume.emissionAbsorption.w;
       se += vec4(volume.mieScatteringPhase.xyz, extinction);
       ep += vec4(volume.emissionAbsorption.xyz, volume.mieScatteringPhase.w);
 

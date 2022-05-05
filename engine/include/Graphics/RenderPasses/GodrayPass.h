@@ -37,23 +37,19 @@ namespace Strontium
 
     bool enableGodrays;
     bool hasGodrays;
-    uint numSteps;
-    float miePhase;
-    glm::vec4 mieScat; // Mie scattering coefficient (x, y, z) and density (w).
-    glm::vec4 mieAbs; // Mie absorption coefficient (x, y, z) and density (w).
+    uint numZSlices;
+    glm::uvec2 bufferSize;
 
     // Some statistics to display.
     float frameTime;
 
     GodrayPassDataBlock()
       : obbFogBuffer(0, BufferType::Dynamic)
-      , godrayParamsBuffer(6 *  sizeof(glm::vec4), BufferType::Dynamic)
+      , godrayParamsBuffer(3 * sizeof(glm::ivec4), BufferType::Dynamic)
       , enableGodrays(false)
       , hasGodrays(false)
-      , numSteps(64u)
-      , miePhase(0.8f)
-      , mieScat(1.0f)
-      , mieAbs(1.0f)
+      , numZSlices(512u)
+      , bufferSize(1u, 1u)
       , frameTime(0.0f)
     { }
   };

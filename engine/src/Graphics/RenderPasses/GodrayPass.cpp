@@ -1,8 +1,5 @@
 #include "Graphics/RenderPasses/GodrayPass.h"
 
-#define Z_SLICES 128
-//#define Z_SLICES 512
-
 // Project includes.
 #include "Graphics/Renderer.h"
 
@@ -33,28 +30,40 @@ namespace Strontium
     froxelParams.format = TextureFormats::RGBA;
     froxelParams.dataType = TextureDataType::Floats;
 
-    glm::ivec2 size = static_cast<glm::ivec2>(glm::ceil(glm::vec2(1600.0f, 900.0f) / 8.0f));
+    this->passData.bufferSize = static_cast<glm::ivec2>(glm::ceil(glm::vec2(1600.0f, 900.0f) / 8.0f));
 
-    this->passData.scatExtinction.setSize(size.x, size.y, Z_SLICES);
+    this->passData.scatExtinction.setSize(this->passData.bufferSize.x, this->passData.bufferSize.y, this->passData.numZSlices);
     this->passData.scatExtinction.setParams(froxelParams);
     this->passData.scatExtinction.initNullTexture();
 
-    this->passData.emissionPhase.setSize(size.x, size.y, Z_SLICES);
+    this->passData.emissionPhase.setSize(this->passData.bufferSize.x, this->passData.bufferSize.y, this->passData.numZSlices);
     this->passData.emissionPhase.setParams(froxelParams);
     this->passData.emissionPhase.initNullTexture();
 
-    this->passData.lightExtinction.setSize(size.x, size.y, Z_SLICES);
+    this->passData.lightExtinction.setSize(this->passData.bufferSize.x, this->passData.bufferSize.y, this->passData.numZSlices);
     this->passData.lightExtinction.setParams(froxelParams);
     this->passData.lightExtinction.initNullTexture();
 
-    this->passData.finalGather.setSize(size.x, size.y, Z_SLICES);
+    this->passData.finalGather.setSize(this->passData.bufferSize.x, this->passData.bufferSize.y, this->passData.numZSlices);
     this->passData.finalGather.setParams(froxelParams);
     this->passData.finalGather.initNullTexture();
   }
 
   void 
   GodrayPass::updatePassData()
-  { }
+  {
+    this->passData.scatExtinction.setSize(this->passData.bufferSize.x, this->passData.bufferSize.y, this->passData.numZSlices);
+    this->passData.scatExtinction.initNullTexture();
+    
+    this->passData.emissionPhase.setSize(this->passData.bufferSize.x, this->passData.bufferSize.y, this->passData.numZSlices);
+    this->passData.emissionPhase.initNullTexture();
+
+    this->passData.lightExtinction.setSize(this->passData.bufferSize.x, this->passData.bufferSize.y, this->passData.numZSlices);
+    this->passData.lightExtinction.initNullTexture();
+
+    this->passData.finalGather.setSize(this->passData.bufferSize.x, this->passData.bufferSize.y, this->passData.numZSlices);
+    this->passData.finalGather.initNullTexture();
+  }
 
   RendererDataHandle 
   GodrayPass::requestRendererData()
@@ -74,16 +83,17 @@ namespace Strontium
     if (this->passData.scatExtinction.getWidth() != fWidth ||
         this->passData.scatExtinction.getHeight() != fheight)
     {
-      this->passData.scatExtinction.setSize(fWidth, fheight, Z_SLICES);
+      this->passData.bufferSize = glm::uvec2(fWidth, fheight);
+      this->passData.scatExtinction.setSize(fWidth, fheight, this->passData.numZSlices);
       this->passData.scatExtinction.initNullTexture();
       
-      this->passData.emissionPhase.setSize(fWidth, fheight, Z_SLICES);
+      this->passData.emissionPhase.setSize(fWidth, fheight, this->passData.numZSlices);
       this->passData.emissionPhase.initNullTexture();
 
-      this->passData.lightExtinction.setSize(fWidth, fheight, Z_SLICES);
+      this->passData.lightExtinction.setSize(fWidth, fheight, this->passData.numZSlices);
       this->passData.lightExtinction.initNullTexture();
 
-      this->passData.finalGather.setSize(fWidth, fheight, Z_SLICES);
+      this->passData.finalGather.setSize(fWidth, fheight, this->passData.numZSlices);
       this->passData.finalGather.initNullTexture();
     }
 
@@ -118,20 +128,14 @@ namespace Strontium
 
     struct GodrayBlockData
     {
-      glm::vec4 mieScat; //  Mie scattering base (x, y, z) and density (w).
-      glm::vec4 mieAbs; //  Mie absorption base (x, y, z) and density (w).
-      glm::vec4 lightDirMiePhase; // Light direction (x, y, z) and the Mie phase (w).
+      glm::vec4 lightDir; // Light direction (x, y, z). w is unused.
       glm::vec4 lightColourIntensity; // Light colour (x, y, z) and intensity (w).
-      glm::vec4 blurDirection;
       glm::ivec4 intData;
     }
       godrayData
     {
-      { this->passData.mieScat },
-      { this->passData.mieAbs },
-      { glm::vec3(dirLightBlock->primaryLight.directionSize), this->passData.miePhase },
+      { glm::vec3(dirLightBlock->primaryLight.directionSize), 0.0f },
       { dirLightBlock->primaryLight.colourIntensity },
-      { 1.0f, 0.0f, static_cast<float>(this->passData.numSteps), 0.0f },
       { this->passData.obbVolumes.size(), 0, 0, 0 }
     };
 
@@ -146,7 +150,7 @@ namespace Strontium
                                               / 8.0f));
     uint iFHeight = static_cast<uint>(glm::ceil(static_cast<float>(this->passData.scatExtinction.getHeight())
                                                / 8.0f));
-    ShaderCache::getShader("populate_froxels")->launchCompute(iFWidth, iFHeight, Z_SLICES);
+    ShaderCache::getShader("populate_froxels")->launchCompute(iFWidth, iFHeight, this->passData.numZSlices);
     Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
 
     // Bind the froxel material properties.
@@ -162,7 +166,7 @@ namespace Strontium
 
     // Light the froxels. TODO: Noise injection and temporal reprojection.
     this->passData.lightExtinction.bindAsImage(0, 0, true, 0, ImageAccessPolicy::Write);
-    ShaderCache::getShader("light_froxels")->launchCompute(iFWidth, iFHeight, Z_SLICES);
+    ShaderCache::getShader("light_froxels")->launchCompute(iFWidth, iFHeight, this->passData.numZSlices);
     Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
 
     // Bind the lighting texture. 

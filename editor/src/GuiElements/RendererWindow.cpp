@@ -76,38 +76,16 @@ namespace Strontium
         ImGui::EndCombo();
       }
 
-      ImGui::Checkbox("Use Screen-Space Shadows", &shadowBlock->useSSShadows);
-
       if (shadowBlock->shadowQuality == 1)
       {
-        /*
-        int numPCFTaps = static_cast<int>(shadowBlock->numPCFTaps);
-        ImGui::SliderInt("Filter Taps", &numPCFTaps, 1, 128);
-        shadowBlock->numPCFTaps = static_cast<uint>(numPCFTaps);
-        */
-
         if (ImGui::DragFloat("Filter Radius", &(shadowBlock->minRadius), 0.01f))
-        {
           shadowBlock->minRadius = glm::max(shadowBlock->minRadius, 0.0f);
-        }
       }
 
       if (shadowBlock->shadowQuality == 2)
       {
-        /*
-        int numPCFTaps = static_cast<int>(shadowBlock->numPCFTaps);
-        ImGui::SliderInt("Filter Taps", &numPCFTaps, 1, 128);
-        shadowBlock->numPCFTaps = static_cast<uint>(numPCFTaps);
-
-        int numSearchSteps = static_cast<int>(shadowBlock->numSearchSteps);
-        ImGui::SliderInt("Blocker Search Steps", &numSearchSteps, 1, 128);
-        shadowBlock->numSearchSteps = static_cast<uint>(numSearchSteps);
-        */
-
         if (ImGui::DragFloat("Minimum Radius", &(shadowBlock->minRadius), 0.01f))
-        {
           shadowBlock->minRadius = glm::max(shadowBlock->minRadius, 0.0f);
-        }
       }
 
       float constBias = shadowBlock->constBias;
@@ -245,7 +223,7 @@ namespace Strontium
       }
     }
 
-    if (ImGui::CollapsingHeader("Screen-Space Godray Pass"))
+    if (ImGui::CollapsingHeader("Unified Volumetric Pass"))
     {
       auto& renderPassManger = Renderer3D::getPassManager();
       auto ssgrPass = renderPassManger.getRenderPass<GodrayPass>();
@@ -261,22 +239,24 @@ namespace Strontium
       ImGui::Separator();
 
       ImGui::Separator();
-      int numSteps = static_cast<int>(ssgrBlock->numSteps);
-      ImGui::SliderInt("Number of Steps", &numSteps, 1, 128);
-      ssgrBlock->numSteps = static_cast<uint>(numSteps);
-      ImGui::Separator();
+      int zSlices = static_cast<int>(ssgrBlock->numZSlices);
+      if (ImGui::InputInt("Number of Depth Slices", &zSlices))
+      {
+        zSlices = zSlices > 1024 ? 1024 : zSlices;
+        zSlices = zSlices < 32 ? 32 : zSlices;
 
-      Styles::drawFloatControl("Mie Phase", 0.8f, ssgrBlock->miePhase, 0.0f, 0.01f, -1.0f, 1.0f);
-      glm::vec3 mieScattering(ssgrBlock->mieScat);
-      float mieScatteringDensity = ssgrBlock->mieScat.w;
-      Styles::drawVec3Controls("Mie Scattering", glm::vec3(1.0f), mieScattering);
-      Styles::drawFloatControl("Mie Scattering Density", 1.0f, mieScatteringDensity);
-      ssgrBlock->mieScat = glm::max(glm::vec4(mieScattering, mieScatteringDensity), glm::vec4(0.0f));
-      glm::vec3 mieAbsorption(ssgrBlock->mieAbs);
-      float mieAbsorptionDensity = ssgrBlock->mieAbs.w;
-      Styles::drawVec3Controls("Mie Absorption", glm::vec3(1.0f), mieAbsorption);
-      Styles::drawFloatControl("Mie Absorption Density", 1.0f, mieAbsorptionDensity);
-      ssgrBlock->mieAbs = glm::max(glm::vec4(mieAbsorption, mieAbsorptionDensity), glm::vec4(0.0f));
+        // Compute the next or previous power of 2 and set the int to that.
+        if (zSlices - static_cast<int>(ssgrBlock->numZSlices) < 0)
+          zSlices = std::pow(2, std::floor(std::log2(zSlices)));
+        else if (zSlices - static_cast<int>(ssgrBlock->numZSlices) > 0)
+          zSlices = std::pow(2, std::floor(std::log2(zSlices)) + 1);
+
+        zSlices = std::pow(2, std::floor(std::log2(zSlices)));
+        ssgrBlock->numZSlices = static_cast<uint>(zSlices);
+
+        ssgrPass->updatePassData();
+      }
+      ImGui::Separator();
 
       static bool showGather = false;
       ImGui::Checkbox("Show Gather Volume Textures", &showGather);
