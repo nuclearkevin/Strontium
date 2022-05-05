@@ -23,12 +23,10 @@ namespace Strontium
 
   struct GodrayPassDataBlock
   {
-    Shader* godrayCompute;
-    Shader* godrayBlur;
-
-    Texture2D godrays;
     Texture3D scatExtinction;
     Texture3D emissionPhase;
+    Texture3D lightExtinction;
+    Texture3D finalGather;
 
     ShaderStorageBuffer obbFogBuffer;
 
@@ -48,9 +46,7 @@ namespace Strontium
     float frameTime;
 
     GodrayPassDataBlock()
-      : godrayCompute(nullptr)
-      , godrayBlur(nullptr)
-      , obbFogBuffer(0, BufferType::Dynamic)
+      : obbFogBuffer(0, BufferType::Dynamic)
       , godrayParamsBuffer(6 *  sizeof(glm::vec4), BufferType::Dynamic)
       , enableGodrays(false)
       , hasGodrays(false)

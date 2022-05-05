@@ -5,13 +5,13 @@ Entities:
       Name: Emissive Fog Box
       Description: ""
     TransformComponent:
-      Translation: [-2.24609709, 1.81093788, 2.93451166]
+      Translation: [1.0632596, 3.0407958, 2.82871366]
       Rotation: [0, 0.707715452, 0]
       Scale: [3.6015358, 0.871441245, 3.16919613]
     BoxFogVolumeComponent:
       Phase: 0
       Density: 1
-      Absorption: 0
+      Absorption: 0.100000001
       MieScattering: [0, 0, 0]
       Emission: [0, 0, 1]
   - EntityID: 27
@@ -660,7 +660,7 @@ Entities:
       Scale: [10, 1, 10]
     BoxFogVolumeComponent:
       Phase: 0
-      Density: 1
+      Density: 0.100000001
       Absorption: 0
       MieScattering: [1, 1, 1]
       Emission: [0, 0, 0]
@@ -682,7 +682,7 @@ RendererSettings:
     AOExponent: 1
   GodraySettings:
     UseGodrays: true
-    NumSteps: 64
+    NumSteps: 60
     MiePhase: 0
     MieScatteringFunction: [1, 1, 1, 1]
     MieAbsorptionFunction: [1, 1, 1, 1]

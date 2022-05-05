@@ -250,8 +250,8 @@ namespace Strontium
       auto& renderPassManger = Renderer3D::getPassManager();
       auto ssgrPass = renderPassManger.getRenderPass<GodrayPass>();
       auto ssgrBlock = ssgrPass->getInternalDataBlock<GodrayPassDataBlock>();
-      float width = static_cast<float>(ssgrBlock->godrays.getWidth());
-      float height = static_cast<float>(ssgrBlock->godrays.getHeight());
+      float width = static_cast<float>(ssgrBlock->scatExtinction.getWidth());
+      float height = static_cast<float>(ssgrBlock->scatExtinction.getHeight());
       float ratio = width / height;
 
       ImGui::Checkbox("Enable Godrays", &ssgrBlock->enableGodrays);
@@ -278,22 +278,10 @@ namespace Strontium
       Styles::drawFloatControl("Mie Absorption Density", 1.0f, mieAbsorptionDensity);
       ssgrBlock->mieAbs = glm::max(glm::vec4(mieAbsorption, mieAbsorptionDensity), glm::vec4(0.0f));
 
-      static bool showMaterials = false;
-      ImGui::Checkbox("Show Material Volume Textures", &showMaterials);
-      if (showMaterials)
-      {
-        this->volumetricView.texture3DImage(ssgrBlock->scatExtinction, ImVec2(128.0f * ratio, 128.0f));
-      }
-
-      static bool showGodrayTexture = false;
-      ImGui::Checkbox("Show Godray Texture", &showGodrayTexture);
-
-      if (showGodrayTexture)
-      {
-        ImGui::Text("Godray Texture");
-        ImGui::Image(reinterpret_cast<ImTextureID>(ssgrBlock->godrays.getID()),
-                     ImVec2(128.0f * ratio, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
-      }
+      static bool showGather = false;
+      ImGui::Checkbox("Show Gather Volume Textures", &showGather);
+      if (showGather)
+        this->volumetricView.texture3DImage(ssgrBlock->finalGather, ImVec2(128.0f * ratio, 128.0f));
     }
 
     if (ImGui::CollapsingHeader("Sky Atmosphere Pass"))

@@ -55,7 +55,7 @@ namespace Strontium
     auto rendererData = static_cast<Renderer3D::GlobalRendererData*>(this->globalBlock);
     auto geometryBlock = this->previousGeoPass->getInternalDataBlock<GeometryPassDataBlock>();
     auto hzBlock = this->previousHiZPass->getInternalDataBlock<HiZPassDataBlock>();
-     
+
     // Bind the camera.
     geometryBlock->cameraBuffer.bindToPoint(0);
 
@@ -70,9 +70,12 @@ namespace Strontium
     // Bind the lighting buffer.
     rendererData->lightingBuffer.bindAsImage(0, 0, ImageAccessPolicy::ReadWrite);
 
+    // Bind the noise texture.
+    rendererData->spatialBlueNoise->bind(2);
+
     // Bind the HiZ buffer and the volumetric texture.
     hzBlock->hierarchicalDepth.bind(0);
-    godrayBlock->godrays.bind(1);
+    godrayBlock->finalGather.bind(1);
 
     // Launch a compute pass to apply volumetric lighting.
     uint iWidth = static_cast<uint>(glm::ceil(static_cast<float>(rendererData->lightingBuffer.getWidth())

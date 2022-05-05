@@ -56,12 +56,12 @@ ShaderCache:
     #
     # Volumetrics
     #
-  - Handle: screen_space_godrays
-    Filepath: ./assets/shaders/compute/volumetric/godrayCompute.glsl
-  - Handle: screen_space_godrays_blur
-    Filepath: ./assets/shaders/compute/volumetric/godrayBlurCompute.glsl
   - Handle: populate_froxels
     Filepath: ./assets/shaders/compute/volumetric/populateVolumetric.glsl
+  - Handle: light_froxels
+    Filepath: ./assets/shaders/compute/volumetric/lightVolumetric.glsl
+  - Handle: gather_froxels
+    Filepath: ./assets/shaders/compute/volumetric/gatherVolumetric.glsl
     #
     # Lighting
     #

@@ -1,6 +1,7 @@
 #include "Graphics/RenderPasses/GodrayPass.h"
 
-#define Z_SLICES 256
+#define Z_SLICES 128
+//#define Z_SLICES 512
 
 // Project includes.
 #include "Graphics/Renderer.h"
@@ -24,36 +25,31 @@ namespace Strontium
   void 
   GodrayPass::onInit()
   {
-    this->passData.godrayCompute = ShaderCache::getShader("screen_space_godrays");
-    this->passData.godrayBlur = ShaderCache::getShader("screen_space_godrays_blur");
-
-    Texture2DParams godrayParams = Texture2DParams();
-    godrayParams.sWrap = TextureWrapParams::ClampEdges;
-    godrayParams.tWrap = TextureWrapParams::ClampEdges;
-    godrayParams.internal = TextureInternalFormats::RGBA16f;
-    godrayParams.format = TextureFormats::RGBA;
-    godrayParams.dataType = TextureDataType::Floats;
-    this->passData.godrays.setSize(1600, 900);
-    this->passData.godrays.setParams(godrayParams);
-    this->passData.godrays.initNullTexture();
-
-    Texture3DParams materialDataParams = Texture3DParams();
-    materialDataParams.sWrap = TextureWrapParams::ClampEdges;
-    materialDataParams.tWrap = TextureWrapParams::ClampEdges;
-    materialDataParams.rWrap = TextureWrapParams::ClampEdges;
-    materialDataParams.internal = TextureInternalFormats::RGBA16f;
-    materialDataParams.format = TextureFormats::RGBA;
-    materialDataParams.dataType = TextureDataType::Floats;
+    Texture3DParams froxelParams = Texture3DParams();
+    froxelParams.sWrap = TextureWrapParams::ClampEdges;
+    froxelParams.tWrap = TextureWrapParams::ClampEdges;
+    froxelParams.rWrap = TextureWrapParams::ClampEdges;
+    froxelParams.internal = TextureInternalFormats::RGBA16f;
+    froxelParams.format = TextureFormats::RGBA;
+    froxelParams.dataType = TextureDataType::Floats;
 
     glm::ivec2 size = static_cast<glm::ivec2>(glm::ceil(glm::vec2(1600.0f, 900.0f) / 8.0f));
 
     this->passData.scatExtinction.setSize(size.x, size.y, Z_SLICES);
-    this->passData.scatExtinction.setParams(materialDataParams);
+    this->passData.scatExtinction.setParams(froxelParams);
     this->passData.scatExtinction.initNullTexture();
 
     this->passData.emissionPhase.setSize(size.x, size.y, Z_SLICES);
-    this->passData.emissionPhase.setParams(materialDataParams);
+    this->passData.emissionPhase.setParams(froxelParams);
     this->passData.emissionPhase.initNullTexture();
+
+    this->passData.lightExtinction.setSize(size.x, size.y, Z_SLICES);
+    this->passData.lightExtinction.setParams(froxelParams);
+    this->passData.lightExtinction.initNullTexture();
+
+    this->passData.finalGather.setSize(size.x, size.y, Z_SLICES);
+    this->passData.finalGather.setParams(froxelParams);
+    this->passData.finalGather.initNullTexture();
   }
 
   void 
@@ -73,13 +69,6 @@ namespace Strontium
   void 
   GodrayPass::onRendererBegin(uint width, uint height)
   {
-    if (static_cast<uint>(this->passData.godrays.getWidth()) != width ||
-        static_cast<uint>(this->passData.godrays.getHeight()) != height)
-	{
-	  this->passData.godrays.setSize(width, height);
-	  this->passData.godrays.initNullTexture();
-	}
-
     int fWidth = static_cast<int>(glm::ceil(static_cast<float>(width) / 8.0f));
     int fheight = static_cast<int>(glm::ceil(static_cast<float>(height) / 8.0f));
     if (this->passData.scatExtinction.getWidth() != fWidth ||
@@ -90,6 +79,12 @@ namespace Strontium
       
       this->passData.emissionPhase.setSize(fWidth, fheight, Z_SLICES);
       this->passData.emissionPhase.initNullTexture();
+
+      this->passData.lightExtinction.setSize(fWidth, fheight, Z_SLICES);
+      this->passData.lightExtinction.initNullTexture();
+
+      this->passData.finalGather.setSize(fWidth, fheight, Z_SLICES);
+      this->passData.finalGather.initNullTexture();
     }
 
     this->passData.hasGodrays = false;
@@ -154,45 +149,27 @@ namespace Strontium
     ShaderCache::getShader("populate_froxels")->launchCompute(iFWidth, iFHeight, Z_SLICES);
     Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
 
-    // Bind the downsampled depth.
-    auto hzBlock = this->previousHiZPass->getInternalDataBlock<HiZPassDataBlock>();
-    hzBlock->hierarchicalDepth.bind(0);
-
-    // Bind the noise texture.
-    rendererData->spatialBlueNoise->bind(1);
+    // Bind the froxel material properties.
+    this->passData.scatExtinction.bind(0);
+    this->passData.emissionPhase.bind(1);
 
     // Bind the shadow maps.
     for (uint i = 0; i < NUM_CASCADES; i++)
-      shadowBlock->shadowBuffers[i].bindTextureID(FBOTargetParam::Depth, 4 + i);
+      shadowBlock->shadowBuffers[i].bindTextureID(FBOTargetParam::Depth, 2 + i);
 
     // Bind the shadow params buffer.
     dirLightBlock->cascadedShadowBlock.bindToPoint(2);
 
-    // Bind the froxel material properties.
-    this->passData.scatExtinction.bind(2);
-    this->passData.emissionPhase.bind(3);
-
-    // Compute the SSGR.
-    rendererData->halfResBuffer1.bindAsImage(0, 0, ImageAccessPolicy::Write);
-    uint iWidth = static_cast<uint>(glm::ceil(static_cast<float>(hzBlock->hierarchicalDepth.getWidth())
-                                              / 16.0f));
-    uint iHeight = static_cast<uint>(glm::ceil(static_cast<float>(hzBlock->hierarchicalDepth.getHeight())
-                                               / 16.0f));
-    this->passData.godrayCompute->launchCompute(iWidth, iHeight, 1);
+    // Light the froxels. TODO: Noise injection and temporal reprojection.
+    this->passData.lightExtinction.bindAsImage(0, 0, true, 0, ImageAccessPolicy::Write);
+    ShaderCache::getShader("light_froxels")->launchCompute(iFWidth, iFHeight, Z_SLICES);
     Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
 
-    // Blur the SSGR texture to get rid of noise from the jittering.
-    rendererData->halfResBuffer1.bind(1);
-    rendererData->fullResBuffer1.bindAsImage(0, 0, ImageAccessPolicy::Write);
-    this->passData.godrayBlur->launchCompute(2 * iWidth, 2 * iHeight, 1);
-    Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
-    
-    godrayData.blurDirection.x = 0.0f;
-    godrayData.blurDirection.y = 1.0f;
-    this->passData.godrayParamsBuffer.setData(4 * sizeof(glm::vec4), sizeof(glm::vec2), &godrayData.blurDirection.x);
-    rendererData->fullResBuffer1.bind(1);
-    this->passData.godrays.bindAsImage(0, 0, ImageAccessPolicy::Write);
-    this->passData.godrayBlur->launchCompute(2 * iWidth, 2 * iHeight, 1);
+    // Bind the lighting texture. 
+    this->passData.lightExtinction.bind(0);
+    // Perform the final gather.
+    this->passData.finalGather.bindAsImage(0, 0, true, 0, ImageAccessPolicy::Write);
+    ShaderCache::getShader("gather_froxels")->launchCompute(iFWidth, iFHeight, 1);
     Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
   }
 

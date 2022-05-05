@@ -103,20 +103,17 @@ void main()
     const OBBFogVolume volume = u_volumes[i];
 
     bool texelIntersects = false;
-    float numIntersections = 0.0;
     for (uint i = 0; i < 8; i++)
     {
       bool test = pointInOBB(worldSpacePostions[i], volume);
       texelIntersects = texelIntersects || test;
-      numIntersections += float(test);
     }
 
     if (texelIntersects)
     {
-      float weight = (numIntersections / 8.0);
       float extinction = dot(volume.mieScatteringPhase.xyz, (1.0 / 3.0).xxx) + volume.emissionAbsorption.w;
-      se += vec4(volume.mieScatteringPhase.xyz, extinction) * weight;
-      ep += vec4(volume.emissionAbsorption.xyz, volume.mieScatteringPhase.w) * weight;
+      se += vec4(volume.mieScatteringPhase.xyz, extinction);
+      ep += vec4(volume.emissionAbsorption.xyz, volume.mieScatteringPhase.w);
 
       numVolumesInPixel += 1.0;
     }
