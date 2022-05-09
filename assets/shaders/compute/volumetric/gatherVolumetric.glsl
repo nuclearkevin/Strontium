@@ -49,20 +49,23 @@ void main()
 
     if (ie.w < 1e-4)
     {
+      w = (float(i) + 0.5) / float(numFroxels.z);
+      previousPosition = u_camPosition + direction * w * w;
+
       luminance += ie.xyz;
       imageStore(inScatTrans, ivec3(invoke, i), vec4(luminance, transmittance));
       continue;
     }
 
     w = (float(i) + 0.5) / float(numFroxels.z);
-    worldSpacePostion = u_camPosition + normalize(direction) * length(direction) * w * w;
+    worldSpacePostion = u_camPosition + direction * w * w;
 
     dt = length(worldSpacePostion - previousPosition);
     sampleTransmittance = exp(-dt * ie.w);
     scatteringIntegral = (ie.xyz - ie.xyz * sampleTransmittance) / ie.w;
 
     luminance += max(scatteringIntegral * transmittance, 0.0);
-    transmittance *= min(sampleTransmittance, 1.0);
+    transmittance *= sampleTransmittance;
 
     previousPosition = worldSpacePostion;
 

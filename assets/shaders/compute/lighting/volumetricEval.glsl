@@ -12,7 +12,6 @@ layout(rgba16f, binding = 0) restrict uniform image2D lightingBuffer;
 
 layout(binding = 0) uniform sampler2D gDepth;
 layout(binding = 1) uniform sampler3D froxels; // Volumetric final gather.
-layout(binding = 2) uniform sampler2D noise; // Blue noise
 
 // Camera specific uniforms.
 layout(std140, binding = 0) uniform CameraBlock
@@ -31,12 +30,6 @@ layout(std140, binding = 1) uniform VolumetricBlock
 };
 
 vec4 fastTricubic(sampler3D tex, vec3 coord);
-
-// Sample a dithering function.
-vec4 sampleDither(ivec2 coords)
-{
-  return texture(noise, (vec2(coords) + 0.5.xx) / vec2(textureSize(noise, 0).xy));
-}
 
 // Decodes the worldspace position of the fragment from depth.
 vec3 decodePosition(ivec2 coords, ivec2 outImageSize, sampler2D depthMap, mat4 invVP)
@@ -66,7 +59,6 @@ void main()
   z = pow(z, 1.0 / 2.0);
 
   vec3 volumeUVW = vec3(gBufferUVs, z);
-  volumeUVW += (2.0 * sampleDither(invoke).rgb - 1.0.xxx) / vec3(textureSize(froxels, 0).xyz);
 
   if ((u_volumetricSettings.x & (1 << 0)) != 0)
   {

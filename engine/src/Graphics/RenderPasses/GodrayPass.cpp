@@ -44,6 +44,13 @@ namespace Strontium
     this->passData.lightExtinction.setParams(froxelParams);
     this->passData.lightExtinction.initNullTexture();
 
+    this->passData.historyResolve[0].setSize(this->passData.bufferSize.x, this->passData.bufferSize.y, this->passData.numZSlices);
+    this->passData.historyResolve[0].setParams(froxelParams);
+    this->passData.historyResolve[0].initNullTexture();
+    this->passData.historyResolve[1].setSize(this->passData.bufferSize.x, this->passData.bufferSize.y, this->passData.numZSlices);
+    this->passData.historyResolve[1].setParams(froxelParams);
+    this->passData.historyResolve[1].initNullTexture();
+
     this->passData.finalGather.setSize(this->passData.bufferSize.x, this->passData.bufferSize.y, this->passData.numZSlices);
     this->passData.finalGather.setParams(froxelParams);
     this->passData.finalGather.initNullTexture();
@@ -60,6 +67,11 @@ namespace Strontium
 
     this->passData.lightExtinction.setSize(this->passData.bufferSize.x, this->passData.bufferSize.y, this->passData.numZSlices);
     this->passData.lightExtinction.initNullTexture();
+
+    this->passData.historyResolve[0].setSize(this->passData.bufferSize.x, this->passData.bufferSize.y, this->passData.numZSlices);
+    this->passData.historyResolve[0].initNullTexture();
+    this->passData.historyResolve[1].setSize(this->passData.bufferSize.x, this->passData.bufferSize.y, this->passData.numZSlices);
+    this->passData.historyResolve[1].initNullTexture();
 
     this->passData.finalGather.setSize(this->passData.bufferSize.x, this->passData.bufferSize.y, this->passData.numZSlices);
     this->passData.finalGather.initNullTexture();
@@ -93,6 +105,11 @@ namespace Strontium
       this->passData.lightExtinction.setSize(fWidth, fheight, this->passData.numZSlices);
       this->passData.lightExtinction.initNullTexture();
 
+      this->passData.historyResolve[0].setSize(fWidth, fheight, this->passData.numZSlices);
+      this->passData.historyResolve[0].initNullTexture();
+      this->passData.historyResolve[1].setSize(fWidth, fheight, this->passData.numZSlices);
+      this->passData.historyResolve[1].initNullTexture();
+
       this->passData.finalGather.setSize(fWidth, fheight, this->passData.numZSlices);
       this->passData.finalGather.initNullTexture();
     }
@@ -123,8 +140,7 @@ namespace Strontium
     this->passData.obbFogBuffer.bindToPoint(0);
 
     // Bind the camera block.
-    this->previousGeoPass->getInternalDataBlock<GeometryPassDataBlock>()
-                         ->cameraBuffer.bindToPoint(0);
+    rendererData->cameraBuffer.bindToPoint(0);
 
     struct GodrayBlockData
     {
@@ -139,9 +155,15 @@ namespace Strontium
       { this->passData.obbVolumes.size(), 0, 0, 0 }
     };
 
+    // Bind the noise texture.
+    rendererData->temporalBlueNoise->bind(2);
+
     // Populate and bind the godray parameters.
     this->passData.godrayParamsBuffer.setData(0, sizeof(GodrayBlockData), &godrayData);
     this->passData.godrayParamsBuffer.bindToPoint(1);
+
+    // Bind the temporal AA block.
+    rendererData->temporalBuffer.bindToPoint(3);
 
     // Populate the froxel material data.
     this->passData.scatExtinction.bindAsImage(0, 0, true, 0, ImageAccessPolicy::Write);
@@ -159,18 +181,43 @@ namespace Strontium
 
     // Bind the shadow maps.
     for (uint i = 0; i < NUM_CASCADES; i++)
-      shadowBlock->shadowBuffers[i].bindTextureID(FBOTargetParam::Depth, 2 + i);
+      shadowBlock->shadowBuffers[i].bindTextureID(FBOTargetParam::Depth, 3 + i);
 
     // Bind the shadow params buffer.
     dirLightBlock->cascadedShadowBlock.bindToPoint(2);
 
-    // Light the froxels. TODO: Noise injection and temporal reprojection.
+    // Light the froxels.
     this->passData.lightExtinction.bindAsImage(0, 0, true, 0, ImageAccessPolicy::Write);
     ShaderCache::getShader("light_froxels")->launchCompute(iFWidth, iFHeight, this->passData.numZSlices);
     Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
 
-    // Bind the lighting texture. 
+    // Temporally AA the froxel lighting buffer.
     this->passData.lightExtinction.bind(0);
+    if (this->passData.taaVolume)
+    {
+      if (this->passData.resolveFlag)
+      {
+        this->passData.historyResolve[0].bind(1);
+        this->passData.historyResolve[1].bindAsImage(0, 0, true, 0, ImageAccessPolicy::Write);
+        ShaderCache::getShader("taa_froxels")->launchCompute(iFWidth, iFHeight, this->passData.numZSlices);
+        Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
+      
+        // Bind the lighting texture. 
+        this->passData.historyResolve[1].bind(0);
+      }
+      else
+      {
+        this->passData.historyResolve[1].bind(1);
+        this->passData.historyResolve[0].bindAsImage(0, 0, true, 0, ImageAccessPolicy::Write);
+        ShaderCache::getShader("taa_froxels")->launchCompute(iFWidth, iFHeight, this->passData.numZSlices);
+        Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
+      
+        // Bind the lighting texture. 
+        this->passData.historyResolve[0].bind(0);
+      }
+      this->passData.resolveFlag = !this->passData.resolveFlag;
+    }
+
     // Perform the final gather.
     this->passData.finalGather.bindAsImage(0, 0, true, 0, ImageAccessPolicy::Write);
     ShaderCache::getShader("gather_froxels")->launchCompute(iFWidth, iFHeight, 1);

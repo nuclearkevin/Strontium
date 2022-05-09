@@ -57,7 +57,10 @@ namespace Strontium
     auto hzBlock = this->previousHiZPass->getInternalDataBlock<HiZPassDataBlock>();
 
     // Bind the camera.
-    geometryBlock->cameraBuffer.bindToPoint(0);
+    rendererData->cameraBuffer.bindToPoint(0);
+
+    // Bind the noise texture.
+    rendererData->spatialBlueNoise->bind(2);
 
     // Set the volumetric flags.
     int passFlags = 0;
@@ -69,9 +72,6 @@ namespace Strontium
 
     // Bind the lighting buffer.
     rendererData->lightingBuffer.bindAsImage(0, 0, ImageAccessPolicy::ReadWrite);
-
-    // Bind the noise texture.
-    rendererData->spatialBlueNoise->bind(2);
 
     // Bind the HiZ buffer and the volumetric texture.
     hzBlock->hierarchicalDepth.bind(0);

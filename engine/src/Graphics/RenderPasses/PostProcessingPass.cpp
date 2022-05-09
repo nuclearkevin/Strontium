@@ -68,7 +68,7 @@ namespace Strontium
       bloomPassBlock->upsampleBuffer2.bind(3);
 
     // Bind the camera uniforms.
-    this->previousGeoPass->getInternalDataBlock<GeometryPassDataBlock>()->cameraBuffer.bindToPoint(0);
+    rendererData->cameraBuffer.bindToPoint(0);
 
     // Upload the post processing settings.
     struct PostBlockData

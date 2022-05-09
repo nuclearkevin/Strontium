@@ -28,6 +28,8 @@ struct ScatteringParams
 layout(rgba16f, binding = 0) restrict writeonly uniform image3D scatExtinction;
 layout(rgba16f, binding = 1) restrict writeonly uniform image3D emissionPhase;
 
+layout(binding = 2) uniform sampler2D noise; // Blue noise
+
 // Camera specific uniforms.
 layout(std140, binding = 0) uniform CameraBlock
 {
@@ -45,10 +47,28 @@ layout(std140, binding = 1) uniform GodrayBlock
   ivec4 u_numFogVolumes; // Number of OBB fog volumes (x). y, z and w are unused.
 };
 
+// Temporal AA parameters. TODO: jittered camera matrices.
+layout(std140, binding = 3) uniform TemporalBlock
+{
+  mat4 u_previousView;
+  mat4 u_previousProj;
+  mat4 u_previousVP;
+  mat4 u_prevInvViewProjMatrix;
+  vec4 u_prevPosTime;
+};
+
 layout(std140, binding = 0) readonly buffer OBBFogVolumes
 {
   OBBFogVolume u_volumes[];
 };
+
+// Sample a dithering function.
+vec4 sampleDither(ivec2 coords)
+{
+  vec4 temporal = fract((u_prevPosTime.wwww + vec4(0.0, 1.0, 2.0, 3.0)) * 0.61803399);
+  vec2 uv = (vec2(coords) + 0.5.xx) / vec2(textureSize(noise, 0).xy);
+  return fract(texture(noise, uv) + temporal);
+}
 
 bool pointInOBB(vec3 point, OBBFogVolume volume)
 {
@@ -72,11 +92,13 @@ void main()
   if (any(greaterThanEqual(invoke, numFroxels)))
     return;
 
+  vec3 dither = (2.0 * sampleDither(invoke.xy).rgb - 1.0.xxx) / vec3(numFroxels).xyz;
+
   vec2 uvs[4];
-  uvs[0] = (vec2(invoke.xy) + vec2(0.0, 0.0)) / vec2(numFroxels.xy);
-  uvs[1] = (vec2(invoke.xy) + vec2(1.0, 0.0)) / vec2(numFroxels.xy);
-  uvs[2] = (vec2(invoke.xy) + vec2(0.0, 1.0)) / vec2(numFroxels.xy);
-  uvs[3] = (vec2(invoke.xy) + vec2(1.0, 1.0)) / vec2(numFroxels.xy);
+  uvs[0] = (vec2(invoke.xy) + vec2(0.0, 0.0)) / vec2(numFroxels.xy) + dither.xy;
+  uvs[1] = (vec2(invoke.xy) + vec2(1.0, 0.0)) / vec2(numFroxels.xy) + dither.xy;
+  uvs[2] = (vec2(invoke.xy) + vec2(0.0, 1.0)) / vec2(numFroxels.xy) + dither.xy;
+  uvs[3] = (vec2(invoke.xy) + vec2(1.0, 1.0)) / vec2(numFroxels.xy) + dither.xy;
 
   vec3 worldSpacePostions[8];
   vec4 temp;
@@ -88,10 +110,10 @@ void main()
     temp = u_invViewProjMatrix * vec4(2.0 * uvs[i] - 1.0.xx, 1.0, 1.0);
     worldSpaceMax = temp.xyz /= temp.w;
     direction = worldSpaceMax - u_camPosition;
-    w = (float(invoke.z) + 0.0) / float(numFroxels.z);
-    worldSpacePostions[i] = u_camPosition + normalize(direction) * length(direction) * w * w;
-    w = (float(invoke.z) + 1.0) / float(numFroxels.z);
-    worldSpacePostions[i + 4] = u_camPosition + normalize(direction) * length(direction) * w * w;
+    w = (float(invoke.z) + 0.0) / float(numFroxels.z) + dither.z;
+    worldSpacePostions[i] = u_camPosition + direction * w * w;
+    w = (float(invoke.z) + 1.0) / float(numFroxels.z) + dither.z;
+    worldSpacePostions[i + 4] = u_camPosition + direction * w * w;
   }
 
   vec4 se = 0.0.xxxx;

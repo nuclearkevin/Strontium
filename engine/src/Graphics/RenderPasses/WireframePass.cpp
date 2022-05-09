@@ -99,7 +99,7 @@ namespace Strontium
     this->passData.lineBuffer->setData(0, sizeof(LineVertex) * this->passData.lines.size(), this->passData.lines.data());
 
     // Bind the camera buffer.
-    this->previousGeoPass->getInternalDataBlock<GeometryPassDataBlock>()->cameraBuffer.bindToPoint(0);
+    static_cast<DebugRenderer::GlobalRendererData*>(this->globalBlock)->cameraBuffer.bindToPoint(0);
 
     this->passData.wireframeView.clear();
     this->passData.wireframeView.setViewport();

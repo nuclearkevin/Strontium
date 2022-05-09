@@ -5,15 +5,15 @@ Entities:
       Name: Emissive Fog Box
       Description: ""
     TransformComponent:
-      Translation: [1.0632596, 3.0407958, 2.82871366]
+      Translation: [0.123991042, 3.31954145, 1.18137383]
       Rotation: [0, 0.707715452, 0]
       Scale: [3.6015358, 0.871441245, 3.16919613]
     BoxFogVolumeComponent:
-      Phase: 0
+      Phase: 0.800000012
       Density: 1
-      Absorption: 0.100000001
-      MieScattering: [0, 0, 0]
-      Emission: [0, 0, 1]
+      Absorption: 0
+      MieScattering: [0, 0, 1]
+      Emission: [0, 0, 3]
   - EntityID: 27
     NameComponent:
       Name: Pillar
@@ -37,7 +37,7 @@ Entities:
       Type: 0
       Friction: 0.5
       Restitution: 0
-  - EntityID: 25
+  - EntityID: 26
     NameComponent:
       Name: Large Cylinder
       Description: ""
@@ -130,7 +130,7 @@ Entities:
       Type: 0
       Friction: 0
       Restitution: 1
-  - EntityID: 21
+  - EntityID: 22
     NameComponent:
       Name: Fence 2
       Description: ""
@@ -153,7 +153,7 @@ Entities:
       Type: 0
       Friction: 0
       Restitution: 1
-  - EntityID: 20
+  - EntityID: 21
     NameComponent:
       Name: Fence 1
       Description: ""
@@ -176,7 +176,7 @@ Entities:
       Type: 0
       Friction: 0
       Restitution: 1
-  - EntityID: 19
+  - EntityID: 20
     NameComponent:
       Name: Skylight
       Description: ""
@@ -205,7 +205,7 @@ Entities:
       PrimaryLight: true
     DynamicSkylightComponent:
       Intensity: 1
-  - EntityID: 18
+  - EntityID: 19
     NameComponent:
       Name: Ground
       Description: ""
@@ -251,7 +251,7 @@ Entities:
       Type: 0
       Friction: 0
       Restitution: 1
-  - EntityID: 16
+  - EntityID: 17
     NameComponent:
       Name: Sphere 1
       Description: ""
@@ -274,7 +274,7 @@ Entities:
       Type: 2
       Friction: 0
       Restitution: 1
-  - EntityID: 15
+  - EntityID: 16
     NameComponent:
       Name: Ramp
       Description: ""
@@ -414,7 +414,7 @@ Entities:
       Type: 2
       Friction: 0.5
       Restitution: 0
-  - EntityID: 9
+  - EntityID: 10
     NameComponent:
       Name: Cylinder 3
       Description: ""
@@ -438,7 +438,7 @@ Entities:
       Type: 2
       Friction: 0.5
       Restitution: 0
-  - EntityID: 8
+  - EntityID: 9
     NameComponent:
       Name: Cylinder 4
       Description: ""
@@ -486,7 +486,7 @@ Entities:
       Type: 2
       Friction: 0.5
       Restitution: 0
-  - EntityID: 6
+  - EntityID: 7
     NameComponent:
       Name: Cylinder 6
       Description: ""
@@ -510,7 +510,7 @@ Entities:
       Type: 2
       Friction: 0.5
       Restitution: 0
-  - EntityID: 5
+  - EntityID: 6
     NameComponent:
       Name: Cylinder 7
       Description: ""
@@ -534,7 +534,7 @@ Entities:
       Type: 2
       Friction: 0.5
       Restitution: 0
-  - EntityID: 4
+  - EntityID: 5
     NameComponent:
       Name: Cylinder 8
       Description: ""
@@ -558,7 +558,7 @@ Entities:
       Type: 2
       Friction: 0.5
       Restitution: 0
-  - EntityID: 3
+  - EntityID: 4
     NameComponent:
       Name: Cylinder 9
       Description: ""
@@ -650,6 +650,20 @@ Entities:
       Near: 0.550000012
       Far: 30
       FOV: 1.04719758
+  - EntityID: 0
+    NameComponent:
+      Name: Large Fog Box
+      Description: ""
+    TransformComponent:
+      Translation: [0, 1, 0]
+      Rotation: [0, -0, 0]
+      Scale: [11.054862, 4.45600986, 12.1891146]
+    BoxFogVolumeComponent:
+      Phase: 0
+      Density: 0.100000001
+      Absorption: 0.5
+      MieScattering: [0.100000001, 0.100000001, 0.100000001]
+      Emission: [0, 0, 0]
 RendererSettings:
   GeneralSettings:
     Gamma: 2.20000005
@@ -668,10 +682,6 @@ RendererSettings:
     AOExponent: 1
   GodraySettings:
     UseGodrays: true
-    NumSteps: 60
-    MiePhase: 0
-    MieScatteringFunction: [1, 1, 1, 1]
-    MieAbsorptionFunction: [1, 1, 1, 1]
   SkyAtmosphereSettings:
     UseFastAtmosphere: true
   DynamicSkyIBLSettings:
@@ -730,6 +740,10 @@ Materials:
         SamplerHandle: "Monocolour texture: #ffffffff"
         ImagePath: ""
         ImageLoadingOverloads: 0
+      - SamplerName: emissionMap
+        SamplerHandle: "Monocolour texture: #ffffffff"
+        ImagePath: ""
+        ImageLoadingOverloads: 0
   - MaterialName: Ground
     MaterialType: pbr_shader
     Floats:
@@ -770,6 +784,10 @@ Materials:
         ImagePath: ""
         ImageLoadingOverloads: 0
       - SamplerName: specF0Map
+        SamplerHandle: "Monocolour texture: #ffffffff"
+        ImagePath: ""
+        ImageLoadingOverloads: 0
+      - SamplerName: emissionMap
         SamplerHandle: "Monocolour texture: #ffffffff"
         ImagePath: ""
         ImageLoadingOverloads: 0
@@ -816,6 +834,10 @@ Materials:
         SamplerHandle: "Monocolour texture: #ffffffff"
         ImagePath: ""
         ImageLoadingOverloads: 0
+      - SamplerName: emissionMap
+        SamplerHandle: "Monocolour texture: #ffffffff"
+        ImagePath: ""
+        ImageLoadingOverloads: 0
   - MaterialName: Cylinder
     MaterialType: pbr_shader
     Floats:
@@ -856,6 +878,10 @@ Materials:
         ImagePath: ""
         ImageLoadingOverloads: 0
       - SamplerName: specF0Map
+        SamplerHandle: "Monocolour texture: #ffffffff"
+        ImagePath: ""
+        ImageLoadingOverloads: 0
+      - SamplerName: emissionMap
         SamplerHandle: "Monocolour texture: #ffffffff"
         ImagePath: ""
         ImageLoadingOverloads: 0

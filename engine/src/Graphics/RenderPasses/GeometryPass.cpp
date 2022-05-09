@@ -93,26 +93,6 @@ namespace Strontium
     ScopedTimer<AsynchTimer> profiler(this->timer);
 
     auto rendererData = static_cast<Renderer3D::GlobalRendererData*>(this->globalBlock);
-
-	// Setup the camera uniforms.
-	struct CameraBlockData
-	{
-	  glm::mat4 viewMatrix;
-      glm::mat4 projMatrix;
-      glm::mat4 invViewProjMatrix;
-      glm::vec4 camPosition; // w unused
-      glm::vec4 nearFar; // Near plane (x), far plane (y), gamma correction factor (z). w is unused.
-	} 
-	  cameraBlock 
-	{ 
-      rendererData->sceneCam.view,
-      rendererData->sceneCam.projection,
-      rendererData->sceneCam.invViewProj,
-      { rendererData->sceneCam.position, 0.0 },
-      { rendererData->sceneCam.near,
-        rendererData->sceneCam.far, rendererData->gamma, 0.0 }
-	};
-	this->passData.cameraBuffer.setData(0, sizeof(CameraBlockData), &cameraBlock);
     
     // Upload the cached data for both static and dynamic geometry.
     if (this->passData.entityDataBuffer.size() != (sizeof(PerEntityData) * this->passData.numUniqueEntities))
@@ -135,7 +115,7 @@ namespace Strontium
 	// Start the geometry pass.
     this->passData.gBuffer.beginGeoPass();
 
-    this->passData.cameraBuffer.bindToPoint(0);
+    rendererData->cameraBuffer.bindToPoint(0);
     this->passData.perDrawUniforms.bindToPoint(1);
 
     this->passData.entityDataBuffer.bindToPoint(2);
@@ -202,7 +182,7 @@ namespace Strontium
       this->passData.idMaskBuffer.setViewport();
       this->passData.idMaskBuffer.bind();
       
-      this->passData.cameraBuffer.bindToPoint(0);
+      rendererData->cameraBuffer.bindToPoint(0);
       this->passData.perDrawUniforms.bindToPoint(1);
       
       this->passData.entityDataBuffer.bindToPoint(2);

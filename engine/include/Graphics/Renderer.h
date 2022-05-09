@@ -24,7 +24,13 @@ namespace Strontium::Renderer3D
     float gamma;
     Frustum camFrustum;
 
-    float time;
+    Camera previousCamera;
+    Frustum previousCamFrustum;
+
+    uint time;
+
+    UniformBuffer cameraBuffer;
+    UniformBuffer temporalBuffer;
 
     VertexArray blankVAO;
 
@@ -39,7 +45,10 @@ namespace Strontium::Renderer3D
       : blankVAO()
       , gamma(2.2f)
       , camFrustum()
-      , time(0.0f)
+      , previousCamFrustum()
+      , time(0u)
+      , cameraBuffer(3 * sizeof(glm::mat4) + 2 * sizeof(glm::vec4), BufferType::Dynamic)
+      , temporalBuffer(4 * sizeof(glm::mat4) + sizeof(glm::vec4), BufferType::Dynamic)
     { }
   };
 
@@ -74,12 +83,15 @@ namespace Strontium::DebugRenderer
   {
     Camera sceneCam;
 
+    UniformBuffer cameraBuffer;
+
     VertexArray blankVAO;
 
     bool visualizeAllColliders;
 
     GlobalRendererData()
       : sceneCam()
+      , cameraBuffer(3 * sizeof(glm::mat4) + 2 * sizeof(glm::vec4), BufferType::Dynamic)
       , blankVAO()
       , visualizeAllColliders(false)
     { }

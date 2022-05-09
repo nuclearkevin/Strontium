@@ -1135,7 +1135,7 @@ namespace Strontium
         this->selectedEntity, [this, activeScene](auto& component)
       {
         ImGui::PushID("BoxFogVolume");
-        Styles::drawFloatControl("Phase", 0.8f, component.phase, 0.0f, 0.01f, 0.0f, 1.0f);
+        Styles::drawFloatControl("Phase", 0.0f, component.phase, 0.0f, 0.01f, -1.0f, 1.0f);
         Styles::drawFloatControl("Density", 1.0f, component.density, 0.0f, 0.01f, 0.0f, 100.0f);
         Styles::drawFloatControl("Absorption", 1.0f, component.absorption, 0.0f, 0.01f, 0.0f, 100.0f);
         Styles::drawVec3Controls("Scattering", glm::vec3(1.0f), component.mieScattering, 0.0f, 0.1f, 0.0f, 100.0f);

@@ -89,8 +89,7 @@ namespace Strontium
       hzBlock->hierarchicalDepth.bind(0);
 
       // Bind the camera buffer and the AO parameters.
-      this->previousGeoPass->getInternalDataBlock<GeometryPassDataBlock>()
-                           ->cameraBuffer.bindToPoint(0);
+      rendererData->cameraBuffer.bindToPoint(0);
       this->passData.aoParamsBuffer.bindToPoint(1);
 
       // Bind the blue noise texture.

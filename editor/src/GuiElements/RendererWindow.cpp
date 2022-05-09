@@ -229,7 +229,8 @@ namespace Strontium
       float height = static_cast<float>(ssgrBlock->scatExtinction.getHeight());
       float ratio = width / height;
 
-      ImGui::Checkbox("Enable Godrays", &ssgrBlock->enableGodrays);
+      ImGui::Checkbox("Enable Volumetrics", &ssgrBlock->enableGodrays);
+      ImGui::Checkbox("TAA Volume", &ssgrBlock->taaVolume);
 
       ImGui::Separator();
       ImGui::Text("Frametime: %f ms", ssgrBlock->frameTime);
@@ -237,7 +238,7 @@ namespace Strontium
 
       ImGui::Separator();
       int zSlices = static_cast<int>(ssgrBlock->numZSlices);
-      if (ImGui::InputInt("Number of Depth Slices", &zSlices))
+      if (ImGui::InputInt("Depth Slices", &zSlices))
       {
         zSlices = zSlices > 1024 ? 1024 : zSlices;
         zSlices = zSlices < 32 ? 32 : zSlices;

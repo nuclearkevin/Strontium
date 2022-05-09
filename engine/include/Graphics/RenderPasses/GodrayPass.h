@@ -26,7 +26,11 @@ namespace Strontium
     Texture3D scatExtinction;
     Texture3D emissionPhase;
     Texture3D lightExtinction;
+    Texture3D historyResolve[2];
     Texture3D finalGather;
+
+    bool taaVolume;
+    bool resolveFlag;
 
     ShaderStorageBuffer obbFogBuffer;
 
@@ -46,9 +50,11 @@ namespace Strontium
     GodrayPassDataBlock()
       : obbFogBuffer(0, BufferType::Dynamic)
       , godrayParamsBuffer(3 * sizeof(glm::ivec4), BufferType::Dynamic)
+      , resolveFlag(false)
+      , taaVolume(true)
       , enableGodrays(false)
       , hasGodrays(false)
-      , numZSlices(512u)
+      , numZSlices(128u)
       , bufferSize(1u, 1u)
       , frameTime(0.0f)
     { }
