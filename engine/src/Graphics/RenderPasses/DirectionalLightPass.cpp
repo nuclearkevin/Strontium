@@ -47,6 +47,7 @@ namespace Strontium
   {
     this->passData.directionalLightCount = 0u;
     this->passData.directionalLightCountA = 0u;
+    this->passData.hasPrimary = false;
     this->passData.castShadows = false;
   }
 
@@ -204,6 +205,10 @@ namespace Strontium
 
     this->passData.primaryLight = temp;
     this->passData.castShadows = castShadows;
+    this->passData.hasPrimary = true;
     this->passData.primaryLightAttachedAtmo = attachedSkyAtmosphere;
+
+    if (!castShadows)
+      this->submit(light, model, attachedSkyAtmosphere);
   }
 }

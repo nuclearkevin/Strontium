@@ -313,7 +313,7 @@ namespace Strontium
       auto [directional, transform] = dirLight.get<DirectionalLightComponent, TransformComponent>(entity);
 
       // Skip over the primary light IF it cast shadows.
-      if (primaryLight.entityID == entity && directional.castShadows)
+      if (primaryLight.entityID == entity)
       {
         RendererDataHandle attachedSky = -1;
         if (this->sceneECS.has<SkyAtmosphereComponent>(entity))
@@ -458,7 +458,7 @@ namespace Strontium
       auto [directional, transform] = dirLight.get<DirectionalLightComponent, TransformComponent>(entity);
 
       // Skip over the primary light IF it cast shadows.
-      if (primaryLight.entityID == entity && directional.castShadows)
+      if (primaryLight.entityID == entity)
       {
         RendererDataHandle attachedSky = -1;
         if (this->sceneECS.has<SkyAtmosphereComponent>(entity))

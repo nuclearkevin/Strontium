@@ -305,9 +305,9 @@ namespace Strontium
 
     BoxFogVolumeComponent()
       : phase(0.8f)
-      , density(1.0f)
+      , density(0.01f)
       , absorption(1.0f)
-      , mieScattering(1.0f)
+      , mieScattering(0.1f)
       , emission(0.0f)
     { }
   };

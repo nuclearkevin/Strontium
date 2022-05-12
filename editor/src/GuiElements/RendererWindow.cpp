@@ -36,7 +36,7 @@ namespace Strontium
     , bloomDownSampleView("Bloom Downsample Image Pyramid")
     , bloomUpSampleView1("Bloom Upsample Image Pyramid 1")
     , bloomUpSampleView2("Bloom Upsample Image Pyramid 2")
-    , volumetricView("Volumetric Material View")
+    , volumetricView("Volumetric Gather View")
   { }
 
   RendererWindow::~RendererWindow()
@@ -230,11 +230,59 @@ namespace Strontium
       float ratio = width / height;
 
       ImGui::Checkbox("Enable Volumetrics", &ssgrBlock->enableGodrays);
-      ImGui::Checkbox("TAA Volume", &ssgrBlock->taaVolume);
-
       ImGui::Separator();
+
       ImGui::Text("Frametime: %f ms", ssgrBlock->frameTime);
       ImGui::Separator();
+
+      ImGui::Checkbox("Enable TAA", &ssgrBlock->taaVolume);
+      ImGui::Separator();
+
+      ImGui::ColorEdit3("Fog Ambient Colour", &ssgrBlock->ambientColour.r);
+      ImGui::DragFloat("Fog Ambient Intensity", &ssgrBlock->ambientIntensity, 0.01f, 0.0f, 10.0f);
+      ImGui::Separator();
+
+      ImGui::Checkbox("Apply Depth Fog", &ssgrBlock->applyDepthFog);
+      if (ssgrBlock->applyDepthFog)
+      {
+        float phase = ssgrBlock->mieScatteringPhaseDepth.w;
+        float absorption = ssgrBlock->emissionAbsorptionDepth.w;
+        auto scattering = glm::vec3(ssgrBlock->mieScatteringPhaseDepth);
+        auto emission = glm::vec3(ssgrBlock->emissionAbsorptionDepth);
+
+        ImGui::PushID("DepthFogVolume");
+        Styles::drawFloatControl("Phase", 0.0f, phase, 0.0f, 0.01f, -1.0f, 1.0f);
+        Styles::drawFloatControl("Minimum Density", 1.0f, ssgrBlock->minDepthDensity, 0.0f, 0.01f, 0.0f, 100.0f);
+        Styles::drawFloatControl("Maximum Density", 1.0f, ssgrBlock->maxDepthDensity, 0.0f, 0.01f, 0.0f, 100.0f);
+        Styles::drawFloatControl("Absorption", 1.0f, absorption, 0.0f, 0.01f, 0.0f, 100.0f);
+        Styles::drawVec3Controls("Scattering", glm::vec3(1.0f), scattering, 0.0f, 0.1f, 0.0f, 100.0f);
+        Styles::drawVec3Controls("Emission", glm::vec3(0.0f), emission, 0.0f, 0.1f, 0.0f, 100.0f);
+        ImGui::PopID();
+
+        ssgrBlock->mieScatteringPhaseDepth = glm::vec4(scattering, phase);
+        ssgrBlock->emissionAbsorptionDepth = glm::vec4(emission, absorption);
+      }
+
+      ImGui::Checkbox("Apply Height Fog", &ssgrBlock->applyHeightFog);
+      if (ssgrBlock->applyHeightFog)
+      {
+        float phase = ssgrBlock->mieScatteringPhaseHeight.w;
+        float absorption = ssgrBlock->emissionAbsorptionHeight.w;
+        auto scattering = glm::vec3(ssgrBlock->mieScatteringPhaseHeight);
+        auto emission = glm::vec3(ssgrBlock->emissionAbsorptionHeight);
+
+        ImGui::PushID("DepthFogVolume");
+        Styles::drawFloatControl("Phase", 0.0f, phase, 0.0f, 0.01f, -1.0f, 1.0f);
+        Styles::drawFloatControl("Density", 1.0f, ssgrBlock->heightDensity, 0.0f, 0.01f, 0.0f, 100.0f);
+        Styles::drawFloatControl("Density Falloff", 1.0f, ssgrBlock->heightFalloff, 0.0f, 0.01f, 0.0f, 100.0f);
+        Styles::drawFloatControl("Absorption", 1.0f, absorption, 0.0f, 0.01f, 0.0f, 100.0f);
+        Styles::drawVec3Controls("Scattering", glm::vec3(1.0f), scattering, 0.0f, 0.1f, 0.0f, 100.0f);
+        Styles::drawVec3Controls("Emission", glm::vec3(0.0f), emission, 0.0f, 0.1f, 0.0f, 100.0f);
+        ImGui::PopID();
+
+        ssgrBlock->mieScatteringPhaseHeight = glm::vec4(scattering, phase);
+        ssgrBlock->emissionAbsorptionHeight = glm::vec4(emission, absorption);
+      }
 
       ImGui::Separator();
       int zSlices = static_cast<int>(ssgrBlock->numZSlices);
@@ -257,7 +305,7 @@ namespace Strontium
       ImGui::Separator();
 
       static bool showGather = false;
-      ImGui::Checkbox("Show Gather Volume Textures", &showGather);
+      ImGui::Checkbox("Show Gather Volume Texture", &showGather);
       if (showGather)
         this->volumetricView.texture3DImage(ssgrBlock->finalGather, ImVec2(128.0f * ratio, 128.0f));
     }

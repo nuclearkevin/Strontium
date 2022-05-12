@@ -114,10 +114,10 @@ namespace Strontium
       this->passData.finalGather.initNullTexture();
     }
 
-    this->passData.hasGodrays = false;
-
     // Clear the fog volumes.
     this->passData.obbVolumes.clear();
+
+    this->passData.hasGodrays = false;
   }
 
   void 
@@ -127,8 +127,9 @@ namespace Strontium
 
     auto dirLightBlock = this->previousDirLightPass->getInternalDataBlock<DirectionalLightPassDataBlock>();
 
-    if (!(this->passData.enableGodrays && dirLightBlock->castShadows))
+    if (!(this->passData.enableGodrays && dirLightBlock->hasPrimary))
       return;
+
     this->passData.hasGodrays = true;
 
     auto rendererData = static_cast<Renderer3D::GlobalRendererData*>(this->globalBlock);
@@ -144,16 +145,41 @@ namespace Strontium
 
     struct GodrayBlockData
     {
+      glm::vec4 mieScatteringPhaseDepth; // Mie scattering (x, y, z) and phase value (w).
+      glm::vec4 emissionAbsorptionDepth; // Emission (x, y, z) and absorption (w).
+      glm::vec4 minMaxDensity; // Minimum density (x) and maximum density (y). z and w are unused.
+      glm::vec4 mieScatteringPhase; // Mie scattering (x, y, z) and phase value (w).
+      glm::vec4 emissionAbsorption; // Emission (x, y, z) and absorption (w).
+      glm::vec4 falloff; // Falloff (x). y, z and w are unused.
       glm::vec4 lightDir; // Light direction (x, y, z). w is unused.
       glm::vec4 lightColourIntensity; // Light colour (x, y, z) and intensity (w).
+      glm::vec4 ambientColourIntensity; // Ambient colour (x, y, z) and intensity (w).
       glm::ivec4 intData;
     }
       godrayData
     {
+      { this->passData.mieScatteringPhaseDepth },
+      { this->passData.emissionAbsorptionDepth },
+      { this->passData.minDepthDensity, this->passData.maxDepthDensity, 0.0f, 0.0f },
+      { glm::vec3(this->passData.mieScatteringPhaseHeight * this->passData.heightDensity), 
+        this->passData.mieScatteringPhaseHeight.w },
+      { this->passData.emissionAbsorptionHeight * this->passData.heightDensity },
+      { this->passData.heightFalloff, 0.0f, 0.0f, 0.0f },
       { glm::vec3(dirLightBlock->primaryLight.directionSize), 0.0f },
       { dirLightBlock->primaryLight.colourIntensity },
+      { this->passData.ambientColour, this->passData.ambientIntensity },
       { this->passData.obbVolumes.size(), 0, 0, 0 }
     };
+
+    // Bitflags. Bit 1 is if a global depth-based fog should be applied. 
+    // Bit 2 is if a global height-based fog should be applied.
+    // Bit 3 is if the light is shadowed or not.
+    if (this->passData.applyDepthFog)
+      godrayData.intData.y |= (1 << 0);
+    if (this->passData.applyHeightFog)
+      godrayData.intData.y |= (1 << 1);
+    if (dirLightBlock->castShadows)
+      godrayData.intData.y |= (1 << 2);
 
     // Bind the noise texture.
     rendererData->temporalBlueNoise->bind(2);

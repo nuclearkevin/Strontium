@@ -32,30 +32,60 @@ namespace Strontium
     bool taaVolume;
     bool resolveFlag;
 
-    ShaderStorageBuffer obbFogBuffer;
-
-    UniformBuffer godrayParamsBuffer;
-
-    // Fog volumes.
-    std::vector<OBBFogVolume> obbVolumes;
-
     bool enableGodrays;
     bool hasGodrays;
     uint numZSlices;
     glm::uvec2 bufferSize;
+
+    ShaderStorageBuffer obbFogBuffer;
+
+    UniformBuffer godrayParamsBuffer;
+
+    // Depth fog parameters.
+    bool applyDepthFog;
+    float minDepthDensity;
+    float maxDepthDensity;
+    glm::vec4 mieScatteringPhaseDepth;
+    glm::vec4 emissionAbsorptionDepth;
+
+    // Height fog parameters.
+    bool applyHeightFog;
+    float heightFalloff;
+    float heightDensity;
+    glm::vec4 mieScatteringPhaseHeight;
+    glm::vec4 emissionAbsorptionHeight;
+
+    // Quick and dirty flat ambient.
+    glm::vec3 ambientColour;
+    float ambientIntensity;
+
+    // Fog volumes.
+    std::vector<OBBFogVolume> obbVolumes;
 
     // Some statistics to display.
     float frameTime;
 
     GodrayPassDataBlock()
       : obbFogBuffer(0, BufferType::Dynamic)
-      , godrayParamsBuffer(3 * sizeof(glm::ivec4), BufferType::Dynamic)
+      , godrayParamsBuffer(10 * sizeof(glm::vec4), BufferType::Dynamic)
       , resolveFlag(false)
       , taaVolume(true)
       , enableGodrays(false)
       , hasGodrays(false)
       , numZSlices(128u)
       , bufferSize(1u, 1u)
+      , applyDepthFog(false)
+      , minDepthDensity(0.0f)
+      , maxDepthDensity(0.1f)
+      , mieScatteringPhaseDepth(0.1f, 0.1f, 0.1f, 0.8f)
+      , emissionAbsorptionDepth(0.0f, 0.0f, 0.0f, 1.0f)
+      , applyHeightFog(false)
+      , heightFalloff(1.0f)
+      , heightDensity(0.1f)
+      , mieScatteringPhaseHeight(0.1f, 0.1f, 0.1f, 0.8f)
+      , emissionAbsorptionHeight(0.0f, 0.0f, 0.0f, 1.0f)
+      , ambientColour(0.5294f, 0.8078f, 0.9216f)
+      , ambientIntensity(1.0f)
       , frameTime(0.0f)
     { }
   };

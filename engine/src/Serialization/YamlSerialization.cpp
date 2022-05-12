@@ -583,6 +583,26 @@ namespace Strontium
           out << YAML::Key << "GodraySettings" << YAML::BeginMap;
 
           out << YAML::Key << "UseGodrays" << YAML::Value << godrayPassData->enableGodrays;
+          out << YAML::Key << "ZSlices" << YAML::Value << godrayPassData->numZSlices;
+
+          out << YAML::Key << "AmbientColour" << YAML::Value << godrayPassData->ambientColour;
+          out << YAML::Key << "AmbientIntensity" << YAML::Value << godrayPassData->ambientIntensity;
+
+          out << YAML::Key << "ApplyDepthFog" << YAML::Value << godrayPassData->applyDepthFog;
+          out << YAML::Key << "DepthPhase" << YAML::Value << godrayPassData->mieScatteringPhaseDepth.w;
+          out << YAML::Key << "DepthMinDensity" << YAML::Value << godrayPassData->minDepthDensity;
+          out << YAML::Key << "DepthMaxDensity" << YAML::Value << godrayPassData->maxDepthDensity;
+          out << YAML::Key << "DepthAbsorption" << YAML::Value << godrayPassData->emissionAbsorptionDepth.w;
+          out << YAML::Key << "DepthMieScattering" << YAML::Value << glm::vec3(godrayPassData->mieScatteringPhaseDepth);
+          out << YAML::Key << "DepthEmission" << YAML::Value << glm::vec3(godrayPassData->emissionAbsorptionDepth);
+
+          out << YAML::Key << "ApplyHeightFog" << YAML::Value << godrayPassData->applyHeightFog;
+          out << YAML::Key << "HeightPhase" << YAML::Value << godrayPassData->mieScatteringPhaseHeight.w;
+          out << YAML::Key << "HeightDensity" << YAML::Value << godrayPassData->heightDensity;
+          out << YAML::Key << "HeightFalloff" << YAML::Value << godrayPassData->heightFalloff;
+          out << YAML::Key << "HeightAbsorption" << YAML::Value << godrayPassData->emissionAbsorptionHeight.w;
+          out << YAML::Key << "HeightMieScattering" << YAML::Value << glm::vec3(godrayPassData->mieScatteringPhaseHeight);
+          out << YAML::Key << "HeightEmission" << YAML::Value << glm::vec3(godrayPassData->emissionAbsorptionHeight);
 
           out << YAML::EndMap;
         }
@@ -1104,6 +1124,26 @@ namespace Strontium
             auto godrayPassData = godrayPass->getInternalDataBlock<GodrayPassDataBlock>();
 
             godrayPassData->enableGodrays = godraySettings["UseGodrays"].as<bool>();
+            godrayPassData->numZSlices = godraySettings["ZSlices"].as<uint>();
+
+            godrayPassData->ambientColour = godraySettings["AmbientColour"].as<glm::vec3>();
+            godrayPassData->ambientIntensity = godraySettings["AmbientIntensity"].as<float>();
+
+            godrayPassData->applyDepthFog = godraySettings["ApplyDepthFog"].as<bool>();
+            godrayPassData->mieScatteringPhaseDepth.w = godraySettings["DepthPhase"].as<float>();
+            godrayPassData->minDepthDensity = godraySettings["DepthMinDensity"].as<float>();
+            godrayPassData->maxDepthDensity = godraySettings["DepthMaxDensity"].as<float>();
+            godrayPassData->emissionAbsorptionDepth.w = godraySettings["DepthAbsorption"].as<float>();
+            godrayPassData->mieScatteringPhaseDepth = glm::vec4(godraySettings["DepthMieScattering"].as<glm::vec3>(), godrayPassData->mieScatteringPhaseDepth.w);
+            godrayPassData->emissionAbsorptionDepth = glm::vec4(godraySettings["DepthEmission"].as<glm::vec3>(), godrayPassData->emissionAbsorptionDepth.w);
+
+            godrayPassData->applyHeightFog = godraySettings["ApplyHeightFog"].as<bool>();
+            godrayPassData->mieScatteringPhaseHeight.w = godraySettings["HeightPhase"].as<float>();
+            godrayPassData->heightDensity = godraySettings["HeightDensity"].as<float>();
+            godrayPassData->heightFalloff = godraySettings["HeightFalloff"].as<float>();
+            godrayPassData->emissionAbsorptionHeight.w = godraySettings["HeightAbsorption"].as<float>();
+            godrayPassData->mieScatteringPhaseHeight = glm::vec4(godraySettings["HeightMieScattering"].as<glm::vec3>(), godrayPassData->mieScatteringPhaseHeight.w);
+            godrayPassData->emissionAbsorptionHeight = glm::vec4(godraySettings["HeightEmission"].as<glm::vec3>(), godrayPassData->emissionAbsorptionHeight.w);
           }
         }
 

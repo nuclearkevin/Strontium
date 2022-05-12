@@ -6,6 +6,22 @@
 
 layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 
+// Density is not pre-multiplied.
+struct DepthFogParams
+{
+  vec4 mieScatteringPhase; // Mie scattering (x, y, z) and phase value (w).
+  vec4 emissionAbsorption; // Emission (x, y, z) and absorption (w).
+  vec4 minMaxDensity; // Minimum density (x) and maximum density (y). z and w are unused.
+};
+
+// Density is pre-multiplied.
+struct HeightFogParams
+{
+  vec4 mieScatteringPhase; // Mie scattering (x, y, z) and phase value (w).
+  vec4 emissionAbsorption; // Emission (x, y, z) and absorption (w).
+  vec4 falloff; // Falloff (x). y, z and w are unused.
+};
+
 layout(rgba16f, binding = 0) restrict writeonly uniform image3D inScatExt;
 
 layout(binding = 0) uniform sampler3D scatExtinction;
@@ -24,11 +40,14 @@ layout(std140, binding = 0) uniform CameraBlock
   vec4 u_nearFarGamma; // Near plane (x), far plane (y), gamma correction factor (z). w is unused.
 };
 
-layout(std140, binding = 1) uniform GodrayBlock
+layout(std140, binding = 1) uniform VolumetricBlock
 {
+  DepthFogParams u_depthParams;
+  HeightFogParams u_heightParams;
   vec4 u_lightDir; // Light direction (x, y, z). w is unused.
   vec4 u_lightColourIntensity; // Light colour (x, y, z) and intensity (w).
-  ivec4 u_numFogVolumes; // Number of OBB fog volumes (x). y, z and w are unused.
+  vec4 u_ambientColourIntensity; // Ambient colour (x, y, z) and intensity (w).
+  ivec4 u_fogParams; // Number of OBB fog volumes (x), fog parameter bitmask (y). z and w are unused.
 };
 
 layout(std140, binding = 2) uniform CascadedShadowBlock
@@ -51,7 +70,7 @@ layout(std140, binding = 3) uniform TemporalBlock
 // Sample a dithering function.
 vec4 sampleDither(ivec2 coords)
 {
-  vec4 temporal = fract((u_prevPosTime.wwww + vec4(0.0, 1.0, 2.0, 3.0)) * 0.61803399);
+  vec4 temporal = fract((u_prevPosTime.wwww + vec4(4.0, 5.0, 6.0, 7.0)) * 0.61803399);
   vec2 uv = (vec2(coords) + 0.5.xx) / vec2(textureSize(noise, 0).xy);
   return fract(texture(noise, uv) + temporal);
 }
@@ -115,9 +134,11 @@ void main()
   vec3 extinction = se.www;
   vec3 voxelAlbedo = mieScattering / extinction;
 
-  float visibility = cascadedShadow(worldSpacePostion);
+  float visibility = (u_fogParams.y & (1 << 0)) != 0 ? 1.0 : cascadedShadow(worldSpacePostion);
 
-  vec3 light = max(voxelAlbedo * phaseFunction * visibility * u_lightColourIntensity.xyz * u_lightColourIntensity.w, 0.0.xxx) + ep.xyz;
+  vec3 light = max(voxelAlbedo * phaseFunction * visibility * u_lightColourIntensity.xyz * u_lightColourIntensity.w, 0.0.xxx);
+  light += ep.xyz;
+  light += max(u_ambientColourIntensity.xyz * u_ambientColourIntensity.w * voxelAlbedo, 0.0.xxx);
 
   imageStore(inScatExt, invoke, vec4(light, se.w));
 }

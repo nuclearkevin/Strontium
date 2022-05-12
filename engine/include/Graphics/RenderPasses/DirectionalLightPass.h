@@ -44,6 +44,7 @@ namespace Strontium
     std::array<RendererDataHandle, MAX_NUM_ATMOSPHERES> attachedAtmo;
 
     // The primary light and if it cast shadows.
+    bool hasPrimary;
     bool castShadows;
     RendererDataHandle primaryLightAttachedAtmo;
     DirectionalLight primaryLight;
@@ -63,6 +64,7 @@ namespace Strontium
       , directionalLightCount(0u)
       , directionalLightCountA(0u)
       , attachedAtmo()
+      , hasPrimary(false)
       , castShadows(false)
       , primaryLightAttachedAtmo(-1)
       , primaryLight()
