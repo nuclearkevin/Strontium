@@ -94,27 +94,19 @@ void main()
 
   vec3 dither = (2.0 * sampleDither(invoke.xy).rgb - 1.0.xxx) / vec3(numFroxels).xyz;
 
-  vec2 uvs[4];
-  uvs[0] = (vec2(invoke.xy) + vec2(0.0, 0.0)) / vec2(numFroxels.xy) + dither.xy;
-  uvs[1] = (vec2(invoke.xy) + vec2(1.0, 0.0)) / vec2(numFroxels.xy) + dither.xy;
-  uvs[2] = (vec2(invoke.xy) + vec2(0.0, 1.0)) / vec2(numFroxels.xy) + dither.xy;
-  uvs[3] = (vec2(invoke.xy) + vec2(1.0, 1.0)) / vec2(numFroxels.xy) + dither.xy;
-
-  vec3 worldSpacePostions[8];
+  // Compute the voxel center position.
+  vec2 centerUVs;
+  vec3 centerWorldPos;
   vec4 temp;
   vec3 worldSpaceMax;
   vec3 direction;
   float w;
-  for (uint i = 0; i < 4; i++)
-  {
-    temp = u_invViewProjMatrix * vec4(2.0 * uvs[i] - 1.0.xx, 1.0, 1.0);
-    worldSpaceMax = temp.xyz /= temp.w;
-    direction = worldSpaceMax - u_camPosition;
-    w = (float(invoke.z) + 0.0) / float(numFroxels.z) + dither.z;
-    worldSpacePostions[i] = u_camPosition + direction * w * w;
-    w = (float(invoke.z) + 1.0) / float(numFroxels.z) + dither.z;
-    worldSpacePostions[i + 4] = u_camPosition + direction * w * w;
-  }
+  centerUVs = (vec2(invoke.xy) + 0.5.xx) / vec2(numFroxels.xy) + dither.xy;
+  w = (float(invoke.z) + 0.5) / float(numFroxels.z) + dither.z;
+  temp = u_invViewProjMatrix * vec4(2.0 * centerUVs - 1.0.xx, 1.0, 1.0);
+  worldSpaceMax = temp.xyz /= temp.w;
+  direction = worldSpaceMax - u_camPosition;
+  centerWorldPos = u_camPosition + direction * w * w;
 
   vec4 se = 0.0.xxxx;
   vec4 ep = 0.0.xxxx;
@@ -122,21 +114,11 @@ void main()
   float numVolumesInPixel = 0.0;
   OBBFogVolume volume;
   float extinction;
-  bool texelIntersects;
   for (uint i = 0; i < u_fogParams.x; i++)
   {
     volume = u_volumes[i];
 
-    texelIntersects = false;
-    // Check to see if the corners of the froxel are in the box.
-    for (uint i = 0; i < 8; i++)
-    {
-      texelIntersects = texelIntersects || pointInOBB(worldSpacePostions[i], volume);
-      if (texelIntersects)
-        break;
-    }
-
-    if (texelIntersects)
+    if (pointInOBB(centerWorldPos, volume))
     {
       extinction = dot(volume.mieScatteringPhase.xyz, (1.0 / 3.0).xxx) + volume.emissionAbsorption.w;
       se += vec4(volume.mieScatteringPhase.xyz, extinction);
@@ -144,19 +126,6 @@ void main()
 
       numVolumesInPixel += 1.0;
     }
-  }
-
-  // Compute the actual center position.
-  vec2 centerUVs;
-  vec3 centerWorldPos;
-  if ((u_fogParams.y & (1 << 0)) != 0 || (u_fogParams.y & (1 << 1)) != 0)
-  {
-    centerUVs = (vec2(invoke.xy) + 0.5.xx) / vec2(numFroxels.xy) + dither.xy;
-    w = (float(invoke.z) + 0.5) / float(numFroxels.z) + dither.z;
-    temp = u_invViewProjMatrix * vec4(2.0 * centerUVs - 1.0.xx, 1.0, 1.0);
-    worldSpaceMax = temp.xyz /= temp.w;
-    direction = worldSpaceMax - u_camPosition;
-    centerWorldPos = u_camPosition + direction * w * w;
   }
 
   // Global depth fog.

@@ -90,7 +90,7 @@ void main()
   if (inFrustum(previousPosNDC))
     result = mix(history, current, 0.05);
   else
-    result = 0.5 * current;
+    result = current;
   //----------------------------------------------------------------------------
 
   // Store the (mostly) denoised result.
