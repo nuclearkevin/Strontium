@@ -23,33 +23,69 @@ namespace Strontium
 
   struct GodrayPassDataBlock
   {
-    Shader* godrayCompute;
-    Shader* godrayBlur;
+    Texture3D scatExtinction;
+    Texture3D emissionPhase;
+    Texture3D lightExtinction;
+    Texture3D historyResolve[2];
+    Texture3D finalGather;
 
-    Texture2D godrays;
-
-    UniformBuffer godrayParamsBuffer;
+    bool taaVolume;
+    bool resolveFlag;
 
     bool enableGodrays;
     bool hasGodrays;
-    uint numSteps;
-    float miePhase;
-    glm::vec4 mieScat; // Mie scattering coefficient (x, y, z) and density (w).
-    glm::vec4 mieAbs; // Mie absorption coefficient (x, y, z) and density (w).
+    uint numZSlices;
+    glm::uvec2 bufferSize;
+
+    ShaderStorageBuffer obbFogBuffer;
+
+    UniformBuffer godrayParamsBuffer;
+
+    // Depth fog parameters.
+    bool applyDepthFog;
+    float minDepthDensity;
+    float maxDepthDensity;
+    glm::vec4 mieScatteringPhaseDepth;
+    glm::vec4 emissionAbsorptionDepth;
+
+    // Height fog parameters.
+    bool applyHeightFog;
+    float heightFalloff;
+    float heightDensity;
+    glm::vec4 mieScatteringPhaseHeight;
+    glm::vec4 emissionAbsorptionHeight;
+
+    // Quick and dirty flat ambient.
+    glm::vec3 ambientColour;
+    float ambientIntensity;
+
+    // Fog volumes.
+    std::vector<OBBFogVolume> obbVolumes;
 
     // Some statistics to display.
     float frameTime;
 
     GodrayPassDataBlock()
-      : godrayCompute(nullptr)
-      , godrayBlur(nullptr)
-      , godrayParamsBuffer(5 *  sizeof(glm::vec4), BufferType::Dynamic)
+      : obbFogBuffer(0, BufferType::Dynamic)
+      , godrayParamsBuffer(10 * sizeof(glm::vec4), BufferType::Dynamic)
+      , resolveFlag(false)
+      , taaVolume(true)
       , enableGodrays(false)
       , hasGodrays(false)
-      , numSteps(64u)
-      , miePhase(0.8f)
-      , mieScat(1.0f)
-      , mieAbs(1.0f)
+      , numZSlices(128u)
+      , bufferSize(1u, 1u)
+      , applyDepthFog(false)
+      , minDepthDensity(0.0f)
+      , maxDepthDensity(0.1f)
+      , mieScatteringPhaseDepth(0.1f, 0.1f, 0.1f, 0.8f)
+      , emissionAbsorptionDepth(0.0f, 0.0f, 0.0f, 1.0f)
+      , applyHeightFog(false)
+      , heightFalloff(1.0f)
+      , heightDensity(0.1f)
+      , mieScatteringPhaseHeight(0.1f, 0.1f, 0.1f, 0.8f)
+      , emissionAbsorptionHeight(0.0f, 0.0f, 0.0f, 1.0f)
+      , ambientColour(0.5294f, 0.8078f, 0.9216f)
+      , ambientIntensity(1.0f)
       , frameTime(0.0f)
     { }
   };
@@ -70,6 +106,9 @@ namespace Strontium
     void onRender() override;
     void onRendererEnd(FrameBuffer& frontBuffer) override;
     void onShutdown() override;
+
+    // Submit fog volumes.
+    void submit(const OBBFogVolume &fogVolume);
 
   private:
     GodrayPassDataBlock passData;

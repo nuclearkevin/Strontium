@@ -47,6 +47,7 @@ namespace Strontium
   {
     this->passData.directionalLightCount = 0u;
     this->passData.directionalLightCountA = 0u;
+    this->passData.hasPrimary = false;
     this->passData.castShadows = false;
   }
 
@@ -69,7 +70,7 @@ namespace Strontium
     gBuffer.bindAttachment(FBOTargetParam::Colour2, 3);
 
     // Bind the camera block.
-    geometryBlock->cameraBuffer.bindToPoint(0);
+    static_cast<Renderer3D::GlobalRendererData*>(this->globalBlock)->cameraBuffer.bindToPoint(0);
 
     // Bind the lighting buffer.
     auto rendererData = static_cast<Renderer3D::GlobalRendererData*>(this->globalBlock);
@@ -204,6 +205,10 @@ namespace Strontium
 
     this->passData.primaryLight = temp;
     this->passData.castShadows = castShadows;
+    this->passData.hasPrimary = true;
     this->passData.primaryLightAttachedAtmo = attachedSkyAtmosphere;
+
+    if (!castShadows)
+      this->submit(light, model, attachedSkyAtmosphere);
   }
 }

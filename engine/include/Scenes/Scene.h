@@ -48,11 +48,28 @@ namespace Strontium
     void setPrimaryDirectionalEntity(Entity entity);
     void clearPrimaryDirectionalEntity() { this->primaryDirLightID = entt::null; }
 
+    // Hierarchy functions.
     glm::mat4 computeGlobalTransform(Entity entity);
     glm::quat computeGlobalRotation(Entity entity);
 
+    template <typename T>
+    bool hierarchyHasComponent(Entity entity)
+    {
+      if (entity.hasComponent<ParentEntityComponent>())
+      {
+        auto& parent = entity.getComponent<ParentEntityComponent>().parent;
+        if (entity.hasComponent<T>())
+          return true;
+        else
+          return this->hierarchyHasComponent<T>(parent);
+      }
+      else
+        return entity.hasComponent<T>();
+    }
+
     // Copy the components of other into a new scene.
     void copyForRuntime(Scene &other);
+
     // Clear the scene is a way that doesn't effect 
     // the renderer handle components of the backup scene.
     void clearForRuntime();

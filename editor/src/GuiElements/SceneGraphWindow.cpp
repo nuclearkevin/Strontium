@@ -421,6 +421,7 @@ namespace Strontium
         drawComponentAdd<CameraComponent>("Camera Component", entity);
         drawComponentAdd<SkyAtmosphereComponent>("Sky and Atmosphere Component", entity);
         drawComponentAdd<DynamicSkyboxComponent>("Dynamic Skybox Component", entity);
+        drawComponentAdd<BoxFogVolumeComponent>("Box Fog Volume Component", entity);
 
         if (ImGui::BeginMenu("Collider Components"))
         {
@@ -453,6 +454,7 @@ namespace Strontium
         drawComponentRemove<CameraComponent>("Camera Component", entity);
         drawComponentRemove<SkyAtmosphereComponent>("Sky and Atmosphere Component", entity);
         drawComponentRemove<DynamicSkyboxComponent>("Dynamic Skybox Component", entity);
+        drawComponentRemove<BoxFogVolumeComponent>("Box Fog Volume Component", entity);
 
         if (ImGui::BeginMenu("Collider Components"))
         {
@@ -524,6 +526,7 @@ namespace Strontium
         copyComponent<RenderableComponent>(entity, newEntity);
         copyComponent<SkyAtmosphereComponent>(entity, newEntity);
         copyComponent<DynamicSkyboxComponent>(entity, newEntity);
+        copyComponent<BoxFogVolumeComponent>(entity, newEntity);
         copyComponent<DirectionalLightComponent>(entity, newEntity);
         copyComponent<PointLightComponent>(entity, newEntity);
         copyComponent<DynamicSkylightComponent>(entity, newEntity);
@@ -591,6 +594,7 @@ namespace Strontium
     drawComponentLeaf<CameraComponent>(entity, "Camera Component");
     drawComponentLeaf<SkyAtmosphereComponent>(entity, "Sky Atmosphere Component");
     drawComponentLeaf<DynamicSkyboxComponent>(entity, "Dynamic Skybox Component");
+    drawComponentLeaf<BoxFogVolumeComponent>(entity, "Box Fog Volume Component");
     drawComponentLeaf<DirectionalLightComponent>(entity, "Directional Light Component");
     drawComponentLeaf<PointLightComponent>(entity, "Point Light Component");
     drawComponentLeaf<DynamicSkylightComponent>(entity, "Dynamic Skylight Component");
@@ -1124,6 +1128,18 @@ namespace Strontium
         Styles::drawFloatControl("Sun Size", 1.0f, component.sunSize, 0.0f, 0.01f, 0.0f, 100.0f);
         Styles::drawFloatControl("Intensity", 1.0f, component.intensity, 
                                  0.0f, 0.1f, 0.0f, 100.0f);
+        ImGui::PopID();
+      });
+
+      drawComponentProperties<BoxFogVolumeComponent>("Box Fog Volume Component",
+        this->selectedEntity, [this, activeScene](auto& component)
+      {
+        ImGui::PushID("BoxFogVolume");
+        Styles::drawFloatControl("Phase", 0.0f, component.phase, 0.0f, 0.01f, -1.0f, 1.0f);
+        Styles::drawFloatControl("Density", 1.0f, component.density, 0.0f, 0.01f, 0.0f, 100.0f);
+        Styles::drawFloatControl("Absorption", 1.0f, component.absorption, 0.0f, 0.01f, 0.0f, 100.0f);
+        Styles::drawVec3Controls("Scattering", glm::vec3(1.0f), component.mieScattering, 0.0f, 0.1f, 0.0f, 100.0f);
+        Styles::drawVec3Controls("Emission", glm::vec3(0.0f), component.emission, 0.0f, 0.1f, 0.0f, 100.0f);
         ImGui::PopID();
       });
 

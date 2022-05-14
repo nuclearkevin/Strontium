@@ -376,6 +376,21 @@ namespace Strontium
         out << YAML::EndMap;
       }
 
+      if (entity.hasComponent<BoxFogVolumeComponent>())
+      {
+        out << YAML::Key << "BoxFogVolumeComponent";
+        out << YAML::BeginMap;
+
+        auto& component = entity.getComponent<BoxFogVolumeComponent>();
+        out << YAML::Key << "Phase" << YAML::Value << component.phase;
+        out << YAML::Key << "Density" << YAML::Value << component.density;
+        out << YAML::Key << "Absorption" << YAML::Value << component.absorption;
+        out << YAML::Key << "MieScattering" << YAML::Value << component.mieScattering;
+        out << YAML::Key << "Emission" << YAML::Value << component.emission;
+
+        out << YAML::EndMap;
+      }
+
       if (entity.hasComponent<DirectionalLightComponent>())
       {
         out << YAML::Key << "DirectionalLightComponent";
@@ -568,10 +583,26 @@ namespace Strontium
           out << YAML::Key << "GodraySettings" << YAML::BeginMap;
 
           out << YAML::Key << "UseGodrays" << YAML::Value << godrayPassData->enableGodrays;
-          out << YAML::Key << "NumSteps" << YAML::Value << godrayPassData->numSteps;
-          out << YAML::Key << "MiePhase" << YAML::Value << godrayPassData->miePhase;
-          out << YAML::Key << "MieScatteringFunction" << YAML::Value << godrayPassData->mieScat;
-          out << YAML::Key << "MieAbsorptionFunction" << YAML::Value << godrayPassData->mieAbs;
+          out << YAML::Key << "ZSlices" << YAML::Value << godrayPassData->numZSlices;
+
+          out << YAML::Key << "AmbientColour" << YAML::Value << godrayPassData->ambientColour;
+          out << YAML::Key << "AmbientIntensity" << YAML::Value << godrayPassData->ambientIntensity;
+
+          out << YAML::Key << "ApplyDepthFog" << YAML::Value << godrayPassData->applyDepthFog;
+          out << YAML::Key << "DepthPhase" << YAML::Value << godrayPassData->mieScatteringPhaseDepth.w;
+          out << YAML::Key << "DepthMinDensity" << YAML::Value << godrayPassData->minDepthDensity;
+          out << YAML::Key << "DepthMaxDensity" << YAML::Value << godrayPassData->maxDepthDensity;
+          out << YAML::Key << "DepthAbsorption" << YAML::Value << godrayPassData->emissionAbsorptionDepth.w;
+          out << YAML::Key << "DepthMieScattering" << YAML::Value << glm::vec3(godrayPassData->mieScatteringPhaseDepth);
+          out << YAML::Key << "DepthEmission" << YAML::Value << glm::vec3(godrayPassData->emissionAbsorptionDepth);
+
+          out << YAML::Key << "ApplyHeightFog" << YAML::Value << godrayPassData->applyHeightFog;
+          out << YAML::Key << "HeightPhase" << YAML::Value << godrayPassData->mieScatteringPhaseHeight.w;
+          out << YAML::Key << "HeightDensity" << YAML::Value << godrayPassData->heightDensity;
+          out << YAML::Key << "HeightFalloff" << YAML::Value << godrayPassData->heightFalloff;
+          out << YAML::Key << "HeightAbsorption" << YAML::Value << godrayPassData->emissionAbsorptionHeight.w;
+          out << YAML::Key << "HeightMieScattering" << YAML::Value << glm::vec3(godrayPassData->mieScatteringPhaseHeight);
+          out << YAML::Key << "HeightEmission" << YAML::Value << glm::vec3(godrayPassData->emissionAbsorptionHeight);
 
           out << YAML::EndMap;
         }
@@ -786,194 +817,239 @@ namespace Strontium
 
       Entity newEntity = scene->createEntity(entityID);
 
-      auto nameComponent = entity["NameComponent"];
-      if (nameComponent)
       {
-        std::string name = nameComponent["Name"].as<std::string>();
-        std::string description = nameComponent["Description"].as<std::string>();
-
-        auto& nComponent = newEntity.getComponent<NameComponent>();
-        nComponent.name = name;
-        nComponent.description = description;
-      }
-
-      auto prefabComponent = entity["PrefabComponent"];
-      if (prefabComponent)
-      {
-        auto pfID = prefabComponent["PreFabID"].as<std::string>();
-        auto pfPath = prefabComponent["PreFabPath"].as<std::string>();
-        auto& pfComponent = newEntity.addComponent<PrefabComponent>(pfID, pfPath);
-        pfComponent.synch = prefabComponent["Synch"].as<bool>();
-      }
-
-      auto childEntityComponents = entity["ChildEntities"];
-      if (childEntityComponents)
-      {
-        auto& children = newEntity.addComponent<ChildEntityComponent>().children;
-
-        for (auto childNode : childEntityComponents)
+        auto nameComponent = entity["NameComponent"];
+        if (nameComponent)
         {
-          Entity child = deserializeEntity(childNode, scene, newEntity);
-          children.push_back(child);
+          std::string name = nameComponent["Name"].as<std::string>();
+          std::string description = nameComponent["Description"].as<std::string>();
+        
+          auto& nComponent = newEntity.getComponent<NameComponent>();
+          nComponent.name = name;
+          nComponent.description = description;
+        }
+      }
+
+      {
+        auto prefabComponent = entity["PrefabComponent"];
+        if (prefabComponent)
+        {
+          auto pfID = prefabComponent["PreFabID"].as<std::string>();
+          auto pfPath = prefabComponent["PreFabPath"].as<std::string>();
+          auto& pfComponent = newEntity.addComponent<PrefabComponent>(pfID, pfPath);
+          pfComponent.synch = prefabComponent["Synch"].as<bool>();
+        }
+      }
+
+      {
+        auto childEntityComponents = entity["ChildEntities"];
+        if (childEntityComponents)
+        {
+          auto& children = newEntity.addComponent<ChildEntityComponent>().children;
+        
+          for (auto childNode : childEntityComponents)
+          {
+            Entity child = deserializeEntity(childNode, scene, newEntity);
+            children.push_back(child);
+          }
         }
       }
 
       if (parent)
         newEntity.addComponent<ParentEntityComponent>(parent);
 
-      auto transformComponent = entity["TransformComponent"];
-      if (transformComponent)
       {
-        glm::vec3 translation = transformComponent["Translation"].as<glm::vec3>();
-        glm::vec3 rotation = transformComponent["Rotation"].as<glm::vec3>();
-        glm::vec3 scale = transformComponent["Scale"].as<glm::vec3>();
-
-        newEntity.addComponent<TransformComponent>(translation, rotation, scale);
-      }
-
-      auto renderableComponent = entity["RenderableComponent"];
-      if (renderableComponent)
-      {
-        std::string modelPath = renderableComponent["ModelPath"].as<std::string>();
-
-        std::ifstream test(modelPath);
-        if (test)
+        auto transformComponent = entity["TransformComponent"];
+        if (transformComponent)
         {
-          std::string modelName = renderableComponent["ModelName"].as<std::string>();
-          auto& rComponent = newEntity.addComponent<RenderableComponent>(modelName);
-
-          // If the path is "None" its an internal model asset.
-          // TODO: Handle internals separately.
-          if (modelPath != "None")
-          {
-            auto animationName = renderableComponent["CurrentAnimation"];
-            if (animationName)
-              rComponent.animationHandle = animationName.as<std::string>();
-
-            auto materials = renderableComponent["Material"];
-            if (materials)
-            {
-              for (auto mat : materials)
-              {
-                rComponent.materials.attachMesh(mat["SubmeshName"].as<std::string>(),
-                                                mat["MaterialHandle"].as<std::string>());
-              }
-            }
-            AsyncLoading::asyncLoadModel(modelPath, modelName, newEntity, scene.get());
-          }
+          glm::vec3 translation = transformComponent["Translation"].as<glm::vec3>();
+          glm::vec3 rotation = transformComponent["Rotation"].as<glm::vec3>();
+          glm::vec3 scale = transformComponent["Scale"].as<glm::vec3>();
+        
+          newEntity.addComponent<TransformComponent>(translation, rotation, scale);
         }
-        else
-          Logs::log("Error, file " + modelPath + " cannot be opened.");
       }
 
-      auto camComponent = entity["CameraComponent"];
-      if (camComponent)
       {
-        auto& camera = newEntity.addComponent<CameraComponent>();
-        camera.entCamera.near = camComponent["Near"].as<float>();
-        camera.entCamera.far = camComponent["Far"].as<float>();
-        camera.entCamera.fov = camComponent["FOV"].as<float>();
-        if (camComponent["IsPrimary"].as<bool>())
-          scene->setPrimaryCameraEntity(newEntity);
+        auto renderableComponent = entity["RenderableComponent"];
+        if (renderableComponent)
+        {
+          std::string modelPath = renderableComponent["ModelPath"].as<std::string>();
+        
+          std::ifstream test(modelPath);
+          if (test)
+          {
+            std::string modelName = renderableComponent["ModelName"].as<std::string>();
+            auto& rComponent = newEntity.addComponent<RenderableComponent>(modelName);
+        
+            // If the path is "None" its an internal model asset.
+            // TODO: Handle internals separately.
+            if (modelPath != "None")
+            {
+              auto animationName = renderableComponent["CurrentAnimation"];
+              if (animationName)
+                rComponent.animationHandle = animationName.as<std::string>();
+        
+              auto materials = renderableComponent["Material"];
+              if (materials)
+              {
+                for (auto mat : materials)
+                {
+                  rComponent.materials.attachMesh(mat["SubmeshName"].as<std::string>(),
+                                                  mat["MaterialHandle"].as<std::string>());
+                }
+              }
+              AsyncLoading::asyncLoadModel(modelPath, modelName, newEntity, scene.get());
+            }
+          }
+          else
+            Logs::log("Error, file " + modelPath + " cannot be opened.");
+        }
       }
 
-      auto skyAtmosphereComponent = entity["SkyAtmosphereComponent"];
-      if (skyAtmosphereComponent)
       {
-        auto& saComponent = newEntity.addComponent<SkyAtmosphereComponent>();
-        saComponent.rayleighScat = skyAtmosphereComponent["RayleighScatteringFunction"].as<glm::vec4>();
-        saComponent.rayleighAbs = skyAtmosphereComponent["RayleighAbsorptionFunction"].as<glm::vec4>();
-        saComponent.mieScat = skyAtmosphereComponent["MieScatteringFunction"].as<glm::vec4>();
-        saComponent.mieAbs = skyAtmosphereComponent["MieAbsorptionFunction"].as<glm::vec4>();
-        saComponent.ozoneAbs = skyAtmosphereComponent["OzoneAbsorptionFunction"].as<glm::vec4>();
-        saComponent.planetAlbedo = skyAtmosphereComponent["PlanetAlbedo"].as<glm::vec3>();
-        saComponent.planetAtmRadius = skyAtmosphereComponent["PlanetAndAtmosphereRadius"].as<glm::vec2>();
-        saComponent.usePrimaryLight = skyAtmosphereComponent["UsePrimaryLight"].as<bool>();
+        auto camComponent = entity["CameraComponent"];
+        if (camComponent)
+        {
+          auto& camera = newEntity.addComponent<CameraComponent>();
+          camera.entCamera.near = camComponent["Near"].as<float>();
+          camera.entCamera.far = camComponent["Far"].as<float>();
+          camera.entCamera.fov = camComponent["FOV"].as<float>();
+          if (camComponent["IsPrimary"].as<bool>())
+            scene->setPrimaryCameraEntity(newEntity);
+        }
       }
 
-      auto dynamicSkyboxComponent = entity["DynamicSkyboxComponent"];
-      if (dynamicSkyboxComponent)
       {
-        auto& dsComponent = newEntity.addComponent<DynamicSkyboxComponent>();
-        dsComponent.sunSize = dynamicSkyboxComponent["SunSize"].as<float>();
-        dsComponent.intensity = dynamicSkyboxComponent["Intensity"].as<float>();
-      }
-      
-      auto directionalComponent = entity["DirectionalLightComponent"];
-      if (directionalComponent)
-      {
-        auto& dComponent = newEntity.addComponent<DirectionalLightComponent>();
-        dComponent.direction = directionalComponent["Direction"].as<glm::vec3>();
-        dComponent.colour = directionalComponent["Colour"].as<glm::vec3>();
-        dComponent.intensity = directionalComponent["Intensity"].as<float>();
-        dComponent.size = directionalComponent["Size"].as<float>();
-        dComponent.castShadows = directionalComponent["CastShadows"].as<bool>();
-        if (directionalComponent["PrimaryLight"])
-          scene->setPrimaryDirectionalEntity(newEntity);
+        auto skyAtmosphereComponent = entity["SkyAtmosphereComponent"];
+        if (skyAtmosphereComponent)
+        {
+          auto& saComponent = newEntity.addComponent<SkyAtmosphereComponent>();
+          saComponent.rayleighScat = skyAtmosphereComponent["RayleighScatteringFunction"].as<glm::vec4>();
+          saComponent.rayleighAbs = skyAtmosphereComponent["RayleighAbsorptionFunction"].as<glm::vec4>();
+          saComponent.mieScat = skyAtmosphereComponent["MieScatteringFunction"].as<glm::vec4>();
+          saComponent.mieAbs = skyAtmosphereComponent["MieAbsorptionFunction"].as<glm::vec4>();
+          saComponent.ozoneAbs = skyAtmosphereComponent["OzoneAbsorptionFunction"].as<glm::vec4>();
+          saComponent.planetAlbedo = skyAtmosphereComponent["PlanetAlbedo"].as<glm::vec3>();
+          saComponent.planetAtmRadius = skyAtmosphereComponent["PlanetAndAtmosphereRadius"].as<glm::vec2>();
+          saComponent.usePrimaryLight = skyAtmosphereComponent["UsePrimaryLight"].as<bool>();
+        }
       }
 
-      auto pointComponent = entity["PointLightComponent"];
-      if (pointComponent)
       {
-        auto& pComponent = newEntity.addComponent<PointLightComponent>();
-        pComponent.colour = pointComponent["Colour"].as<glm::vec3>();
-        pComponent.intensity = pointComponent["Intensity"].as<float>();
-        pComponent.radius = pointComponent["Radius"].as<float>();
-        pComponent.castShadows = pointComponent["CastShadows"].as<bool>();
+        auto dynamicSkyboxComponent = entity["DynamicSkyboxComponent"];
+        if (dynamicSkyboxComponent)
+        {
+          auto& dsComponent = newEntity.addComponent<DynamicSkyboxComponent>();
+          dsComponent.sunSize = dynamicSkyboxComponent["SunSize"].as<float>();
+          dsComponent.intensity = dynamicSkyboxComponent["Intensity"].as<float>();
+        }
       }
 
-      auto dynamicSkyLightComponent = entity["DynamicSkylightComponent"];
-      if (dynamicSkyLightComponent)
       {
-        auto& dsComponent = newEntity.addComponent<DynamicSkylightComponent>();
-        dsComponent.intensity = dynamicSkyLightComponent["Intensity"].as<float>();
+        auto boxFogVolumeComponent = entity["BoxFogVolumeComponent"];
+        if (boxFogVolumeComponent)
+        {
+          auto& bfvComponent = newEntity.addComponent<BoxFogVolumeComponent>();
+          bfvComponent.phase = boxFogVolumeComponent["Phase"].as<float>();
+          bfvComponent.density = boxFogVolumeComponent["Density"].as<float>();
+          bfvComponent.absorption = boxFogVolumeComponent["Absorption"].as<float>();
+          bfvComponent.mieScattering = boxFogVolumeComponent["MieScattering"].as<glm::vec3>();
+          bfvComponent.emission = boxFogVolumeComponent["Emission"].as<glm::vec3>();
+        }
       }
 
-      auto sphereColliderComponent = entity["SphereColliderComponent"];
-      if (sphereColliderComponent)
       {
-        auto& scComponent = newEntity.addComponent<SphereColliderComponent>();
-        scComponent.radius = sphereColliderComponent["Radius"].as<float>();
-        scComponent.offset = sphereColliderComponent["Offset"].as<glm::vec3>();
-        scComponent.density = sphereColliderComponent["Density"].as<float>();
+        auto directionalComponent = entity["DirectionalLightComponent"];
+        if (directionalComponent)
+        {
+          auto& dComponent = newEntity.addComponent<DirectionalLightComponent>();
+          dComponent.direction = directionalComponent["Direction"].as<glm::vec3>();
+          dComponent.colour = directionalComponent["Colour"].as<glm::vec3>();
+          dComponent.intensity = directionalComponent["Intensity"].as<float>();
+          dComponent.size = directionalComponent["Size"].as<float>();
+          dComponent.castShadows = directionalComponent["CastShadows"].as<bool>();
+          if (directionalComponent["PrimaryLight"])
+            scene->setPrimaryDirectionalEntity(newEntity);
+        }
       }
 
-      auto boxColliderComponent = entity["BoxColliderComponent"];
-      if (boxColliderComponent)
       {
-        auto& bcComponent = newEntity.addComponent<BoxColliderComponent>();
-        bcComponent.extents = boxColliderComponent["HalfExtents"].as<glm::vec3>();
-        bcComponent.offset = boxColliderComponent["Offset"].as<glm::vec3>();
-        bcComponent.density = boxColliderComponent["Density"].as<float>();
+        auto pointComponent = entity["PointLightComponent"];
+        if (pointComponent)
+        {
+          auto& pComponent = newEntity.addComponent<PointLightComponent>();
+          pComponent.colour = pointComponent["Colour"].as<glm::vec3>();
+          pComponent.intensity = pointComponent["Intensity"].as<float>();
+          pComponent.radius = pointComponent["Radius"].as<float>();
+          pComponent.castShadows = pointComponent["CastShadows"].as<bool>();
+        }
       }
 
-      auto cylinderColliderComponent = entity["CylinderColliderComponent"];
-      if (cylinderColliderComponent)
       {
-        auto& cComponent = newEntity.addComponent<CylinderColliderComponent>();
-        cComponent.halfHeight = cylinderColliderComponent["HalfHeight"].as<float>();
-        cComponent.radius = cylinderColliderComponent["Radius"].as<float>();
-        cComponent.offset = cylinderColliderComponent["Offset"].as<glm::vec3>();
-        cComponent.density = cylinderColliderComponent["Density"].as<float>();
+        auto dynamicSkyLightComponent = entity["DynamicSkylightComponent"];
+        if (dynamicSkyLightComponent)
+        {
+          auto& dsComponent = newEntity.addComponent<DynamicSkylightComponent>();
+          dsComponent.intensity = dynamicSkyLightComponent["Intensity"].as<float>();
+        }
       }
 
-      auto capsuleColliderComponent = entity["CapsuleColliderComponent"];
-      if (capsuleColliderComponent)
       {
-        auto& cComponent = newEntity.addComponent<CapsuleColliderComponent>();
-        cComponent.halfHeight = capsuleColliderComponent["HalfHeight"].as<float>();
-        cComponent.radius = capsuleColliderComponent["Radius"].as<float>();
-        cComponent.offset = capsuleColliderComponent["Offset"].as<glm::vec3>();
-        cComponent.density = capsuleColliderComponent["Density"].as<float>();
+        auto sphereColliderComponent = entity["SphereColliderComponent"];
+        if (sphereColliderComponent)
+        {
+          auto& scComponent = newEntity.addComponent<SphereColliderComponent>();
+          scComponent.radius = sphereColliderComponent["Radius"].as<float>();
+          scComponent.offset = sphereColliderComponent["Offset"].as<glm::vec3>();
+          scComponent.density = sphereColliderComponent["Density"].as<float>();
+        }
       }
 
-      auto rigidBody3DComponent = entity["RigidBody3DComponent"];
-      if (rigidBody3DComponent)
       {
-        auto& rb3DComponent = newEntity.addComponent<RigidBody3DComponent>();
-        rb3DComponent.type = static_cast<PhysicsEngine::RigidBodyTypes>(rigidBody3DComponent["Type"].as<uint>());
-        rb3DComponent.friction = rigidBody3DComponent["Friction"].as<float>();
-        rb3DComponent.restitution = rigidBody3DComponent["Restitution"].as<float>();
+        auto boxColliderComponent = entity["BoxColliderComponent"];
+        if (boxColliderComponent)
+        {
+          auto& bcComponent = newEntity.addComponent<BoxColliderComponent>();
+          bcComponent.extents = boxColliderComponent["HalfExtents"].as<glm::vec3>();
+          bcComponent.offset = boxColliderComponent["Offset"].as<glm::vec3>();
+          bcComponent.density = boxColliderComponent["Density"].as<float>();
+        }
+      }
+
+      {
+        auto cylinderColliderComponent = entity["CylinderColliderComponent"];
+        if (cylinderColliderComponent)
+        {
+          auto& cComponent = newEntity.addComponent<CylinderColliderComponent>();
+          cComponent.halfHeight = cylinderColliderComponent["HalfHeight"].as<float>();
+          cComponent.radius = cylinderColliderComponent["Radius"].as<float>();
+          cComponent.offset = cylinderColliderComponent["Offset"].as<glm::vec3>();
+          cComponent.density = cylinderColliderComponent["Density"].as<float>();
+        }
+      }
+
+      {
+        auto capsuleColliderComponent = entity["CapsuleColliderComponent"];
+        if (capsuleColliderComponent)
+        {
+          auto& cComponent = newEntity.addComponent<CapsuleColliderComponent>();
+          cComponent.halfHeight = capsuleColliderComponent["HalfHeight"].as<float>();
+          cComponent.radius = capsuleColliderComponent["Radius"].as<float>();
+          cComponent.offset = capsuleColliderComponent["Offset"].as<glm::vec3>();
+          cComponent.density = capsuleColliderComponent["Density"].as<float>();
+        }
+      }
+
+      {
+        auto rigidBody3DComponent = entity["RigidBody3DComponent"];
+        if (rigidBody3DComponent)
+        {
+          auto& rb3DComponent = newEntity.addComponent<RigidBody3DComponent>();
+          rb3DComponent.type = static_cast<PhysicsEngine::RigidBodyTypes>(rigidBody3DComponent["Type"].as<uint>());
+          rb3DComponent.friction = rigidBody3DComponent["Friction"].as<float>();
+          rb3DComponent.restitution = rigidBody3DComponent["Restitution"].as<float>();
+        }
       }
 
       return newEntity;
@@ -1048,10 +1124,26 @@ namespace Strontium
             auto godrayPassData = godrayPass->getInternalDataBlock<GodrayPassDataBlock>();
 
             godrayPassData->enableGodrays = godraySettings["UseGodrays"].as<bool>();
-            godrayPassData->numSteps = godraySettings["NumSteps"].as<uint>();
-            godrayPassData->miePhase = godraySettings["MiePhase"].as<float>();
-            godrayPassData->mieScat = godraySettings["MieScatteringFunction"].as<glm::vec4>();
-            godrayPassData->mieAbs = godraySettings["MieAbsorptionFunction"].as<glm::vec4>();
+            godrayPassData->numZSlices = godraySettings["ZSlices"].as<uint>();
+
+            godrayPassData->ambientColour = godraySettings["AmbientColour"].as<glm::vec3>();
+            godrayPassData->ambientIntensity = godraySettings["AmbientIntensity"].as<float>();
+
+            godrayPassData->applyDepthFog = godraySettings["ApplyDepthFog"].as<bool>();
+            godrayPassData->mieScatteringPhaseDepth.w = godraySettings["DepthPhase"].as<float>();
+            godrayPassData->minDepthDensity = godraySettings["DepthMinDensity"].as<float>();
+            godrayPassData->maxDepthDensity = godraySettings["DepthMaxDensity"].as<float>();
+            godrayPassData->emissionAbsorptionDepth.w = godraySettings["DepthAbsorption"].as<float>();
+            godrayPassData->mieScatteringPhaseDepth = glm::vec4(godraySettings["DepthMieScattering"].as<glm::vec3>(), godrayPassData->mieScatteringPhaseDepth.w);
+            godrayPassData->emissionAbsorptionDepth = glm::vec4(godraySettings["DepthEmission"].as<glm::vec3>(), godrayPassData->emissionAbsorptionDepth.w);
+
+            godrayPassData->applyHeightFog = godraySettings["ApplyHeightFog"].as<bool>();
+            godrayPassData->mieScatteringPhaseHeight.w = godraySettings["HeightPhase"].as<float>();
+            godrayPassData->heightDensity = godraySettings["HeightDensity"].as<float>();
+            godrayPassData->heightFalloff = godraySettings["HeightFalloff"].as<float>();
+            godrayPassData->emissionAbsorptionHeight.w = godraySettings["HeightAbsorption"].as<float>();
+            godrayPassData->mieScatteringPhaseHeight = glm::vec4(godraySettings["HeightMieScattering"].as<glm::vec3>(), godrayPassData->mieScatteringPhaseHeight.w);
+            godrayPassData->emissionAbsorptionHeight = glm::vec4(godraySettings["HeightEmission"].as<glm::vec3>(), godrayPassData->emissionAbsorptionHeight.w);
           }
         }
 

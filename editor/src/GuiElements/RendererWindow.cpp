@@ -36,6 +36,7 @@ namespace Strontium
     , bloomDownSampleView("Bloom Downsample Image Pyramid")
     , bloomUpSampleView1("Bloom Upsample Image Pyramid 1")
     , bloomUpSampleView2("Bloom Upsample Image Pyramid 2")
+    , volumetricView("Volumetric Gather View")
   { }
 
   RendererWindow::~RendererWindow()
@@ -219,48 +220,94 @@ namespace Strontium
       }
     }
 
-    if (ImGui::CollapsingHeader("Screen-Space Godray Pass"))
+    if (ImGui::CollapsingHeader("Unified Volumetric Pass"))
     {
       auto& renderPassManger = Renderer3D::getPassManager();
       auto ssgrPass = renderPassManger.getRenderPass<GodrayPass>();
       auto ssgrBlock = ssgrPass->getInternalDataBlock<GodrayPassDataBlock>();
-      float width = static_cast<float>(ssgrBlock->godrays.getWidth());
-      float height = static_cast<float>(ssgrBlock->godrays.getHeight());
+      float width = static_cast<float>(ssgrBlock->scatExtinction.getWidth());
+      float height = static_cast<float>(ssgrBlock->scatExtinction.getHeight());
       float ratio = width / height;
 
-      ImGui::Checkbox("Enable Godrays", &ssgrBlock->enableGodrays);
-
+      ImGui::Checkbox("Enable Volumetrics", &ssgrBlock->enableGodrays);
       ImGui::Separator();
+
       ImGui::Text("Frametime: %f ms", ssgrBlock->frameTime);
       ImGui::Separator();
 
-      ImGui::Separator();
-      int numSteps = static_cast<int>(ssgrBlock->numSteps);
-      ImGui::SliderInt("Number of Steps", &numSteps, 1, 128);
-      ssgrBlock->numSteps = static_cast<uint>(numSteps);
+      ImGui::Checkbox("Enable TAA", &ssgrBlock->taaVolume);
       ImGui::Separator();
 
-      Styles::drawFloatControl("Mie Phase", 0.8f, ssgrBlock->miePhase, 0.0f, 0.01f, -1.0f, 1.0f);
-      glm::vec3 mieScattering(ssgrBlock->mieScat);
-      float mieScatteringDensity = ssgrBlock->mieScat.w;
-      Styles::drawVec3Controls("Mie Scattering", glm::vec3(1.0f), mieScattering);
-      Styles::drawFloatControl("Mie Scattering Density", 1.0f, mieScatteringDensity);
-      ssgrBlock->mieScat = glm::max(glm::vec4(mieScattering, mieScatteringDensity), glm::vec4(0.0f));
-      glm::vec3 mieAbsorption(ssgrBlock->mieAbs);
-      float mieAbsorptionDensity = ssgrBlock->mieAbs.w;
-      Styles::drawVec3Controls("Mie Absorption", glm::vec3(1.0f), mieAbsorption);
-      Styles::drawFloatControl("Mie Absorption Density", 1.0f, mieAbsorptionDensity);
-      ssgrBlock->mieAbs = glm::max(glm::vec4(mieAbsorption, mieAbsorptionDensity), glm::vec4(0.0f));
+      ImGui::ColorEdit3("Fog Ambient Colour", &ssgrBlock->ambientColour.r);
+      ImGui::DragFloat("Fog Ambient Intensity", &ssgrBlock->ambientIntensity, 0.01f, 0.0f, 10.0f);
+      ImGui::Separator();
 
-      static bool showGodrayTexture = false;
-      ImGui::Checkbox("Show Godray Texture", &showGodrayTexture);
-
-      if (showGodrayTexture)
+      ImGui::Checkbox("Apply Depth Fog", &ssgrBlock->applyDepthFog);
+      if (ssgrBlock->applyDepthFog)
       {
-        ImGui::Text("Godray Texture");
-        ImGui::Image(reinterpret_cast<ImTextureID>(ssgrBlock->godrays.getID()),
-                     ImVec2(128.0f * ratio, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
+        float phase = ssgrBlock->mieScatteringPhaseDepth.w;
+        float absorption = ssgrBlock->emissionAbsorptionDepth.w;
+        auto scattering = glm::vec3(ssgrBlock->mieScatteringPhaseDepth);
+        auto emission = glm::vec3(ssgrBlock->emissionAbsorptionDepth);
+
+        ImGui::PushID("DepthFogVolume");
+        Styles::drawFloatControl("Phase", 0.0f, phase, 0.0f, 0.01f, -1.0f, 1.0f);
+        Styles::drawFloatControl("Minimum Density", 1.0f, ssgrBlock->minDepthDensity, 0.0f, 0.01f, 0.0f, 100.0f);
+        Styles::drawFloatControl("Maximum Density", 1.0f, ssgrBlock->maxDepthDensity, 0.0f, 0.01f, 0.0f, 100.0f);
+        Styles::drawFloatControl("Absorption", 1.0f, absorption, 0.0f, 0.01f, 0.0f, 100.0f);
+        Styles::drawVec3Controls("Scattering", glm::vec3(1.0f), scattering, 0.0f, 0.1f, 0.0f, 100.0f);
+        Styles::drawVec3Controls("Emission", glm::vec3(0.0f), emission, 0.0f, 0.1f, 0.0f, 100.0f);
+        ImGui::PopID();
+
+        ssgrBlock->mieScatteringPhaseDepth = glm::vec4(scattering, phase);
+        ssgrBlock->emissionAbsorptionDepth = glm::vec4(emission, absorption);
       }
+
+      ImGui::Checkbox("Apply Height Fog", &ssgrBlock->applyHeightFog);
+      if (ssgrBlock->applyHeightFog)
+      {
+        float phase = ssgrBlock->mieScatteringPhaseHeight.w;
+        float absorption = ssgrBlock->emissionAbsorptionHeight.w;
+        auto scattering = glm::vec3(ssgrBlock->mieScatteringPhaseHeight);
+        auto emission = glm::vec3(ssgrBlock->emissionAbsorptionHeight);
+
+        ImGui::PushID("DepthFogVolume");
+        Styles::drawFloatControl("Phase", 0.0f, phase, 0.0f, 0.01f, -1.0f, 1.0f);
+        Styles::drawFloatControl("Density", 1.0f, ssgrBlock->heightDensity, 0.0f, 0.01f, 0.0f, 100.0f);
+        Styles::drawFloatControl("Density Falloff", 1.0f, ssgrBlock->heightFalloff, 0.0f, 0.01f, 0.0f, 100.0f);
+        Styles::drawFloatControl("Absorption", 1.0f, absorption, 0.0f, 0.01f, 0.0f, 100.0f);
+        Styles::drawVec3Controls("Scattering", glm::vec3(1.0f), scattering, 0.0f, 0.1f, 0.0f, 100.0f);
+        Styles::drawVec3Controls("Emission", glm::vec3(0.0f), emission, 0.0f, 0.1f, 0.0f, 100.0f);
+        ImGui::PopID();
+
+        ssgrBlock->mieScatteringPhaseHeight = glm::vec4(scattering, phase);
+        ssgrBlock->emissionAbsorptionHeight = glm::vec4(emission, absorption);
+      }
+
+      ImGui::Separator();
+      int zSlices = static_cast<int>(ssgrBlock->numZSlices);
+      if (ImGui::InputInt("Depth Slices", &zSlices))
+      {
+        zSlices = zSlices > 1024 ? 1024 : zSlices;
+        zSlices = zSlices < 32 ? 32 : zSlices;
+
+        // Compute the next or previous power of 2 and set the int to that.
+        if (zSlices - static_cast<int>(ssgrBlock->numZSlices) < 0)
+          zSlices = std::pow(2, std::floor(std::log2(zSlices)));
+        else if (zSlices - static_cast<int>(ssgrBlock->numZSlices) > 0)
+          zSlices = std::pow(2, std::floor(std::log2(zSlices)) + 1);
+
+        zSlices = std::pow(2, std::floor(std::log2(zSlices)));
+        ssgrBlock->numZSlices = static_cast<uint>(zSlices);
+
+        ssgrPass->updatePassData();
+      }
+      ImGui::Separator();
+
+      static bool showGather = false;
+      ImGui::Checkbox("Show Gather Volume Texture", &showGather);
+      if (showGather)
+        this->volumetricView.texture3DImage(ssgrBlock->finalGather, ImVec2(128.0f * ratio, 128.0f));
     }
 
     if (ImGui::CollapsingHeader("Sky Atmosphere Pass"))

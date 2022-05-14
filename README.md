@@ -6,9 +6,9 @@ Strontium
 <p align="center"> Yet another open-source C++17 game engine using OpenGL. </p>
 This project started while I was taking a class on intermediate computer graphics, but has spiraled out of control to become something far more than just a practice repo.
 
-![test](https://github.com/ksawatzky777/SciRender/blob/main/media/testscene.png)
+![test](https://github.com/ksawatzky777/Strontium/blob/main/media/testscene.png)
 
-![sponza](https://github.com/ksawatzky777/SciRender/blob/main/media/sponza.png)
+![sponza](https://github.com/ksawatzky777/Strontium/blob/main/media/sponza.png)
 
 ### <h1 align="center">Current Features</h1>
 - Graphics:
@@ -17,6 +17,8 @@ This project started while I was taking a class on intermediate computer graphic
   - Dynamic image-based lighting for the skyboxes mentioned above.
   - Directional lights with support for a single light with cascaded shadows.
   - A variety of shadow quality options which include percentage-closer soft shadows.
+  - Unified volumetrics for fog and haze.
+    - Supports bounding box fog volumes, depth-based fog, and exponential height fog.
   - Horizon-based ambient occlusion.
   - Physically-based materials using a metallic workflow.
   - HDR rendering.
@@ -31,7 +33,7 @@ This project started while I was taking a class on intermediate computer graphic
 - Other:
   - Custom scene serialization and loading.
   - Custom material serialization and loading.
-  - A syncable prefab system for rapid scene prototyping.
+  - A syncable prefab system for rapid scene prototyping. Currently a WIP.
   - Multithreaded asset loading for many supported model formats (using Assimp) and images.
   - A modern editor (with docking) designed with rapid prototyping in mind.
   - And lots more!
@@ -42,7 +44,6 @@ This project started while I was taking a class on intermediate computer graphic
   - Many point and spot lights through tiled light culling.
   - Analytical area lights.
   - Transparent object support.
-  - Unified volumetrics for fog, clouds and haze.
   - Screen-space glossy reflections.
   - Screen-space voxel global illumination.
   - Point and spot light shadow maps.

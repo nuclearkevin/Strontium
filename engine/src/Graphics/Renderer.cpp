@@ -44,6 +44,7 @@ namespace Strontium::Renderer3D
     // Initialize OpenGL parameters.
     RendererCommands::enable(RendererFunction::DepthTest);
     RendererCommands::enable(RendererFunction::CubeMapSeamless);
+    RendererCommands::enable(RendererFunction::CullFaces);
 
     // Setup global storage which gets used by multiple passes.
     rendererData = new GlobalRendererData();
@@ -130,13 +131,57 @@ namespace Strontium::Renderer3D
   void
   begin(uint width, uint height, const Camera &sceneCamera, float dt)
   {
+    // Set the previous frame's data.
+    rendererData->previousCamera = rendererData->sceneCam;
+    rendererData->previousCamFrustum = rendererData->camFrustum;
+
     // Set the camera.
     rendererData->sceneCam = sceneCamera;
     rendererData->camFrustum = buildCameraFrustum(sceneCamera);
 
-    rendererData->time += dt;
-    // Handle overflows.
-    rendererData->time = glm::max(rendererData->time, 0.0f);
+    // Setup the camera uniforms.
+	struct CameraBlockData
+	{
+	  glm::mat4 viewMatrix;
+      glm::mat4 projMatrix;
+      glm::mat4 invViewProjMatrix;
+      glm::vec4 camPosition; // w unused
+      glm::vec4 nearFar; // Near plane (x), far plane (y), gamma correction factor (z). w is unused.
+	} 
+	  cameraBlock 
+	{ 
+      rendererData->sceneCam.view,
+      rendererData->sceneCam.projection,
+      rendererData->sceneCam.invViewProj,
+      { rendererData->sceneCam.position, 0.0 },
+      { rendererData->sceneCam.near,
+        rendererData->sceneCam.far, rendererData->gamma, 0.0 }
+	};
+    rendererData->cameraBuffer.setData(0, sizeof(CameraBlockData), &cameraBlock);
+
+    // Parameters for temporal integration.
+    rendererData->time++;
+    if (rendererData->time > 511u)
+     rendererData->time = 0u;
+
+    // Upload data required for temporal AA.
+    struct TemporalBlockData
+    {
+      glm::mat4 previousView;
+      glm::mat4 previousProj;
+      glm::mat4 previousVP;
+      glm::mat4 previousInvVP;
+      glm::vec4 previousPosTime;
+    }
+      temporalBlock
+    {
+      rendererData->previousCamera.view,
+      rendererData->previousCamera.projection,
+      rendererData->previousCamera.projection * rendererData->previousCamera.view,
+      rendererData->previousCamera.invViewProj,
+      { rendererData->previousCamera.position, static_cast<float>(rendererData->time) }
+    };
+    rendererData->temporalBuffer.setData(0, sizeof(TemporalBlockData), &temporalBlock);
 
     // Resize the global buffers.
     if (static_cast<uint>(rendererData->lightingBuffer.getWidth()) != width ||
@@ -231,6 +276,28 @@ namespace Strontium::DebugRenderer
   void 
   begin(uint width, uint height, const Camera &sceneCamera)
   {
+    rendererData->sceneCam = sceneCamera;
+
+    // Setup the camera uniforms.
+	struct CameraBlockData
+	{
+	  glm::mat4 viewMatrix;
+      glm::mat4 projMatrix;
+      glm::mat4 invViewProjMatrix;
+      glm::vec4 camPosition; // w unused
+      glm::vec4 nearFar; // Near plane (x), far plane (y), gamma correction factor (z). w is unused.
+	} 
+	  cameraBlock 
+	{ 
+      rendererData->sceneCam.view,
+      rendererData->sceneCam.projection,
+      rendererData->sceneCam.invViewProj,
+      { rendererData->sceneCam.position, 0.0 },
+      { rendererData->sceneCam.near,
+        rendererData->sceneCam.far, 2.2f, 0.0 }
+	};
+    rendererData->cameraBuffer.setData(0, sizeof(CameraBlockData), &cameraBlock);
+
     // Prep the renderpasses.
     passManager->onRendererBegin(width, height);
   }

@@ -31,14 +31,16 @@ namespace Strontium::PhysicsEngine
             !(!owningEntity.hasComponent<RigidBody3DComponent>() || !owningEntity.hasComponent<TransformComponent>())));
     assert(("JPH::BodyInterface* was null.", owningInterface));
 
-    /*
-    if (owningEntity.hasComponent<ParentEntityComponent>())
+    Entity parent = owningEntity.hasComponent<ParentEntityComponent>() ? owningEntity.getComponent<ParentEntityComponent>().parent : Entity();
+    if (parent)
     {
-      Logs::log("Warning: Entities with parents cannot be physics objects.");
-      newActor.valid = false;
-      return PhysicsActor();
+      if (static_cast<Scene*>(parent)->hierarchyHasComponent<RigidBody3DComponent>(parent))
+      {
+        Logs::log("Warning: Actors cannot have parents with RigidBody components.");
+        newActor.valid = false;
+        return newActor;
+      }
     }
-    */
 
     JPH::ShapeRefC shapeRef;
     glm::vec3 offset(0.0f);

@@ -106,7 +106,6 @@ namespace Strontium
 	Shader* staticEditor;
 	Shader* dynamicEditor;
 
-	UniformBuffer cameraBuffer;
 	UniformBuffer perDrawUniforms;
 
 	ShaderStorageBuffer entityDataBuffer;
@@ -132,7 +131,6 @@ namespace Strontium
 	  , dynamicGeometry(nullptr)
 	  , staticEditor(nullptr)
 	  , dynamicEditor(nullptr)
-      , cameraBuffer(3 * sizeof(glm::mat4) + 2 * sizeof(glm::vec4), BufferType::Dynamic)
 	  , perDrawUniforms(sizeof(int), BufferType::Dynamic)
 	  , entityDataBuffer(0, BufferType::Dynamic)
 	  , boneBuffer(MAX_BONES_PER_MODEL * sizeof(glm::mat4), BufferType::Dynamic)

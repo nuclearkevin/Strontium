@@ -112,6 +112,7 @@ namespace Strontium
 
     // Run the Strontium render pipeline for each shadow cascade.
     static_cast<Renderer3D::GlobalRendererData*>(this->globalBlock)->blankVAO.bind();
+    //RendererCommands::cullType(FaceType::Front);
     for (uint i = 0; i < NUM_CASCADES; i++)
     {
       this->passData.lightSpaceBuffer.setData(0, sizeof(glm::mat4), glm::value_ptr(this->passData.cascades[i]));
@@ -168,6 +169,7 @@ namespace Strontium
         this->passData.numTrianglesDrawn += (drawable.instanceCount * drawable.numToRender) / 3;
       }
     }
+    //RendererCommands::cullType(FaceType::Back);
     this->passData.dynamicShadow->unbind();
     this->passData.shadowBuffers[NUM_CASCADES - 1].unbind();
   }

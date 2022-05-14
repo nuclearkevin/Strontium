@@ -57,7 +57,7 @@ namespace Strontium
     // Bind the depth GBuffer attachment.
     geometryBlock->gBuffer.bindAttachment(FBOTargetParam::Depth, 0);
     // Bind the camera block.
-    geometryBlock->cameraBuffer.bindToPoint(0);
+    rendererData->cameraBuffer.bindToPoint(0);
 
     auto dynamicSkyBlock = this->previousSkyAtmoPass->getInternalDataBlock<SkyAtmospherePassDataBlock>();
     // Bind the dynamic sky buffers required to apply the skybox.

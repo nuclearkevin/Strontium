@@ -429,7 +429,7 @@ namespace Strontium
 
     // Set the parameters after generating the texture.
     void setSize(uint width, uint height, uint depth);
-    void setParams(const Texture3DParams& newParams);
+    void setParams(const Texture3DParams &newParams);
 
     // Bind/unbind the texture.
     void bind();
@@ -441,6 +441,9 @@ namespace Strontium
     void bindAsImage(uint bindPoint, uint miplevel, bool isLayered,
                      uint layer, ImageAccessPolicy policy);
 
+    int getWidth() const { return this->width; }
+    int getHeight() const { return this->height; }
+    int getDepth() const { return this->depth; }
     uint& getID() { return this->textureID; }
   private:
     uint textureID;

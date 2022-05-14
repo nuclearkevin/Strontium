@@ -79,7 +79,7 @@ namespace Strontium
     this->previousHiZPass->getInternalDataBlock<HiZPassDataBlock>()->hierarchicalDepth.bind(0);
 
     // Bind the camera block.
-    geometryBlock->cameraBuffer.bindToPoint(0);
+    rendererData->cameraBuffer.bindToPoint(0);
 
     // Bind the BRDF LUT.
     this->passData.brdfLUT.bind(7);
