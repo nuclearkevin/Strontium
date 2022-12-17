@@ -391,6 +391,22 @@ namespace Strontium
         out << YAML::EndMap;
       }
 
+      if (entity.hasComponent<SphereFogVolumeComponent>())
+      {
+        out << YAML::Key << "SphereFogVolumeComponent";
+        out << YAML::BeginMap;
+
+        auto& component = entity.getComponent<SphereFogVolumeComponent>();
+        out << YAML::Key << "Radius" << YAML::Value << component.radius;
+        out << YAML::Key << "Phase" << YAML::Value << component.phase;
+        out << YAML::Key << "Density" << YAML::Value << component.density;
+        out << YAML::Key << "Absorption" << YAML::Value << component.absorption;
+        out << YAML::Key << "MieScattering" << YAML::Value << component.mieScattering;
+        out << YAML::Key << "Emission" << YAML::Value << component.emission;
+
+        out << YAML::EndMap;
+      }
+
       if (entity.hasComponent<DirectionalLightComponent>())
       {
         out << YAML::Key << "DirectionalLightComponent";
@@ -956,6 +972,20 @@ namespace Strontium
           bfvComponent.absorption = boxFogVolumeComponent["Absorption"].as<float>();
           bfvComponent.mieScattering = boxFogVolumeComponent["MieScattering"].as<glm::vec3>();
           bfvComponent.emission = boxFogVolumeComponent["Emission"].as<glm::vec3>();
+        }
+      }
+
+      {
+        auto sphereFogVolumeComponent = entity["SphereFogVolumeComponent"];
+        if (sphereFogVolumeComponent)
+        {
+          auto& sfvComponent = newEntity.addComponent<SphereFogVolumeComponent>();
+          sfvComponent.radius = sphereFogVolumeComponent["Radius"].as<float>();
+          sfvComponent.phase = sphereFogVolumeComponent["Phase"].as<float>();
+          sfvComponent.density = sphereFogVolumeComponent["Density"].as<float>();
+          sfvComponent.absorption = sphereFogVolumeComponent["Absorption"].as<float>();
+          sfvComponent.mieScattering = sphereFogVolumeComponent["MieScattering"].as<glm::vec3>();
+          sfvComponent.emission = sphereFogVolumeComponent["Emission"].as<glm::vec3>();
         }
       }
 

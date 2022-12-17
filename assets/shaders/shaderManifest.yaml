@@ -64,6 +64,8 @@ ShaderCache:
     Filepath: ./assets/shaders/compute/volumetric/populateVolumetric.glsl
   - Handle: light_froxels
     Filepath: ./assets/shaders/compute/volumetric/lightVolumetric.glsl
+  - Handle: light_froxels_shadowed
+    Filepath: ./assets/shaders/compute/volumetric/lightVolumetricS.glsl
   - Handle: taa_froxels
     Filepath: ./assets/shaders/compute/volumetric/volumeTAA.glsl
   - Handle: gather_froxels

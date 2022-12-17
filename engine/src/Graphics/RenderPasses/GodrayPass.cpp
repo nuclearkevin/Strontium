@@ -116,6 +116,7 @@ namespace Strontium
 
     // Clear the fog volumes.
     this->passData.obbVolumes.clear();
+    this->passData.sphereVolumes.clear();
 
     this->passData.hasGodrays = false;
   }
@@ -135,10 +136,14 @@ namespace Strontium
     auto rendererData = static_cast<Renderer3D::GlobalRendererData*>(this->globalBlock);
     auto shadowBlock = this->previousShadowPass->getInternalDataBlock<ShadowPassDataBlock>();
 
-    // Resize the SSBO for the fog volume data.
+    // Resize the SSBOs for the fog volume data.
     this->passData.obbFogBuffer.resize(this->passData.obbVolumes.size() * sizeof(OBBFogVolume), BufferType::Dynamic);
     this->passData.obbFogBuffer.setData(0, this->passData.obbVolumes.size() * sizeof(OBBFogVolume), this->passData.obbVolumes.data());
     this->passData.obbFogBuffer.bindToPoint(0);
+
+    this->passData.sphereFogBuffer.resize(this->passData.sphereVolumes.size() * sizeof(SphereFogVolume), BufferType::Dynamic);
+    this->passData.sphereFogBuffer.setData(0, this->passData.sphereVolumes.size() * sizeof(SphereFogVolume), this->passData.sphereVolumes.data());
+    this->passData.sphereFogBuffer.bindToPoint(1);
 
     // Bind the camera block.
     rendererData->cameraBuffer.bindToPoint(0);
@@ -168,7 +173,7 @@ namespace Strontium
       { glm::vec3(dirLightBlock->primaryLight.directionSize), 0.0f },
       { dirLightBlock->primaryLight.colourIntensity },
       { this->passData.ambientColour, this->passData.ambientIntensity },
-      { this->passData.obbVolumes.size(), 0, 0, 0 }
+      { this->passData.obbVolumes.size(), 0, this->passData.sphereVolumes.size(), 0 }
     };
 
     // Bitflags. Bit 1 is if a global depth-based fog should be applied. 
@@ -205,16 +210,20 @@ namespace Strontium
     this->passData.scatExtinction.bind(0);
     this->passData.emissionPhase.bind(1);
 
-    // Bind the shadow maps.
-    for (uint i = 0; i < NUM_CASCADES; i++)
-      shadowBlock->shadowBuffers[i].bindTextureID(FBOTargetParam::Depth, 3 + i);
-
-    // Bind the shadow params buffer.
-    dirLightBlock->cascadedShadowBlock.bindToPoint(2);
+    // Bind directional light shadow maps and parameters.
+    if (dirLightBlock->castShadows)
+    {
+      for (uint i = 0; i < NUM_CASCADES; i++)
+        shadowBlock->shadowBuffers[i].bindTextureID(FBOTargetParam::Depth, 3 + i);
+      dirLightBlock->cascadedShadowBlock.bindToPoint(2);
+    }
 
     // Light the froxels.
     this->passData.lightExtinction.bindAsImage(0, 0, true, 0, ImageAccessPolicy::Write);
-    ShaderCache::getShader("light_froxels")->launchCompute(iFWidth, iFHeight, this->passData.numZSlices);
+    if (dirLightBlock->castShadows)
+      ShaderCache::getShader("light_froxels_shadowed")->launchCompute(iFWidth, iFHeight, this->passData.numZSlices);
+    else
+      ShaderCache::getShader("light_froxels")->launchCompute(iFWidth, iFHeight, this->passData.numZSlices);
     Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
 
     // Temporally AA the froxel lighting buffer.
@@ -264,5 +273,11 @@ namespace Strontium
   GodrayPass::submit(const OBBFogVolume &fogVolume)
   {
     this->passData.obbVolumes.emplace_back(fogVolume);
+  }
+
+  void 
+  GodrayPass::submit(const SphereFogVolume& fogVolume)
+  {
+    this->passData.sphereVolumes.emplace_back(fogVolume);
   }
 }
