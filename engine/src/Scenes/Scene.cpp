@@ -334,6 +334,7 @@ namespace Strontium
     }
 
     // TODO: Point light pass.
+    /*
     auto pointLight = this->sceneECS.group<PointLightComponent>(entt::get<TransformComponent>);
     for (auto entity : pointLight)
     {
@@ -346,6 +347,7 @@ namespace Strontium
       if (currentEntity.hasComponent<ParentEntityComponent>())
         transformMatrix = computeGlobalTransform(currentEntity);
     }
+    */
 
     // Group together the transform and renderable components.
     auto drawables = this->sceneECS.group<RenderableComponent>(entt::get<TransformComponent>);
@@ -419,12 +421,22 @@ namespace Strontium
     }
 
     // Group together and submit fog volumes.
+    // Box.
     auto obbFog = this->sceneECS.group<BoxFogVolumeComponent>(entt::get<TransformComponent>);
     for (auto entity : obbFog)
     {
       auto [transform, boxFog] = obbFog.get<TransformComponent, BoxFogVolumeComponent>(entity);
       godray->submit(OBBFogVolume(boxFog.phase, boxFog.density, boxFog.absorption, 
                                   boxFog.mieScattering, boxFog.emission, static_cast<glm::mat4>(transform)));
+    }
+    // Sphere.
+    auto sFog = this->sceneECS.group<SphereFogVolumeComponent>(entt::get<TransformComponent>);
+    for (auto entity : sFog)
+    {
+      auto [transform, sphereFog] = sFog.get<TransformComponent, SphereFogVolumeComponent>(entity);
+      godray->submit(SphereFogVolume(sphereFog.phase, sphereFog.density, sphereFog.absorption,
+                                     sphereFog.mieScattering, sphereFog.emission, transform.translation, 
+                                     sphereFog.radius));
     }
 
     postProc->getInternalDataBlock<PostProcessingPassDataBlock>()->drawOutline = drawOutline;
@@ -479,6 +491,7 @@ namespace Strontium
     }
 
     // TODO: Point light pass.
+    /*
     auto pointLight = this->sceneECS.group<PointLightComponent>(entt::get<TransformComponent>);
     for (auto entity : pointLight)
     {
@@ -491,6 +504,7 @@ namespace Strontium
       if (currentEntity.hasComponent<ParentEntityComponent>())
         transformMatrix = computeGlobalTransform(currentEntity);
     }
+    */
 
     // Group together the transform and renderable components.
     auto drawables = this->sceneECS.group<RenderableComponent>(entt::get<TransformComponent>);
@@ -559,12 +573,22 @@ namespace Strontium
     }
 
     // Group together and submit fog volumes.
+    // Box.
     auto obbFog = this->sceneECS.group<BoxFogVolumeComponent>(entt::get<TransformComponent>);
     for (auto entity : obbFog)
     {
       auto [transform, boxFog] = obbFog.get<TransformComponent, BoxFogVolumeComponent>(entity);
       godray->submit(OBBFogVolume(boxFog.phase, boxFog.density, boxFog.absorption, 
                                   boxFog.mieScattering, boxFog.emission, static_cast<glm::mat4>(transform)));
+    }
+    // Sphere.
+    auto sFog = this->sceneECS.group<SphereFogVolumeComponent>(entt::get<TransformComponent>);
+    for (auto entity : sFog)
+    {
+      auto [transform, sphereFog] = sFog.get<TransformComponent, SphereFogVolumeComponent>(entity);
+      godray->submit(SphereFogVolume(sphereFog.phase, sphereFog.density, sphereFog.absorption,
+                                     sphereFog.mieScattering, sphereFog.emission, transform.translation, 
+                                     sphereFog.radius));
     }
 
     postProc->getInternalDataBlock<PostProcessingPassDataBlock>()->drawOutline = false;

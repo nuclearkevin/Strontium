@@ -38,6 +38,7 @@ namespace Strontium
     glm::uvec2 bufferSize;
 
     ShaderStorageBuffer obbFogBuffer;
+    ShaderStorageBuffer sphereFogBuffer;
 
     UniformBuffer godrayParamsBuffer;
 
@@ -61,12 +62,14 @@ namespace Strontium
 
     // Fog volumes.
     std::vector<OBBFogVolume> obbVolumes;
+    std::vector<SphereFogVolume> sphereVolumes;
 
     // Some statistics to display.
     float frameTime;
 
     GodrayPassDataBlock()
       : obbFogBuffer(0, BufferType::Dynamic)
+      , sphereFogBuffer(0, BufferType::Dynamic)
       , godrayParamsBuffer(10 * sizeof(glm::vec4), BufferType::Dynamic)
       , resolveFlag(false)
       , taaVolume(true)
@@ -109,6 +112,7 @@ namespace Strontium
 
     // Submit fog volumes.
     void submit(const OBBFogVolume &fogVolume);
+    void submit(const SphereFogVolume& fogVolume);
 
   private:
     GodrayPassDataBlock passData;

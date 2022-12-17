@@ -312,6 +312,27 @@ namespace Strontium
     { }
   };
 
+  struct SphereFogVolumeComponent
+  {
+    float phase;
+    float density; // Multiplied by the coefficients.
+    float absorption;
+    float radius;
+    glm::vec3 mieScattering;
+    glm::vec3 emission;
+
+    SphereFogVolumeComponent(const SphereFogVolumeComponent&) = default;
+
+    SphereFogVolumeComponent()
+        : phase(0.8f)
+        , density(0.01f)
+        , absorption(1.0f)
+        , radius(1.0f)
+        , mieScattering(0.1f)
+        , emission(0.0f)
+    { }
+  };
+
   // TODO: Finish these.
   // Various light components for rendering the scene.
   struct DirectionalLightComponent
