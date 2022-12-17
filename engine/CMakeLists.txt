@@ -41,12 +41,28 @@ GroupSourcesByFolder(Strontium)
 set_property(TARGET Strontium PROPERTY VS_DEBUGGER_WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/engine)
 set_target_properties(Strontium PROPERTIES FOLDER engine)
 
-target_compile_definitions(Strontium
+if (WIN32)
+    target_compile_definitions(Strontium
     PUBLIC
     "_CRT_SECURE_NO_WARNINGS"
     "GLM_FORCE_RADIANS"
+    "SR_WINDOWS"
     ${PLATFORM_COMPILE_DEFS}
 
     $<$<CONFIG:Debug>:SR_DEBUG>
     $<$<CONFIG:Release>:SR_RELEASE>
-)
+    )
+endif (WIN32)
+
+if (UNIX)
+    target_compile_definitions(Strontium
+    PUBLIC
+    "_CRT_SECURE_NO_WARNINGS"
+    "GLM_FORCE_RADIANS"
+    "SR_UNIX"
+    ${PLATFORM_COMPILE_DEFS}
+
+    $<$<CONFIG:Debug>:SR_DEBUG>
+    $<$<CONFIG:Release>:SR_RELEASE>
+    )
+endif (UNIX)

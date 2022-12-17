@@ -4,6 +4,19 @@
 #include "glad/glad.h"
 #include <GLFW/glfw3.h>
 
+// Force dedicated graphics.
+#ifdef SR_WINDOWS
+extern "C"
+{
+    __declspec(dllexport) unsigned long NvOptimusEnablement = 0x00000001;
+    __declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 1;
+}
+#endif // SR_WINDOWS
+
+#ifdef SR_UNIX
+
+#endif // SR_UNIX
+
 namespace Strontium
 {
   // Generic constructor / destructor pair.

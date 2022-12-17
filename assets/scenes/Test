@@ -1,0 +1,1347 @@
+Scene: Test
+Entities:
+  - EntityID: 3
+    NameComponent:
+      Name: New Entity
+      Description: ""
+    TransformComponent:
+      Translation: [5.95888233, 1.10087228, 2.94225955]
+      Rotation: [0, 0.469830304, 0]
+      Scale: [0.999994278, 1, 0.999994278]
+    BoxFogVolumeComponent:
+      Phase: 0.800000012
+      Density: 1
+      Absorption: 1
+      MieScattering: [1, 0, 0]
+      Emission: [97.9000015, 0, 0]
+  - EntityID: 2
+    NameComponent:
+      Name: Fog
+      Description: ""
+    TransformComponent:
+      Translation: [0, 4.26797199, 0]
+      Rotation: [0, -0, 0]
+      Scale: [12.721776, 5.43615818, 5.84448385]
+    BoxFogVolumeComponent:
+      Phase: 0
+      Density: 0.0599999987
+      Absorption: 10.3699999
+      MieScattering: [1, 1, 1]
+      Emission: [0, 0, 0]
+  - EntityID: 1
+    NameComponent:
+      Name: Sponza
+      Description: ""
+    TransformComponent:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    RenderableComponent:
+      ModelPath: ./assets/models/Sponza\Sponza.gltf
+      ModelName: Sponza.gltf
+      CurrentAnimation: None
+      Material:
+        - SubmeshName: meshes[0]-53.meshes[0]-0
+          MaterialHandle: meshes[0]-53.meshes[0]-0
+        - SubmeshName: meshes[0]-81.meshes[0]-83.meshes[0]-85.meshes[0]-87.meshes[0]-89.meshes[0]-91.meshes[0]-93.meshes[0]-1
+          MaterialHandle: meshes[0]-81.meshes[0]-83.meshes[0]-85.meshes[0]-87.meshes[0]-89.meshes[0]-91.meshes[0]-93.meshes[0]-1
+        - SubmeshName: meshes[0]-82.meshes[0]-94.meshes[0]-84.meshes[0]-92.meshes[0]-86.meshes[0]-90.meshes[0]-88.meshes[0]-2
+          MaterialHandle: meshes[0]-82.meshes[0]-94.meshes[0]-84.meshes[0]-92.meshes[0]-86.meshes[0]-90.meshes[0]-88.meshes[0]-2
+        - SubmeshName: meshes[0]-99.meshes[0]-97.meshes[0]-3
+          MaterialHandle: meshes[0]-99.meshes[0]-97.meshes[0]-3
+        - SubmeshName: meshes[0]-13.meshes[0]-15.meshes[0]-35.meshes[0]-100.meshes[0]-37.meshes[0]-39.meshes[0]-41.meshes[0]-43.meshes[0]-45.meshes[0]-51.meshes[0]-102.meshes[0]-4
+          MaterialHandle: meshes[0]-13.meshes[0]-15.meshes[0]-35.meshes[0]-100.meshes[0]-37.meshes[0]-39.meshes[0]-41.meshes[0]-43.meshes[0]-45.meshes[0]-51.meshes[0]-102.meshes[0]-4
+        - SubmeshName: meshes[0]-8.meshes[0]-11.meshes[0]-16.meshes[0]-18.meshes[0]-20.meshes[0]-22.meshes[0]-24.meshes[0]-26.meshes[0]-28.meshes[0]-30.meshes[0]-32.meshes[0]-34.meshes[0]-36.meshes[0]-48.meshes[0]-5
+          MaterialHandle: meshes[0]-8.meshes[0]-11.meshes[0]-16.meshes[0]-18.meshes[0]-20.meshes[0]-22.meshes[0]-24.meshes[0]-26.meshes[0]-28.meshes[0]-30.meshes[0]-32.meshes[0]-34.meshes[0]-36.meshes[0]-48.meshes[0]-5
+        - SubmeshName: meshes[0]-10.meshes[0]-14.meshes[0]-17.meshes[0]-19.meshes[0]-21.meshes[0]-23.meshes[0]-25.meshes[0]-27.meshes[0]-29.meshes[0]-31.meshes[0]-33.meshes[0]-6
+          MaterialHandle: meshes[0]-10.meshes[0]-14.meshes[0]-17.meshes[0]-19.meshes[0]-21.meshes[0]-23.meshes[0]-25.meshes[0]-27.meshes[0]-29.meshes[0]-31.meshes[0]-33.meshes[0]-6
+        - SubmeshName: meshes[0]-47.meshes[0]-7
+          MaterialHandle: meshes[0]-47.meshes[0]-7
+        - SubmeshName: meshes[0]-76.meshes[0]-80.meshes[0]-78.meshes[0]-74
+          MaterialHandle: meshes[0]-76.meshes[0]-80.meshes[0]-78.meshes[0]-74
+        - SubmeshName: meshes[0]-46.meshes[0]-9
+          MaterialHandle: meshes[0]-46.meshes[0]-9
+        - SubmeshName: meshes[0]-56.meshes[0]-60
+          MaterialHandle: meshes[0]-56.meshes[0]-60
+        - SubmeshName: meshes[0]-75.meshes[0]-77.meshes[0]-79.meshes[0]-73
+          MaterialHandle: meshes[0]-75.meshes[0]-77.meshes[0]-79.meshes[0]-73
+        - SubmeshName: meshes[0]-44.meshes[0]-12
+          MaterialHandle: meshes[0]-44.meshes[0]-12
+        - SubmeshName: meshes[0]-96.meshes[0]-98
+          MaterialHandle: meshes[0]-96.meshes[0]-98
+        - SubmeshName: meshes[0]-57.meshes[0]-54.meshes[0]-59
+          MaterialHandle: meshes[0]-57.meshes[0]-54.meshes[0]-59
+        - SubmeshName: meshes[0]-49
+          MaterialHandle: meshes[0]-49
+        - SubmeshName: meshes[0]-69.meshes[0]-63.meshes[0]-72
+          MaterialHandle: meshes[0]-69.meshes[0]-63.meshes[0]-72
+        - SubmeshName: meshes[0]-55.meshes[0]-61.meshes[0]-58
+          MaterialHandle: meshes[0]-55.meshes[0]-61.meshes[0]-58
+        - SubmeshName: meshes[0]-68.meshes[0]-64.meshes[0]-66.meshes[0]-71
+          MaterialHandle: meshes[0]-68.meshes[0]-64.meshes[0]-66.meshes[0]-71
+        - SubmeshName: meshes[0]-40.meshes[0]-42.meshes[0]-38
+          MaterialHandle: meshes[0]-40.meshes[0]-42.meshes[0]-38
+        - SubmeshName: meshes[0]-67.meshes[0]-65.meshes[0]-70
+          MaterialHandle: meshes[0]-67.meshes[0]-65.meshes[0]-70
+        - SubmeshName: meshes[0]-62.meshes[0]-52
+          MaterialHandle: meshes[0]-62.meshes[0]-52
+        - SubmeshName: meshes[0]-101
+          MaterialHandle: meshes[0]-101
+        - SubmeshName: meshes[0]-95
+          MaterialHandle: meshes[0]-95
+        - SubmeshName: meshes[0]-50
+          MaterialHandle: meshes[0]-50
+  - EntityID: 0
+    NameComponent:
+      Name: Skylight
+      Description: ""
+    TransformComponent:
+      Translation: [0, 0, 0]
+      Rotation: [0, -0, 0.87298286]
+      Scale: [0.999994516, 0.999994516, 1]
+    SkyAtmosphereComponent:
+      RayleighScatteringFunction: [5.80200005, 13.5579996, 33.0999985, 8]
+      RayleighAbsorptionFunction: [0, 0, 0, 8]
+      MieScatteringFunction: [3.99600005, 3.99600005, 3.99600005, 1.20000005]
+      MieAbsorptionFunction: [4.4000001, 4.4000001, 4.4000001, 1.20000005]
+      OzoneAbsorptionFunction: [0.649999976, 1.88100004, 0.0850000009, 0.00200000009]
+      PlanetAlbedo: [0, 0, 0]
+      PlanetAndAtmosphereRadius: [6.36000013, 6.46000004]
+      UsePrimaryLight: false
+    DynamicSkyboxComponent:
+      SunSize: 1
+      Intensity: 1
+    DirectionalLightComponent:
+      Direction: [0, -1, 0]
+      Colour: [1, 1, 1]
+      Intensity: 25.6100006
+      Size: 10
+      CastShadows: true
+      PrimaryLight: true
+    DynamicSkylightComponent:
+      Intensity: 1
+RendererSettings:
+  GeneralSettings:
+    Gamma: 2.20000005
+  ShadowSettings:
+    ShadowQuality: 2
+    MinimumRadius: 1
+    CascadeLambda: 0.899999976
+    CascadeBlendFraction: 0.5
+    ConstantBias: 0.100000001
+    NormalBias: 50
+    ShadowMapResolution: 2048
+  HBAOSettings:
+    UseHBAO: true
+    AORadius: 0.0579999983
+    AOMultiplier: 1
+    AOExponent: 1
+  GodraySettings:
+    UseGodrays: true
+    ZSlices: 256
+    AmbientColour: [0.529399991, 0.807799995, 0.921599984]
+    AmbientIntensity: 0.5
+    ApplyDepthFog: false
+    DepthPhase: 0.800000012
+    DepthMinDensity: 0
+    DepthMaxDensity: 0.100000001
+    DepthAbsorption: 1
+    DepthMieScattering: [0.100000001, 0.100000001, 0.100000001]
+    DepthEmission: [0, 0, 0]
+    ApplyHeightFog: false
+    HeightPhase: 0.800000012
+    HeightDensity: 0.100000001
+    HeightFalloff: 1
+    HeightAbsorption: 1
+    HeightMieScattering: [0.100000001, 0.100000001, 0.100000001]
+    HeightEmission: [0, 0, 0]
+  SkyAtmosphereSettings:
+    UseFastAtmosphere: true
+  DynamicSkyIBLSettings:
+    IrradianceSamples: 512
+    RadianceSamples: 64
+  BloomSettings:
+    UseBloom: true
+    Threshold: 1
+    Knee: 1
+    Radius: 1
+    Intensity: 1
+  GeneralPostProcessingSettings:
+    UseFXAA: true
+    ToneMapFunction: 5
+Materials:
+  - MaterialName: meshes[0]-13.meshes[0]-15.meshes[0]-35.meshes[0]-100.meshes[0]-37.meshes[0]-39.meshes[0]-41.meshes[0]-43.meshes[0]-45.meshes[0]-51.meshes[0]-102.meshes[0]-4
+    MaterialType: pbr_shader
+    Floats:
+      - UniformName: uMetallic
+        UniformValue: 1
+      - UniformName: uRoughness
+        UniformValue: 1
+      - UniformName: uAO
+        UniformValue: 1
+      - UniformName: uEmiss
+        UniformValue: 0
+      - UniformName: uReflectance
+        UniformValue: 0.0399999991
+    Vec2s:
+      []
+    Vec3s:
+      - UniformName: uAlbedo
+        UniformValue: [0.588, 0.588, 0.588]
+    Sampler2Ds:
+      - SamplerName: aOcclusionMap
+        SamplerHandle: "Monocolour texture: #ffffffff"
+        ImagePath: ""
+        ImageLoadingOverloads: 0
+      - SamplerName: specF0Map
+        SamplerHandle: "Monocolour texture: #ffffffff"
+        ImagePath: ""
+        ImageLoadingOverloads: 0
+      - SamplerName: emissionMap
+        SamplerHandle: "Monocolour texture: #ffffffff"
+        ImagePath: ""
+        ImageLoadingOverloads: 0
+      - SamplerName: albedoMap
+        SamplerHandle: 5792855332885324923.jpg
+        ImagePath: ./assets/models/Sponza\5792855332885324923.jpg
+        ImageLoadingOverloads: 0
+      - SamplerName: normalMap
+        SamplerHandle: 16299174074766089871.jpg
+        ImagePath: ./assets/models/Sponza\16299174074766089871.jpg
+        ImageLoadingOverloads: 0
+      - SamplerName: metallicMap
+        SamplerHandle: 11968150294050148237.jpg_m
+        ImagePath: ./assets/models/Sponza\11968150294050148237.jpg
+        ImageLoadingOverloads: 1
+      - SamplerName: roughnessMap
+        SamplerHandle: 11968150294050148237.jpg_r
+        ImagePath: ./assets/models/Sponza\11968150294050148237.jpg
+        ImageLoadingOverloads: 1
+  - MaterialName: meshes[0]-95
+    MaterialType: pbr_shader
+    Floats:
+      - UniformName: uMetallic
+        UniformValue: 1
+      - UniformName: uRoughness
+        UniformValue: 1
+      - UniformName: uAO
+        UniformValue: 1
+      - UniformName: uEmiss
+        UniformValue: 0
+      - UniformName: uReflectance
+        UniformValue: 0.0399999991
+    Vec2s:
+      []
+    Vec3s:
+      - UniformName: uAlbedo
+        UniformValue: [0.588, 0.588, 0.588]
+    Sampler2Ds:
+      - SamplerName: aOcclusionMap
+        SamplerHandle: "Monocolour texture: #ffffffff"
+        ImagePath: ""
+        ImageLoadingOverloads: 0
+      - SamplerName: specF0Map
+        SamplerHandle: "Monocolour texture: #ffffffff"
+        ImagePath: ""
+        ImageLoadingOverloads: 0
+      - SamplerName: emissionMap
+        SamplerHandle: "Monocolour texture: #ffffffff"
+        ImagePath: ""
+        ImageLoadingOverloads: 0
+      - SamplerName: albedoMap
+        SamplerHandle: 8481240838833932244.jpg
+        ImagePath: ./assets/models/Sponza\8481240838833932244.jpg
+        ImageLoadingOverloads: 0
+      - SamplerName: normalMap
+        SamplerHandle: 10381718147657362067.jpg
+        ImagePath: ./assets/models/Sponza\10381718147657362067.jpg
+        ImageLoadingOverloads: 0
+      - SamplerName: metallicMap
+        SamplerHandle: 17556969131407844942.jpg_m
+        ImagePath: ./assets/models/Sponza\17556969131407844942.jpg
+        ImageLoadingOverloads: 1
+      - SamplerName: roughnessMap
+        SamplerHandle: 17556969131407844942.jpg_r
+        ImagePath: ./assets/models/Sponza\17556969131407844942.jpg
+        ImageLoadingOverloads: 1
+  - MaterialName: meshes[0]-96.meshes[0]-98
+    MaterialType: pbr_shader
+    Floats:
+      - UniformName: uMetallic
+        UniformValue: 1
+      - UniformName: uRoughness
+        UniformValue: 1
+      - UniformName: uAO
+        UniformValue: 1
+      - UniformName: uEmiss
+        UniformValue: 0
+      - UniformName: uReflectance
+        UniformValue: 0.0399999991
+    Vec2s:
+      []
+    Vec3s:
+      - UniformName: uAlbedo
+        UniformValue: [0.588, 0.588, 0.588]
+    Sampler2Ds:
+      - SamplerName: aOcclusionMap
+        SamplerHandle: "Monocolour texture: #ffffffff"
+        ImagePath: ""
+        ImageLoadingOverloads: 0
+      - SamplerName: specF0Map
+        SamplerHandle: "Monocolour texture: #ffffffff"
+        ImagePath: ""
+        ImageLoadingOverloads: 0
+      - SamplerName: emissionMap
+        SamplerHandle: "Monocolour texture: #ffffffff"
+        ImagePath: ""
+        ImageLoadingOverloads: 0
+      - SamplerName: albedoMap
+        SamplerHandle: 6772804448157695701.jpg
+        ImagePath: ./assets/models/Sponza\6772804448157695701.jpg
+        ImageLoadingOverloads: 0
+      - SamplerName: normalMap
+        SamplerHandle: 759203620573749278.jpg
+        ImagePath: ./assets/models/Sponza\759203620573749278.jpg
+        ImageLoadingOverloads: 0
+      - SamplerName: metallicMap
+        SamplerHandle: 13196865903111448057.jpg_m
+        ImagePath: ./assets/models/Sponza\13196865903111448057.jpg
+        ImageLoadingOverloads: 1
+      - SamplerName: roughnessMap
+        SamplerHandle: 13196865903111448057.jpg_r
+        ImagePath: ./assets/models/Sponza\13196865903111448057.jpg
+        ImageLoadingOverloads: 1
+  - MaterialName: meshes[0]-82.meshes[0]-94.meshes[0]-84.meshes[0]-92.meshes[0]-86.meshes[0]-90.meshes[0]-88.meshes[0]-2
+    MaterialType: pbr_shader
+    Floats:
+      - UniformName: uMetallic
+        UniformValue: 1
+      - UniformName: uRoughness
+        UniformValue: 1
+      - UniformName: uAO
+        UniformValue: 1
+      - UniformName: uEmiss
+        UniformValue: 0
+      - UniformName: uReflectance
+        UniformValue: 0.0399999991
+    Vec2s:
+      []
+    Vec3s:
+      - UniformName: uAlbedo
+        UniformValue: [0.588, 0.588, 0.588]
+    Sampler2Ds:
+      - SamplerName: aOcclusionMap
+        SamplerHandle: "Monocolour texture: #ffffffff"
+        ImagePath: ""
+        ImageLoadingOverloads: 0
+      - SamplerName: specF0Map
+        SamplerHandle: "Monocolour texture: #ffffffff"
+        ImagePath: ""
+        ImageLoadingOverloads: 0
+      - SamplerName: emissionMap
+        SamplerHandle: "Monocolour texture: #ffffffff"
+        ImagePath: ""
+        ImageLoadingOverloads: 0
+      - SamplerName: albedoMap
+        SamplerHandle: 7268504077753552595.jpg
+        ImagePath: ./assets/models/Sponza\7268504077753552595.jpg
+        ImageLoadingOverloads: 0
+      - SamplerName: normalMap
+        SamplerHandle: 4477655471536070370.jpg
+        ImagePath: ./assets/models/Sponza\4477655471536070370.jpg
+        ImageLoadingOverloads: 0
+      - SamplerName: metallicMap
+        SamplerHandle: 8503262930880235456.jpg_m
+        ImagePath: ./assets/models/Sponza\8503262930880235456.jpg
+        ImageLoadingOverloads: 1
+      - SamplerName: roughnessMap
+        SamplerHandle: 8503262930880235456.jpg_r
+        ImagePath: ./assets/models/Sponza\8503262930880235456.jpg
+        ImageLoadingOverloads: 1
+  - MaterialName: meshes[0]-62.meshes[0]-52
+    MaterialType: pbr_shader
+    Floats:
+      - UniformName: uMetallic
+        UniformValue: 1
+      - UniformName: uRoughness
+        UniformValue: 1
+      - UniformName: uAO
+        UniformValue: 1
+      - UniformName: uEmiss
+        UniformValue: 0
+      - UniformName: uReflectance
+        UniformValue: 0.0399999991
+    Vec2s:
+      []
+    Vec3s:
+      - UniformName: uAlbedo
+        UniformValue: [0.588, 0.588, 0.588]
+    Sampler2Ds:
+      - SamplerName: aOcclusionMap
+        SamplerHandle: "Monocolour texture: #ffffffff"
+        ImagePath: ""
+        ImageLoadingOverloads: 0
+      - SamplerName: specF0Map
+        SamplerHandle: "Monocolour texture: #ffffffff"
+        ImagePath: ""
+        ImageLoadingOverloads: 0
+      - SamplerName: emissionMap
+        SamplerHandle: "Monocolour texture: #ffffffff"
+        ImagePath: ""
+        ImageLoadingOverloads: 0
+      - SamplerName: albedoMap
+        SamplerHandle: 4975155472559461469.jpg
+        ImagePath: ./assets/models/Sponza\4975155472559461469.jpg
+        ImageLoadingOverloads: 0
+      - SamplerName: normalMap
+        SamplerHandle: 2299742237651021498.jpg
+        ImagePath: ./assets/models/Sponza\2299742237651021498.jpg
+        ImageLoadingOverloads: 0
+      - SamplerName: metallicMap
+        SamplerHandle: 3371964815757888145.jpg_m
+        ImagePath: ./assets/models/Sponza\3371964815757888145.jpg
+        ImageLoadingOverloads: 1
+      - SamplerName: roughnessMap
+        SamplerHandle: 3371964815757888145.jpg_r
+        ImagePath: ./assets/models/Sponza\3371964815757888145.jpg
+        ImageLoadingOverloads: 1
+  - MaterialName: meshes[0]-50
+    MaterialType: pbr_shader
+    Floats:
+      - UniformName: uMetallic
+        UniformValue: 0
+      - UniformName: uRoughness
+        UniformValue: 0.5
+      - UniformName: uAO
+        UniformValue: 1
+      - UniformName: uEmiss
+        UniformValue: 0
+      - UniformName: uReflectance
+        UniformValue: 0.0399999991
+    Vec2s:
+      []
+    Vec3s:
+      - UniformName: uAlbedo
+        UniformValue: [0.588, 0.588, 0.588]
+    Sampler2Ds:
+      - SamplerName: metallicMap
+        SamplerHandle: "Monocolour texture: #ffffffff"
+        ImagePath: ""
+        ImageLoadingOverloads: 0
+      - SamplerName: roughnessMap
+        SamplerHandle: "Monocolour texture: #ffffffff"
+        ImagePath: ""
+        ImageLoadingOverloads: 0
+      - SamplerName: normalMap
+        SamplerHandle: "Monocolour texture: #7f7fffff"
+        ImagePath: ""
+        ImageLoadingOverloads: 0
+      - SamplerName: aOcclusionMap
+        SamplerHandle: "Monocolour texture: #ffffffff"
+        ImagePath: ""
+        ImageLoadingOverloads: 0
+      - SamplerName: specF0Map
+        SamplerHandle: "Monocolour texture: #ffffffff"
+        ImagePath: ""
+        ImageLoadingOverloads: 0
+      - SamplerName: emissionMap
+        SamplerHandle: "Monocolour texture: #ffffffff"
+        ImagePath: ""
+        ImageLoadingOverloads: 0
+      - SamplerName: albedoMap
+        SamplerHandle: white.png
+        ImagePath: ./assets/models/Sponza\white.png
+        ImageLoadingOverloads: 0
+  - MaterialName: meshes[0]-49
+    MaterialType: pbr_shader
+    Floats:
+      - UniformName: uMetallic
+        UniformValue: 1
+      - UniformName: uRoughness
+        UniformValue: 1
+      - UniformName: uAO
+        UniformValue: 1
+      - UniformName: uEmiss
+        UniformValue: 0
+      - UniformName: uReflectance
+        UniformValue: 0.0399999991
+    Vec2s:
+      []
+    Vec3s:
+      - UniformName: uAlbedo
+        UniformValue: [0.588, 0.588, 0.588]
+    Sampler2Ds:
+      - SamplerName: aOcclusionMap
+        SamplerHandle: "Monocolour texture: #ffffffff"
+        ImagePath: ""
+        ImageLoadingOverloads: 0
+      - SamplerName: specF0Map
+        SamplerHandle: "Monocolour texture: #ffffffff"
+        ImagePath: ""
+        ImageLoadingOverloads: 0
+      - SamplerName: emissionMap
+        SamplerHandle: "Monocolour texture: #ffffffff"
+        ImagePath: ""
+        ImageLoadingOverloads: 0
+      - SamplerName: albedoMap
+        SamplerHandle: 6151467286084645207.jpg
+        ImagePath: ./assets/models/Sponza\6151467286084645207.jpg
+        ImageLoadingOverloads: 0
+      - SamplerName: normalMap
+        SamplerHandle: 7645212358685992005.jpg
+        ImagePath: ./assets/models/Sponza\7645212358685992005.jpg
+        ImageLoadingOverloads: 0
+      - SamplerName: metallicMap
+        SamplerHandle: 8783994986360286082.jpg_m
+        ImagePath: ./assets/models/Sponza\8783994986360286082.jpg
+        ImageLoadingOverloads: 1
+      - SamplerName: roughnessMap
+        SamplerHandle: 8783994986360286082.jpg_r
+        ImagePath: ./assets/models/Sponza\8783994986360286082.jpg
+        ImageLoadingOverloads: 1
+  - MaterialName: meshes[0]-10.meshes[0]-14.meshes[0]-17.meshes[0]-19.meshes[0]-21.meshes[0]-23.meshes[0]-25.meshes[0]-27.meshes[0]-29.meshes[0]-31.meshes[0]-33.meshes[0]-6
+    MaterialType: pbr_shader
+    Floats:
+      - UniformName: uMetallic
+        UniformValue: 1
+      - UniformName: uRoughness
+        UniformValue: 1
+      - UniformName: uAO
+        UniformValue: 1
+      - UniformName: uEmiss
+        UniformValue: 0
+      - UniformName: uReflectance
+        UniformValue: 0.0399999991
+    Vec2s:
+      []
+    Vec3s:
+      - UniformName: uAlbedo
+        UniformValue: [0.588, 0.588, 0.588]
+    Sampler2Ds:
+      - SamplerName: aOcclusionMap
+        SamplerHandle: "Monocolour texture: #ffffffff"
+        ImagePath: ""
+        ImageLoadingOverloads: 0
+      - SamplerName: specF0Map
+        SamplerHandle: "Monocolour texture: #ffffffff"
+        ImagePath: ""
+        ImageLoadingOverloads: 0
+      - SamplerName: emissionMap
+        SamplerHandle: "Monocolour texture: #ffffffff"
+        ImagePath: ""
+        ImageLoadingOverloads: 0
+      - SamplerName: albedoMap
+        SamplerHandle: 15295713303328085182.jpg
+        ImagePath: ./assets/models/Sponza\15295713303328085182.jpg
+        ImageLoadingOverloads: 0
+      - SamplerName: normalMap
+        SamplerHandle: 10388182081421875623.jpg
+        ImagePath: ./assets/models/Sponza\10388182081421875623.jpg
+        ImageLoadingOverloads: 0
+      - SamplerName: metallicMap
+        SamplerHandle: 9916269861720640319.jpg_m
+        ImagePath: ./assets/models/Sponza\9916269861720640319.jpg
+        ImageLoadingOverloads: 1
+      - SamplerName: roughnessMap
+        SamplerHandle: 9916269861720640319.jpg_r
+        ImagePath: ./assets/models/Sponza\9916269861720640319.jpg
+        ImageLoadingOverloads: 1
+  - MaterialName: meshes[0]-8.meshes[0]-11.meshes[0]-16.meshes[0]-18.meshes[0]-20.meshes[0]-22.meshes[0]-24.meshes[0]-26.meshes[0]-28.meshes[0]-30.meshes[0]-32.meshes[0]-34.meshes[0]-36.meshes[0]-48.meshes[0]-5
+    MaterialType: pbr_shader
+    Floats:
+      - UniformName: uMetallic
+        UniformValue: 1
+      - UniformName: uRoughness
+        UniformValue: 1
+      - UniformName: uAO
+        UniformValue: 1
+      - UniformName: uEmiss
+        UniformValue: 0
+      - UniformName: uReflectance
+        UniformValue: 0.0399999991
+    Vec2s:
+      []
+    Vec3s:
+      - UniformName: uAlbedo
+        UniformValue: [0.588, 0.588, 0.588]
+    Sampler2Ds:
+      - SamplerName: aOcclusionMap
+        SamplerHandle: "Monocolour texture: #ffffffff"
+        ImagePath: ""
+        ImageLoadingOverloads: 0
+      - SamplerName: specF0Map
+        SamplerHandle: "Monocolour texture: #ffffffff"
+        ImagePath: ""
+        ImageLoadingOverloads: 0
+      - SamplerName: emissionMap
+        SamplerHandle: "Monocolour texture: #ffffffff"
+        ImagePath: ""
+        ImageLoadingOverloads: 0
+      - SamplerName: albedoMap
+        SamplerHandle: 14650633544276105767.jpg
+        ImagePath: ./assets/models/Sponza\14650633544276105767.jpg
+        ImageLoadingOverloads: 0
+      - SamplerName: normalMap
+        SamplerHandle: 2051777328469649772.jpg
+        ImagePath: ./assets/models/Sponza\2051777328469649772.jpg
+        ImageLoadingOverloads: 0
+      - SamplerName: metallicMap
+        SamplerHandle: 4871783166746854860.jpg_m
+        ImagePath: ./assets/models/Sponza\4871783166746854860.jpg
+        ImageLoadingOverloads: 1
+      - SamplerName: roughnessMap
+        SamplerHandle: 4871783166746854860.jpg_r
+        ImagePath: ./assets/models/Sponza\4871783166746854860.jpg
+        ImageLoadingOverloads: 1
+  - MaterialName: meshes[0]-76.meshes[0]-80.meshes[0]-78.meshes[0]-74
+    MaterialType: pbr_shader
+    Floats:
+      - UniformName: uMetallic
+        UniformValue: 1
+      - UniformName: uRoughness
+        UniformValue: 1
+      - UniformName: uAO
+        UniformValue: 1
+      - UniformName: uEmiss
+        UniformValue: 0
+      - UniformName: uReflectance
+        UniformValue: 0.0399999991
+    Vec2s:
+      []
+    Vec3s:
+      - UniformName: uAlbedo
+        UniformValue: [0.588, 0.588, 0.588]
+    Sampler2Ds:
+      - SamplerName: aOcclusionMap
+        SamplerHandle: "Monocolour texture: #ffffffff"
+        ImagePath: ""
+        ImageLoadingOverloads: 0
+      - SamplerName: specF0Map
+        SamplerHandle: "Monocolour texture: #ffffffff"
+        ImagePath: ""
+        ImageLoadingOverloads: 0
+      - SamplerName: emissionMap
+        SamplerHandle: "Monocolour texture: #ffffffff"
+        ImagePath: ""
+        ImageLoadingOverloads: 0
+      - SamplerName: albedoMap
+        SamplerHandle: 755318871556304029.jpg
+        ImagePath: ./assets/models/Sponza\755318871556304029.jpg
+        ImageLoadingOverloads: 0
+      - SamplerName: normalMap
+        SamplerHandle: 3827035219084910048.jpg
+        ImagePath: ./assets/models/Sponza\3827035219084910048.jpg
+        ImageLoadingOverloads: 0
+      - SamplerName: metallicMap
+        SamplerHandle: 2411100444841994089.jpg_m
+        ImagePath: ./assets/models/Sponza\2411100444841994089.jpg
+        ImageLoadingOverloads: 1
+      - SamplerName: roughnessMap
+        SamplerHandle: 2411100444841994089.jpg_r
+        ImagePath: ./assets/models/Sponza\2411100444841994089.jpg
+        ImageLoadingOverloads: 1
+  - MaterialName: meshes[0]-101
+    MaterialType: pbr_shader
+    Floats:
+      - UniformName: uMetallic
+        UniformValue: 1
+      - UniformName: uRoughness
+        UniformValue: 1
+      - UniformName: uAO
+        UniformValue: 1
+      - UniformName: uEmiss
+        UniformValue: 0
+      - UniformName: uReflectance
+        UniformValue: 0.0399999991
+    Vec2s:
+      []
+    Vec3s:
+      - UniformName: uAlbedo
+        UniformValue: [0.588, 0.588, 0.588]
+    Sampler2Ds:
+      - SamplerName: aOcclusionMap
+        SamplerHandle: "Monocolour texture: #ffffffff"
+        ImagePath: ""
+        ImageLoadingOverloads: 0
+      - SamplerName: specF0Map
+        SamplerHandle: "Monocolour texture: #ffffffff"
+        ImagePath: ""
+        ImageLoadingOverloads: 0
+      - SamplerName: emissionMap
+        SamplerHandle: "Monocolour texture: #ffffffff"
+        ImagePath: ""
+        ImageLoadingOverloads: 0
+      - SamplerName: albedoMap
+        SamplerHandle: 2969916736137545357.jpg
+        ImagePath: ./assets/models/Sponza\2969916736137545357.jpg
+        ImageLoadingOverloads: 0
+      - SamplerName: normalMap
+        SamplerHandle: 14118779221266351425.jpg
+        ImagePath: ./assets/models/Sponza\14118779221266351425.jpg
+        ImageLoadingOverloads: 0
+      - SamplerName: metallicMap
+        SamplerHandle: 8747919177698443163.jpg_m
+        ImagePath: ./assets/models/Sponza\8747919177698443163.jpg
+        ImageLoadingOverloads: 1
+      - SamplerName: roughnessMap
+        SamplerHandle: 8747919177698443163.jpg_r
+        ImagePath: ./assets/models/Sponza\8747919177698443163.jpg
+        ImageLoadingOverloads: 1
+  - MaterialName: meshes[0]-40.meshes[0]-42.meshes[0]-38
+    MaterialType: pbr_shader
+    Floats:
+      - UniformName: uMetallic
+        UniformValue: 1
+      - UniformName: uRoughness
+        UniformValue: 1
+      - UniformName: uAO
+        UniformValue: 1
+      - UniformName: uEmiss
+        UniformValue: 0
+      - UniformName: uReflectance
+        UniformValue: 0.0399999991
+    Vec2s:
+      []
+    Vec3s:
+      - UniformName: uAlbedo
+        UniformValue: [0.588, 0.588, 0.588]
+    Sampler2Ds:
+      - SamplerName: aOcclusionMap
+        SamplerHandle: "Monocolour texture: #ffffffff"
+        ImagePath: ""
+        ImageLoadingOverloads: 0
+      - SamplerName: specF0Map
+        SamplerHandle: "Monocolour texture: #ffffffff"
+        ImagePath: ""
+        ImageLoadingOverloads: 0
+      - SamplerName: emissionMap
+        SamplerHandle: "Monocolour texture: #ffffffff"
+        ImagePath: ""
+        ImageLoadingOverloads: 0
+      - SamplerName: albedoMap
+        SamplerHandle: 11490520546946913238.jpg
+        ImagePath: ./assets/models/Sponza\11490520546946913238.jpg
+        ImageLoadingOverloads: 0
+      - SamplerName: normalMap
+        SamplerHandle: 3628158980083700836.jpg
+        ImagePath: ./assets/models/Sponza\3628158980083700836.jpg
+        ImageLoadingOverloads: 0
+      - SamplerName: metallicMap
+        SamplerHandle: 3455394979645218238.jpg_m
+        ImagePath: ./assets/models/Sponza\3455394979645218238.jpg
+        ImageLoadingOverloads: 1
+      - SamplerName: roughnessMap
+        SamplerHandle: 3455394979645218238.jpg_r
+        ImagePath: ./assets/models/Sponza\3455394979645218238.jpg
+        ImageLoadingOverloads: 1
+  - MaterialName: meshes[0]-44.meshes[0]-12
+    MaterialType: pbr_shader
+    Floats:
+      - UniformName: uMetallic
+        UniformValue: 1
+      - UniformName: uRoughness
+        UniformValue: 1
+      - UniformName: uAO
+        UniformValue: 1
+      - UniformName: uEmiss
+        UniformValue: 0
+      - UniformName: uReflectance
+        UniformValue: 0.0399999991
+    Vec2s:
+      []
+    Vec3s:
+      - UniformName: uAlbedo
+        UniformValue: [0.588, 0.588, 0.588]
+    Sampler2Ds:
+      - SamplerName: aOcclusionMap
+        SamplerHandle: "Monocolour texture: #ffffffff"
+        ImagePath: ""
+        ImageLoadingOverloads: 0
+      - SamplerName: specF0Map
+        SamplerHandle: "Monocolour texture: #ffffffff"
+        ImagePath: ""
+        ImageLoadingOverloads: 0
+      - SamplerName: emissionMap
+        SamplerHandle: "Monocolour texture: #ffffffff"
+        ImagePath: ""
+        ImageLoadingOverloads: 0
+      - SamplerName: albedoMap
+        SamplerHandle: 7441062115984513793.jpg
+        ImagePath: ./assets/models/Sponza\7441062115984513793.jpg
+        ImageLoadingOverloads: 0
+      - SamplerName: normalMap
+        SamplerHandle: 6667038893015345571.jpg
+        ImagePath: ./assets/models/Sponza\6667038893015345571.jpg
+        ImageLoadingOverloads: 0
+      - SamplerName: metallicMap
+        SamplerHandle: 8114461559286000061.jpg_m
+        ImagePath: ./assets/models/Sponza\8114461559286000061.jpg
+        ImageLoadingOverloads: 1
+      - SamplerName: roughnessMap
+        SamplerHandle: 8114461559286000061.jpg_r
+        ImagePath: ./assets/models/Sponza\8114461559286000061.jpg
+        ImageLoadingOverloads: 1
+  - MaterialName: meshes[0]-57.meshes[0]-54.meshes[0]-59
+    MaterialType: pbr_shader
+    Floats:
+      - UniformName: uMetallic
+        UniformValue: 1
+      - UniformName: uRoughness
+        UniformValue: 1
+      - UniformName: uAO
+        UniformValue: 1
+      - UniformName: uEmiss
+        UniformValue: 0
+      - UniformName: uReflectance
+        UniformValue: 0.0399999991
+    Vec2s:
+      []
+    Vec3s:
+      - UniformName: uAlbedo
+        UniformValue: [0.588, 0.588, 0.588]
+    Sampler2Ds:
+      - SamplerName: aOcclusionMap
+        SamplerHandle: "Monocolour texture: #ffffffff"
+        ImagePath: ""
+        ImageLoadingOverloads: 0
+      - SamplerName: specF0Map
+        SamplerHandle: "Monocolour texture: #ffffffff"
+        ImagePath: ""
+        ImageLoadingOverloads: 0
+      - SamplerName: emissionMap
+        SamplerHandle: "Monocolour texture: #ffffffff"
+        ImagePath: ""
+        ImageLoadingOverloads: 0
+      - SamplerName: albedoMap
+        SamplerHandle: 4675343432951571524.jpg
+        ImagePath: ./assets/models/Sponza\4675343432951571524.jpg
+        ImageLoadingOverloads: 0
+      - SamplerName: normalMap
+        SamplerHandle: 7056944414013900257.jpg
+        ImagePath: ./assets/models/Sponza\7056944414013900257.jpg
+        ImageLoadingOverloads: 0
+      - SamplerName: metallicMap
+        SamplerHandle: 7815564343179553343.jpg_m
+        ImagePath: ./assets/models/Sponza\7815564343179553343.jpg
+        ImageLoadingOverloads: 1
+      - SamplerName: roughnessMap
+        SamplerHandle: 7815564343179553343.jpg_r
+        ImagePath: ./assets/models/Sponza\7815564343179553343.jpg
+        ImageLoadingOverloads: 1
+  - MaterialName: meshes[0]-53.meshes[0]-0
+    MaterialType: pbr_shader
+    Floats:
+      - UniformName: uMetallic
+        UniformValue: 1
+      - UniformName: uRoughness
+        UniformValue: 1
+      - UniformName: uAO
+        UniformValue: 1
+      - UniformName: uEmiss
+        UniformValue: 0
+      - UniformName: uReflectance
+        UniformValue: 0.0399999991
+    Vec2s:
+      []
+    Vec3s:
+      - UniformName: uAlbedo
+        UniformValue: [0.588, 0.588, 0.588]
+    Sampler2Ds:
+      - SamplerName: aOcclusionMap
+        SamplerHandle: "Monocolour texture: #ffffffff"
+        ImagePath: ""
+        ImageLoadingOverloads: 0
+      - SamplerName: specF0Map
+        SamplerHandle: "Monocolour texture: #ffffffff"
+        ImagePath: ""
+        ImageLoadingOverloads: 0
+      - SamplerName: emissionMap
+        SamplerHandle: "Monocolour texture: #ffffffff"
+        ImagePath: ""
+        ImageLoadingOverloads: 0
+      - SamplerName: albedoMap
+        SamplerHandle: 5061699253647017043.png
+        ImagePath: ./assets/models/Sponza\5061699253647017043.png
+        ImageLoadingOverloads: 0
+      - SamplerName: normalMap
+        SamplerHandle: 8773302468495022225.jpg
+        ImagePath: ./assets/models/Sponza\8773302468495022225.jpg
+        ImageLoadingOverloads: 0
+      - SamplerName: metallicMap
+        SamplerHandle: 11872827283454512094.jpg_m
+        ImagePath: ./assets/models/Sponza\11872827283454512094.jpg
+        ImageLoadingOverloads: 1
+      - SamplerName: roughnessMap
+        SamplerHandle: 11872827283454512094.jpg_r
+        ImagePath: ./assets/models/Sponza\11872827283454512094.jpg
+        ImageLoadingOverloads: 1
+  - MaterialName: meshes[0]-75.meshes[0]-77.meshes[0]-79.meshes[0]-73
+    MaterialType: pbr_shader
+    Floats:
+      - UniformName: uMetallic
+        UniformValue: 1
+      - UniformName: uRoughness
+        UniformValue: 1
+      - UniformName: uAO
+        UniformValue: 1
+      - UniformName: uEmiss
+        UniformValue: 0
+      - UniformName: uReflectance
+        UniformValue: 0.0399999991
+    Vec2s:
+      []
+    Vec3s:
+      - UniformName: uAlbedo
+        UniformValue: [0.588, 0.588, 0.588]
+    Sampler2Ds:
+      - SamplerName: aOcclusionMap
+        SamplerHandle: "Monocolour texture: #ffffffff"
+        ImagePath: ""
+        ImageLoadingOverloads: 0
+      - SamplerName: specF0Map
+        SamplerHandle: "Monocolour texture: #ffffffff"
+        ImagePath: ""
+        ImageLoadingOverloads: 0
+      - SamplerName: emissionMap
+        SamplerHandle: "Monocolour texture: #ffffffff"
+        ImagePath: ""
+        ImageLoadingOverloads: 0
+      - SamplerName: albedoMap
+        SamplerHandle: 16275776544635328252.png
+        ImagePath: ./assets/models/Sponza\16275776544635328252.png
+        ImageLoadingOverloads: 0
+      - SamplerName: normalMap
+        SamplerHandle: 14170708867020035030.jpg
+        ImagePath: ./assets/models/Sponza\14170708867020035030.jpg
+        ImageLoadingOverloads: 0
+      - SamplerName: metallicMap
+        SamplerHandle: 1219024358953944284.jpg_m
+        ImagePath: ./assets/models/Sponza\1219024358953944284.jpg
+        ImageLoadingOverloads: 1
+      - SamplerName: roughnessMap
+        SamplerHandle: 1219024358953944284.jpg_r
+        ImagePath: ./assets/models/Sponza\1219024358953944284.jpg
+        ImageLoadingOverloads: 1
+  - MaterialName: meshes[0]-81.meshes[0]-83.meshes[0]-85.meshes[0]-87.meshes[0]-89.meshes[0]-91.meshes[0]-93.meshes[0]-1
+    MaterialType: pbr_shader
+    Floats:
+      - UniformName: uMetallic
+        UniformValue: 1
+      - UniformName: uRoughness
+        UniformValue: 1
+      - UniformName: uAO
+        UniformValue: 1
+      - UniformName: uEmiss
+        UniformValue: 0
+      - UniformName: uReflectance
+        UniformValue: 0.0399999991
+    Vec2s:
+      []
+    Vec3s:
+      - UniformName: uAlbedo
+        UniformValue: [0.588, 0.588, 0.588]
+    Sampler2Ds:
+      - SamplerName: aOcclusionMap
+        SamplerHandle: "Monocolour texture: #ffffffff"
+        ImagePath: ""
+        ImageLoadingOverloads: 0
+      - SamplerName: specF0Map
+        SamplerHandle: "Monocolour texture: #ffffffff"
+        ImagePath: ""
+        ImageLoadingOverloads: 0
+      - SamplerName: emissionMap
+        SamplerHandle: "Monocolour texture: #ffffffff"
+        ImagePath: ""
+        ImageLoadingOverloads: 0
+      - SamplerName: albedoMap
+        SamplerHandle: 8006627369776289000.png
+        ImagePath: ./assets/models/Sponza\8006627369776289000.png
+        ImageLoadingOverloads: 0
+      - SamplerName: normalMap
+        SamplerHandle: 12501374198249454378.jpg
+        ImagePath: ./assets/models/Sponza\12501374198249454378.jpg
+        ImageLoadingOverloads: 0
+      - SamplerName: metallicMap
+        SamplerHandle: 715093869573992647.jpg_m
+        ImagePath: ./assets/models/Sponza\715093869573992647.jpg
+        ImageLoadingOverloads: 1
+      - SamplerName: roughnessMap
+        SamplerHandle: 715093869573992647.jpg_r
+        ImagePath: ./assets/models/Sponza\715093869573992647.jpg
+        ImageLoadingOverloads: 1
+  - MaterialName: meshes[0]-69.meshes[0]-63.meshes[0]-72
+    MaterialType: pbr_shader
+    Floats:
+      - UniformName: uMetallic
+        UniformValue: 1
+      - UniformName: uRoughness
+        UniformValue: 1
+      - UniformName: uAO
+        UniformValue: 1
+      - UniformName: uEmiss
+        UniformValue: 0
+      - UniformName: uReflectance
+        UniformValue: 0.0399999991
+    Vec2s:
+      []
+    Vec3s:
+      - UniformName: uAlbedo
+        UniformValue: [0.588, 0.588, 0.588]
+    Sampler2Ds:
+      - SamplerName: aOcclusionMap
+        SamplerHandle: "Monocolour texture: #ffffffff"
+        ImagePath: ""
+        ImageLoadingOverloads: 0
+      - SamplerName: specF0Map
+        SamplerHandle: "Monocolour texture: #ffffffff"
+        ImagePath: ""
+        ImageLoadingOverloads: 0
+      - SamplerName: emissionMap
+        SamplerHandle: "Monocolour texture: #ffffffff"
+        ImagePath: ""
+        ImageLoadingOverloads: 0
+      - SamplerName: albedoMap
+        SamplerHandle: 17876391417123941155.jpg
+        ImagePath: ./assets/models/Sponza\17876391417123941155.jpg
+        ImageLoadingOverloads: 0
+      - SamplerName: normalMap
+        SamplerHandle: 6593109234861095314.jpg
+        ImagePath: ./assets/models/Sponza\6593109234861095314.jpg
+        ImageLoadingOverloads: 0
+      - SamplerName: metallicMap
+        SamplerHandle: 466164707995436622.jpg_m
+        ImagePath: ./assets/models/Sponza\466164707995436622.jpg
+        ImageLoadingOverloads: 1
+      - SamplerName: roughnessMap
+        SamplerHandle: 466164707995436622.jpg_r
+        ImagePath: ./assets/models/Sponza\466164707995436622.jpg
+        ImageLoadingOverloads: 1
+  - MaterialName: meshes[0]-46.meshes[0]-9
+    MaterialType: pbr_shader
+    Floats:
+      - UniformName: uMetallic
+        UniformValue: 1
+      - UniformName: uRoughness
+        UniformValue: 1
+      - UniformName: uAO
+        UniformValue: 1
+      - UniformName: uEmiss
+        UniformValue: 0
+      - UniformName: uReflectance
+        UniformValue: 0.0399999991
+    Vec2s:
+      []
+    Vec3s:
+      - UniformName: uAlbedo
+        UniformValue: [0.588, 0.588, 0.588]
+    Sampler2Ds:
+      - SamplerName: aOcclusionMap
+        SamplerHandle: "Monocolour texture: #ffffffff"
+        ImagePath: ""
+        ImageLoadingOverloads: 0
+      - SamplerName: specF0Map
+        SamplerHandle: "Monocolour texture: #ffffffff"
+        ImagePath: ""
+        ImageLoadingOverloads: 0
+      - SamplerName: emissionMap
+        SamplerHandle: "Monocolour texture: #ffffffff"
+        ImagePath: ""
+        ImageLoadingOverloads: 0
+      - SamplerName: albedoMap
+        SamplerHandle: 5823059166183034438.jpg
+        ImagePath: ./assets/models/Sponza\5823059166183034438.jpg
+        ImageLoadingOverloads: 0
+      - SamplerName: normalMap
+        SamplerHandle: 14267839433702832875.jpg
+        ImagePath: ./assets/models/Sponza\14267839433702832875.jpg
+        ImageLoadingOverloads: 0
+      - SamplerName: metallicMap
+        SamplerHandle: 13824894030729245199.jpg_m
+        ImagePath: ./assets/models/Sponza\13824894030729245199.jpg
+        ImageLoadingOverloads: 1
+      - SamplerName: roughnessMap
+        SamplerHandle: 13824894030729245199.jpg_r
+        ImagePath: ./assets/models/Sponza\13824894030729245199.jpg
+        ImageLoadingOverloads: 1
+  - MaterialName: meshes[0]-67.meshes[0]-65.meshes[0]-70
+    MaterialType: pbr_shader
+    Floats:
+      - UniformName: uMetallic
+        UniformValue: 1
+      - UniformName: uRoughness
+        UniformValue: 1
+      - UniformName: uAO
+        UniformValue: 1
+      - UniformName: uEmiss
+        UniformValue: 0
+      - UniformName: uReflectance
+        UniformValue: 0.0399999991
+    Vec2s:
+      []
+    Vec3s:
+      - UniformName: uAlbedo
+        UniformValue: [0.588, 0.588, 0.588]
+    Sampler2Ds:
+      - SamplerName: aOcclusionMap
+        SamplerHandle: "Monocolour texture: #ffffffff"
+        ImagePath: ""
+        ImageLoadingOverloads: 0
+      - SamplerName: specF0Map
+        SamplerHandle: "Monocolour texture: #ffffffff"
+        ImagePath: ""
+        ImageLoadingOverloads: 0
+      - SamplerName: emissionMap
+        SamplerHandle: "Monocolour texture: #ffffffff"
+        ImagePath: ""
+        ImageLoadingOverloads: 0
+      - SamplerName: albedoMap
+        SamplerHandle: 9288698199695299068.jpg
+        ImagePath: ./assets/models/Sponza\9288698199695299068.jpg
+        ImageLoadingOverloads: 0
+      - SamplerName: normalMap
+        SamplerHandle: 4910669866631290573.jpg
+        ImagePath: ./assets/models/Sponza\4910669866631290573.jpg
+        ImageLoadingOverloads: 0
+      - SamplerName: metallicMap
+        SamplerHandle: 466164707995436622.jpg_m
+        ImagePath: ./assets/models/Sponza\466164707995436622.jpg
+        ImageLoadingOverloads: 1
+      - SamplerName: roughnessMap
+        SamplerHandle: 466164707995436622.jpg_r
+        ImagePath: ./assets/models/Sponza\466164707995436622.jpg
+        ImageLoadingOverloads: 1
+  - MaterialName: meshes[0]-56.meshes[0]-60
+    MaterialType: pbr_shader
+    Floats:
+      - UniformName: uMetallic
+        UniformValue: 1
+      - UniformName: uRoughness
+        UniformValue: 1
+      - UniformName: uAO
+        UniformValue: 1
+      - UniformName: uEmiss
+        UniformValue: 0
+      - UniformName: uReflectance
+        UniformValue: 0.0399999991
+    Vec2s:
+      []
+    Vec3s:
+      - UniformName: uAlbedo
+        UniformValue: [0.588, 0.588, 0.588]
+    Sampler2Ds:
+      - SamplerName: aOcclusionMap
+        SamplerHandle: "Monocolour texture: #ffffffff"
+        ImagePath: ""
+        ImageLoadingOverloads: 0
+      - SamplerName: specF0Map
+        SamplerHandle: "Monocolour texture: #ffffffff"
+        ImagePath: ""
+        ImageLoadingOverloads: 0
+      - SamplerName: emissionMap
+        SamplerHandle: "Monocolour texture: #ffffffff"
+        ImagePath: ""
+        ImageLoadingOverloads: 0
+      - SamplerName: albedoMap
+        SamplerHandle: 2185409758123873465.jpg
+        ImagePath: ./assets/models/Sponza\2185409758123873465.jpg
+        ImageLoadingOverloads: 0
+      - SamplerName: normalMap
+        SamplerHandle: 332936164838540657.jpg
+        ImagePath: ./assets/models/Sponza\332936164838540657.jpg
+        ImageLoadingOverloads: 0
+      - SamplerName: metallicMap
+        SamplerHandle: 7815564343179553343.jpg_m
+        ImagePath: ./assets/models/Sponza\7815564343179553343.jpg
+        ImageLoadingOverloads: 1
+      - SamplerName: roughnessMap
+        SamplerHandle: 7815564343179553343.jpg_r
+        ImagePath: ./assets/models/Sponza\7815564343179553343.jpg
+        ImageLoadingOverloads: 1
+  - MaterialName: meshes[0]-55.meshes[0]-61.meshes[0]-58
+    MaterialType: pbr_shader
+    Floats:
+      - UniformName: uMetallic
+        UniformValue: 1
+      - UniformName: uRoughness
+        UniformValue: 1
+      - UniformName: uAO
+        UniformValue: 1
+      - UniformName: uEmiss
+        UniformValue: 0
+      - UniformName: uReflectance
+        UniformValue: 0.0399999991
+    Vec2s:
+      []
+    Vec3s:
+      - UniformName: uAlbedo
+        UniformValue: [0.588, 0.588, 0.588]
+    Sampler2Ds:
+      - SamplerName: aOcclusionMap
+        SamplerHandle: "Monocolour texture: #ffffffff"
+        ImagePath: ""
+        ImageLoadingOverloads: 0
+      - SamplerName: specF0Map
+        SamplerHandle: "Monocolour texture: #ffffffff"
+        ImagePath: ""
+        ImageLoadingOverloads: 0
+      - SamplerName: emissionMap
+        SamplerHandle: "Monocolour texture: #ffffffff"
+        ImagePath: ""
+        ImageLoadingOverloads: 0
+      - SamplerName: albedoMap
+        SamplerHandle: 2775690330959970771.jpg
+        ImagePath: ./assets/models/Sponza\2775690330959970771.jpg
+        ImageLoadingOverloads: 0
+      - SamplerName: normalMap
+        SamplerHandle: 2374361008830720677.jpg
+        ImagePath: ./assets/models/Sponza\2374361008830720677.jpg
+        ImageLoadingOverloads: 0
+      - SamplerName: metallicMap
+        SamplerHandle: 7815564343179553343.jpg_m
+        ImagePath: ./assets/models/Sponza\7815564343179553343.jpg
+        ImageLoadingOverloads: 1
+      - SamplerName: roughnessMap
+        SamplerHandle: 7815564343179553343.jpg_r
+        ImagePath: ./assets/models/Sponza\7815564343179553343.jpg
+        ImageLoadingOverloads: 1
+  - MaterialName: meshes[0]-47.meshes[0]-7
+    MaterialType: pbr_shader
+    Floats:
+      - UniformName: uMetallic
+        UniformValue: 1
+      - UniformName: uRoughness
+        UniformValue: 1
+      - UniformName: uAO
+        UniformValue: 1
+      - UniformName: uEmiss
+        UniformValue: 0
+      - UniformName: uReflectance
+        UniformValue: 0.0399999991
+    Vec2s:
+      []
+    Vec3s:
+      - UniformName: uAlbedo
+        UniformValue: [0.588, 0.588, 0.588]
+    Sampler2Ds:
+      - SamplerName: aOcclusionMap
+        SamplerHandle: "Monocolour texture: #ffffffff"
+        ImagePath: ""
+        ImageLoadingOverloads: 0
+      - SamplerName: specF0Map
+        SamplerHandle: "Monocolour texture: #ffffffff"
+        ImagePath: ""
+        ImageLoadingOverloads: 0
+      - SamplerName: emissionMap
+        SamplerHandle: "Monocolour texture: #ffffffff"
+        ImagePath: ""
+        ImageLoadingOverloads: 0
+      - SamplerName: albedoMap
+        SamplerHandle: 6047387724914829168.jpg
+        ImagePath: ./assets/models/Sponza\6047387724914829168.jpg
+        ImageLoadingOverloads: 0
+      - SamplerName: normalMap
+        SamplerHandle: 15722799267630235092.jpg
+        ImagePath: ./assets/models/Sponza\15722799267630235092.jpg
+        ImageLoadingOverloads: 0
+      - SamplerName: metallicMap
+        SamplerHandle: 8051790464816141987.jpg_m
+        ImagePath: ./assets/models/Sponza\8051790464816141987.jpg
+        ImageLoadingOverloads: 1
+      - SamplerName: roughnessMap
+        SamplerHandle: 8051790464816141987.jpg_r
+        ImagePath: ./assets/models/Sponza\8051790464816141987.jpg
+        ImageLoadingOverloads: 1
+  - MaterialName: meshes[0]-68.meshes[0]-64.meshes[0]-66.meshes[0]-71
+    MaterialType: pbr_shader
+    Floats:
+      - UniformName: uMetallic
+        UniformValue: 1
+      - UniformName: uRoughness
+        UniformValue: 1
+      - UniformName: uAO
+        UniformValue: 1
+      - UniformName: uEmiss
+        UniformValue: 0
+      - UniformName: uReflectance
+        UniformValue: 0.0399999991
+    Vec2s:
+      []
+    Vec3s:
+      - UniformName: uAlbedo
+        UniformValue: [0.588, 0.588, 0.588]
+    Sampler2Ds:
+      - SamplerName: aOcclusionMap
+        SamplerHandle: "Monocolour texture: #ffffffff"
+        ImagePath: ""
+        ImageLoadingOverloads: 0
+      - SamplerName: specF0Map
+        SamplerHandle: "Monocolour texture: #ffffffff"
+        ImagePath: ""
+        ImageLoadingOverloads: 0
+      - SamplerName: emissionMap
+        SamplerHandle: "Monocolour texture: #ffffffff"
+        ImagePath: ""
+        ImageLoadingOverloads: 0
+      - SamplerName: albedoMap
+        SamplerHandle: 11474523244911310074.jpg
+        ImagePath: ./assets/models/Sponza\11474523244911310074.jpg
+        ImageLoadingOverloads: 0
+      - SamplerName: normalMap
+        SamplerHandle: 4601176305987539675.jpg
+        ImagePath: ./assets/models/Sponza\4601176305987539675.jpg
+        ImageLoadingOverloads: 0
+      - SamplerName: metallicMap
+        SamplerHandle: 466164707995436622.jpg_m
+        ImagePath: ./assets/models/Sponza\466164707995436622.jpg
+        ImageLoadingOverloads: 1
+      - SamplerName: roughnessMap
+        SamplerHandle: 466164707995436622.jpg_r
+        ImagePath: ./assets/models/Sponza\466164707995436622.jpg
+        ImageLoadingOverloads: 1
+  - MaterialName: meshes[0]-99.meshes[0]-97.meshes[0]-3
+    MaterialType: pbr_shader
+    Floats:
+      - UniformName: uMetallic
+        UniformValue: 1
+      - UniformName: uRoughness
+        UniformValue: 1
+      - UniformName: uAO
+        UniformValue: 1
+      - UniformName: uEmiss
+        UniformValue: 0
+      - UniformName: uReflectance
+        UniformValue: 0.0399999991
+    Vec2s:
+      []
+    Vec3s:
+      - UniformName: uAlbedo
+        UniformValue: [0.588, 0.588, 0.588]
+    Sampler2Ds:
+      - SamplerName: aOcclusionMap
+        SamplerHandle: "Monocolour texture: #ffffffff"
+        ImagePath: ""
+        ImageLoadingOverloads: 0
+      - SamplerName: specF0Map
+        SamplerHandle: "Monocolour texture: #ffffffff"
+        ImagePath: ""
+        ImageLoadingOverloads: 0
+      - SamplerName: emissionMap
+        SamplerHandle: "Monocolour texture: #ffffffff"
+        ImagePath: ""
+        ImageLoadingOverloads: 0
+      - SamplerName: albedoMap
+        SamplerHandle: 8750083169368950601.jpg
+        ImagePath: ./assets/models/Sponza\8750083169368950601.jpg
+        ImageLoadingOverloads: 0
+      - SamplerName: normalMap
+        SamplerHandle: 13982482287905699490.jpg
+        ImagePath: ./assets/models/Sponza\13982482287905699490.jpg
+        ImageLoadingOverloads: 0
+      - SamplerName: metallicMap
+        SamplerHandle: 16885566240357350108.jpg_m
+        ImagePath: ./assets/models/Sponza\16885566240357350108.jpg
+        ImageLoadingOverloads: 1
+      - SamplerName: roughnessMap
+        SamplerHandle: 16885566240357350108.jpg_r
+        ImagePath: ./assets/models/Sponza\16885566240357350108.jpg
+        ImageLoadingOverloads: 1
