@@ -1,6 +1,9 @@
 #type compute
 #version 460 core
 
+#define EXP_AVERAGE_MIX 0.05
+// #define USE_NEIGHBOURHOOD_CLAMP
+
 layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 
 layout(rgba16f, binding = 0) restrict writeonly uniform image3D resolveInScatExt;
@@ -37,6 +40,44 @@ bool inFrustum(vec3 ndc)
   return xAxis && yAxis && zAxis;
 }
 
+vec4 neighbourhoodMin(vec3 uvw, vec3 texel)
+{
+  vec4 nMin = texture(currentInScatExt, uvw);
+  nMin = min(nMin, texture(currentInScatExt, uvw + vec3(-0.5, -0.5, -0.5) * texel));
+  nMin = min(nMin, texture(currentInScatExt, uvw + vec3(0.5, -0.5, -0.5) * texel));
+  nMin = min(nMin, texture(currentInScatExt, uvw + vec3(-0.5, 0.5, -0.5) * texel));
+  nMin = min(nMin, texture(currentInScatExt, uvw + vec3(0.5, 0.5, -0.5) * texel));
+  nMin = min(nMin, texture(currentInScatExt, uvw + vec3(-0.5, -0.5, 0.5) * texel));
+  nMin = min(nMin, texture(currentInScatExt, uvw + vec3(0.5, -0.5, 0.5) * texel));
+  nMin = min(nMin, texture(currentInScatExt, uvw + vec3(-0.5, 0.5, 0.5) * texel));
+  nMin = min(nMin, texture(currentInScatExt, uvw + vec3(0.5, 0.5, 0.5) * texel));
+
+  return nMin;
+}
+
+vec4 neighbourhoodMax(vec3 uvw, vec3 texel)
+{
+  vec4 nMax = texture(currentInScatExt, uvw);
+  nMax = max(nMax, texture(currentInScatExt, uvw + vec3(-0.5, -0.5, -0.5) * texel));
+  nMax = max(nMax, texture(currentInScatExt, uvw + vec3(0.5, -0.5, -0.5) * texel));
+  nMax = max(nMax, texture(currentInScatExt, uvw + vec3(-0.5, 0.5, -0.5) * texel));
+  nMax = max(nMax, texture(currentInScatExt, uvw + vec3(0.5, 0.5, -0.5) * texel));
+  nMax = max(nMax, texture(currentInScatExt, uvw + vec3(-0.5, -0.5, 0.5) * texel));
+  nMax = max(nMax, texture(currentInScatExt, uvw + vec3(0.5, -0.5, 0.5) * texel));
+  nMax = max(nMax, texture(currentInScatExt, uvw + vec3(-0.5, 0.5, 0.5) * texel));
+  nMax = max(nMax, texture(currentInScatExt, uvw + vec3(0.5, 0.5, 0.5) * texel));
+
+  return nMax;
+}
+
+vec4 neighbourhoodClamp(vec4 history, vec3 uvw, vec3 texel)
+{
+  vec4 cMin = neighbourhoodMin(uvw, texel);
+  vec4 cMax = neighbourhoodMax(uvw, texel);
+
+  return clamp(history, cMin, cMax);
+}
+
 void main()
 {
   ivec3 invoke = ivec3(gl_GlobalInvocationID.xyz);
@@ -52,15 +93,16 @@ void main()
   //----------------------------------------------------------------------------
   // Quick and dirty box blur for spatial denoising.
   vec4 current = 0.0.xxxx;
-  current += texture(currentInScatExt, vec3(uv, w) + vec3(-0.5, -0.5, -0.5) * texel);
-  current += texture(currentInScatExt, vec3(uv, w) + vec3(0.5, -0.5, -0.5) * texel);
-  current += texture(currentInScatExt, vec3(uv, w) + vec3(-0.5, 0.5, -0.5) * texel);
-  current += texture(currentInScatExt, vec3(uv, w) + vec3(0.5, 0.5, -0.5) * texel);
-  current += texture(currentInScatExt, vec3(uv, w) + vec3(-0.5, -0.5, 0.5) * texel);
-  current += texture(currentInScatExt, vec3(uv, w) + vec3(0.5, -0.5, 0.5) * texel);
-  current += texture(currentInScatExt, vec3(uv, w) + vec3(-0.5, 0.5, 0.5) * texel);
-  current += texture(currentInScatExt, vec3(uv, w) + vec3(0.5, 0.5, 0.5) * texel);
-  current /= 8.0;
+  current += texture(currentInScatExt, vec3(uv, w));
+  current += texture(currentInScatExt, vec3(uv, w) + vec3(-1.0, -1.0, -1.0) * texel);
+  current += texture(currentInScatExt, vec3(uv, w) + vec3(1.0, -1.0, -1.0) * texel);
+  current += texture(currentInScatExt, vec3(uv, w) + vec3(-1.0, 1.0, -1.0) * texel);
+  current += texture(currentInScatExt, vec3(uv, w) + vec3(1.0, 1.0, -1.0) * texel);
+  current += texture(currentInScatExt, vec3(uv, w) + vec3(-1.0, -1.0, 1.0) * texel);
+  current += texture(currentInScatExt, vec3(uv, w) + vec3(1.0, -1.0, 1.0) * texel);
+  current += texture(currentInScatExt, vec3(uv, w) + vec3(-1.0, 1.0, 1.0) * texel);
+  current += texture(currentInScatExt, vec3(uv, w) + vec3(1.0, 1.0, 1.0) * texel);
+  current /= 9.0;
   //----------------------------------------------------------------------------
 
   //----------------------------------------------------------------------------
@@ -85,10 +127,13 @@ void main()
   prevZ = pow(prevZ, 1.0 / 2.0);
 
   vec4 history = texture(historyInScatExt, vec3(previousUV, prevZ));
+  #ifdef USE_NEIGHBOURHOOD_CLAMP
+  history = neighbourhoodClamp(history, vec3(uv, w), texel);
+  #endif
 
   vec4 result;
   if (inFrustum(previousPosNDC))
-    result = mix(history, current, 0.05);
+    result = mix(history, current, EXP_AVERAGE_MIX);
   else
     result = current;
   //----------------------------------------------------------------------------

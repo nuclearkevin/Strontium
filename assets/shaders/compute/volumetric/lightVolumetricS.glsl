@@ -27,6 +27,8 @@ layout(rgba16f, binding = 0) restrict writeonly uniform image3D inScatExt;
 layout(binding = 0) uniform sampler3D scatExtinction;
 layout(binding = 1) uniform sampler3D emissionPhase;
 layout(binding = 2) uniform sampler2D noise; // Blue noise
+// TODO: Texture arrays.
+layout(binding = 3) uniform sampler2D cascadeMaps[NUM_CASCADES];
 
 // Camera specific uniforms.
 layout(std140, binding = 0) uniform CameraBlock
@@ -46,6 +48,13 @@ layout(std140, binding = 1) uniform VolumetricBlock
   vec4 u_lightColourIntensity; // Light colour (x, y, z) and intensity (w).
   vec4 u_ambientColourIntensity; // Ambient colour (x, y, z) and intensity (w).
   ivec4 u_fogParams; // Number of OBB fog volumes (x), fog parameter bitmask (y). z and w are unused.
+};
+
+layout(std140, binding = 2) uniform CascadedShadowBlock
+{
+  mat4 u_lightVP[NUM_CASCADES];
+  vec4 u_cascadeData[NUM_CASCADES]; // Cascade split distance (x). y, z and w are unused.
+  vec4 u_shadowParams; // The constant bias (x), normal bias (y), the minimum PCF radius (z) and the cascade blend fraction (w).
 };
 
 // Temporal AA parameters. TODO: jittered camera matrices.
@@ -74,6 +83,26 @@ float getMiePhase(float cosTheta, float g)
   float denom = (2.0 + g * g) * pow((1.0 + g * g - 2.0 * g * cosTheta), 1.5);
 
   return scale * num / denom;
+}
+
+float cascadedShadow(vec3 samplePos)
+{
+  vec4 clipSpacePos = u_viewMatrix * vec4(samplePos, 1.0);
+  float shadowFactor = 1.0;
+  for (uint i = 0; i < NUM_CASCADES; i++)
+  {
+    if (-clipSpacePos.z <= (u_cascadeData[i].x))
+    {
+      vec4 lightClipPos = u_lightVP[i] * vec4(samplePos, 1.0);
+      vec3 projCoords = lightClipPos.xyz / lightClipPos.w;
+      projCoords = 0.5 * projCoords + 0.5;
+
+      shadowFactor = float(texture(cascadeMaps[i], projCoords.xy).r >= projCoords.z);
+      break;
+    }
+  }
+
+  return shadowFactor;
 }
 
 void main()
@@ -105,7 +134,9 @@ void main()
   vec3 extinction = se.www;
   vec3 voxelAlbedo = max(mieScattering / extinction, 0.0.xxx);
 
-  vec3 light = voxelAlbedo * phaseFunction * u_lightColourIntensity.xyz * u_lightColourIntensity.w;
+  float visibility = (u_fogParams.y & (1 << 0)) != 0 ? 1.0 : cascadedShadow(worldSpacePostion);
+
+  vec3 light = voxelAlbedo * phaseFunction * visibility * u_lightColourIntensity.xyz * u_lightColourIntensity.w;
   light += ep.xyz;
   light += u_ambientColourIntensity.xyz * u_ambientColourIntensity.w * voxelAlbedo;
 

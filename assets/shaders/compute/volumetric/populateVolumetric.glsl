@@ -11,6 +11,14 @@ struct OBBFogVolume
   mat4 invTransformMatrix; // Inverse model-space transform matrix.
 };
 
+// Density is pre-multiplied.
+struct SphereFogVolume
+{
+  vec4 mieScatteringPhase; // Mie scattering (x, y, z) and phase value (w).
+  vec4 emissionAbsorption; // Emission (x, y, z) and absorption (w).
+  vec4 positionRadius; // World-space position (x, y, z) and radius (w).
+};
+
 // Density is not pre-multiplied.
 struct DepthFogParams
 {
@@ -64,7 +72,12 @@ layout(std140, binding = 3) uniform TemporalBlock
 
 layout(std140, binding = 0) readonly buffer OBBFogVolumes
 {
-  OBBFogVolume u_volumes[];
+  OBBFogVolume u_obbVolumes[];
+};
+
+layout(std140, binding = 1) readonly buffer SphereFogVolumes
+{
+  SphereFogVolume u_sphereVolumes[];
 };
 
 // Sample a dithering function.
@@ -82,6 +95,12 @@ bool pointInOBB(vec3 point, OBBFogVolume volume)
   bool yAxis = abs(tp.y) <= 1.0;
   bool zAxis = abs(tp.z) <= 1.0;
   return xAxis && yAxis && zAxis;
+}
+
+bool pointInSphere(vec3 point, SphereFogVolume volume)
+{
+  float dist = length(point - volume.positionRadius.xyz);
+  return dist < volume.positionRadius.w;
 }
 
 void main()
@@ -112,17 +131,34 @@ void main()
   vec4 ep = 0.0.xxxx;
 
   float numVolumesInPixel = 0.0;
-  OBBFogVolume volume;
   float extinction;
+  // OBB volumes.
+  OBBFogVolume obbVolume;
   for (uint i = 0; i < u_fogParams.x; i++)
   {
-    volume = u_volumes[i];
+    obbVolume = u_obbVolumes[i];
 
-    if (pointInOBB(centerWorldPos, volume))
+    if (pointInOBB(centerWorldPos, obbVolume))
     {
-      extinction = dot(volume.mieScatteringPhase.xyz, (1.0 / 3.0).xxx) + volume.emissionAbsorption.w;
-      se += vec4(volume.mieScatteringPhase.xyz, extinction);
-      ep += vec4(volume.emissionAbsorption.xyz, volume.mieScatteringPhase.w);
+      extinction = dot(obbVolume.mieScatteringPhase.xyz, (1.0 / 3.0).xxx) + obbVolume.emissionAbsorption.w;
+      se += vec4(obbVolume.mieScatteringPhase.xyz, extinction);
+      ep += vec4(obbVolume.emissionAbsorption.xyz, obbVolume.mieScatteringPhase.w);
+
+      numVolumesInPixel += 1.0;
+    }
+  }
+
+  // Sphere volumes.
+  SphereFogVolume sphereVolume;
+  for (uint i = 0; i < u_fogParams.z; i++)
+  {
+    sphereVolume = u_sphereVolumes[i];
+
+    if (pointInSphere(centerWorldPos, sphereVolume))
+    {
+      extinction = dot(sphereVolume.mieScatteringPhase.xyz, (1.0 / 3.0).xxx) + sphereVolume.emissionAbsorption.w;
+      se += vec4(sphereVolume.mieScatteringPhase.xyz, extinction);
+      ep += vec4(sphereVolume.emissionAbsorption.xyz, sphereVolume.mieScatteringPhase.w);
 
       numVolumesInPixel += 1.0;
     }

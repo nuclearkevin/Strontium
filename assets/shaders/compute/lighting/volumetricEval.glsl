@@ -35,7 +35,7 @@ vec4 fastTricubic(sampler3D tex, vec3 coord);
 vec3 decodePosition(ivec2 coords, ivec2 outImageSize, sampler2D depthMap, mat4 invVP)
 {
   vec2 texCoords = (vec2(coords) + 0.5.xx) / vec2(outImageSize);
-  float depth = textureLod(depthMap, texCoords, 1.0).r;
+  float depth = textureLod(depthMap, texCoords, 0.0).r;
   vec3 clipCoords = 2.0 * vec3(texCoords, depth) - 1.0.xxx;
   vec4 temp = invVP * vec4(clipCoords, 1.0);
   return temp.xyz / temp.w;

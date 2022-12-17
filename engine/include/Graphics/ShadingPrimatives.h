@@ -174,4 +174,19 @@ namespace Strontium
       , invTransformMatrix(glm::inverse(transformMatrix))
     { }
   };
+
+  struct SphereFogVolume
+  {
+    glm::vec4 mieScatteringPhase; // Mie scattering (x, y, z) and phase value (w).
+    glm::vec4 emissionAbsorption; // Emission (x, y, z) and absorption (w).
+    glm::vec4 positionRadius; // Position (x, y, z) are radius (w).
+
+    SphereFogVolume(float phase, float density, float absorption,
+                    const glm::vec3& mieScattering, const glm::vec3& emission,
+                    const glm::vec3& position, float radius)
+                    : mieScatteringPhase(density * mieScattering, phase)
+                    , emissionAbsorption(density * emission, density * absorption)
+                    , positionRadius(position, radius)
+    { }
+  };
 }

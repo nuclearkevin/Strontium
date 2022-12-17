@@ -11,6 +11,7 @@
 
 #include "Graphics/RenderPasses/IBLApplicationPass.h"
 #include "Graphics/RenderPasses/DirectionalLightPass.h"
+#include "Graphics/RenderPasses/VolumetricLightPass.h"
 
 #include "Graphics/RenderPasses/GodrayPass.h"
 
@@ -374,6 +375,11 @@ namespace Strontium
         auto skyboxAppPass = renderPassManger.getRenderPass<SkyboxPass>();
         auto skyboxAppBlock = skyboxAppPass->getInternalDataBlock<SkyboxPassDataBlock>();
         ImGui::Text("Skybox Frametime: %f ms", skyboxAppBlock->frameTime);
+      }
+      {
+        auto volumetricAppPass = renderPassManger.getRenderPass<VolumetricLightPass>();
+        auto volumetricAppBlock = volumetricAppPass->getInternalDataBlock<VolumetricLightPassDataBlock>();
+        ImGui::Text("Volumetric Frametime: %f ms", volumetricAppBlock->frameTime);
       }
 
       ImGui::Text("Lighting Buffer");
