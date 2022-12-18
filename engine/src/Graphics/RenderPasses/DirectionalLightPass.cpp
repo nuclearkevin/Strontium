@@ -170,9 +170,7 @@ namespace Strontium
 
   void 
   DirectionalLightPass::onShutdown()
-  {
-
-  }
+  { }
 
   void 
   DirectionalLightPass::submit(const DirectionalLight& light, const glm::mat4& model,

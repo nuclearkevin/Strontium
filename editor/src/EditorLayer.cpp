@@ -545,7 +545,7 @@ namespace Strontium
     // Show a warning when a new scene is to be loaded.
     if (this->dndScenePath != "" && this->currentScene->getRegistry().size() > 0)
     {
-      auto flags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse;
+      auto flags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse;
 
       ImGui::Begin("Warning", nullptr, flags);
 

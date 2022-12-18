@@ -86,6 +86,30 @@ namespace Strontium
     { }
   };
 
+  struct RectAreaLight
+  {
+    glm::vec4 colourIntensity; // Colour (x, y, z) and intensity (w).
+    // Points of the rectangular area light (x, y, z). 
+    // points[0].w > 0 indicates the light is two-sided, one-sided otherwise.
+    glm::vec4 points[4];
+
+    RectAreaLight()
+      : colourIntensity(0.0f)
+      , points{ {0.0f, 1.0f, -1.0f, 1.0}, {0.0f, 1.0f, 1.0f, 1.0}, {0.0f, -1.0f, 1.0f, 1.0}, {0.0f, -1.0f, -1.0f, 1.0} }
+    { }
+
+    RectAreaLight(const glm::vec4 &colourIntensity)
+      : colourIntensity(colourIntensity)
+      , points{ {0.0f, 1.0f, -1.0f, 1.0}, {0.0f, 1.0f, 1.0f, 1.0}, {0.0f, -1.0f, 1.0f, 1.0}, {0.0f, -1.0f, -1.0f, 1.0} }
+    { }
+
+    RectAreaLight(const glm::vec4 &colourIntensity, const glm::vec4 &pos0, 
+                  const glm::vec4 &pos1, const glm::vec4 &pos2, const glm::vec4 &pos3)
+      : colourIntensity(colourIntensity)
+      , points{ pos0, pos1, pos2, pos3 }
+    { } 
+  };
+
   // All falloffs are in km.
   struct Atmosphere
   {

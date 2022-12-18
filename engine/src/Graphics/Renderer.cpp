@@ -15,6 +15,7 @@
 
 #include "Graphics/RenderPasses/IBLApplicationPass.h"
 #include "Graphics/RenderPasses/DirectionalLightPass.h"
+#include "Graphics/RenderPasses/AreaLightPass.h"
 
 #include "Graphics/RenderPasses/SkyboxPass.h"
 
@@ -97,9 +98,10 @@ namespace Strontium::Renderer3D
     // Lighting passes.
     auto iblApp = passManager->insertRenderPass<IBLApplicationPass>(rendererData, geomet, hiZ, hbao, dynIBL);
     auto dirApp = passManager->insertRenderPass<DirectionalLightPass>(rendererData, geomet, shadow, skyatmo);
+    auto areaApp = passManager->insertRenderPass<AreaLightPass>(rendererData, geomet);
 
     // Screen-space godray pass.
-    auto ssgr = passManager->insertRenderPass<GodrayPass>(rendererData, geomet, shadow, hiZ, dirApp);
+    auto ssgr = passManager->insertRenderPass<GodrayPass>(rendererData, geomet, shadow, hiZ, dirApp, areaApp);
     auto volApp = passManager->insertRenderPass<VolumetricLightPass>(rendererData, geomet, hiZ, ssgr);
 
     // Skybox pass. This should be applied last.

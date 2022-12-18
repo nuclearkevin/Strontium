@@ -57,7 +57,7 @@ namespace Strontium
       , directionalEvaluationSA(nullptr)
       , directionalEvaluation(nullptr)
       , directionalEvaluationA(nullptr)
-      , lightBlock(8 * sizeof(DirectionalLight) + sizeof(glm::ivec4), BufferType::Dynamic)
+      , lightBlock(MAX_NUM_DIRECTIONAL_LIGHTS * sizeof(DirectionalLight) + sizeof(glm::ivec4), BufferType::Dynamic)
       , cascadedShadowBlock(4 * (sizeof(glm::mat4) + sizeof(glm::vec4)) + sizeof(glm::vec4),
                             BufferType::Dynamic)
       , atmosphereIndices(MAX_NUM_DIRECTIONAL_LIGHTS * sizeof(int), BufferType::Dynamic)
@@ -89,10 +89,10 @@ namespace Strontium
     void onRendererEnd(FrameBuffer& frontBuffer) override;
     void onShutdown() override;
 
-    void submit(const DirectionalLight &light, const glm::mat4& model, 
+    void submit(const DirectionalLight &light, const glm::mat4 &model, 
                 RendererDataHandle attachedSkyAtmosphere = -1);
     void submitPrimary(const DirectionalLight &light, bool castShadows, 
-                       const glm::mat4& model, RendererDataHandle attachedSkyAtmosphere = -1);
+                       const glm::mat4 &model, RendererDataHandle attachedSkyAtmosphere = -1);
   private:
     DirectionalLightPassDataBlock passData;
 

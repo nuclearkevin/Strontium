@@ -240,6 +240,13 @@ namespace Strontium
           light.addComponent<TransformComponent>();
         }
 
+        if (ImGui::MenuItem("Rectangular Area Light"))
+        {
+          auto light = activeScene->createEntity("New Rect Area Light");
+          light.addComponent<RectAreaLightComponent>();
+          light.addComponent<TransformComponent>();
+        }
+
         ImGui::EndMenu();
       }
 
@@ -439,6 +446,7 @@ namespace Strontium
           drawComponentAdd<DirectionalLightComponent>("Directional Light Component", entity);
           drawComponentAdd<PointLightComponent>("Point Light Component", entity);
           drawComponentAdd<DynamicSkylightComponent>("Dynamic Sky Light Component", entity);
+          drawComponentAdd<RectAreaLightComponent>("Rectangular Area Light Component", entity);
 
           ImGui::EndMenu();
         }
@@ -473,6 +481,7 @@ namespace Strontium
           drawComponentRemove<DirectionalLightComponent>("Directional Light Component", entity);
           drawComponentRemove<PointLightComponent>("Point Light Component", entity);
           drawComponentRemove<DynamicSkylightComponent>("Dynamic Sky Light Component", entity);
+          drawComponentRemove<RectAreaLightComponent>("Rectangular Area Light Component", entity);
 
           ImGui::EndMenu();
         }
@@ -505,6 +514,13 @@ namespace Strontium
             light.addComponent<TransformComponent>();
           }
 
+          if (ImGui::MenuItem("Rectangular Area Light"))
+          {
+            auto light = activeScene->createEntity("New Rect Area Light");
+            light.addComponent<RectAreaLightComponent>();
+            light.addComponent<TransformComponent>();
+          }
+
           ImGui::EndMenu();
         }
 
@@ -532,6 +548,7 @@ namespace Strontium
         copyComponent<SphereFogVolumeComponent>(entity, newEntity);
         copyComponent<DirectionalLightComponent>(entity, newEntity);
         copyComponent<PointLightComponent>(entity, newEntity);
+        copyComponent<RectAreaLightComponent>(entity, newEntity);
         copyComponent<DynamicSkylightComponent>(entity, newEntity);
       }
 
@@ -601,6 +618,7 @@ namespace Strontium
     drawComponentLeaf<SphereFogVolumeComponent>(entity, "Sphere Fog Volume Component");
     drawComponentLeaf<DirectionalLightComponent>(entity, "Directional Light Component");
     drawComponentLeaf<PointLightComponent>(entity, "Point Light Component");
+    drawComponentLeaf<RectAreaLightComponent>(entity, "Rectangular Area Light Component");
     drawComponentLeaf<DynamicSkylightComponent>(entity, "Dynamic Skylight Component");
   }
 
@@ -1232,6 +1250,18 @@ namespace Strontium
         ImGui::Checkbox("Cast Shadows", &component.castShadows);
         ImGui::ColorEdit3("Colour", &component.colour.r);
         Styles::drawFloatControl("Radius", 0.0f, component.radius, 0.0f, 0.1f, 0.0f, 100.0f);
+        Styles::drawFloatControl("Intensity", 0.0f, component.intensity,
+                                 0.0f, 0.01f, 0.0f, 100.0f);
+        ImGui::PopID();
+      });
+
+      drawComponentProperties<RectAreaLightComponent>("Rectangular Area Light Component",
+                                                      this->selectedEntity, 
+                                                      [this](auto& component)
+      {
+        ImGui::PushID("RectAreaLight");
+        ImGui::Checkbox("Two-Sided", &component.twoSided);
+        ImGui::ColorEdit3("Colour", &component.colour.r);
         Styles::drawFloatControl("Intensity", 0.0f, component.intensity,
                                  0.0f, 0.01f, 0.0f, 100.0f);
         ImGui::PopID();

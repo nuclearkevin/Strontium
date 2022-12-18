@@ -8,6 +8,7 @@
 #include "Graphics/RenderPasses/ShadowPass.h"
 #include "Graphics/RenderPasses/HiZPass.h"
 #include "Graphics/RenderPasses/DirectionalLightPass.h"
+#include "Graphics/RenderPasses/AreaLightPass.h"
 
 #include "Graphics/Shaders.h"
 #include "Graphics/Textures.h"
@@ -98,7 +99,8 @@ namespace Strontium
   public:
     GodrayPass(Renderer3D::GlobalRendererData* globalRendererData,
                GeometryPass* previousGeoPass, ShadowPass* previousShadowPass,
-               HiZPass* previousHiZPass, DirectionalLightPass* previousDirLightPass);
+               HiZPass* previousHiZPass, DirectionalLightPass* previousDirLightPass, 
+               AreaLightPass* previousAreaLightPass);
     ~GodrayPass() override;
 
     void onInit() override;
@@ -121,6 +123,7 @@ namespace Strontium
     ShadowPass* previousShadowPass;
     HiZPass* previousHiZPass;
     DirectionalLightPass* previousDirLightPass;
+    AreaLightPass* previousAreaLightPass;
 
     AsynchTimer timer;
   };

@@ -383,6 +383,27 @@ namespace Strontium
     }
   };
 
+  struct RectAreaLightComponent
+  {
+    glm::vec3 colour;
+    float intensity;
+
+    bool twoSided;
+
+    RectAreaLightComponent(const RectAreaLightComponent&) = default;
+
+    RectAreaLightComponent()
+      : colour(1.0f)
+      , intensity(1.0f)
+      , twoSided(false)
+    { }
+
+    operator RectAreaLight()
+    {
+      return RectAreaLight( { this->colour, this->intensity } );
+    }
+  };
+
   struct DynamicSkylightComponent
   {
     float intensity;

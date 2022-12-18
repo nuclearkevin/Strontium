@@ -17,6 +17,7 @@
 #include "Graphics/RenderPasses/DynamicSkyIBLPass.h"
 #include "Graphics/RenderPasses/IBLApplicationPass.h"
 #include "Graphics/RenderPasses/DirectionalLightPass.h"
+#include "Graphics/RenderPasses/AreaLightPass.h"
 #include "Graphics/RenderPasses/SkyboxPass.h"
 #include "Graphics/RenderPasses/PostProcessingPass.h"
 #include "Graphics/RenderPasses/GodrayPass.h"
@@ -296,6 +297,7 @@ namespace Strontium
     auto shadow = passManager.getRenderPass<ShadowPass>();
     auto geomet = passManager.getRenderPass<GeometryPass>();
     auto dirApp = passManager.getRenderPass<DirectionalLightPass>();
+    auto areaApp = passManager.getRenderPass<AreaLightPass>();
     auto skyAtm = passManager.getRenderPass<SkyAtmospherePass>();
     auto godray = passManager.getRenderPass<GodrayPass>();
     auto dynIBL = passManager.getRenderPass<DynamicSkyIBLPass>();
@@ -331,6 +333,22 @@ namespace Strontium
 
         dirApp->submit(directional, transform, attachedSky);
       }
+    }
+
+    // Area lights here.
+    auto rectAreaLight = this->sceneECS.group<RectAreaLightComponent>(entt::get<TransformComponent>);
+    for (auto entity : rectAreaLight)
+    {
+      auto [rect, transform] = rectAreaLight.get<RectAreaLightComponent, TransformComponent>(entity);
+      glm::mat4 transformMatrix = static_cast<glm::mat4>(transform);
+
+      // If a drawable item has a transform hierarchy, compute the global
+      // transforms from local transforms.
+      auto currentEntity = Entity(entity, this);
+      if (currentEntity.hasComponent<ParentEntityComponent>())
+        transformMatrix = computeGlobalTransform(currentEntity);
+
+      areaApp->submit(rect, transformMatrix, rect.twoSided);
     }
 
     // TODO: Point light pass.
@@ -453,6 +471,7 @@ namespace Strontium
     auto shadow = passManager.getRenderPass<ShadowPass>();
     auto geomet = passManager.getRenderPass<GeometryPass>();
     auto dirApp = passManager.getRenderPass<DirectionalLightPass>();
+    auto areaApp = passManager.getRenderPass<AreaLightPass>();
     auto skyAtm = passManager.getRenderPass<SkyAtmospherePass>();
     auto godray = passManager.getRenderPass<GodrayPass>();
     auto dynIBL = passManager.getRenderPass<DynamicSkyIBLPass>();
@@ -488,6 +507,22 @@ namespace Strontium
 
         dirApp->submit(directional, transform, attachedSky);
       }
+    }
+
+    // Area lights here.
+    auto rectAreaLight = this->sceneECS.group<RectAreaLightComponent>(entt::get<TransformComponent>);
+    for (auto entity : rectAreaLight)
+    {
+      auto [rect, transform] = rectAreaLight.get<RectAreaLightComponent, TransformComponent>(entity);
+      glm::mat4 transformMatrix = static_cast<glm::mat4>(transform);
+
+      // If a drawable item has a transform hierarchy, compute the global
+      // transforms from local transforms.
+      auto currentEntity = Entity(entity, this);
+      if (currentEntity.hasComponent<ParentEntityComponent>())
+        transformMatrix = computeGlobalTransform(currentEntity);
+
+      areaApp->submit(rect, transformMatrix, rect.twoSided);
     }
 
     // TODO: Point light pass.
@@ -888,6 +923,7 @@ namespace Strontium
     copyComponent<DynamicSkyboxComponent>(source, destination);
     copyComponent<DirectionalLightComponent>(source, destination);
     copyComponent<PointLightComponent>(source, destination);
+    copyComponent<RectAreaLightComponent>(source, destination);
     copyComponent<DynamicSkylightComponent>(source, destination);
     copyComponent<SphereColliderComponent>(source, destination);
     copyComponent<BoxColliderComponent>(source, destination);
@@ -895,6 +931,7 @@ namespace Strontium
     copyComponent<CapsuleColliderComponent>(source, destination);
     copyComponent<RigidBody3DComponent>(source, destination);
     copyComponent<BoxFogVolumeComponent>(source, destination);
+    copyComponent<SphereFogVolumeComponent>(source, destination);
   }
 
   void 
@@ -1018,6 +1055,7 @@ namespace Strontium
     deleteComponent<DynamicSkyboxComponent>(source);
     deleteComponent<DirectionalLightComponent>(source);
     deleteComponent<PointLightComponent>(source);
+    deleteComponent<RectAreaLightComponent>(source);
     deleteComponent<DynamicSkylightComponent>(source);
     deleteComponent<SphereColliderComponent>(source);
     deleteComponent<BoxColliderComponent>(source);
@@ -1025,6 +1063,7 @@ namespace Strontium
     deleteComponent<CapsuleColliderComponent>(source);
     deleteComponent<RigidBody3DComponent>(source);
     deleteComponent<BoxFogVolumeComponent>(source);
+    deleteComponent<SphereFogVolumeComponent>(source);
 
     Scene* scene = static_cast<Scene*>(source);
     scene->deleteEntity(source);

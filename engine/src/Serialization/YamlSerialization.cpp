@@ -437,6 +437,19 @@ namespace Strontium
         out << YAML::EndMap;
       }
 
+      if (entity.hasComponent<RectAreaLightComponent>())
+      {
+        out << YAML::Key << "RectAreaLightComponent";
+        out << YAML::BeginMap;
+
+        auto& component = entity.getComponent<RectAreaLightComponent>();
+        out << YAML::Key << "Colour" << YAML::Value << component.colour;
+        out << YAML::Key << "Intensity" << YAML::Value << component.intensity;
+        out << YAML::Key << "TwoSided" << YAML::Value << component.twoSided;
+
+        out << YAML::EndMap;
+      }
+
       if (entity.hasComponent<DynamicSkylightComponent>())
       {
         out << YAML::Key << "DynamicSkylightComponent";
@@ -1013,6 +1026,17 @@ namespace Strontium
           pComponent.intensity = pointComponent["Intensity"].as<float>();
           pComponent.radius = pointComponent["Radius"].as<float>();
           pComponent.castShadows = pointComponent["CastShadows"].as<bool>();
+        }
+      }
+
+      {
+        auto rectAreaComponent = entity["RectAreaLightComponent"];
+        if (rectAreaComponent)
+        {
+          auto& raComponent = newEntity.addComponent<RectAreaLightComponent>();
+          raComponent.colour = rectAreaComponent["Colour"].as<glm::vec3>();
+          raComponent.intensity = rectAreaComponent["Intensity"].as<float>();
+          raComponent.twoSided = rectAreaComponent["TwoSided"].as<bool>();
         }
       }
 

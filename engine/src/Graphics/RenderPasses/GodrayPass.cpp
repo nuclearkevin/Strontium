@@ -7,12 +7,15 @@ namespace Strontium
 {
   GodrayPass::GodrayPass(Renderer3D::GlobalRendererData* globalRendererData,
                          GeometryPass* previousGeoPass, ShadowPass* previousShadowPass,
-                         HiZPass* previousHiZPass, DirectionalLightPass* previousDirLightPass)
-    : RenderPass(&this->passData, globalRendererData, { previousGeoPass, previousShadowPass, previousHiZPass })
+                         HiZPass* previousHiZPass, DirectionalLightPass* previousDirLightPass, 
+                         AreaLightPass* previousAreaLightPass)
+    : RenderPass(&this->passData, globalRendererData, { previousGeoPass, previousShadowPass, previousHiZPass, 
+                                                        previousDirLightPass, previousAreaLightPass })
     , previousGeoPass(previousGeoPass)
     , previousShadowPass(previousShadowPass)
     , previousHiZPass(previousHiZPass)
     , previousDirLightPass(previousDirLightPass)
+    , previousAreaLightPass(previousAreaLightPass)
     , timer(5)
   { }
 
@@ -127,6 +130,7 @@ namespace Strontium
     ScopedTimer<AsynchTimer> profiler(this->timer);
 
     auto dirLightBlock = this->previousDirLightPass->getInternalDataBlock<DirectionalLightPassDataBlock>();
+    auto areaLightBlock = this->previousAreaLightPass->getInternalDataBlock<AreaLightPassDataBlock>();
 
     if (!(this->passData.enableGodrays && dirLightBlock->hasPrimary))
       return;
@@ -218,13 +222,22 @@ namespace Strontium
       dirLightBlock->cascadedShadowBlock.bindToPoint(2);
     }
 
-    // Light the froxels.
+    // Light the froxels for directional and ambient light.
     this->passData.lightExtinction.bindAsImage(0, 0, true, 0, ImageAccessPolicy::Write);
     if (dirLightBlock->castShadows)
       ShaderCache::getShader("light_froxels_shadowed")->launchCompute(iFWidth, iFHeight, this->passData.numZSlices);
     else
       ShaderCache::getShader("light_froxels")->launchCompute(iFWidth, iFHeight, this->passData.numZSlices);
     Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
+
+    // Light the froxels for area lights.
+    if (areaLightBlock->rectAreaLightCount > 0u)
+    {
+      areaLightBlock->ltcLUT2.bind(3);
+      areaLightBlock->lightBlock.bindToPoint(1);
+      ShaderCache::getShader("light_froxels_area")->launchCompute(iFWidth, iFHeight, this->passData.numZSlices);
+      Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
+    }
 
     // Temporally AA the froxel lighting buffer.
     this->passData.lightExtinction.bind(0);

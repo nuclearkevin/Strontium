@@ -11,6 +11,7 @@
 
 #include "Graphics/RenderPasses/IBLApplicationPass.h"
 #include "Graphics/RenderPasses/DirectionalLightPass.h"
+#include "Graphics/RenderPasses/AreaLightPass.h"
 #include "Graphics/RenderPasses/VolumetricLightPass.h"
 
 #include "Graphics/RenderPasses/GodrayPass.h"
@@ -370,6 +371,11 @@ namespace Strontium
         auto dirAppPass = renderPassManger.getRenderPass<DirectionalLightPass>();
         auto dirAppBlock = dirAppPass->getInternalDataBlock<DirectionalLightPassDataBlock>();
         ImGui::Text("Directional Light Frametime: %f ms", dirAppBlock->frameTime);
+      }
+      {
+        auto areaAppPass = renderPassManger.getRenderPass<AreaLightPass>();
+        auto areaAppBlock = areaAppPass->getInternalDataBlock<AreaLightPassDataBlock>();
+        ImGui::Text("Area Light Frametime: %f ms", areaAppBlock->frameTime);
       }
       {
         auto skyboxAppPass = renderPassManger.getRenderPass<SkyboxPass>();

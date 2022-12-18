@@ -1,5 +1,7 @@
 #pragma once
 
+#define MAX_NUM_RECT_LIGHTS 8
+
 #include "StrontiumPCH.h"
 
 // Project includes.
@@ -19,11 +21,28 @@ namespace Strontium
 
   struct AreaLightPassDataBlock
   {
+    // Area light shaders.
+    Shader* rectAreaLight;
+
+    // LUTs for rectangular area lights.
+    Texture2D ltcLUT1;
+    Texture2D ltcLUT2;
+
+    // Pass parameters.
+    UniformBuffer lightBlock;
+
+    // Rectangular area lights.
+    uint rectAreaLightCount;
+    std::array<RectAreaLight, MAX_NUM_RECT_LIGHTS> rectLightQueue;
+
 	// Some statistics.
     float frameTime;
 
 	AreaLightPassDataBlock()
-	  : frameTime(0.0f)
+      : rectAreaLight(nullptr)
+      , lightBlock(MAX_NUM_RECT_LIGHTS * sizeof(RectAreaLight) + sizeof(glm::ivec4), BufferType::Dynamic)
+      , rectAreaLightCount(0u)
+	  , frameTime(0.0f)
 	{ }
   };
 
@@ -42,6 +61,8 @@ namespace Strontium
     void onRender() override;
     void onRendererEnd(FrameBuffer& frontBuffer) override;
     void onShutdown() override;
+
+    void submit(const RectAreaLight &light, const glm::mat4 &model, bool twoSided);
 
   private:
     AreaLightPassDataBlock passData;
