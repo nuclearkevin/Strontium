@@ -25,6 +25,7 @@ namespace Strontium
   IBLApplicationPass::onInit()
   {
     this->passData.iblEvaluation = ShaderCache::getShader("ibl_evaluation");
+    this->passData.emissionEvaluation = ShaderCache::getShader("emission_evaluation");
     this->passData.brdfIntegration = ShaderCache::getShader("split_sums_brdf");
 
 	Texture2DParams brdfLUTParams = Texture2DParams();
@@ -106,17 +107,26 @@ namespace Strontium
     // Bind the IBL parameters buffer.
     this->passData.iblBuffer.bindToPoint(1);
 
+    bool launched = false;
+    uint iWidth = static_cast<uint>(glm::ceil(static_cast<float>(rendererData->lightingBuffer.getWidth())
+                                              / 8.0f));
+    uint iHeight = static_cast<uint>(glm::ceil(static_cast<float>(rendererData->lightingBuffer.getHeight())
+                                               / 8.0f));
     for (auto& dynamicIBLParam : this->passData.dynamicIBLParams)
     {
       iblParams.x = static_cast<float>(dynamicIBLParam.handle);
       iblParams.y = dynamicIBLParam.intensity;
       this->passData.iblBuffer.setData(0, 3 * sizeof(float), &(iblParams.x));
 
-      uint iWidth = static_cast<uint>(glm::ceil(static_cast<float>(rendererData->lightingBuffer.getWidth())
-                                                / 8.0f));
-      uint iHeight = static_cast<uint>(glm::ceil(static_cast<float>(rendererData->lightingBuffer.getHeight())
-                                                 / 8.0f));
       this->passData.iblEvaluation->launchCompute(iWidth, iHeight, 1);
+      Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
+
+      launched = true;
+    }
+
+    if (!launched)
+    {
+      this->passData.emissionEvaluation->launchCompute(iWidth, iHeight, 1);
       Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
     }
 

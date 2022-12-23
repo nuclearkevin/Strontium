@@ -129,10 +129,16 @@ namespace Strontium
   {
     ScopedTimer<AsynchTimer> profiler(this->timer);
 
+    uint numFogVolumes = 0u;
+    numFogVolumes += this->passData.applyDepthFog ? 1u : 0u;
+    numFogVolumes += this->passData.applyHeightFog ? 1u : 0u;
+    numFogVolumes += this->passData.obbVolumes.size();
+    numFogVolumes += this->passData.sphereVolumes.size();
+
     auto dirLightBlock = this->previousDirLightPass->getInternalDataBlock<DirectionalLightPassDataBlock>();
     auto areaLightBlock = this->previousAreaLightPass->getInternalDataBlock<AreaLightPassDataBlock>();
 
-    if (!(this->passData.enableGodrays && dirLightBlock->hasPrimary))
+    if (!(this->passData.enableGodrays && numFogVolumes > 0u))
       return;
 
     this->passData.hasGodrays = true;
@@ -190,8 +196,8 @@ namespace Strontium
     if (dirLightBlock->castShadows)
       godrayData.intData.y |= (1 << 2);
 
-    // Bind the noise texture.
-    rendererData->temporalBlueNoise->bind(2);
+    // Bind the first noise texture.
+    rendererData->spatialBlueNoise->bind(2);
 
     // Populate and bind the godray parameters.
     this->passData.godrayParamsBuffer.setData(0, sizeof(GodrayBlockData), &godrayData);
@@ -210,6 +216,9 @@ namespace Strontium
     ShaderCache::getShader("populate_froxels")->launchCompute(iFWidth, iFHeight, this->passData.numZSlices);
     Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
 
+    // Bind the second noise texture.
+    rendererData->temporalBlueNoise->bind(2);
+
     // Bind the froxel material properties.
     this->passData.scatExtinction.bind(0);
     this->passData.emissionPhase.bind(1);
@@ -222,13 +231,21 @@ namespace Strontium
       dirLightBlock->cascadedShadowBlock.bindToPoint(2);
     }
 
-    // Light the froxels for directional and ambient light.
-    this->passData.lightExtinction.bindAsImage(0, 0, true, 0, ImageAccessPolicy::Write);
-    if (dirLightBlock->castShadows)
-      ShaderCache::getShader("light_froxels_shadowed")->launchCompute(iFWidth, iFHeight, this->passData.numZSlices);
+    // Light the froxels for directional, ambient and emissive light.
+    this->passData.lightExtinction.bindAsImage(0, 0, true, 0, ImageAccessPolicy::ReadWrite);
+    if (dirLightBlock->hasPrimary)
+    {
+      if (dirLightBlock->castShadows)
+        ShaderCache::getShader("light_froxels_shadowed")->launchCompute(iFWidth, iFHeight, this->passData.numZSlices);
+      else
+        ShaderCache::getShader("light_froxels")->launchCompute(iFWidth, iFHeight, this->passData.numZSlices);
+      Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
+    }
     else
-      ShaderCache::getShader("light_froxels")->launchCompute(iFWidth, iFHeight, this->passData.numZSlices);
-    Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
+    {
+      ShaderCache::getShader("light_froxels_emission")->launchCompute(iFWidth, iFHeight, this->passData.numZSlices);
+      Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
+    }
 
     // Light the froxels for area lights.
     if (areaLightBlock->rectAreaLightCount > 0u)

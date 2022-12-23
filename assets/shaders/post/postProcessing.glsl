@@ -58,6 +58,9 @@ vec3 applyGrid(vec3 colour, sampler2D gDepth, vec2 uvs, mat4 invVP, mat4 vP);
 // The outline.
 vec3 applyOutline(vec3 colour, sampler2D idMask, vec2 uvs);
 
+// Dithering to deband colours.
+vec3 screenSpaceDither(vec2 uvs);
+
 void main()
 {
   vec2 screenSize = vec2(textureSize(screenColour, 0).xy);
@@ -84,6 +87,9 @@ void main()
     colour = toneMap(colour, uint(u_postSettings.y));
     colour = applyGamma(colour, u_nearFarGamma.z);
   }
+
+  // Dither to improve banding.
+  colour = colour + screenSpaceDither(gl_FragCoord.xy);
 
   fragColour = vec4(colour, 1.0);
   fragID = texture(gEntityIDMask, fTexCoords).g;
@@ -429,4 +435,13 @@ vec3 applyOutline(vec3 colour, sampler2D idMask, vec2 uvs)
   float sobel = sqrt((sobelEdgeH * sobelEdgeH) + (sobelEdgeV * sobelEdgeV));
 
   return mix(colour, vec3(sobel, 0.0, 0.0), float(sobel >= 1e-2));
+}
+
+// Iestyn's RGB dither (7 asm instructions) from Portal 2 X360, slightly modified for VR.
+vec3 screenSpaceDither(vec2 uvs) 
+{
+	vec3 dither = vec3(dot(vec2(171.0, 231.0), uvs));
+	dither.rgb = fract(dither.rgb / vec3(103.0, 71.0, 97.0));
+	// Subtract 0.5 to avoid slightly brightening the whole viewport.
+	return (dither.rgb - 0.5) / 255.0;
 }

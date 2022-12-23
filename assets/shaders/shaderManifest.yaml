@@ -62,6 +62,8 @@ ShaderCache:
     #
   - Handle: populate_froxels
     Filepath: ./assets/shaders/compute/volumetric/populateVolumetric.glsl
+  - Handle: light_froxels_emission
+    Filepath: ./assets/shaders/compute/volumetric/lightVolumetricEmission.glsl
   - Handle: light_froxels
     Filepath: ./assets/shaders/compute/volumetric/lightVolumetric.glsl
   - Handle: light_froxels_shadowed
@@ -75,6 +77,8 @@ ShaderCache:
     #
     # Lighting
     #
+  - Handle: emission_evaluation
+    Filepath: ./assets/shaders/compute/lighting/emissionEval.glsl
   - Handle: point_evaluation
     Filepath: ./assets/shaders/compute/lighting/pointLightEval.glsl
   - Handle: rect_area_evaluation

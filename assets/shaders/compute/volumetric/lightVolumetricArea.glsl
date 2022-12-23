@@ -97,7 +97,7 @@ void main()
 
   vec4 se = texture(scatExtinction, uvw);
   vec4 ep = texture(emissionPhase, uvw);
-  vec4 totalInScatExt = imageLoad(inScatExt, invoke);
+  vec3 totalInScatExt = imageLoad(inScatExt, invoke).rgb;
 
   // Light the voxel. Just cascaded shadow maps and voxel emission for now.
   // TODO: Single sample along the shadowed light's direction to account for out scattering.
@@ -111,7 +111,7 @@ void main()
     totalRadiance += voxelAlbedo * evaluateRectAreaLight(rALights[i], worldSpacePostion, direction, ep.w);
   }
 
-  imageStore(inScatExt, invoke, vec4(totalRadiance, totalInScatExt.w));
+  imageStore(inScatExt, invoke, vec4(totalRadiance, se.w));
 }
 
 // Compute the vector form factor.

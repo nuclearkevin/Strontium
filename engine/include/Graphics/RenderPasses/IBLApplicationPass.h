@@ -24,6 +24,7 @@ namespace Strontium
   struct IBLApplicationPassDataBlock
   {
     Shader* iblEvaluation;
+    Shader* emissionEvaluation;
     Shader* brdfIntegration;
     
     Texture2D brdfLUT;
@@ -38,6 +39,7 @@ namespace Strontium
   
     IBLApplicationPassDataBlock()
       : iblEvaluation(nullptr)
+      , emissionEvaluation(nullptr)
       , brdfIntegration(nullptr)
       , iblBuffer(sizeof(glm::vec4), BufferType::Dynamic)
       , frameTime(0.0f)

@@ -8,6 +8,7 @@
 #include "Core/Events.h"
 #include "Graphics/FrameBuffer.h"
 #include "Graphics/EditorCamera.h"
+#include "Graphics/GPUTimers.h"
 #include "Layers/Layers.h"
 #include "Scenes/Scene.h"
 #include "Scenes/Entity.h"
@@ -55,6 +56,12 @@ namespace Strontium
     void onScenePlay();
     void onSceneSimulate();
     void onSceneStop();
+
+    // Some profiling data.
+    AsynchTimer updateTimer;
+    AsynchTimer physicsTimer;
+    AsynchTimer renderTimer;
+    float timerStorage[3];
 
     // The current scene.
     Shared<Scene> currentScene;

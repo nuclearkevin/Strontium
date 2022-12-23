@@ -15,6 +15,10 @@ namespace Strontium
 {
   EditorLayer::EditorLayer()
     : Layer("Editor Layer")
+    , updateTimer(5u)
+    , physicsTimer(5u)
+    , renderTimer(5u)
+    , timerStorage{ 0.0f, 0.0f, 0.0f }
     , editorCam(1920 / 2, 1080 / 2, glm::vec3{ 0.0f, 1.0f, 4.0f }, 
                 EditorCameraType::Stationary)
     , loadTarget(FileLoadTargets::TargetNone)
@@ -194,21 +198,29 @@ namespace Strontium
       case SceneState::Edit:
       {
         // Update the scene.
-        this->currentScene->onUpdateEditor(dt);
+        {
+          ScopedTimer<AsynchTimer> profiler(this->updateTimer);
 
-        this->drawBuffer.clear();
-        // Draw the scene.
-        Renderer3D::begin(this->editorSize.x, this->editorSize.y, static_cast<Camera>(this->editorCam), dt);
-        this->currentScene->onRenderEditor(this->editorSize.x / this->editorSize.y, this->getSelectedEntity());
-        Renderer3D::end(this->drawBuffer);
+          this->currentScene->onUpdateEditor(dt);
+        }
 
-        // Draw debug information.
-        DebugRenderer::begin(this->editorSize.x, this->editorSize.y, static_cast<Camera>(this->editorCam));
-        this->currentScene->onRenderDebug(this->editorSize.x / this->editorSize.y);
-        DebugRenderer::end(this->drawBuffer);
+        {
+          ScopedTimer<AsynchTimer> profiler(this->renderTimer);
 
-        // Update the editor camera.
-        this->editorCam.onUpdate(dt, glm::vec2(this->editorSize.x, this->editorSize.y));
+          this->drawBuffer.clear();
+          // Draw the scene.
+          Renderer3D::begin(this->editorSize.x, this->editorSize.y, static_cast<Camera>(this->editorCam), dt);
+          this->currentScene->onRenderEditor(this->editorSize.x / this->editorSize.y, this->getSelectedEntity());
+          Renderer3D::end(this->drawBuffer);
+          
+          // Draw debug information.
+          DebugRenderer::begin(this->editorSize.x, this->editorSize.y, static_cast<Camera>(this->editorCam));
+          this->currentScene->onRenderDebug(this->editorSize.x / this->editorSize.y);
+          DebugRenderer::end(this->drawBuffer);
+          
+          // Update the editor camera.
+          this->editorCam.onUpdate(dt, glm::vec2(this->editorSize.x, this->editorSize.y));
+        }
 
         break;
       }
@@ -216,48 +228,60 @@ namespace Strontium
       case SceneState::Play:
       {
         // Update the scene.
-        this->currentScene->onUpdateRuntime(dt);
+        {
+          ScopedTimer<AsynchTimer> profiler(this->updateTimer);
+
+          this->currentScene->onUpdateRuntime(dt);
+        }
 
         // Update the physics system.
-        this->currentScene->simulatePhysics(dt);
+        {
+          ScopedTimer<AsynchTimer> profiler(this->physicsTimer);
+
+          this->currentScene->simulatePhysics(dt);
+        }
 
         // Fetch the primary camera entity.
-        auto primaryCameraEntity = this->currentScene->getPrimaryCameraEntity();
-        Camera primaryCamera;
-        if (primaryCameraEntity)
         {
-          auto transform = this->currentScene->computeGlobalTransform(primaryCameraEntity);
-          primaryCamera = primaryCameraEntity.getComponent<CameraComponent>().entCamera;
+          ScopedTimer<AsynchTimer> profiler(this->renderTimer);
 
-          primaryCamera.position = glm::vec3(transform * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
-          primaryCamera.front = glm::normalize(glm::vec3(transform  * glm::vec4(0.0f, 0.0f, -1.0f, 0.0f)));
-
-          primaryCamera.view = glm::lookAt(primaryCamera.position, primaryCamera.position + primaryCamera.front, 
-                                           glm::vec3(0.0f, 1.0f, 0.0f));
-
-          primaryCamera.projection = glm::perspective(primaryCamera.fov,
-                                                      this->editorSize.x / this->editorSize.y, 
-                                                      primaryCamera.near,
-                                                      primaryCamera.far);
-          primaryCamera.invViewProj = glm::inverse(primaryCamera.projection * primaryCamera.view);
+          auto primaryCameraEntity = this->currentScene->getPrimaryCameraEntity();
+          Camera primaryCamera;
+          if (primaryCameraEntity)
+          {
+            auto transform = this->currentScene->computeGlobalTransform(primaryCameraEntity);
+            primaryCamera = primaryCameraEntity.getComponent<CameraComponent>().entCamera;
+          
+            primaryCamera.position = glm::vec3(transform * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
+            primaryCamera.front = glm::normalize(glm::vec3(transform  * glm::vec4(0.0f, 0.0f, -1.0f, 0.0f)));
+          
+            primaryCamera.view = glm::lookAt(primaryCamera.position, primaryCamera.position + primaryCamera.front, 
+                                             glm::vec3(0.0f, 1.0f, 0.0f));
+          
+            primaryCamera.projection = glm::perspective(primaryCamera.fov,
+                                                        this->editorSize.x / this->editorSize.y, 
+                                                        primaryCamera.near,
+                                                        primaryCamera.far);
+            primaryCamera.invViewProj = glm::inverse(primaryCamera.projection * primaryCamera.view);
+          }
+          else
+          {
+            // Fall back to the editor camera if now primary camera is available.
+            primaryCamera = static_cast<Camera>(this->editorCam);
+            this->editorCam.onUpdate(dt, glm::vec2(this->editorSize.x, this->editorSize.y));
+          }
+          
+          this->drawBuffer.clear();
+          // Draw the scene.
+          Renderer3D::begin(this->editorSize.x, this->editorSize.y, primaryCamera, dt);
+          this->currentScene->onRenderRuntime(this->editorSize.x / this->editorSize.y);
+          Renderer3D::end(this->drawBuffer);
+          
+          // Draw debug information.
+          DebugRenderer::begin(this->editorSize.x, this->editorSize.y, primaryCamera);
+          this->currentScene->onRenderDebug(this->editorSize.x / this->editorSize.y);
+          DebugRenderer::end(this->drawBuffer);
         }
-        else
-        {
-          // Fall back to the editor camera if now primary camera is available.
-          primaryCamera = static_cast<Camera>(this->editorCam);
-          this->editorCam.onUpdate(dt, glm::vec2(this->editorSize.x, this->editorSize.y));
-        }
-
-        this->drawBuffer.clear();
-        // Draw the scene.
-        Renderer3D::begin(this->editorSize.x, this->editorSize.y, primaryCamera, dt);
-        this->currentScene->onRenderRuntime(this->editorSize.x / this->editorSize.y);
-        Renderer3D::end(this->drawBuffer);
-
-        // Draw debug information.
-        DebugRenderer::begin(this->editorSize.x, this->editorSize.y, primaryCamera);
-        this->currentScene->onRenderDebug(this->editorSize.x / this->editorSize.y);
-        DebugRenderer::end(this->drawBuffer);
 
         break;
       }
@@ -265,24 +289,36 @@ namespace Strontium
       case SceneState::Simulate:
       {
         // Update the scene.
-        this->currentScene->onUpdateEditor(dt);
+        {
+          ScopedTimer<AsynchTimer> profiler(this->updateTimer);
+          
+          this->currentScene->onUpdateEditor(dt);
+        }
 
         // Update the physics system.
-        this->currentScene->simulatePhysics(dt);
+        {
+          ScopedTimer<AsynchTimer> profiler(this->physicsTimer);
 
-        this->drawBuffer.clear();
-        // Draw the scene.
-        Renderer3D::begin(this->editorSize.x, this->editorSize.y, static_cast<Camera>(this->editorCam), dt);
-        this->currentScene->onRenderEditor(this->editorSize.x / this->editorSize.y, this->getSelectedEntity());
-        Renderer3D::end(this->drawBuffer);
+          this->currentScene->simulatePhysics(dt);
+        }
 
-        // Draw debug information.
-        DebugRenderer::begin(this->editorSize.x, this->editorSize.y, static_cast<Camera>(this->editorCam));
-        this->currentScene->onRenderDebug(this->editorSize.x / this->editorSize.y);
-        DebugRenderer::end(this->drawBuffer);
+        {
+          ScopedTimer<AsynchTimer> profiler(this->renderTimer);
 
-        // Update the editor camera.
-        this->editorCam.onUpdate(dt, glm::vec2(this->editorSize.x, this->editorSize.y));
+          this->drawBuffer.clear();
+          // Draw the scene.
+          Renderer3D::begin(this->editorSize.x, this->editorSize.y, static_cast<Camera>(this->editorCam), dt);
+          this->currentScene->onRenderEditor(this->editorSize.x / this->editorSize.y, this->getSelectedEntity());
+          Renderer3D::end(this->drawBuffer);
+          
+          // Draw debug information.
+          DebugRenderer::begin(this->editorSize.x, this->editorSize.y, static_cast<Camera>(this->editorCam));
+          this->currentScene->onRenderDebug(this->editorSize.x / this->editorSize.y);
+          DebugRenderer::end(this->drawBuffer);
+          
+          // Update the editor camera.
+          this->editorCam.onUpdate(dt, glm::vec2(this->editorSize.x, this->editorSize.y));
+        }
         break;
       }
     }
@@ -481,6 +517,14 @@ namespace Strontium
       ImGui::Text(Application::getInstance()->getWindow()->getContextInfo().c_str());
       ImGui::Text("Application averaging %.3f ms/frame (%.1f FPS)",
                   1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+
+      // Other profiling data.
+      this->updateTimer.msRecordTime(this->timerStorage[0]);
+      this->physicsTimer.msRecordTime(this->timerStorage[1]);
+      this->renderTimer.msRecordTime(this->timerStorage[2]);
+
+      ImGui::Text("- Update frametime: %.3f ms\n- Physics frametime: %.3f ms\n- Render frametime: %.3f ms\n", 
+                  timerStorage[0], timerStorage[1], timerStorage[2]);
       ImGui::PopTextWrapPos();
       ImGui::End();
     }
@@ -636,12 +680,13 @@ namespace Strontium
 
     bool lControlHeld = appWindow->isKeyPressed(SR_KEY_LEFT_CONTROL);
     bool lShiftHeld = appWindow->isKeyPressed(SR_KEY_LEFT_SHIFT);
+    bool rMouseClicked = appWindow->isMouseClicked(SR_MOUSE_BUTTON_RIGHT);
 
     switch (keyCode)
     {
       case SR_KEY_N:
       {
-        if (lControlHeld && keyEvent.getRepeatCount() == 0)
+        if (!rMouseClicked && lControlHeld && keyEvent.getRepeatCount() == 0)
         {
           this->currentScene = createShared<Scene>();
           this->windowManager.getWindow<SceneGraphWindow>()->setSelectedEntity(Entity());
@@ -653,7 +698,7 @@ namespace Strontium
       }
       case SR_KEY_O:
       {
-        if (lControlHeld && keyEvent.getRepeatCount() == 0)
+        if (!rMouseClicked && lControlHeld && keyEvent.getRepeatCount() == 0)
         {
           EventDispatcher* dispatcher = EventDispatcher::getInstance();
           dispatcher->queueEvent(new OpenDialogueEvent(DialogueEventType::FileOpen,
@@ -664,14 +709,14 @@ namespace Strontium
       }
       case SR_KEY_S:
       {
-        if (lControlHeld && lShiftHeld && keyEvent.getRepeatCount() == 0)
+        if (!rMouseClicked && lControlHeld && lShiftHeld && keyEvent.getRepeatCount() == 0)
         {
           EventDispatcher* dispatcher = EventDispatcher::getInstance();
           dispatcher->queueEvent(new OpenDialogueEvent(DialogueEventType::FileSave,
                                                        ".srn"));
           this->saveTarget = FileSaveTargets::TargetScene;
         }
-        else if (lControlHeld && keyEvent.getRepeatCount() == 0)
+        else if (!rMouseClicked && lControlHeld && keyEvent.getRepeatCount() == 0)
         {
           if (this->currentScene->getSaveFilepath() != "")
           {
@@ -696,9 +741,7 @@ namespace Strontium
   }
 
   void EditorLayer::onMouseEvent(MouseClickEvent &mouseEvent)
-  {
-    
-  }
+  { }
 
   void
   EditorLayer::onScenePlay()
