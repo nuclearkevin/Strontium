@@ -83,10 +83,10 @@ namespace Strontium
     void onInit() override;
     void updatePassData() override;
     RendererDataHandle requestRendererData() override;
-    void deleteRendererData(RendererDataHandle& handle) override;
+    void deleteRendererData(RendererDataHandle &handle) override;
     void onRendererBegin(uint width, uint height) override;
     void onRender() override;
-    void onRendererEnd(FrameBuffer& frontBuffer) override;
+    void onRendererEnd(FrameBuffer &frontBuffer) override;
     void onShutdown() override;
 
     void submit(const DirectionalLight &light, const glm::mat4 &model, 

@@ -42,14 +42,18 @@ layout(std140, binding = 0) uniform CameraBlock
   vec4 u_nearFar; // Near plane (x), far plane (y). z and w are unused.
 };
 
-layout(std140, binding = 1) readonly buffer PointLights
+layout(std140, binding = 1) restrict readonly buffer PointLights
 {
   PointLight pLights[MAX_NUM_LIGHTS];
-  uint lightingSettings; // A bitmask for lighting settings.
+  uint lightingSettings; // Maximum number of point lights.
+};
+
+layout(std430, binding = 2) readonly buffer LightIndices
+{
+  int indices[];
 };
 
 layout(rgba16f, binding = 0) restrict uniform image2D lightingBuffer;
-layout(r16i, binding = 1) readonly uniform iimage1D indices;
 
 // Uniforms for the geometry buffer.
 layout(binding = 0) uniform sampler2D gDepth;
@@ -66,9 +70,9 @@ vec3 evaluatePointLight(PointLight light, SurfaceProperties props);
 void main()
 {
   ivec2 invoke = ivec2(gl_GlobalInvocationID.xy);
-  ivec2 numGroups = ivec2(gl_NumWorkGroups.xy);
-  ivec2 groupID = ivec2(gl_WorkGroupID.xy);
-  int tileOffset = numGroups.x * groupID.y + groupID.x;
+  const ivec2 totalTiles = ivec2(gl_NumWorkGroups.xy); // Same as the total number of tiles.
+  const ivec2 currentTile = ivec2(gl_WorkGroupID.xy); // The current tile.
+  const uint tileOffset = (totalTiles.x * currentTile.y + currentTile.x) * MAX_NUM_LIGHTS; // Offset into the tile buffer.
 
   vec2 screenSize = vec2(textureSize(gDepth, 0).xy);
   vec2 gBufferUVs = (vec2(invoke) + 0.5.xx) / screenSize;
@@ -76,9 +80,9 @@ void main()
 
   // Loop over the lights and compute the radiance contribution.
   vec3 totalRadiance = imageLoad(lightingBuffer, invoke).rgb;
-  for (int i = 0; i < MAX_NUM_LIGHTS; i++)
+  for (int i = 0; i < lightingSettings; i++)
   {
-    int lightIndex = imageLoad(indices, tileOffset + i).r;
+    int lightIndex = indices[tileOffset + i];
 
     // If the buffer terminates in -1, quit. No more lights to add to this
     // fragment.

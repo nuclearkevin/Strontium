@@ -21,6 +21,7 @@
 #include "Graphics/RenderPasses/SkyboxPass.h"
 #include "Graphics/RenderPasses/PostProcessingPass.h"
 #include "Graphics/RenderPasses/GodrayPass.h"
+#include "Graphics/RenderPasses/LightCullingPass.h"
 
 #include "Graphics/RenderPasses/WireframePass.h"
 
@@ -296,8 +297,8 @@ namespace Strontium
     auto& passManager = Renderer3D::getPassManager();
     auto shadow = passManager.getRenderPass<ShadowPass>();
     auto geomet = passManager.getRenderPass<GeometryPass>();
+    auto lightCulling = passManager.getRenderPass<LightCullingPass>();
     auto dirApp = passManager.getRenderPass<DirectionalLightPass>();
-    auto areaApp = passManager.getRenderPass<AreaLightPass>();
     auto skyAtm = passManager.getRenderPass<SkyAtmospherePass>();
     auto godray = passManager.getRenderPass<GodrayPass>();
     auto dynIBL = passManager.getRenderPass<DynamicSkyIBLPass>();
@@ -348,11 +349,10 @@ namespace Strontium
       if (currentEntity.hasComponent<ParentEntityComponent>())
         transformMatrix = computeGlobalTransform(currentEntity);
 
-      areaApp->submit(rect, transformMatrix, rect.twoSided);
+      lightCulling->submit(rect, transformMatrix, rect.radius, rect.twoSided);
     }
 
     // TODO: Point light pass.
-    /*
     auto pointLight = this->sceneECS.group<PointLightComponent>(entt::get<TransformComponent>);
     for (auto entity : pointLight)
     {
@@ -364,8 +364,9 @@ namespace Strontium
       auto currentEntity = Entity(entity, this);
       if (currentEntity.hasComponent<ParentEntityComponent>())
         transformMatrix = computeGlobalTransform(currentEntity);
+
+      lightCulling->submit(static_cast<PointLight>(point), transformMatrix);
     }
-    */
 
     // Group together the transform and renderable components.
     auto drawables = this->sceneECS.group<RenderableComponent>(entt::get<TransformComponent>);
@@ -470,8 +471,8 @@ namespace Strontium
     auto& passManager = Renderer3D::getPassManager();
     auto shadow = passManager.getRenderPass<ShadowPass>();
     auto geomet = passManager.getRenderPass<GeometryPass>();
+    auto lightCulling = passManager.getRenderPass<LightCullingPass>();
     auto dirApp = passManager.getRenderPass<DirectionalLightPass>();
-    auto areaApp = passManager.getRenderPass<AreaLightPass>();
     auto skyAtm = passManager.getRenderPass<SkyAtmospherePass>();
     auto godray = passManager.getRenderPass<GodrayPass>();
     auto dynIBL = passManager.getRenderPass<DynamicSkyIBLPass>();
@@ -522,11 +523,10 @@ namespace Strontium
       if (currentEntity.hasComponent<ParentEntityComponent>())
         transformMatrix = computeGlobalTransform(currentEntity);
 
-      areaApp->submit(rect, transformMatrix, rect.twoSided);
+      lightCulling->submit(rect, transformMatrix, rect.radius, rect.twoSided);
     }
 
     // TODO: Point light pass.
-    /*
     auto pointLight = this->sceneECS.group<PointLightComponent>(entt::get<TransformComponent>);
     for (auto entity : pointLight)
     {
@@ -538,8 +538,9 @@ namespace Strontium
       auto currentEntity = Entity(entity, this);
       if (currentEntity.hasComponent<ParentEntityComponent>())
         transformMatrix = computeGlobalTransform(currentEntity);
+
+      lightCulling->submit(static_cast<PointLight>(point), transformMatrix);
     }
-    */
 
     // Group together the transform and renderable components.
     auto drawables = this->sceneECS.group<RenderableComponent>(entt::get<TransformComponent>);

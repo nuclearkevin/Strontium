@@ -1262,6 +1262,7 @@ namespace Strontium
         ImGui::PushID("RectAreaLight");
         ImGui::Checkbox("Two-Sided", &component.twoSided);
         ImGui::ColorEdit3("Colour", &component.colour.r);
+        Styles::drawFloatControl("Radius", 0.0f, component.radius, 0.0f, 0.1f, 0.0f, 100.0f);
         Styles::drawFloatControl("Intensity", 0.0f, component.intensity,
                                  0.0f, 0.01f, 0.0f, 100.0f);
         ImGui::PopID();

@@ -4,9 +4,9 @@
  * A compute shader to cull lights. Each local invocation culls a single light.
  */
 
-#define MAX_NUM_LIGHTS 1024
+#define MAX_NUM_RECT_LIGHTS 64
 
-layout(local_size_x = MAX_NUM_LIGHTS, local_size_y = 1) in;
+layout(local_size_x = MAX_NUM_RECT_LIGHTS, local_size_y = 1) in;
 
 struct TileData
 {
@@ -17,10 +17,13 @@ struct TileData
   vec4 aabbExtents;
 };
 
-struct PointLight
+struct RectAreaLight
 {
-  vec4 positionRadius; // Position (x, y, z), radius (w).
   vec4 colourIntensity; // Colour (x, y, z) and intensity (w).
+  // Points of the rectangular area light (x, y, z). 
+  // points[0].w > 0 indicates the light is two-sided, one-sided otherwise.
+  // points[1].w is the culling radius.
+  vec4 points[4];
 };
 
 // Camera specific uniforms.
@@ -38,10 +41,11 @@ layout(std140, binding = 0) readonly buffer AABBandFrustum
   TileData frustumsAABBs[];
 };
 
-layout(std140, binding = 1) readonly buffer PointLights
+// Rectangular area light uniforms.
+layout(std140, binding = 1) uniform RectAreaBlock
 {
-  PointLight pLights[MAX_NUM_LIGHTS];
-  uint lightingSettings; // Maximum number of point lights.
+  RectAreaLight rALights[MAX_NUM_RECT_LIGHTS];
+  ivec4 u_lightingSettings; // Number of rectangular area lights (x) with a maximum of 64. y, z and w are unused.
 };
 
 layout(std430, binding = 2) writeonly buffer LightIndices
@@ -72,7 +76,7 @@ bool sphereIntersectsFrustum(vec3 sPosition, float sRadius, TileData frustum)
   return dist > 0.0;
 }
 
-bool pointLightInTile(PointLight light, TileData data)
+bool rectLightInTile(RectAreaLight light, TileData data)
 {
   /*
   bool res1 = sphereIntersectsAABB(light.positionRadius.xyz,
@@ -81,13 +85,15 @@ bool pointLightInTile(PointLight light, TileData data)
                                       light.positionRadius.w, data);
   return res1 && res2;
   */
-  return sphereIntersectsFrustum(light.positionRadius.xyz, light.positionRadius.w, data);
+  vec3 center = 0.25 * (light.points[0].xyz + light.points[1].xyz 
+                        + light.points[2].xyz + light.points[3].xyz);
+  return sphereIntersectsFrustum(center, light.points[1].w, data);
 }
 
 shared TileData data;
 
 shared uint numBinnedLights;
-shared int lightIndicesCache[MAX_NUM_LIGHTS];
+shared int lightIndicesCache[MAX_NUM_RECT_LIGHTS];
 
 void main()
 {
@@ -106,14 +112,14 @@ void main()
   barrier();
 
   // Quit early to prevent filling the buffer with garbage lights.
-  if (lInvoke >= lightingSettings)
+  if (lInvoke >= u_lightingSettings.x)
     return;
 
   // Fetch the light for culling.
-  PointLight light = pLights[lInvoke];
+  RectAreaLight light = rALights[lInvoke];
 
   // If the light is inside the tile, add it to the cache.
-  if (pointLightInTile(light, data))
+  if (rectLightInTile(light, data))
   {
     uint offset = atomicAdd(numBinnedLights, 1);
     lightIndicesCache[offset] = int(lInvoke);
@@ -124,8 +130,8 @@ void main()
   if (lInvoke > numBinnedLights)
     return;
 
-  uint offset = tileOffset * MAX_NUM_LIGHTS;
-  if (numBinnedLights != MAX_NUM_LIGHTS && lInvoke == numBinnedLights)
+  uint offset = tileOffset * MAX_NUM_RECT_LIGHTS;
+  if (numBinnedLights != MAX_NUM_RECT_LIGHTS && lInvoke == numBinnedLights)
   {
     indices[offset + numBinnedLights] = -1;
   }

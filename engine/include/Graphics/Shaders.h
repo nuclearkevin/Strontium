@@ -36,7 +36,8 @@ namespace Strontium
 
   enum class MemoryBarrierType
   {
-    ShaderImageAccess = 0x00000020 // GL_SHADER_IMAGE_ACCESS_BARRIER_BIT
+    ShaderImageAccess = 0x00000020, // GL_SHADER_IMAGE_ACCESS_BARRIER_BIT
+    ShaderStorageBufferWrites = 0x00002000 // GL_SHADER_STORAGE_BARRIER_BIT
   };
 
   // Shader abstraction which supports multiple shader stages.

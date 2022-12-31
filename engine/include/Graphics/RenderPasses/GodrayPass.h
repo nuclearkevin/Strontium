@@ -5,6 +5,7 @@
 // Project includes.
 #include "Graphics/RenderPasses/RenderPass.h"
 #include "Graphics/RenderPasses/GeometryPass.h"
+#include "Graphics/RenderPasses/LightCullingPass.h"
 #include "Graphics/RenderPasses/ShadowPass.h"
 #include "Graphics/RenderPasses/HiZPass.h"
 #include "Graphics/RenderPasses/DirectionalLightPass.h"
@@ -98,8 +99,9 @@ namespace Strontium
   {
   public:
     GodrayPass(Renderer3D::GlobalRendererData* globalRendererData,
-               GeometryPass* previousGeoPass, ShadowPass* previousShadowPass,
-               HiZPass* previousHiZPass, DirectionalLightPass* previousDirLightPass, 
+               GeometryPass* previousGeoPass, LightCullingPass* previousCullPass, 
+               ShadowPass* previousShadowPass, HiZPass* previousHiZPass, 
+               DirectionalLightPass* previousDirLightPass, 
                AreaLightPass* previousAreaLightPass);
     ~GodrayPass() override;
 
@@ -120,6 +122,7 @@ namespace Strontium
     GodrayPassDataBlock passData;
 
     GeometryPass* previousGeoPass;
+    LightCullingPass* previousCullPass;
     ShadowPass* previousShadowPass;
     HiZPass* previousHiZPass;
     DirectionalLightPass* previousDirLightPass;

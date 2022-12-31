@@ -20,14 +20,19 @@ namespace Strontium
   // Parameters for textures.
   enum class TextureInternalFormats
   {
+    // Depth components.
     Depth = 0x1902, // GL_DEPTH_COMPONENT
     DepthStencil = 0x84F9, // GL_DEPTH_STENCIL
     Depth24Stencil8 = 0x88F0, // GL_DEPTH24_STENCIL8
     Depth32f = 0x8CAC, // GL_DEPTH_COMPONENT32F
+
+    // Basic uchar components.
     Red = 0x1903, // GL_RED
     RG = 0x8227, // GL_RG
     RGB = 0x1907, // GL_RGB
     RGBA = 0x1908, // GL_RGBA
+
+    // Float components.
     R16f = 0x822D, // GL_R16F
     RG16f = 0x822F, // GL_RG16F
     RGB16f = 0x881B, // GL_RGB16F
@@ -35,7 +40,17 @@ namespace Strontium
     R32f = 0x822E, // GL_R32F
     RG32f = 0x8230, // GL_RG32F
     RGB32f = 0x8815, // GL_RGB32F
-    RGBA32f = 0x8814 // GL_RGBA32F
+    RGBA32f = 0x8814, // GL_RGBA32F
+
+    // Int components.
+    R16i = 0x8233, // GL_R16I
+    RG16i = 0x8239, // GL_RG16I
+    RGB16i = 0x8D89, // GL_RGB16I
+    RGBA16i = 0x8D88, // GL_RGBA16I
+    R32i = 0x8235, // GL_R32I
+    RG32i = 0x823B, // GL_RG32I
+    RGB32i = 0x8D83, // GL_RGB32I
+    RGBA32i = 0x8D82 // GL_RGBA32I
   };
   enum class TextureFormats
   {
@@ -44,12 +59,17 @@ namespace Strontium
     Red = 0x1903, // GL_RED
     RG = 0x8227, // GL_RG
     RGB = 0x1907, // GL_RGB
-    RGBA = 0x1908 // GL_RGBA
+    RGBA = 0x1908, // GL_RGBA
+    RedInt = 0x8D94, // GL_RED_INTEGER
+    RGInt = 0x8228, // GL_RG_INTEGER
+    RGBInt = 0x8D98, // GL_RGB_INTEGER
+    RGBAInt = 0x8D99 // GL_RGBA_INTEGER
   };
   enum class TextureDataType
   {
     Bytes = 0x1401, // GL_UNSIGNED_BYTE
     Floats = 0x1406, // GL_FLOAT
+    Integer = 0x1404, // GL_INT
     UInt24UInt8 = 0x84FA // GL_UNSIGNED_INT_24_8
   };
   enum class TextureWrapParams
@@ -90,6 +110,26 @@ namespace Strontium
   };
 
   // Texture parameters.
+  struct Texture1DParams
+  {
+    TextureWrapParams      sWrap;
+    TextureMinFilterParams minFilter;
+    TextureMaxFilterParams maxFilter;
+
+    TextureInternalFormats internal;
+    TextureFormats         format;
+    TextureDataType        dataType;
+
+    Texture1DParams()
+      : sWrap(TextureWrapParams::Repeat)
+      , minFilter(TextureMinFilterParams::Linear)
+      , maxFilter(TextureMaxFilterParams::Linear)
+      , internal(TextureInternalFormats::RGBA)
+      , format(TextureFormats::RGBA)
+      , dataType(TextureDataType::Bytes)
+    { };
+  };
+
   struct Texture2DParams
   {
     TextureWrapParams      sWrap;
@@ -174,6 +214,55 @@ namespace Strontium
     std::string name;
     std::string filepath;
     ImageLoadOverride overload;
+  };
+
+  //----------------------------------------------------------------------------
+  // 1D textures.
+  //----------------------------------------------------------------------------
+  class Texture1D
+  {
+  public:
+    Texture1D();
+    Texture1D(uint width, const Texture1DParams &params = Texture1DParams());
+    ~Texture1D();
+
+    // Delete the copy constructor and the assignment operator. Prevents
+    // issues related to the underlying API.
+    Texture1D(const Texture1D&) = delete;
+    Texture1D(Texture1D&&) = delete;
+    Texture1D& operator=(const Texture1D&) = delete;
+    Texture1D& operator=(Texture1D&&) = delete;
+
+    // Init the texture using given data and stored params.
+    void initNullTexture();
+
+    // Set the parameters after generating the texture.
+    void setSize(uint width);
+    void setParams(const Texture1DParams &newParams);
+
+    // Generate mipmaps.
+    void generateMips();
+
+    // Clear the texture.
+    void clearTexture();
+
+    // Bind/unbind the texture.
+    void bind();
+    void bind(uint bindPoint);
+    void unbind();
+    void unbind(uint bindPoint);
+
+    // Bind the texture as an image unit.
+    void bindAsImage(uint bindPoint, uint miplevel, ImageAccessPolicy policy);
+
+    int getWidth() { return this->width; }
+
+    uint getID() { return this->textureID; }
+  private:
+    uint textureID;
+
+    int width;
+    Texture1DParams params;
   };
 
   //----------------------------------------------------------------------------

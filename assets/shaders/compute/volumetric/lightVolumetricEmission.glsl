@@ -61,7 +61,7 @@ layout(std140, binding = 3) uniform TemporalBlock
 // Sample a dithering function.
 vec4 sampleDither(ivec2 coords)
 {
-  vec4 temporal = fract((u_prevPosTime.wwww + vec4(4.0, 5.0, 6.0, 7.0)) * 0.61803399);
+  vec4 temporal = fract((u_prevPosTime.wwww * vec4(4.0, 5.0, 6.0, 7.0)) * 0.61803399);
   vec2 uv = (vec2(coords) + 0.5.xx) / vec2(textureSize(noise, 0).xy);
   return fract(texture(noise, uv) + temporal);
 }

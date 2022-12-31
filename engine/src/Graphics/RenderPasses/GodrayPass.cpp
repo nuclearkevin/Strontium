@@ -6,12 +6,14 @@
 namespace Strontium
 {
   GodrayPass::GodrayPass(Renderer3D::GlobalRendererData* globalRendererData,
-                         GeometryPass* previousGeoPass, ShadowPass* previousShadowPass,
-                         HiZPass* previousHiZPass, DirectionalLightPass* previousDirLightPass, 
+                         GeometryPass* previousGeoPass, LightCullingPass* previousCullPass, 
+                         ShadowPass* previousShadowPass, HiZPass* previousHiZPass, 
+                         DirectionalLightPass* previousDirLightPass, 
                          AreaLightPass* previousAreaLightPass)
     : RenderPass(&this->passData, globalRendererData, { previousGeoPass, previousShadowPass, previousHiZPass, 
                                                         previousDirLightPass, previousAreaLightPass })
     , previousGeoPass(previousGeoPass)
+    , previousCullPass(previousCullPass)
     , previousShadowPass(previousShadowPass)
     , previousHiZPass(previousHiZPass)
     , previousDirLightPass(previousDirLightPass)
@@ -137,6 +139,7 @@ namespace Strontium
 
     auto dirLightBlock = this->previousDirLightPass->getInternalDataBlock<DirectionalLightPassDataBlock>();
     auto areaLightBlock = this->previousAreaLightPass->getInternalDataBlock<AreaLightPassDataBlock>();
+    auto cullLightBlock = this->previousCullPass->getInternalDataBlock<LightCullingPassDataBlock>();
 
     if (!(this->passData.enableGodrays && numFogVolumes > 0u))
       return;
@@ -247,11 +250,19 @@ namespace Strontium
       Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
     }
 
+    // Light the froxels for point lights.
+    if (cullLightBlock->pointLightCount > 0u)
+    {
+      cullLightBlock->pointLights.bindToPoint(0);
+      ShaderCache::getShader("light_froxels_point")->launchCompute(iFWidth, iFHeight, this->passData.numZSlices);
+      Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
+    }
+
     // Light the froxels for area lights.
-    if (areaLightBlock->rectAreaLightCount > 0u)
+    if (cullLightBlock->rectAreaLightCount > 0u)
     {
       areaLightBlock->ltcLUT2.bind(3);
-      areaLightBlock->lightBlock.bindToPoint(1);
+      cullLightBlock->rectLights.bindToPoint(1);
       ShaderCache::getShader("light_froxels_area")->launchCompute(iFWidth, iFHeight, this->passData.numZSlices);
       Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
     }
@@ -306,7 +317,7 @@ namespace Strontium
   }
 
   void 
-  GodrayPass::submit(const SphereFogVolume& fogVolume)
+  GodrayPass::submit(const SphereFogVolume &fogVolume)
   {
     this->passData.sphereVolumes.emplace_back(fogVolume);
   }

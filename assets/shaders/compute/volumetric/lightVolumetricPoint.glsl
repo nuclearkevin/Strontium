@@ -1,28 +1,20 @@
 #type compute
 #version 460 core
 
+#define MAX_NUM_LIGHTS 1024
+#define TILE_SIZE 16
 #define PI 3.141592654
-#define NUM_CASCADES 4
 
+// We use 16 x 16 warps here to match the tile size for the tiled deferred implementation.
 layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 
-// Density is not pre-multiplied.
-struct DepthFogParams
+struct PointLight
 {
-  vec4 mieScatteringPhase; // Mie scattering (x, y, z) and phase value (w).
-  vec4 emissionAbsorption; // Emission (x, y, z) and absorption (w).
-  vec4 minMaxDensity; // Minimum density (x) and maximum density (y). z and w are unused.
+  vec4 positionRadius; // Position (x, y, z), radius (w).
+  vec4 colourIntensity; // Colour (x, y, z) and intensity (w).
 };
 
-// Density is pre-multiplied.
-struct HeightFogParams
-{
-  vec4 mieScatteringPhase; // Mie scattering (x, y, z) and phase value (w).
-  vec4 emissionAbsorption; // Emission (x, y, z) and absorption (w).
-  vec4 falloff; // Falloff (x). y, z and w are unused.
-};
-
-layout(rgba16f, binding = 0) restrict writeonly uniform image3D inScatExt;
+layout(rgba16f, binding = 0) restrict uniform image3D inScatExt;
 
 layout(binding = 0) uniform sampler3D scatExtinction;
 layout(binding = 1) uniform sampler3D emissionPhase;
@@ -38,16 +30,6 @@ layout(std140, binding = 0) uniform CameraBlock
   vec4 u_nearFarGamma; // Near plane (x), far plane (y), gamma correction factor (z). w is unused.
 };
 
-layout(std140, binding = 1) uniform VolumetricBlock
-{
-  DepthFogParams u_depthParams;
-  HeightFogParams u_heightParams;
-  vec4 u_lightDir; // Light direction (x, y, z). w is unused.
-  vec4 u_lightColourIntensity; // Light colour (x, y, z) and intensity (w).
-  vec4 u_ambientColourIntensity; // Ambient colour (x, y, z) and intensity (w).
-  ivec4 u_fogParams; // Number of OBB fog volumes (x), fog parameter bitmask (y). z and w are unused.
-};
-
 // Temporal AA parameters. TODO: jittered camera matrices.
 layout(std140, binding = 3) uniform TemporalBlock
 {
@@ -56,6 +38,17 @@ layout(std140, binding = 3) uniform TemporalBlock
   mat4 u_previousVP;
   mat4 u_prevInvViewProjMatrix;
   vec4 u_prevPosTime;
+};
+
+layout(std140, binding = 0) restrict readonly buffer PointLights
+{
+  PointLight pLights[MAX_NUM_LIGHTS];
+  uint lightingSettings; // Maximum number of point lights.
+};
+
+layout(std430, binding = 1) restrict readonly buffer LightIndices
+{
+  int indices[];
 };
 
 // Sample a dithering function.
@@ -76,8 +69,21 @@ float getMiePhase(float cosTheta, float g)
   return scale * num / denom;
 }
 
+// Compute the light attenuation factor.
+float computeAttenuation(vec3 posToLight, float invLightRadius)
+{
+  float distSquared = dot(posToLight, posToLight);
+  float factor = distSquared * invLightRadius * invLightRadius;
+  float smoothFactor = max(1.0 - factor * factor, 0.0);
+  return (smoothFactor * smoothFactor) / max(distSquared, 1e-4);
+}
+
 void main()
 {
+  const ivec2 totalTiles = ivec2(gl_NumWorkGroups.xy / 2); // Same as the total number of tiles.
+  const ivec2 currentTile = ivec2(gl_WorkGroupID.xy / 2); // The current tile.
+  const uint tileOffset = (totalTiles.x * currentTile.y + currentTile.x) * MAX_NUM_LIGHTS; // Offset into the tile buffer.
+
   ivec3 invoke = ivec3(gl_GlobalInvocationID.xyz);
   ivec3 numFroxels = ivec3(imageSize(inScatExt).xyz);
 
@@ -90,6 +96,7 @@ void main()
   vec4 temp = u_invViewProjMatrix * vec4(2.0 * uv - 1.0.xx, 1.0, 1.0);
   vec3 worldSpaceMax = temp.xyz /= temp.w;
   vec3 direction = worldSpaceMax - u_camPosition;
+  vec3 nDirection = normalize(direction);
   float w = (float(invoke.z) + 0.5) / float(numFroxels.z) + dither.z;
   vec3 worldSpacePostion = u_camPosition + direction * w * w;
 
@@ -97,17 +104,33 @@ void main()
 
   vec4 se = texture(scatExtinction, uvw);
   vec4 ep = texture(emissionPhase, uvw);
+  vec3 totalInScatExt = imageLoad(inScatExt, invoke).rgb;
 
-  // Light the voxel. Just cascaded shadow maps and voxel emission for now.
-  // TODO: Single sample along the shadowed light's direction to account for out scattering.
-  float phaseFunction = getMiePhase(dot(normalize(direction), u_lightDir.xyz), ep.w);
+  // Light the froxel. 
   vec3 mieScattering = se.xyz;
   vec3 extinction = se.www;
   vec3 voxelAlbedo = max(mieScattering / extinction, 0.0.xxx);
 
-  vec3 light = voxelAlbedo * phaseFunction * u_lightColourIntensity.xyz * u_lightColourIntensity.w;
-  light += ep.xyz;
-  light += u_ambientColourIntensity.xyz * u_ambientColourIntensity.w * voxelAlbedo;
+  vec3 totalRadiance = totalInScatExt.rgb;
+  PointLight light;
+  float phaseFunction, attenuation;
+  vec3 lightVector;
+  for (int i = 0; i < lightingSettings; i++)
+  {
+    int lightIndex = indices[tileOffset + i];
 
-  imageStore(inScatExt, invoke, vec4(light, se.w));
+    // If the buffer terminates in -1, quit. No more lights to add to this
+    // froxel.
+    //if (lightIndex < 0)
+    //  break;
+
+    light = pLights[i];
+    lightVector = worldSpacePostion - light.positionRadius.xyz;
+    phaseFunction = getMiePhase(dot(nDirection, normalize(lightVector)), ep.w);
+    attenuation = computeAttenuation(lightVector, 1.0 / light.positionRadius.w);
+
+    totalRadiance += voxelAlbedo * phaseFunction * attenuation * light.colourIntensity.rgb * light.colourIntensity.a;
+  }
+
+  imageStore(inScatExt, invoke, vec4(totalRadiance, se.w));
 }

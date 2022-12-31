@@ -20,6 +20,124 @@
 namespace Strontium
 {
   //----------------------------------------------------------------------------
+  // 1D textures.
+  //----------------------------------------------------------------------------
+  Texture1D::Texture1D()
+    : width(0u)
+  {
+    glGenTextures(1, &this->textureID);
+    glBindTexture(GL_TEXTURE_1D, this->textureID);
+  }
+
+  Texture1D::Texture1D(uint width, const Texture1DParams &params)
+    : width(width)
+    , params(params)
+  {
+    glGenTextures(1, &this->textureID);
+    glBindTexture(GL_TEXTURE_1D, this->textureID);
+
+    glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S,
+                    static_cast<GLenum>(this->params.sWrap));
+    glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER,
+                    static_cast<GLenum>(this->params.minFilter));
+    glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER,
+                    static_cast<GLenum>(this->params.maxFilter));
+  }
+
+  Texture1D::~Texture1D()
+  {
+    glDeleteTextures(1, &this->textureID);
+  }
+
+  void
+  Texture1D::initNullTexture()
+  {
+    glBindTexture(GL_TEXTURE_1D, this->textureID);
+    glTexImage1D(GL_TEXTURE_1D, 0, static_cast<GLenum>(this->params.internal),
+                 this->width, 0, static_cast<GLenum>(this->params.format),
+                 static_cast<GLenum>(this->params.dataType), nullptr);
+    glBindTexture(GL_TEXTURE_1D, 0);
+  }
+
+  // Generate mipmaps.
+  void
+  Texture1D::generateMips()
+  {
+    glBindTexture(GL_TEXTURE_1D, this->textureID);
+    glGenerateMipmap(GL_TEXTURE_1D);
+    glBindTexture(GL_TEXTURE_1D, 0);
+  }
+
+  // Clear the texture.
+  void
+  Texture1D::clearTexture()
+  {
+    float maxClearElements[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+    glClearTexSubImage(this->textureID, 0, 0, 0, 0, this->width, 0, 0,
+                       static_cast<GLenum>(this->params.internal),
+                       static_cast<GLenum>(this->params.dataType),
+                       maxClearElements);
+  }
+
+  void
+  Texture1D::setSize(uint width)
+  {
+    this->width = width;
+  }
+
+  // Set the parameters after generating the texture.
+  void
+  Texture1D::setParams(const Texture1DParams &newParams)
+  {
+    this->params = newParams;
+
+    glBindTexture(GL_TEXTURE_1D, this->textureID);
+
+    glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S,
+                    static_cast<GLint>(this->params.sWrap));
+    glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER,
+                    static_cast<GLint>(this->params.minFilter));
+    glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER,
+                    static_cast<GLint>(this->params.maxFilter));
+    glBindTexture(GL_TEXTURE_1D, 0);
+  }
+
+  void
+  Texture1D::bind()
+  {
+    glBindTexture(GL_TEXTURE_1D, this->textureID);
+  }
+
+  void
+  Texture1D::bind(uint bindPoint)
+  {
+    glActiveTexture(GL_TEXTURE0 + bindPoint);
+    glBindTexture(GL_TEXTURE_1D, this->textureID);
+  }
+
+  void
+  Texture1D::unbind()
+  {
+    glBindTexture(GL_TEXTURE_1D, 0);
+  }
+
+  void
+  Texture1D::unbind(uint bindPoint)
+  {
+    glActiveTexture(GL_TEXTURE0 + bindPoint);
+    glBindTexture(GL_TEXTURE_1D, 0);
+  }
+
+  // Bind the texture as an image unit.
+  void
+  Texture1D::bindAsImage(uint bindPoint, uint miplevel, ImageAccessPolicy policy)
+  {
+    glBindImageTexture(bindPoint, this->textureID, miplevel, GL_FALSE, 0,
+                       static_cast<GLenum>(policy),
+                       static_cast<GLenum>(this->params.internal));
+  }
+
+  //----------------------------------------------------------------------------
   // 2D textures.
   //----------------------------------------------------------------------------
   Texture2D*

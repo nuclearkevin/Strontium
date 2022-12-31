@@ -9,8 +9,11 @@
 #include "Graphics/RenderPasses/SkyAtmospherePass.h"
 #include "Graphics/RenderPasses/DynamicSkyIBLPass.h"
 
+#include "Graphics/RenderPasses/LightCullingPass.h"
+
 #include "Graphics/RenderPasses/IBLApplicationPass.h"
 #include "Graphics/RenderPasses/DirectionalLightPass.h"
+#include "Graphics/RenderPasses/CulledLightingPass.h"
 #include "Graphics/RenderPasses/AreaLightPass.h"
 #include "Graphics/RenderPasses/VolumetricLightPass.h"
 
@@ -362,6 +365,15 @@ namespace Strontium
       auto& globalBlock = Renderer3D::getStorage();
       auto& renderPassManger = Renderer3D::getPassManager();
       
+      {
+        auto culling = renderPassManger.getRenderPass<LightCullingPass>();
+        auto cullingBlock = culling->getInternalDataBlock<LightCullingPassDataBlock>();
+        ImGui::Text("Light Culling Frametime: %f ms", cullingBlock->frameTime);
+        auto lightCulled = renderPassManger.getRenderPass<CulledLightingPass>();
+        auto lightCulledBlock = lightCulled->getInternalDataBlock<CulledLightingPassDataBlock>();
+        ImGui::Text("Culled Lighting Frametime: %f ms", lightCulledBlock->frameTime);
+      }
+
       {
         auto iblAppPass = renderPassManger.getRenderPass<IBLApplicationPass>();
         auto iblAppBlock = iblAppPass->getInternalDataBlock<IBLApplicationPassDataBlock>();

@@ -445,6 +445,7 @@ namespace Strontium
         auto& component = entity.getComponent<RectAreaLightComponent>();
         out << YAML::Key << "Colour" << YAML::Value << component.colour;
         out << YAML::Key << "Intensity" << YAML::Value << component.intensity;
+        out << YAML::Key << "Radius" << YAML::Value << component.radius;
         out << YAML::Key << "TwoSided" << YAML::Value << component.twoSided;
 
         out << YAML::EndMap;
@@ -1037,6 +1038,7 @@ namespace Strontium
           raComponent.colour = rectAreaComponent["Colour"].as<glm::vec3>();
           raComponent.intensity = rectAreaComponent["Intensity"].as<float>();
           raComponent.twoSided = rectAreaComponent["TwoSided"].as<bool>();
+          raComponent.radius = rectAreaComponent["Radius"].as<float>();
         }
       }
 

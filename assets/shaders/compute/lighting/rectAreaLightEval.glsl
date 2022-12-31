@@ -5,15 +5,16 @@
  * rectangular polygonal lights in deferred shading.
  */
 
-#define MAX_NUM_RECT_LIGHTS 8
+#define MAX_NUM_RECT_LIGHTS 64
 
-layout(local_size_x = 8, local_size_y = 8) in;
+layout(local_size_x = 16, local_size_y = 16) in;
 
 struct RectAreaLight
 {
   vec4 colourIntensity; // Colour (x, y, z) and intensity (w).
   // Points of the rectangular area light (x, y, z). 
   // points[0].w > 0 indicates the light is two-sided, one-sided otherwise.
+  // points[1].w is the culling radius.
   vec4 points[4];
 };
 
@@ -44,6 +45,12 @@ layout(binding = 5) uniform sampler2D u_LTC2;
 // The lighting buffer.
 layout(rgba16f, binding = 0) restrict uniform image2D lightingBuffer;
 
+// Light indices.
+layout(std430, binding = 0) readonly buffer LightIndices
+{
+  int indices[];
+};
+
 // Camera specific uniforms.
 layout(std140, binding = 0) uniform CameraBlock
 {
@@ -58,7 +65,7 @@ layout(std140, binding = 0) uniform CameraBlock
 layout(std140, binding = 1) uniform RectAreaBlock
 {
   RectAreaLight rALights[MAX_NUM_RECT_LIGHTS];
-  ivec4 u_lightingSettings; // Number of rectangular area lights (x) with a maximum of 8. y, z and w are unused.
+  ivec4 u_lightingSettings; // Number of rectangular area lights (x) with a maximum of 64. y, z and w are unused.
 };
 
 // Decode the g-buffer.
@@ -76,6 +83,9 @@ void main()
 {
   ivec2 invoke = ivec2(gl_GlobalInvocationID.xy);
   ivec2 gBufferSize = ivec2(textureSize(gDepth, 0).xy);
+  const ivec2 totalTiles = ivec2(gl_NumWorkGroups.xy); // Same as the total number of tiles.
+  const ivec2 currentTile = ivec2(gl_WorkGroupID.xy); // The current tile.
+  const uint tileOffset = (totalTiles.x * currentTile.y + currentTile.x) * MAX_NUM_RECT_LIGHTS; // Offset into the tile buffer.
 
   // Quit early for threads that aren't in bounds of the screen.
   if (any(greaterThanEqual(invoke, gBufferSize)))
@@ -93,7 +103,14 @@ void main()
   vec3 totalRadiance = imageLoad(lightingBuffer, invoke).rgb;
   for (int i = 0; i < u_lightingSettings.x; i++)
   {
-    totalRadiance += evaluateRectAreaLight(rALights[i], gBuffer);
+    int lightIndex = indices[tileOffset + i];
+
+    // If the buffer terminates in -1, quit. No more lights to add to this
+    // fragment.
+    if (lightIndex < 0)
+      break;
+
+    totalRadiance += max(evaluateRectAreaLight(rALights[lightIndex], gBuffer), 0.0.xxx);
   }
 
   imageStore(lightingBuffer, invoke, vec4(totalRadiance, 1.0));
@@ -141,6 +158,17 @@ SurfaceProperties decodeGBuffer(vec2 gBufferUVs, ivec2 gBufferTexel)
   decoded.metallicF0 = decoded.albedo * decoded.metalness;
 
   return decoded;
+}
+
+// Not completely correct but it removes tiling artifacts.
+// TODO: Figure out how UE4 does this?
+float computeCutoff(vec3 lPos, vec3 pos, float radius)
+{
+  vec3 diff = pos - lPos;
+  float distSq = dot(diff, diff);
+  float r2 = radius * radius;
+
+  return float(distSq < r2);
 }
 
 // Compute the vector form factor.
@@ -226,5 +254,8 @@ vec3 evaluateRectAreaLight(RectAreaLight light, SurfaceProperties props)
   vec3 metallicSpecularBRDF = specularBRDF * (props.metallicF0 * t2.x + (1.0.xxx - props.metallicF0) * t2.y);
   vec3 brdf = mix(dielectricSpecularBRDF, metallicSpecularBRDF, props.metalness) + diffuseBRDF;
 
-  return light.colourIntensity.rgb * light.colourIntensity.a * brdf;
+  vec3 center = 0.25 * (light.points[0].xyz + light.points[1].xyz + light.points[2].xyz + light.points[3].xyz);
+
+  return light.colourIntensity.rgb * light.colourIntensity.a * brdf 
+         * computeCutoff(center, props.position, light.points[1].w);
 }

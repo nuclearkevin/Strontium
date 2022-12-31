@@ -70,10 +70,10 @@ namespace Strontium
     gBuffer.bindAttachment(FBOTargetParam::Colour2, 3);
 
     // Bind the camera block.
-    static_cast<Renderer3D::GlobalRendererData*>(this->globalBlock)->cameraBuffer.bindToPoint(0);
+    auto rendererData = static_cast<Renderer3D::GlobalRendererData*>(this->globalBlock);
+    rendererData->cameraBuffer.bindToPoint(0);
 
     // Bind the lighting buffer.
-    auto rendererData = static_cast<Renderer3D::GlobalRendererData*>(this->globalBlock);
     rendererData->lightingBuffer.bindAsImage(0, 0, ImageAccessPolicy::ReadWrite);
     uint iWidth = static_cast<uint>(glm::ceil(static_cast<float>(rendererData->lightingBuffer.getWidth())
                                               / 8.0f));

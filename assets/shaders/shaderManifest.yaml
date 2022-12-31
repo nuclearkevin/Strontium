@@ -6,6 +6,8 @@ ShaderCache:
     Filepath: ./assets/shaders/compute/culling/tiledFrustAABB.glsl
   - Handle: tiled_point_light_culling
     Filepath: ./assets/shaders/compute/culling/tiledPointLightCulling.glsl
+  - Handle: tiled_rect_light_culling
+    Filepath: ./assets/shaders/compute/culling/tiledRectLightCulling.glsl
     #
     # Hi-Z
     #
@@ -70,6 +72,8 @@ ShaderCache:
     Filepath: ./assets/shaders/compute/volumetric/lightVolumetricS.glsl
   - Handle: light_froxels_area
     Filepath: ./assets/shaders/compute/volumetric/lightVolumetricArea.glsl
+  - Handle: light_froxels_point
+    Filepath: ./assets/shaders/compute/volumetric/lightVolumetricPoint.glsl
   - Handle: taa_froxels
     Filepath: ./assets/shaders/compute/volumetric/volumeTAA.glsl
   - Handle: gather_froxels

@@ -83,7 +83,7 @@ layout(std140, binding = 1) readonly buffer SphereFogVolumes
 // Sample a dithering function.
 vec4 sampleDither(ivec2 coords)
 {
-  vec4 temporal = fract((u_prevPosTime.wwww + vec4(0.0, 1.0, 2.0, 3.0)) * 0.61803399);
+  vec4 temporal = fract((u_prevPosTime.wwww * vec4(0.0, 1.0, 2.0, 3.0)) * 0.61803399);
   vec2 uv = (vec2(coords) + 0.5.xx) / vec2(textureSize(noise, 0).xy);
   return fract(texture(noise, uv) + temporal);
 }

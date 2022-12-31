@@ -9,10 +9,11 @@
 namespace Strontium
 {
   AreaLightPass::AreaLightPass(Renderer3D::GlobalRendererData* globalRendererData,
-                               GeometryPass* previousGeoPass)
+                               GeometryPass* previousGeoPass, LightCullingPass* previousCullPass)
     : RenderPass(&this->passData, globalRendererData, { previousGeoPass })
     , timer(5)
     , previousGeoPass(previousGeoPass)
+    , previousCullPass(previousCullPass)
   { }
   
   AreaLightPass::~AreaLightPass()
@@ -57,17 +58,18 @@ namespace Strontium
 
   void 
   AreaLightPass::onRendererBegin(uint width, uint height)
-  {
-    this->passData.rectAreaLightCount = 0u;
-  }
+  { }
 
   void 
   AreaLightPass::onRender()
   {
     ScopedTimer<AsynchTimer> profiler(this->timer);
 
+    // Early out if there are no lights.
+    auto cullingBlock = this->previousCullPass->getInternalDataBlock<LightCullingPassDataBlock>();
+
     // Early out if there are no area lights.
-    if (this->passData.rectAreaLightCount == 0u)
+    if (cullingBlock->rectAreaLightCount == 0u)
       return;
 
     auto geometryBlock = this->previousGeoPass->getInternalDataBlock<GeometryPassDataBlock>();
@@ -85,20 +87,16 @@ namespace Strontium
     auto rendererData = static_cast<Renderer3D::GlobalRendererData*>(this->globalBlock);
     rendererData->lightingBuffer.bindAsImage(0, 0, ImageAccessPolicy::ReadWrite);
     uint iWidth = static_cast<uint>(glm::ceil(static_cast<float>(rendererData->lightingBuffer.getWidth())
-                                              / 8.0f));
+                                              / 16.0f));
     uint iHeight = static_cast<uint>(glm::ceil(static_cast<float>(rendererData->lightingBuffer.getHeight())
-                                               / 8.0f));
+                                               / 16.0f));
     
     // Bind the lighting block and LTC LUTs.
     this->passData.ltcLUT1.bind(4);
     this->passData.ltcLUT2.bind(5);
-    this->passData.lightBlock.bindToPoint(1);
-    // Upload the rectangular area lights.
     {
-      this->passData.lightBlock.setData(0u, this->passData.rectAreaLightCount * sizeof(RectAreaLight), 
-                                        this->passData.rectLightQueue.data());
-      int count = static_cast<int>(this->passData.rectAreaLightCount);
-      this->passData.lightBlock.setData(MAX_NUM_RECT_LIGHTS * sizeof(RectAreaLight), sizeof(int), &count);
+      cullingBlock->rectLights.bindToPoint(1);
+      cullingBlock->rectLightListBuffer.bindToPoint(0);
 
       // Launch a compute pass for the rectangular area lights.
       this->passData.rectAreaLight->launchCompute(iWidth, iHeight, 1);
@@ -115,21 +113,4 @@ namespace Strontium
   void 
   AreaLightPass::onShutdown()
   { }
-
-  void 
-  AreaLightPass::submit(const RectAreaLight &light, const glm::mat4 &model, bool twoSided)
-  {
-    if (this->passData.rectAreaLightCount > 7)
-      return;
-
-    this->passData.rectLightQueue[this->passData.rectAreaLightCount] = light;
-    for (uint i = 0u; i < 4; ++i)
-    {
-      this->passData.rectLightQueue[this->passData.rectAreaLightCount].points[i] = 
-        model * this->passData.rectLightQueue[this->passData.rectAreaLightCount].points[i];
-      this->passData.rectLightQueue[this->passData.rectAreaLightCount].points[i].w = static_cast<float>(twoSided);
-    }
-
-    this->passData.rectAreaLightCount++;
-  }
 }

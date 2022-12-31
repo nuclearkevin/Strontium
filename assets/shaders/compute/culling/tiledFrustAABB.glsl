@@ -5,9 +5,9 @@
  * deferred rendering.
  */
 
-#define GROUP_SIZE 16
+#define TILE_SIZE 16
 
-layout(local_size_x = GROUP_SIZE, local_size_y = GROUP_SIZE) in;
+layout(local_size_x = TILE_SIZE, local_size_y = TILE_SIZE) in;
 
 layout(binding = 0) uniform sampler2D gDepth;
 
@@ -36,77 +36,30 @@ layout(std140, binding = 0) restrict writeonly buffer AABBandFrustum
   TileData frustumsAABBs[];
 };
 
-shared float minDepth[GROUP_SIZE * GROUP_SIZE];
-shared float maxDepth[GROUP_SIZE * GROUP_SIZE];
+shared uint minDepthUint;
+shared uint maxDepthUint;
 
 void main()
 {
   const uint lInvoke = uint(gl_LocalInvocationIndex);
+
+  if (gl_LocalInvocationIndex == 0)
+  {
+    minDepthUint = 0xFFFFFFFF;
+    maxDepthUint = 0;
+  }
+  barrier();
 
   // Each thread fetches its depth and adds it to the shared cache for a min and max depth reduction.
   vec2 screenSize = vec2(textureSize(gDepth, 0).xy);
   vec2 gBufferUVs = (vec2(gl_GlobalInvocationID.xy) + 0.5.xx) / screenSize;
 
   float depth = textureLod(gDepth, gBufferUVs, 0.0).r;
-  minDepth[lInvoke] = depth;
-  maxDepth[lInvoke] = depth;
-  barrier();
-
-  // Parallel min/max reduction for two arrays of 256 elements.
-  if (lInvoke < 128)
-  {
-    minDepth[lInvoke] = min(minDepth[lInvoke], minDepth[lInvoke + 128]);
-    maxDepth[lInvoke] = max(maxDepth[lInvoke], maxDepth[lInvoke + 128]);
-  }
-  barrier();
-
-  if (lInvoke < 64)
-  {
-    minDepth[lInvoke] = min(minDepth[lInvoke], minDepth[lInvoke + 64]);
-    maxDepth[lInvoke] = max(maxDepth[lInvoke], maxDepth[lInvoke + 64]);
-  }
-  barrier();
-
-  if (lInvoke < 32)
-  {
-    minDepth[lInvoke] = min(minDepth[lInvoke], minDepth[lInvoke + 32]);
-    maxDepth[lInvoke] = max(maxDepth[lInvoke], maxDepth[lInvoke + 32]);
-  }
-  barrier();
-
-  if (lInvoke < 16)
-  {
-    minDepth[lInvoke] = min(minDepth[lInvoke], minDepth[lInvoke + 16]);
-    maxDepth[lInvoke] = max(maxDepth[lInvoke], maxDepth[lInvoke + 16]);
-  }
-  barrier();
-
-  if (lInvoke < 8)
-  {
-    minDepth[lInvoke] = min(minDepth[lInvoke], minDepth[lInvoke + 8]);
-    maxDepth[lInvoke] = max(maxDepth[lInvoke], maxDepth[lInvoke + 8]);
-  }
-  barrier();
-
-  if (lInvoke < 4)
-  {
-    minDepth[lInvoke] = min(minDepth[lInvoke], minDepth[lInvoke + 4]);
-    maxDepth[lInvoke] = max(maxDepth[lInvoke], maxDepth[lInvoke + 4]);
-  }
-  barrier();
-
-  if (lInvoke < 2)
-  {
-    minDepth[lInvoke] = min(minDepth[lInvoke], minDepth[lInvoke + 2]);
-    maxDepth[lInvoke] = max(maxDepth[lInvoke], maxDepth[lInvoke + 2]);
-  }
-  barrier();
-
-  if (lInvoke < 1)
-  {
-    minDepth[lInvoke] = min(minDepth[lInvoke], minDepth[lInvoke + 1]);
-    maxDepth[lInvoke] = max(maxDepth[lInvoke], maxDepth[lInvoke + 1]);
-  }
+  
+  // Convert depth to uint so we can do atomic min and max comparisons between the threads
+  uint depthUint = floatBitsToUint(depth);
+  atomicMin(minDepthUint, depthUint);
+  atomicMax(maxDepthUint, depthUint);
   barrier();
 
   // Only need one thread now to compute and write the frustum planes and AABBs.
@@ -114,11 +67,18 @@ void main()
   if (lInvoke > 0)
     return;
 
-  ivec2 numGroups = ivec2(gl_NumWorkGroups.xy);
-  ivec2 groupID = ivec2(gl_WorkGroupID.xy);
+  const ivec2 totalTiles = ivec2(gl_NumWorkGroups.xy); // Same as the total number of tiles.
+  const ivec2 currentTile = ivec2(gl_WorkGroupID.xy); // The current tile.
+  const uint tileOffset = totalTiles.x * currentTile.y + currentTile.x; // Offset into the tile buffer.
 
-  vec2 nOffset = (2.0 * vec2(groupID)) / vec2(numGroups);               // Left
-  vec2 pOffset = (2.0 * vec2(groupID + ivec2(1, 1))) / vec2(numGroups); // Right
+  vec2 nOffset = (2.0 * vec2(currentTile)) / vec2(totalTiles);               // Left
+  vec2 pOffset = (2.0 * vec2(currentTile + ivec2(1, 1))) / vec2(totalTiles); // Right
+
+  // Convert the min and max across the entire tile back to float
+  float minDepth = uintBitsToFloat(minDepthUint);
+  float lMinDepth = (0.5 * u_projMatrix[3][2]) / (minDepth + 0.5 * u_projMatrix[2][2] - 0.5);
+  float maxDepth = uintBitsToFloat(maxDepthUint);
+  float lMaxDepth = (0.5 * u_projMatrix[3][2]) / (maxDepth + 0.5 * u_projMatrix[2][2] - 0.5);
 
   TileData data;
   //----------------------------------------------------------------------------
@@ -128,39 +88,26 @@ void main()
   data.frustumPlanes[1] = vec4(-1.0,  0.0,  0.0, -1.0 + pOffset.x); // Right
   data.frustumPlanes[2] = vec4( 0.0,  1.0,  0.0,  1.0 - nOffset.y); // Bottom
   data.frustumPlanes[3] = vec4( 0.0, -1.0,  0.0, -1.0 + pOffset.y); // Top
-  data.frustumPlanes[4] = vec4( 0.0,  0.0, -1.0, -minDepth[0]); // Near
-  data.frustumPlanes[5] = vec4( 0.0,  0.0,  1.0,  maxDepth[0]); // Far
+  data.frustumPlanes[4] = vec4( 0.0,  0.0, -1.0, -lMinDepth); // Near
+  data.frustumPlanes[5] = vec4( 0.0,  0.0,  1.0,  lMaxDepth); // Far
 
   // Compute the first four worldspace planes.
-  for (uint i = 0; i < 4; i++)
-  {
-    data.frustumPlanes[i] *= u_projMatrix * u_viewMatrix;
-    data.frustumPlanes[i] /= length(data.frustumPlanes[i].xyz);
-  }
+  data.frustumPlanes[0] *= u_projMatrix * u_viewMatrix;
+  data.frustumPlanes[0] /= length(data.frustumPlanes[0].xyz);
+  data.frustumPlanes[1] *= u_projMatrix * u_viewMatrix;
+  data.frustumPlanes[1] /= length(data.frustumPlanes[1].xyz);
+  data.frustumPlanes[2] *= u_projMatrix * u_viewMatrix;
+  data.frustumPlanes[2] /= length(data.frustumPlanes[2].xyz);
+  data.frustumPlanes[3] *= u_projMatrix * u_viewMatrix;
+  data.frustumPlanes[3] /= length(data.frustumPlanes[3].xyz);
 
-  // Have to treat the near and far planes separately.
-  for (uint i = 4; i < 6; i++)
-  {
-    data.frustumPlanes[i] *= u_viewMatrix;
-    data.frustumPlanes[i] /= length(data.frustumPlanes[i].xyz);
-  }
-  //----------------------------------------------------------------------------
-  // AABB calculations.
-  //----------------------------------------------------------------------------
-  vec4 aabbMin = vec4(nOffset, minDepth[0], 1.0);
-  vec4 aabbMax = vec4(pOffset, maxDepth[0], 1.0);
-  aabbMin *= u_invViewProjMatrix;
-  aabbMax *= u_invViewProjMatrix;
-  aabbMin.xyz /= aabbMin.w;
-  aabbMax.xyz /= aabbMax.w;
-
-  aabbMin = u_viewMatrix * vec4(aabbMin.xyz, 1.0);
-  aabbMax = u_viewMatrix * vec4(aabbMax.xyz, 1.0);
-
-  data.aabbCenter = (aabbMin + aabbMax) / 2.0;
-  data.aabbExtents = max(abs(aabbMin), abs(aabbMax));
+  // Transform the depth planes.
+  data.frustumPlanes[4] *= u_viewMatrix;
+  data.frustumPlanes[4] /= length(data.frustumPlanes[4].xyz);
+  data.frustumPlanes[5] *= u_viewMatrix;
+  data.frustumPlanes[5] /= length(data.frustumPlanes[5].xyz);
   //----------------------------------------------------------------------------
 
   // Write to the SSBO.
-  frustumsAABBs[numGroups.x * groupID.y + groupID.x] = data;
+  frustumsAABBs[tileOffset] = data;
 }

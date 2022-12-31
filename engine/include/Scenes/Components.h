@@ -388,6 +388,8 @@ namespace Strontium
     glm::vec3 colour;
     float intensity;
 
+    float radius;
+
     bool twoSided;
 
     RectAreaLightComponent(const RectAreaLightComponent&) = default;
@@ -395,6 +397,7 @@ namespace Strontium
     RectAreaLightComponent()
       : colour(1.0f)
       , intensity(1.0f)
+      , radius(1.0f)
       , twoSided(false)
     { }
 

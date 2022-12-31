@@ -2,7 +2,7 @@
 #version 460 core
 
 #define PI 3.141592654
-#define MAX_NUM_RECT_LIGHTS 8
+#define MAX_NUM_RECT_LIGHTS 64
 
 layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 
@@ -37,7 +37,7 @@ layout(std140, binding = 0) uniform CameraBlock
 layout(std140, binding = 1) uniform RectAreaBlock
 {
   RectAreaLight rALights[MAX_NUM_RECT_LIGHTS];
-  ivec4 u_lightingSettings; // Number of rectangular area lights (x) with a maximum of 8. y, z and w are unused.
+  ivec4 u_lightingSettings; // Number of rectangular area lights (x) with a maximum of 64. y, z and w are unused.
 };
 
 // Temporal AA parameters. TODO: jittered camera matrices.
@@ -53,7 +53,7 @@ layout(std140, binding = 3) uniform TemporalBlock
 // Sample a dithering function.
 vec4 sampleDither(ivec2 coords)
 {
-  vec4 temporal = fract((u_prevPosTime.wwww + vec4(8.0, 9.0, 10.0, 11.0)) * 0.61803399);
+  vec4 temporal = fract((u_prevPosTime.wwww * vec4(4.0, 5.0, 6.0, 7.0)) * 0.61803399);
   vec2 uv = (vec2(coords) + 0.5.xx) / vec2(textureSize(noise, 0).xy);
   return fract(texture(noise, uv) + temporal);
 }
@@ -99,8 +99,7 @@ void main()
   vec4 ep = texture(emissionPhase, uvw);
   vec3 totalInScatExt = imageLoad(inScatExt, invoke).rgb;
 
-  // Light the voxel. Just cascaded shadow maps and voxel emission for now.
-  // TODO: Single sample along the shadowed light's direction to account for out scattering.
+  // Light the voxel. 
   vec3 mieScattering = se.xyz;
   vec3 extinction = se.www;
   vec3 voxelAlbedo = max(mieScattering / extinction, 0.0.xxx);

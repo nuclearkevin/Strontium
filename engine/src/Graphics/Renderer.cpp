@@ -10,11 +10,14 @@
 #include "Graphics/RenderPasses/SkyAtmospherePass.h"
 #include "Graphics/RenderPasses/DynamicSkyIBLPass.h"
 
+#include "Graphics/RenderPasses/LightCullingPass.h"
+
 #include "Graphics/RenderPasses/GodrayPass.h"
 #include "Graphics/RenderPasses/VolumetricLightPass.h"
 
 #include "Graphics/RenderPasses/IBLApplicationPass.h"
 #include "Graphics/RenderPasses/DirectionalLightPass.h"
+#include "Graphics/RenderPasses/CulledLightingPass.h"
 #include "Graphics/RenderPasses/AreaLightPass.h"
 
 #include "Graphics/RenderPasses/SkyboxPass.h"
@@ -95,13 +98,17 @@ namespace Strontium::Renderer3D
     auto skyatmo = passManager->insertRenderPass<SkyAtmospherePass>(rendererData, geomet);
     auto dynIBL = passManager->insertRenderPass<DynamicSkyIBLPass>(rendererData, skyatmo);
 
+    // Light culling.
+    auto lightCull = passManager->insertRenderPass<LightCullingPass>(rendererData, geomet);
+
     // Lighting passes.
     auto iblApp = passManager->insertRenderPass<IBLApplicationPass>(rendererData, geomet, hiZ, hbao, dynIBL);
     auto dirApp = passManager->insertRenderPass<DirectionalLightPass>(rendererData, geomet, shadow, skyatmo);
-    auto areaApp = passManager->insertRenderPass<AreaLightPass>(rendererData, geomet);
+    auto culledApp = passManager->insertRenderPass<CulledLightingPass>(rendererData, geomet, lightCull);
+    auto areaApp = passManager->insertRenderPass<AreaLightPass>(rendererData, geomet, lightCull);
 
     // Screen-space godray pass.
-    auto ssgr = passManager->insertRenderPass<GodrayPass>(rendererData, geomet, shadow, hiZ, dirApp, areaApp);
+    auto ssgr = passManager->insertRenderPass<GodrayPass>(rendererData, geomet, lightCull, shadow, hiZ, dirApp, areaApp);
     auto volApp = passManager->insertRenderPass<VolumetricLightPass>(rendererData, geomet, hiZ, ssgr);
 
     // Skybox pass. This should be applied last.
