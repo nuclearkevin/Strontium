@@ -20,6 +20,7 @@ namespace Strontium
   {
     this->passData.buildTileData = ShaderCache::getShader("tiled_frustums_aabbs");
     this->passData.cullPointLights = ShaderCache::getShader("tiled_point_light_culling");
+    this->passData.cullSpotLights = ShaderCache::getShader("tiled_spot_light_culling");
     this->passData.cullRectLights = ShaderCache::getShader("tiled_rect_light_culling");
 
     this->passData.tiles = static_cast<glm::uvec2>(glm::ceil(glm::vec2(1600.0f, 900.0f) / 16.0f));
@@ -28,6 +29,7 @@ namespace Strontium
 
     // The light lists.
     this->passData.pointLightListBuffer.resize(numTiles * MAX_NUM_POINT_LIGHTS * sizeof(int), BufferType::Dynamic);
+    this->passData.spotLightListBuffer.resize(numTiles * MAX_NUM_SPOT_LIGHTS * sizeof(int), BufferType::Dynamic);
     this->passData.rectLightListBuffer.resize(numTiles * MAX_NUM_RECT_LIGHTS * sizeof(int), BufferType::Dynamic);
   }
 
@@ -58,10 +60,12 @@ namespace Strontium
       this->passData.cullingData.resize(numTiles * 8u * sizeof(glm::vec4), BufferType::Dynamic);
       
       this->passData.pointLightListBuffer.resize(numTiles * MAX_NUM_POINT_LIGHTS * sizeof(int), BufferType::Dynamic);
+      this->passData.spotLightListBuffer.resize(numTiles * MAX_NUM_SPOT_LIGHTS * sizeof(int), BufferType::Dynamic);
       this->passData.rectLightListBuffer.resize(numTiles * MAX_NUM_RECT_LIGHTS * sizeof(int), BufferType::Dynamic);
     }
 
     this->passData.pointLightCount = 0u;
+    this->passData.spotLightCount = 0u;
     this->passData.rectAreaLightCount = 0u;
   }
 
@@ -71,6 +75,7 @@ namespace Strontium
     ScopedTimer<AsynchTimer> profiler(this->timer);
 
     uint numLights = this->passData.pointLightCount;
+    numLights += this->passData.spotLightCount;
     numLights += this->passData.rectAreaLightCount;
     if (numLights == 0u)
       return;
@@ -90,7 +95,7 @@ namespace Strontium
     this->passData.buildTileData->launchCompute(this->passData.tiles.x, this->passData.tiles.y, 1u);
     Shader::memoryBarrier(MemoryBarrierType::ShaderStorageBufferWrites);
 
-    // Cull points lights.
+    // Cull point lights.
     if (this->passData.pointLightCount > 0u)
     {
       // Bind the point light list.
@@ -108,6 +113,25 @@ namespace Strontium
       Shader::memoryBarrier(MemoryBarrierType::ShaderStorageBufferWrites);
     }
 
+    // Cull spot lights.
+    if (this->passData.spotLightCount > 0u)
+    {
+      // Bind the spot light list.
+      this->passData.spotLightListBuffer.bindToPoint(2);
+      
+      // Set the data for the point lights and bind them.
+      this->passData.spotLights.setData(0u, MAX_NUM_SPOT_LIGHTS * sizeof(SpotLight),
+                                        this->passData.spotLightQueue.data());
+      this->passData.spotLights.setData(MAX_NUM_SPOT_LIGHTS * sizeof(SpotLight), sizeof(uint),
+                                        &this->passData.spotLightCount);
+      this->passData.spotLights.bindToPoint(1u);
+
+      // Launch the shader which generates the culled light light.
+      this->passData.cullSpotLights->launchCompute(this->passData.tiles.x, this->passData.tiles.y, 1u);
+      Shader::memoryBarrier(MemoryBarrierType::ShaderStorageBufferWrites);
+    }
+    
+    // Cull rectangular area lights.
     if (this->passData.rectAreaLightCount > 0u)
     {
       // Bind the point light list.
@@ -147,6 +171,31 @@ namespace Strontium
         = glm::vec4(glm::vec3(model * glm::vec4(0.0, 0.0, 0.0, 1.0)), light.positionRadius.w);
 
     this->passData.pointLightCount++;
+  }
+
+  void 
+  LightCullingPass::submit(const SpotLight &light, const glm::mat4 &model)
+  {
+    if (this->passData.spotLightCount >= MAX_NUM_SPOT_LIGHTS)
+      return;
+
+    this->passData.spotLightQueue[this->passData.spotLightCount].colourIntensity = light.colourIntensity;
+    this->passData.spotLightQueue[this->passData.spotLightCount].cutOffs = light.cutOffs;
+    this->passData.spotLightQueue[this->passData.spotLightCount].positionRange
+        = glm::vec4(glm::vec3(model * glm::vec4(0.0, 0.0, 0.0, 1.0)), light.positionRange.w);
+
+    auto invTrans = glm::transpose(glm::inverse(model));
+    this->passData.spotLightQueue[this->passData.spotLightCount].direction 
+        = invTrans * glm::vec4(1.0f, 0.0f, 0.0f, 0.0f);
+
+    float spotLightConeHalfAngleCos = std::cos(light.cutOffs.y * 0.5f);
+    float sphereRadius = light.positionRange.x * 0.5f / (spotLightConeHalfAngleCos * spotLightConeHalfAngleCos);
+    glm::vec3 sphereCenter = glm::vec3(this->passData.spotLightQueue[this->passData.spotLightCount].positionRange) 
+        + glm::vec3(this->passData.spotLightQueue[this->passData.spotLightCount].direction) * sphereRadius;
+
+    this->passData.spotLightQueue[this->passData.spotLightCount].cullingSphere = glm::vec4(sphereCenter, sphereRadius);
+
+    this->passData.spotLightCount++;
   }
 
   void 

@@ -7,6 +7,8 @@
 
 #define MAX_NUM_RECT_LIGHTS 64
 
+//#define SHOW_COMPLEXITY
+
 layout(local_size_x = 16, local_size_y = 16) in;
 
 struct RectAreaLight
@@ -74,6 +76,9 @@ SurfaceProperties decodeGBuffer(vec2 gBufferUVs, ivec2 gBufferTexel);
 // Evaluate a single rectangular area light.
 vec3 evaluateRectAreaLight(RectAreaLight light, SurfaceProperties props);
 
+// Debug gradient for light complexity.
+vec3 gradient(float value);
+
 // Some constants for sampling the LUTs.
 const vec2 ltcLUT2Size = vec2(textureSize(u_LTC2, 0).xy);
 const vec2 ltcLUT2Scale = (ltcLUT2Size - 1.0.xx) / ltcLUT2Size;
@@ -101,6 +106,9 @@ void main()
   // Loop over the lights and compute the radiance contribution for everything
   // that isn't the shadowed light.
   vec3 totalRadiance = imageLoad(lightingBuffer, invoke).rgb;
+  #ifdef SHOW_COMPLEXITY
+  uint numLights = 0;
+  #endif
   for (int i = 0; i < u_lightingSettings.x; i++)
   {
     int lightIndex = indices[tileOffset + i];
@@ -110,8 +118,16 @@ void main()
     if (lightIndex < 0)
       break;
 
+    #ifdef SHOW_COMPLEXITY
+    numLights++;
+    #endif
+
     totalRadiance += max(evaluateRectAreaLight(rALights[lightIndex], gBuffer), 0.0.xxx);
   }
+
+  #ifdef SHOW_COMPLEXITY
+  totalRadiance += gradient(float(numLights));
+  #endif
 
   imageStore(lightingBuffer, invoke, vec4(totalRadiance, 1.0));
 }
@@ -260,4 +276,27 @@ vec3 evaluateRectAreaLight(RectAreaLight light, SurfaceProperties props)
 
   return light.colourIntensity.rgb * light.colourIntensity.a * brdf 
          * attenuation;
+}
+
+vec3 gradient(float value)
+{
+  vec3 zero = vec3(0.0, 0.0, 0.0);
+  vec3 white = vec3(0.0, 0.1, 0.9);
+  vec3 red = vec3(0.2, 0.9, 0.4);
+  vec3 blue = vec3(0.8, 0.8, 0.3);
+  vec3 green = vec3(0.9, 0.2, 0.3);
+
+  float step0 = 0.0;
+  float step1 = 2.0;
+  float step2 = 4.0;
+  float step3 = 8.0;
+  float step4 = 16.0;
+
+  vec3 color = mix(zero, white, smoothstep(step0, step1, value));
+  color = mix(color, white, smoothstep(step1, step2, value));
+  color = mix(color, red, smoothstep(step1, step2, value));
+  color = mix(color, blue, smoothstep(step2, step3, value));
+  color = mix(color, green, smoothstep(step3, step4, value));
+
+  return color;
 }

@@ -240,6 +240,13 @@ namespace Strontium
           light.addComponent<TransformComponent>();
         }
 
+        if (ImGui::MenuItem("Spot Light"))
+        {
+          auto light = activeScene->createEntity("New Spot Light");
+          light.addComponent<SpotLightComponent>();
+          light.addComponent<TransformComponent>();
+        }
+
         if (ImGui::MenuItem("Rectangular Area Light"))
         {
           auto light = activeScene->createEntity("New Rect Area Light");
@@ -445,6 +452,7 @@ namespace Strontium
         {
           drawComponentAdd<DirectionalLightComponent>("Directional Light Component", entity);
           drawComponentAdd<PointLightComponent>("Point Light Component", entity);
+          drawComponentAdd<SpotLightComponent>("Spot Light Component", entity);
           drawComponentAdd<DynamicSkylightComponent>("Dynamic Sky Light Component", entity);
           drawComponentAdd<RectAreaLightComponent>("Rectangular Area Light Component", entity);
 
@@ -480,6 +488,7 @@ namespace Strontium
         {
           drawComponentRemove<DirectionalLightComponent>("Directional Light Component", entity);
           drawComponentRemove<PointLightComponent>("Point Light Component", entity);
+          drawComponentRemove<SpotLightComponent>("Spot Light Component", entity);
           drawComponentRemove<DynamicSkylightComponent>("Dynamic Sky Light Component", entity);
           drawComponentRemove<RectAreaLightComponent>("Rectangular Area Light Component", entity);
 
@@ -511,6 +520,13 @@ namespace Strontium
           {
             auto light = createChildEntity(entity, activeScene, "New Point Light");
             light.addComponent<PointLightComponent>();
+            light.addComponent<TransformComponent>();
+          }
+
+          if (ImGui::MenuItem("Spot Light"))
+          {
+            auto light = createChildEntity(entity, activeScene, "New Spot Light");
+            light.addComponent<SpotLightComponent>();
             light.addComponent<TransformComponent>();
           }
 
@@ -548,6 +564,7 @@ namespace Strontium
         copyComponent<SphereFogVolumeComponent>(entity, newEntity);
         copyComponent<DirectionalLightComponent>(entity, newEntity);
         copyComponent<PointLightComponent>(entity, newEntity);
+        copyComponent<SpotLightComponent>(entity, newEntity);
         copyComponent<RectAreaLightComponent>(entity, newEntity);
         copyComponent<DynamicSkylightComponent>(entity, newEntity);
       }
@@ -618,6 +635,7 @@ namespace Strontium
     drawComponentLeaf<SphereFogVolumeComponent>(entity, "Sphere Fog Volume Component");
     drawComponentLeaf<DirectionalLightComponent>(entity, "Directional Light Component");
     drawComponentLeaf<PointLightComponent>(entity, "Point Light Component");
+    drawComponentLeaf<SpotLightComponent>(entity, "Spot Light Component");
     drawComponentLeaf<RectAreaLightComponent>(entity, "Rectangular Area Light Component");
     drawComponentLeaf<DynamicSkylightComponent>(entity, "Dynamic Skylight Component");
   }
@@ -1249,9 +1267,30 @@ namespace Strontium
         ImGui::PushID("PointLight");
         ImGui::Checkbox("Cast Shadows", &component.castShadows);
         ImGui::ColorEdit3("Colour", &component.colour.r);
-        Styles::drawFloatControl("Radius", 0.0f, component.radius, 0.0f, 0.1f, 0.0f, 100.0f);
         Styles::drawFloatControl("Intensity", 0.0f, component.intensity,
                                  0.0f, 0.01f, 0.0f, 100.0f);
+        Styles::drawFloatControl("Radius", 0.0f, component.radius, 0.0f, 0.1f, 0.0f, 100.0f);
+        ImGui::PopID();
+      });
+
+      drawComponentProperties<SpotLightComponent>("Spot Light Component",
+                                                  this->selectedEntity, 
+                                                  [this](auto& component)
+      {
+        ImGui::PushID("SpotLight");
+        ImGui::Checkbox("Cast Shadows", &component.castShadows);
+        ImGui::ColorEdit3("Colour", &component.colour.r);
+        Styles::drawFloatControl("Intensity", 0.0f, component.intensity,
+                                 0.0f, 0.01f, 0.0f, 100.0f);
+        Styles::drawFloatControl("Range", 0.0f, component.range, 0.0f, 0.1f, 0.0f, 100.0f);
+
+        auto outerDegree = glm::degrees(component.outerCutoff);
+        auto innerDegree = glm::degrees(component.innerCutoff);
+        Styles::drawFloatControl("Inner Cutoff", 0.0f, innerDegree, 0.0f, 0.1f, 0.0f, outerDegree);
+        Styles::drawFloatControl("Outer Cutoff", 90.0f, outerDegree, 0.0f, 0.1f, innerDegree, 360.0f);
+        component.outerCutoff = glm::radians(outerDegree);
+        component.innerCutoff = glm::radians(innerDegree);
+
         ImGui::PopID();
       });
 

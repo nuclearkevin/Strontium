@@ -1,5 +1,6 @@
 // All of the includes required for Strontium are housed here.
 #define GLFW_INCLUDE_NONE
+#define _USE_MATH_DEFINES
 
 // Include guard.
 #pragma once

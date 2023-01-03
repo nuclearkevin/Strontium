@@ -6,6 +6,8 @@ ShaderCache:
     Filepath: ./assets/shaders/compute/culling/tiledFrustAABB.glsl
   - Handle: tiled_point_light_culling
     Filepath: ./assets/shaders/compute/culling/tiledPointLightCulling.glsl
+  - Handle: tiled_spot_light_culling
+    Filepath: ./assets/shaders/compute/culling/tiledSpotLightCulling.glsl
   - Handle: tiled_rect_light_culling
     Filepath: ./assets/shaders/compute/culling/tiledRectLightCulling.glsl
     #

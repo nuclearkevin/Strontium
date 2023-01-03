@@ -108,6 +108,62 @@ void main()
   data.frustumPlanes[5] /= length(data.frustumPlanes[5].xyz);
   //----------------------------------------------------------------------------
 
+  //----------------------------------------------------------------------------
+  // AABB calculations.
+  //----------------------------------------------------------------------------
+  // Compute 8 corners.
+  vec4 points[8];
+  // Near.
+  points[0] = vec4(2.0 * vec3(0.0, 0.0, minDepth) - 1.0.xxx, 1.0); // Bottom-left.
+  points[1] = vec4(2.0 * vec3(1.0, 0.0, minDepth) - 1.0.xxx, 1.0); // Bottom-right.
+  points[2] = vec4(2.0 * vec3(0.0, 1.0, minDepth) - 1.0.xxx, 1.0); // Top-left.
+  points[3] = vec4(2.0 * vec3(1.0, 1.0, minDepth) - 1.0.xxx, 1.0); // Top-right.
+  // Far.
+  points[4] = vec4(2.0 * vec3(0.0, 0.0, maxDepth) - 1.0.xxx, 1.0); // Bottom-left.
+  points[5] = vec4(2.0 * vec3(1.0, 0.0, maxDepth) - 1.0.xxx, 1.0); // Bottom-right.
+  points[6] = vec4(2.0 * vec3(0.0, 1.0, maxDepth) - 1.0.xxx, 1.0); // Top-left.
+  points[7] = vec4(2.0 * vec3(1.0, 1.0, maxDepth) - 1.0.xxx, 1.0); // Top-right.
+  // NDC to world space.
+  points[0] = u_invViewProjMatrix * points[0];
+  points[0] /= points[0].w;
+  points[1] = u_invViewProjMatrix * points[1];
+  points[1] /= points[1].w;
+  points[2] = u_invViewProjMatrix * points[2];
+  points[2] /= points[2].w;
+  points[3] = u_invViewProjMatrix * points[3];
+  points[3] /= points[3].w;
+  points[4] = u_invViewProjMatrix * points[4];
+  points[4] /= points[4].w;
+  points[5] = u_invViewProjMatrix * points[5];
+  points[5] /= points[5].w;
+  points[6] = u_invViewProjMatrix * points[6];
+  points[6] /= points[6].w;
+  points[7] = u_invViewProjMatrix * points[7];
+  points[7] /= points[7].w;
+
+  // Find the min and max.
+  vec3 minCorner = points[0].xyz;
+  vec3 maxCorner = points[0].xyz;
+  minCorner = min(minCorner, points[1].xyz);
+  maxCorner = max(maxCorner, points[1].xyz);
+  minCorner = min(minCorner, points[2].xyz);
+  maxCorner = max(maxCorner, points[2].xyz);
+  minCorner = min(minCorner, points[3].xyz);
+  maxCorner = max(maxCorner, points[3].xyz);
+  minCorner = min(minCorner, points[4].xyz);
+  maxCorner = max(maxCorner, points[4].xyz);
+  minCorner = min(minCorner, points[5].xyz);
+  maxCorner = max(maxCorner, points[5].xyz);
+  minCorner = min(minCorner, points[6].xyz);
+  maxCorner = max(maxCorner, points[6].xyz);
+  minCorner = min(minCorner, points[7].xyz);
+  maxCorner = max(maxCorner, points[7].xyz);
+
+  // Compute the AABB.
+  data.aabbCenter = vec4(0.5 * (maxCorner + minCorner), 1.0);
+  data.aabbExtents = vec4(0.5 * (maxCorner - minCorner), 1.0);
+  //----------------------------------------------------------------------------
+
   // Write to the SSBO.
   frustumsAABBs[tileOffset] = data;
 }

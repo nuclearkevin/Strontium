@@ -6,6 +6,10 @@
 
 #define MAX_NUM_LIGHTS 1024
 
+#define CULL_WITH_BOTH
+//#define CULL_FRUSTUM
+//#define CULL_AABB
+
 layout(local_size_x = MAX_NUM_LIGHTS, local_size_y = 1) in;
 
 struct TileData
@@ -52,7 +56,7 @@ layout(std430, binding = 2) writeonly buffer LightIndices
 // World-space sphere-AABB intersection test.
 bool sphereIntersectsAABB(vec3 sPosition, float sRadius, TileData aabb)
 {
-  vec3 delta = max(abs(aabb.aabbCenter.xyz - sPosition) - aabb.aabbExtents.xyz, 0.0.xxx);
+  vec3 delta = max(0.0.xxx, abs(aabb.aabbCenter.xyz - sPosition) - aabb.aabbExtents.xyz);
   float deltaSq = dot(delta, delta);
 
   return deltaSq <= sRadius * sRadius;
@@ -74,14 +78,23 @@ bool sphereIntersectsFrustum(vec3 sPosition, float sRadius, TileData frustum)
 
 bool pointLightInTile(PointLight light, TileData data)
 {
-  /*
+  #ifdef CULL_WITH_BOTH
   bool res1 = sphereIntersectsAABB(light.positionRadius.xyz,
                                    light.positionRadius.w, data);
   bool res2 = sphereIntersectsFrustum(light.positionRadius.xyz,
                                       light.positionRadius.w, data);
   return res1 && res2;
-  */
-  return sphereIntersectsFrustum(light.positionRadius.xyz, light.positionRadius.w, data);
+  #endif
+
+  #ifdef CULL_FRUSTUM
+  return sphereIntersectsFrustum(light.positionRadius.xyz,
+                                 light.positionRadius.w, data);
+  #endif
+
+  #ifdef CULL_AABB
+  return sphereIntersectsAABB(light.positionRadius.xyz,
+                              light.positionRadius.w, data);
+  #endif
 }
 
 shared TileData data;

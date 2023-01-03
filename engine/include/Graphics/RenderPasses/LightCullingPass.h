@@ -1,6 +1,7 @@
 #pragma once
 
 #define MAX_NUM_POINT_LIGHTS 1024
+#define MAX_NUM_SPOT_LIGHTS 512
 #define MAX_NUM_RECT_LIGHTS 64
 
 #include "StrontiumPCH.h"
@@ -25,6 +26,7 @@ namespace Strontium
   {
     Shader* buildTileData;
     Shader* cullPointLights;
+    Shader* cullSpotLights;
     Shader* cullRectLights;
 
     // Pass parameters.
@@ -32,6 +34,9 @@ namespace Strontium
 
     ShaderStorageBuffer pointLights;
     ShaderStorageBuffer pointLightListBuffer;
+
+    ShaderStorageBuffer spotLights;
+    ShaderStorageBuffer spotLightListBuffer;
 
     UniformBuffer rectLights;
     ShaderStorageBuffer rectLightListBuffer;
@@ -43,6 +48,10 @@ namespace Strontium
     uint pointLightCount;
     std::array<PointLight, MAX_NUM_POINT_LIGHTS> pointLightQueue;
 
+    // Spot lights.
+    uint spotLightCount;
+    std::array<SpotLight, MAX_NUM_SPOT_LIGHTS> spotLightQueue;
+
     // Rectangular area lights.
     uint rectAreaLightCount;
     std::array<RectAreaLight, MAX_NUM_RECT_LIGHTS> rectLightQueue;
@@ -53,14 +62,18 @@ namespace Strontium
     LightCullingPassDataBlock()
       : buildTileData(nullptr)
       , cullPointLights(nullptr)
+      , cullSpotLights(nullptr)
       , cullRectLights(nullptr)
       , cullingData(0u, BufferType::Dynamic)
       , pointLights(MAX_NUM_POINT_LIGHTS * sizeof(PointLight) + sizeof(uint), BufferType::Dynamic)
       , pointLightListBuffer(0u, BufferType::Dynamic)
+      , spotLights(MAX_NUM_SPOT_LIGHTS * sizeof(SpotLight) + sizeof(uint), BufferType::Dynamic)
+      , spotLightListBuffer(0u, BufferType::Dynamic)
       , rectLights(MAX_NUM_RECT_LIGHTS * sizeof(RectAreaLight) + sizeof(glm::ivec4), BufferType::Dynamic)
       , rectLightListBuffer(0u, BufferType::Dynamic)
       , tiles(static_cast<glm::uvec2>(glm::ceil(glm::vec2(1600.0f, 900.0f) / 16.0f)))
       , pointLightCount(0u)
+      , spotLightCount(0u)
       , rectAreaLightCount(0u)
       , frameTime(0.0f)
     { }
@@ -83,6 +96,7 @@ namespace Strontium
     void onShutdown() override;
 
     void submit(const PointLight &light, const glm::mat4 &model);
+    void submit(const SpotLight &light, const glm::mat4 &model);
     void submit(const RectAreaLight &light, const glm::mat4 &model, float radius, 
                 bool twoSided, bool cull);
 

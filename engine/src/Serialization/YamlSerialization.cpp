@@ -437,6 +437,22 @@ namespace Strontium
         out << YAML::EndMap;
       }
 
+      if (entity.hasComponent<SpotLightComponent>())
+      {
+        out << YAML::Key << "SpotLightComponent";
+        out << YAML::BeginMap;
+
+        auto& component = entity.getComponent<SpotLightComponent>();
+        out << YAML::Key << "Colour" << YAML::Value << component.colour;
+        out << YAML::Key << "Intensity" << YAML::Value << component.intensity;
+        out << YAML::Key << "Range" << YAML::Value << component.range;
+        out << YAML::Key << "InnerCutoff" << YAML::Value << component.innerCutoff;
+        out << YAML::Key << "OuterCutoff" << YAML::Value << component.outerCutoff;
+        out << YAML::Key << "CastShadows" << YAML::Value << component.castShadows;
+
+        out << YAML::EndMap;
+      }
+
       if (entity.hasComponent<RectAreaLightComponent>())
       {
         out << YAML::Key << "RectAreaLightComponent";
@@ -1028,6 +1044,20 @@ namespace Strontium
           pComponent.intensity = pointComponent["Intensity"].as<float>();
           pComponent.radius = pointComponent["Radius"].as<float>();
           pComponent.castShadows = pointComponent["CastShadows"].as<bool>();
+        }
+      }
+
+      {
+        auto spotComponent = entity["SpotLightComponent"];
+        if (spotComponent)
+        {
+          auto& sComponent = newEntity.addComponent<SpotLightComponent>();
+          sComponent.colour = spotComponent["Colour"].as<glm::vec3>();
+          sComponent.intensity = spotComponent["Intensity"].as<float>();
+          sComponent.range = spotComponent["Range"].as<float>();
+          sComponent.innerCutoff = spotComponent["InnerCutoff"].as<float>();
+          sComponent.outerCutoff = spotComponent["OuterCutoff"].as<float>();
+          sComponent.castShadows = spotComponent["CastShadows"].as<bool>();
         }
       }
 

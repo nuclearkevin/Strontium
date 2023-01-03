@@ -4,13 +4,13 @@
  * A compute shader to cull lights. Each local invocation culls a single light.
  */
 
-#define MAX_NUM_RECT_LIGHTS 64
+#define MAX_NUM_LIGHTS 512
 
 #define CULL_WITH_BOTH
 //#define CULL_FRUSTUM
 //#define CULL_AABB
 
-layout(local_size_x = MAX_NUM_RECT_LIGHTS, local_size_y = 1) in;
+layout(local_size_x = MAX_NUM_LIGHTS, local_size_y = 1) in;
 
 struct TileData
 {
@@ -21,13 +21,13 @@ struct TileData
   vec4 aabbExtents;
 };
 
-struct RectAreaLight
+struct SpotLight
 {
+  vec4 positionRange; // Position (x, y, z), range (w).
+  vec4 direction; // Spot light direction (x, y, z). w is empty.
+  vec4 cullingSphere; // Sphere center (x, y, z) and radius (w).
   vec4 colourIntensity; // Colour (x, y, z) and intensity (w).
-  // Points of the rectangular area light (x, y, z). 
-  // points[0].w > 0 indicates the light is two-sided, one-sided otherwise.
-  // points[1].w is the culling radius.
-  vec4 points[4];
+  vec4 cutOffs; // Cos(inner angle) (x), Cos(outer angle) (y). z and w are empty.
 };
 
 // Camera specific uniforms.
@@ -45,11 +45,10 @@ layout(std140, binding = 0) readonly buffer AABBandFrustum
   TileData frustumsAABBs[];
 };
 
-// Rectangular area light uniforms.
-layout(std140, binding = 1) uniform RectAreaBlock
+layout(std140, binding = 1) readonly buffer SpotLights
 {
-  RectAreaLight rALights[MAX_NUM_RECT_LIGHTS];
-  ivec4 u_lightingSettings; // Number of rectangular area lights (x) with a maximum of 64. y, z and w are unused.
+  SpotLight sLights[MAX_NUM_LIGHTS];
+  uint lightingSettings; // Maximum number of point lights.
 };
 
 layout(std430, binding = 2) writeonly buffer LightIndices
@@ -60,7 +59,7 @@ layout(std430, binding = 2) writeonly buffer LightIndices
 // World-space sphere-AABB intersection test.
 bool sphereIntersectsAABB(vec3 sPosition, float sRadius, TileData aabb)
 {
-  vec3 delta = max(abs(aabb.aabbCenter.xyz - sPosition) - aabb.aabbExtents.xyz, 0.0.xxx);
+  vec3 delta = max(0.0.xxx, abs(aabb.aabbCenter.xyz - sPosition) - aabb.aabbExtents.xyz);
   float deltaSq = dot(delta, delta);
 
   return deltaSq <= sRadius * sRadius;
@@ -80,30 +79,31 @@ bool sphereIntersectsFrustum(vec3 sPosition, float sRadius, TileData frustum)
   return dist > 0.0;
 }
 
-bool rectLightInTile(RectAreaLight light, TileData data)
+bool spotLightInTile(SpotLight light, TileData data)
 {
-  vec3 center = 0.25 * (light.points[0].xyz + light.points[1].xyz 
-                        + light.points[2].xyz + light.points[3].xyz);
-
   #ifdef CULL_WITH_BOTH
-  bool res1 = sphereIntersectsAABB(center, light.points[1].w, data);
-  bool res2 = sphereIntersectsFrustum(center, light.points[1].w, data);
-  return res1 && res2 || (light.points[3].w < 1.0);
+  bool res1 = sphereIntersectsAABB(light.cullingSphere.xyz,
+                                   light.cullingSphere.w, data);
+  bool res2 = sphereIntersectsFrustum(light.cullingSphere.xyz,
+                                      light.cullingSphere.w, data);
+  return res1 && res2;
   #endif
 
   #ifdef CULL_FRUSTUM
-  return sphereIntersectsFrustum(center, light.points[1].w, data) || (light.points[3].w < 1.0);
+  return sphereIntersectsFrustum(light.cullingSphere.xyz,
+                                 light.cullingSphere.w, data);
   #endif
 
   #ifdef CULL_AABB
-  return sphereIntersectsAABB(center, light.points[1].w, data) || (light.points[3].w < 1.0);
+  return sphereIntersectsAABB(light.cullingSphere.xyz,
+                              light.cullingSphere.w, data);
   #endif
 }
 
 shared TileData data;
 
 shared uint numBinnedLights;
-shared int lightIndicesCache[MAX_NUM_RECT_LIGHTS];
+shared int lightIndicesCache[MAX_NUM_LIGHTS];
 
 void main()
 {
@@ -122,14 +122,14 @@ void main()
   barrier();
 
   // Quit early to prevent filling the buffer with garbage lights.
-  if (lInvoke >= u_lightingSettings.x)
+  if (lInvoke >= lightingSettings)
     return;
 
   // Fetch the light for culling.
-  RectAreaLight light = rALights[lInvoke];
+  SpotLight light = sLights[lInvoke];
 
   // If the light is inside the tile, add it to the cache.
-  if (rectLightInTile(light, data))
+  if (spotLightInTile(light, data))
   {
     uint offset = atomicAdd(numBinnedLights, 1);
     lightIndicesCache[offset] = int(lInvoke);
@@ -140,8 +140,8 @@ void main()
   if (lInvoke > numBinnedLights)
     return;
 
-  uint offset = tileOffset * MAX_NUM_RECT_LIGHTS;
-  if (numBinnedLights != MAX_NUM_RECT_LIGHTS && lInvoke == numBinnedLights)
+  uint offset = tileOffset * MAX_NUM_LIGHTS;
+  if (numBinnedLights != MAX_NUM_LIGHTS && lInvoke == numBinnedLights)
   {
     indices[offset + numBinnedLights] = -1;
   }

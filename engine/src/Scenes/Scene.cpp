@@ -352,12 +352,12 @@ namespace Strontium
       lightCulling->submit(rect, transformMatrix, rect.radius, rect.twoSided, rect.cull);
     }
 
-    // TODO: Point light pass.
+    // Point lights here.
     auto pointLight = this->sceneECS.group<PointLightComponent>(entt::get<TransformComponent>);
     for (auto entity : pointLight)
     {
       auto [point, transform] = pointLight.get<PointLightComponent, TransformComponent>(entity);
-      glm::mat4 transformMatrix = (glm::mat4) transform;
+      glm::mat4 transformMatrix = static_cast<glm::mat4>(transform);
 
       // If a drawable item has a transform hierarchy, compute the global
       // transforms from local transforms.
@@ -366,6 +366,22 @@ namespace Strontium
         transformMatrix = computeGlobalTransform(currentEntity);
 
       lightCulling->submit(static_cast<PointLight>(point), transformMatrix);
+    }
+
+    // Spot lights here.
+    auto spotLight = this->sceneECS.group<SpotLightComponent>(entt::get<TransformComponent>);
+    for (auto entity : spotLight)
+    {
+      auto [spot, transform] = spotLight.get<SpotLightComponent, TransformComponent>(entity);
+      glm::mat4 transformMatrix = static_cast<glm::mat4>(transform);
+
+      // If a drawable item has a transform hierarchy, compute the global
+      // transforms from local transforms.
+      auto currentEntity = Entity(entity, this);
+      if (currentEntity.hasComponent<ParentEntityComponent>())
+        transformMatrix = computeGlobalTransform(currentEntity);
+
+      lightCulling->submit(static_cast<SpotLight>(spot), transformMatrix);
     }
 
     // Group together the transform and renderable components.
@@ -526,12 +542,12 @@ namespace Strontium
       lightCulling->submit(rect, transformMatrix, rect.radius, rect.twoSided, rect.cull);
     }
 
-    // TODO: Point light pass.
+    // Point lights here.
     auto pointLight = this->sceneECS.group<PointLightComponent>(entt::get<TransformComponent>);
     for (auto entity : pointLight)
     {
       auto [point, transform] = pointLight.get<PointLightComponent, TransformComponent>(entity);
-      glm::mat4 transformMatrix = (glm::mat4) transform;
+      glm::mat4 transformMatrix = static_cast<glm::mat4>(transform);
 
       // If a drawable item has a transform hierarchy, compute the global
       // transforms from local transforms.
@@ -540,6 +556,22 @@ namespace Strontium
         transformMatrix = computeGlobalTransform(currentEntity);
 
       lightCulling->submit(static_cast<PointLight>(point), transformMatrix);
+    }
+
+    // Spot lights here.
+    auto spotLight = this->sceneECS.group<SpotLightComponent>(entt::get<TransformComponent>);
+    for (auto entity : spotLight)
+    {
+      auto [spot, transform] = spotLight.get<SpotLightComponent, TransformComponent>(entity);
+      glm::mat4 transformMatrix = static_cast<glm::mat4>(transform);
+
+      // If a drawable item has a transform hierarchy, compute the global
+      // transforms from local transforms.
+      auto currentEntity = Entity(entity, this);
+      if (currentEntity.hasComponent<ParentEntityComponent>())
+        transformMatrix = computeGlobalTransform(currentEntity);
+
+      lightCulling->submit(static_cast<SpotLight>(spot), transformMatrix);
     }
 
     // Group together the transform and renderable components.

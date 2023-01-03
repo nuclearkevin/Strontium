@@ -65,24 +65,27 @@ namespace Strontium
 
   struct SpotLight
   {
-    glm::vec3 position;
-    glm::vec3 direction;
-    glm::vec3 colour;
-    float intensity;
-    float innerCutoff;
-    float outerCutoff;
-    float radius;
-    bool castShadows;
+    glm::vec4 positionRange;
+    glm::vec4 direction; // w is empty.
+    glm::vec4 cullingSphere; // Sphere center (x, y, z) and radius (w).
+    glm::vec4 colourIntensity;
+    glm::vec4 cutOffs; // Cos(inner angle) (x), Cos(outer angle) (y). z and w are empty.
 
     SpotLight()
-      : position(glm::vec3(0.0f))
-      , direction(glm::vec3(0.0f, 1.0f, 0.0f))
-      , colour(glm::vec3(1.0f))
-      , intensity(0.0f)
-      , innerCutoff(std::cos(glm::radians(45.0f)))
-      , outerCutoff(std::cos(glm::radians(90.0f)))
-      , radius(0.0f)
-      , castShadows(false)
+      : positionRange(glm::vec4(0.0f, 0.0f, 0.0f, 1.0f))
+      , direction(glm::vec4(1.0f, 0.0f, 0.0f, 0.0f))
+      , cullingSphere(0.0f, 0.0f, 0.0f, 1.0f)
+      , colourIntensity(glm::vec4(1.0f))
+      , cutOffs(glm::vec4(1.0f, 0.0f, 0.0f, 0.0f))
+    { }
+
+    SpotLight(const glm::vec4 &positionRange, const glm::vec4 &direction,
+              const glm::vec4 &colourIntensity, const glm::vec4 &cutOffs)
+      : positionRange(positionRange)
+      , direction(direction)
+      , cullingSphere(0.0f, 0.0f, 0.0f, 1.0f)
+      , colourIntensity(colourIntensity)
+      , cutOffs(cutOffs)
     { }
   };
 

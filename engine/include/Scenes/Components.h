@@ -363,6 +363,7 @@ namespace Strontium
   struct PointLightComponent
   {
     float radius;
+
     glm::vec3 colour;
     float intensity;
 
@@ -380,6 +381,36 @@ namespace Strontium
     operator PointLight()
     {
       return PointLight({ 0.0f, 0.0f, 0.0f, this->radius }, { this->colour, this->intensity });
+    }
+  };
+
+  struct SpotLightComponent
+  {
+    float range;
+    float innerCutoff; // Angle stored in radians. Presented in degrees.
+    float outerCutoff; // Angle stored in radians. Presented in degrees.
+
+    glm::vec3 colour;
+    float intensity;
+
+    bool castShadows;
+
+    SpotLightComponent(const SpotLightComponent&) = default;
+
+    SpotLightComponent()
+      : range(1.0f)
+      , innerCutoff(0.0f) // 0 degrees.
+      , outerCutoff(0.5f * M_PI) // 90 degrees.
+      , colour(1.0f)
+      , intensity(1.0f)
+      , castShadows(false)
+    { }
+
+    operator SpotLight()
+    {
+      return SpotLight({ 0.0f, 0.0f, 0.0f, this->range }, { 1.0f, 0.0f, 0.0f, 0.0f }, 
+                       { this->colour, this->intensity }, 
+                       { std::cos(this->innerCutoff), std::cos(this->outerCutoff), 0.0f, 0.0f });
     }
   };
 
