@@ -27,22 +27,16 @@ namespace Strontium
     auto depthAttachment = FBOAttachment(FBOTargetParam::Depth, FBOTextureParam::Texture2D,
                                          dSpec.internal, dSpec.format, dSpec.dataType);
 
-    for (uint i = 0; i < NUM_CASCADES; i++)
-    {
-      this->passData.shadowBuffers[i].resize(this->passData.shadowMapRes, this->passData.shadowMapRes);
-      this->passData.shadowBuffers[i].attach(dSpec, depthAttachment);
-    }
+    this->passData.shadowBuffer.resize(NUM_CASCADES * this->passData.shadowMapRes, this->passData.shadowMapRes);
+    this->passData.shadowBuffer.attach(dSpec, depthAttachment);
   }
   
   void 
   ShadowPass::updatePassData()
   {
-    for (uint i = 0; i < NUM_CASCADES; i++)
-    {
-      if (this->passData.shadowMapRes != 
-          static_cast<uint>(this->passData.shadowBuffers[i].getSize().x))
-        this->passData.shadowBuffers[i].resize(this->passData.shadowMapRes, this->passData.shadowMapRes);
-    }
+    if (this->passData.shadowMapRes != 
+        static_cast<uint>(this->passData.shadowBuffer.getSize().y))
+      this->passData.shadowBuffer.resize(NUM_CASCADES * this->passData.shadowMapRes, this->passData.shadowMapRes);
   }
   
   RendererDataHandle 
@@ -59,8 +53,7 @@ namespace Strontium
   ShadowPass::onRendererBegin(uint width, uint height)
   {
     // Clear the shadow buffers to prevent a stall.
-    for (uint i = 0; i < NUM_CASCADES; i++)
-      this->passData.shadowBuffers[i].clear();
+    this->passData.shadowBuffer.clear();
 
     this->passData.castShadows = false;
     this->passData.hasCascades = false;
@@ -113,14 +106,17 @@ namespace Strontium
     // Run the Strontium render pipeline for each shadow cascade.
     static_cast<Renderer3D::GlobalRendererData*>(this->globalBlock)->blankVAO.bind();
     //RendererCommands::cullType(FaceType::Front);
+    this->passData.shadowBuffer.bind();
     for (uint i = 0; i < NUM_CASCADES; i++)
     {
       this->passData.lightSpaceBuffer.setData(0, sizeof(glm::mat4), glm::value_ptr(this->passData.cascades[i]));
 
       // Begin the actual shadow pass for this cascade.
-      this->passData.shadowBuffers[i].setViewport();
-      this->passData.shadowBuffers[i].bind();
-
+      this->passData.shadowBuffer.setViewport(this->passData.shadowBuffer.getSize().y, 
+                                              this->passData.shadowBuffer.getSize().y, 
+                                              i * this->passData.shadowBuffer.getSize().y, 
+                                              0u);
+      
       bufferPointer = 0;
       // Static shadow pass.
       this->passData.staticShadow->bind();
@@ -171,7 +167,7 @@ namespace Strontium
     }
     //RendererCommands::cullType(FaceType::Back);
     this->passData.dynamicShadow->unbind();
-    this->passData.shadowBuffers[NUM_CASCADES - 1].unbind();
+    this->passData.shadowBuffer.unbind();
   }
   
   void 
@@ -419,11 +415,11 @@ namespace Strontium
         glm::vec4 shadowOrigin = glm::vec4(glm::vec3(0.0f), 1.0f);
         shadowOrigin = lightVP * shadowOrigin;
         float storedShadowW = shadowOrigin.w;
-        shadowOrigin = 0.5f * shadowOrigin * this->passData.shadowBuffers[i].getSize().x;
+        shadowOrigin = 0.5f * shadowOrigin * this->passData.shadowBuffer.getSize().y;
 
         glm::vec4 roundedShadowOrigin = glm::round(shadowOrigin);
         glm::vec4 roundedShadowOffset = roundedShadowOrigin - shadowOrigin;
-        roundedShadowOffset = 2.0f * roundedShadowOffset / this->passData.shadowBuffers[i].getSize().x;
+        roundedShadowOffset = 2.0f * roundedShadowOffset / this->passData.shadowBuffer.getSize().y;
         roundedShadowOffset.z = 0.0f;
         roundedShadowOffset.w = 0.0f;
 

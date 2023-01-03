@@ -107,8 +107,8 @@ namespace Strontium::Renderer3D
     auto culledApp = passManager->insertRenderPass<CulledLightingPass>(rendererData, geomet, lightCull);
     auto areaApp = passManager->insertRenderPass<AreaLightPass>(rendererData, geomet, lightCull);
 
-    // Screen-space godray pass.
-    auto ssgr = passManager->insertRenderPass<GodrayPass>(rendererData, geomet, lightCull, shadow, hiZ, dirApp, areaApp);
+    // Unified volumetric passes.
+    auto ssgr = passManager->insertRenderPass<GodrayPass>(rendererData, geomet, lightCull, shadow, skyatmo, hiZ, dirApp, areaApp);
     auto volApp = passManager->insertRenderPass<VolumetricLightPass>(rendererData, geomet, hiZ, ssgr);
 
     // Skybox pass. This should be applied last.

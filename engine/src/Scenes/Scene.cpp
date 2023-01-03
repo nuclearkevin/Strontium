@@ -349,7 +349,7 @@ namespace Strontium
       if (currentEntity.hasComponent<ParentEntityComponent>())
         transformMatrix = computeGlobalTransform(currentEntity);
 
-      lightCulling->submit(rect, transformMatrix, rect.radius, rect.twoSided);
+      lightCulling->submit(rect, transformMatrix, rect.radius, rect.twoSided, rect.cull);
     }
 
     // TODO: Point light pass.
@@ -523,7 +523,7 @@ namespace Strontium
       if (currentEntity.hasComponent<ParentEntityComponent>())
         transformMatrix = computeGlobalTransform(currentEntity);
 
-      lightCulling->submit(rect, transformMatrix, rect.radius, rect.twoSided);
+      lightCulling->submit(rect, transformMatrix, rect.radius, rect.twoSided, rect.cull);
     }
 
     // TODO: Point light pass.

@@ -260,9 +260,15 @@ namespace Strontium
   }
 
   void
-  FrameBuffer::setViewport()
+  FrameBuffer::setViewport(uint xMin, uint yMin)
   {
-    glViewport(0, 0, this->width, this->height);
+    glViewport(xMin, yMin, this->width, this->height);
+  }
+
+  void 
+  FrameBuffer::setViewport(uint oWidth, uint oHeight, uint xMin, uint yMin)
+  {
+    glViewport(xMin, yMin, oWidth, oHeight);
   }
 
   void

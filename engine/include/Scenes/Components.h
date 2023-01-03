@@ -391,6 +391,7 @@ namespace Strontium
     float radius;
 
     bool twoSided;
+    bool cull;
 
     RectAreaLightComponent(const RectAreaLightComponent&) = default;
 
@@ -399,6 +400,7 @@ namespace Strontium
       , intensity(1.0f)
       , radius(1.0f)
       , twoSided(false)
+      , cull(true)
     { }
 
     operator RectAreaLight()

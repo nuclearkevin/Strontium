@@ -77,7 +77,7 @@ namespace Strontium
 {
   struct ShadowPassDataBlock
   {
-	FrameBuffer shadowBuffers[NUM_CASCADES];
+	FrameBuffer shadowBuffer;
 
 	Shader* staticShadow;
 	Shader* dynamicShadow;

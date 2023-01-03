@@ -68,8 +68,12 @@ ShaderCache:
     Filepath: ./assets/shaders/compute/volumetric/lightVolumetricEmission.glsl
   - Handle: light_froxels
     Filepath: ./assets/shaders/compute/volumetric/lightVolumetric.glsl
+  - Handle: light_froxels_a
+    Filepath: ./assets/shaders/compute/volumetric/lightVolumetricA.glsl
   - Handle: light_froxels_shadowed
     Filepath: ./assets/shaders/compute/volumetric/lightVolumetricS.glsl
+  - Handle: light_froxels_shadowed_a
+    Filepath: ./assets/shaders/compute/volumetric/lightVolumetricSA.glsl
   - Handle: light_froxels_area
     Filepath: ./assets/shaders/compute/volumetric/lightVolumetricArea.glsl
   - Handle: light_froxels_point

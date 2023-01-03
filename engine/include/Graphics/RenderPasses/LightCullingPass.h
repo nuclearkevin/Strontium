@@ -83,7 +83,8 @@ namespace Strontium
     void onShutdown() override;
 
     void submit(const PointLight &light, const glm::mat4 &model);
-    void submit(const RectAreaLight &light, const glm::mat4 &model, float radius, bool twoSided);
+    void submit(const RectAreaLight &light, const glm::mat4 &model, float radius, 
+                bool twoSided, bool cull);
 
   private:
     LightCullingPassDataBlock passData;

@@ -87,7 +87,7 @@ bool rectLightInTile(RectAreaLight light, TileData data)
   */
   vec3 center = 0.25 * (light.points[0].xyz + light.points[1].xyz 
                         + light.points[2].xyz + light.points[3].xyz);
-  return sphereIntersectsFrustum(center, light.points[1].w, data);
+  return sphereIntersectsFrustum(center, light.points[1].w, data) || (light.points[3].w < 1.0);
 }
 
 shared TileData data;

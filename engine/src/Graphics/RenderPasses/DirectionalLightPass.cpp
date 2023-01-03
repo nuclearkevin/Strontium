@@ -143,9 +143,8 @@ namespace Strontium
       this->passData.cascadedShadowBlock.setData(NUM_CASCADES * (sizeof(glm::mat4) + sizeof(glm::vec4)), 
                                                  sizeof(glm::vec4), &(shadowParams.x));
 
-      // Bind the shadowbuffers.
-      for (uint i = 0; i < NUM_CASCADES; i++)
-        shadowBlock->shadowBuffers[i].bindTextureID(FBOTargetParam::Depth, 4 + i);
+      // Bind the shadowbuffer.
+      shadowBlock->shadowBuffer.bindTextureID(FBOTargetParam::Depth, 4);
 
       // No atmospheric effects.
       if (!(this->passData.primaryLightAttachedAtmo > -1))

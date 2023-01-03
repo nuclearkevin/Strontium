@@ -63,7 +63,7 @@ layout(binding = 1) uniform sampler2D gNormal;
 layout(binding = 2) uniform sampler2D gAlbedo;
 layout(binding = 3) uniform sampler2D gMatProp;
 // TODO: Texture arrays.
-layout(binding = 4) uniform sampler2D cascadeMaps[NUM_CASCADES];
+layout(binding = 4) uniform sampler2D cascadeMaps;
 layout(binding = 8) uniform sampler2DArray transLUTs;
 
 // Camera specific uniforms.
@@ -463,10 +463,12 @@ vec2 samplePoissonDisk(uint index)
 //------------------------------------------------------------------------------
 // Shadow calculations for PCF shadow maps.
 //------------------------------------------------------------------------------
-float offsetLookup(sampler2D map, vec2 loc, vec2 offset, float depth)
+float offsetLookup(sampler2D map, vec2 loc, vec2 offset, float depth, float minX, float maxX)
 {
   vec2 texel = 1.0 / textureSize(map, 0).xy;
-  return float(texture(map, loc.xy + offset * texel).r >= depth);
+  vec2 uv = loc.xy + offset * texel;
+  uv.x = clamp(uv.x, minX, maxX);
+  return float(texture(map, uv).r >= depth);
 }
 
 //------------------------------------------------------------------------------
@@ -477,7 +479,7 @@ float calculateSearchWidth(float receiverDepth, float lightSize)
   return lightSize / receiverDepth;
 }
 
-float calcBlockerDistance(sampler2D map, vec3 projCoords, float bias, float lightSize)
+float calcBlockerDistance(sampler2D map, vec3 projCoords, float bias, float lightSize, float minX, float maxX)
 {
   //const uint searchSteps = uint(u_lightingSettings.y);
   const uint searchSteps = 16u;
@@ -493,7 +495,9 @@ float calcBlockerDistance(sampler2D map, vec3 projCoords, float bias, float ligh
     vec2 disk = searchWidth * samplePoissonDisk(i);
     disk = rotation * disk;
 
-    float blockerDepth = texture(map, projCoords.xy + disk * texel).r;
+    vec2 uv = projCoords.xy + disk * texel;
+    uv.x = clamp(uv.x, minX, maxX);
+    float blockerDepth = texture(map, uv).r;
     if (blockerDepth < projCoords.z - bias)
     {
       numBlockerDistances += 1.0;
@@ -507,9 +511,9 @@ float calcBlockerDistance(sampler2D map, vec3 projCoords, float bias, float ligh
     return -1.0;
 }
 
-float calcPCFKernelSize(sampler2D map, vec3 projCoords, float bias, float lightSize)
+float calcPCFKernelSize(sampler2D map, vec3 projCoords, float bias, float lightSize, float minX, float maxX)
 {
-  float blockerDepth = calcBlockerDistance(map, projCoords, bias, lightSize);
+  float blockerDepth = calcBlockerDistance(map, projCoords, bias, lightSize, minX, maxX);
 
   float kernelSize = 1.0;
   if (blockerDepth > 0.0)
@@ -539,7 +543,7 @@ float calcShadow(uint cascadeIndex, vec3 position, vec3 normal, DirectionalLight
     depthRange = u_cascadeData[cascadeIndex].x - u_cascadeData[cascadeIndex - 1].x;
 
   float normalOffsetScale = clamp(1.0 - dot(normal, light.directionSize.xyz), 0.0, 1.0);
-  normalOffsetScale /= textureSize(cascadeMaps[cascadeIndex], 0).x;
+  normalOffsetScale /= textureSize(cascadeMaps, 0).y;
   normalOffsetScale *= depthRange * u_shadowParams.y;
 
   vec4 shadowOffset = vec4(position + normal * normalOffsetScale, 1.0);
@@ -550,12 +554,16 @@ float calcShadow(uint cascadeIndex, vec3 position, vec3 normal, DirectionalLight
   vec3 projCoords = lightClipPos.xyz / lightClipPos.w;
   projCoords = 0.5 * projCoords + 0.5;
 
+  float minX = float(cascadeIndex) / float(NUM_CASCADES);
+  float maxX = minX + 1.0 / float(NUM_CASCADES);
+  projCoords.x = mix(minX, maxX, projCoords.x);
+
   // PCSS (contact hardening shadows), ultra quality.
   float shadowFactor = 1.0;
   if (quality == 2)
   {
     shadowFactor = 0.0;
-    float radius = calcPCFKernelSize(cascadeMaps[cascadeIndex], projCoords, bias, light.directionSize.w);
+    float radius = calcPCFKernelSize(cascadeMaps, projCoords, bias, light.directionSize.w, minX, maxX);
     radius += u_shadowParams.z;
     mat2 rotation = randomRotation();
     for (uint i = 0; i < pcfSamples; i++)
@@ -563,8 +571,8 @@ float calcShadow(uint cascadeIndex, vec3 position, vec3 normal, DirectionalLight
       vec2 disk = radius * samplePoissonDisk(i);
       disk = rotation * disk;
 
-      shadowFactor += offsetLookup(cascadeMaps[cascadeIndex], projCoords.xy,
-                                   disk, projCoords.z - bias);
+      shadowFactor += offsetLookup(cascadeMaps, projCoords.xy,
+                                   disk, projCoords.z - bias, minX, maxX);
     }
 
     shadowFactor /= float(pcfSamples);
@@ -579,8 +587,8 @@ float calcShadow(uint cascadeIndex, vec3 position, vec3 normal, DirectionalLight
     {
       vec2 disk = radius * samplePoissonDisk(i);
       disk = rotation * disk;
-      shadowFactor += offsetLookup(cascadeMaps[cascadeIndex], projCoords.xy,
-                                   disk, projCoords.z - bias);
+      shadowFactor += offsetLookup(cascadeMaps, projCoords.xy,
+                                   disk, projCoords.z - bias, minX, maxX);
     }
 
     shadowFactor /= float(pcfSamples);
@@ -588,9 +596,9 @@ float calcShadow(uint cascadeIndex, vec3 position, vec3 normal, DirectionalLight
   // Hard shadows, low quality.
   else if (quality == 0)
   {
-    shadowFactor = offsetLookup(cascadeMaps[cascadeIndex], projCoords.xy, 0.0.xx,
-                                projCoords.z - bias);
+    shadowFactor = offsetLookup(cascadeMaps, projCoords.xy, 0.0.xx,
+                                projCoords.z - bias, minX, maxX);
   }
-  
+
   return shadowFactor;
 }

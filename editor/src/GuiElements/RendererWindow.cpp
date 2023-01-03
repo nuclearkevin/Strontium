@@ -133,11 +133,9 @@ namespace Strontium
 
       if (showMaps)
       {
-        static int cascadeIndex = 0;
-        ImGui::SliderInt("Cascade Index", &cascadeIndex, 0, NUM_CASCADES - 1);
         ImGui::Text("Depth");
-        ImGui::Image(reinterpret_cast<ImTextureID>(shadowBlock->shadowBuffers[static_cast<uint>(cascadeIndex)].getAttachID(FBOTargetParam::Depth)),
-                     ImVec2(128.0f, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
+        ImGui::Image(reinterpret_cast<ImTextureID>(shadowBlock->shadowBuffer.getAttachID(FBOTargetParam::Depth)),
+                     ImVec2(static_cast<float>(NUM_CASCADES) * 128.0f, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
       }
     }
 

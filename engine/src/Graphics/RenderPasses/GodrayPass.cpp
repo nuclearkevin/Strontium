@@ -7,14 +7,15 @@ namespace Strontium
 {
   GodrayPass::GodrayPass(Renderer3D::GlobalRendererData* globalRendererData,
                          GeometryPass* previousGeoPass, LightCullingPass* previousCullPass, 
-                         ShadowPass* previousShadowPass, HiZPass* previousHiZPass, 
-                         DirectionalLightPass* previousDirLightPass, 
+                         ShadowPass* previousShadowPass, SkyAtmospherePass* previousSkyAtmoPass, 
+                         HiZPass* previousHiZPass, DirectionalLightPass* previousDirLightPass, 
                          AreaLightPass* previousAreaLightPass)
-    : RenderPass(&this->passData, globalRendererData, { previousGeoPass, previousShadowPass, previousHiZPass, 
-                                                        previousDirLightPass, previousAreaLightPass })
+    : RenderPass(&this->passData, globalRendererData, { previousGeoPass, previousShadowPass, previousSkyAtmoPass, 
+                                                        previousHiZPass, previousDirLightPass, previousAreaLightPass })
     , previousGeoPass(previousGeoPass)
     , previousCullPass(previousCullPass)
     , previousShadowPass(previousShadowPass)
+    , previousSkyAtmoPass(previousSkyAtmoPass)
     , previousHiZPass(previousHiZPass)
     , previousDirLightPass(previousDirLightPass)
     , previousAreaLightPass(previousAreaLightPass)
@@ -137,6 +138,7 @@ namespace Strontium
     numFogVolumes += this->passData.obbVolumes.size();
     numFogVolumes += this->passData.sphereVolumes.size();
 
+    auto skyAtmBlock = this->previousSkyAtmoPass->getInternalDataBlock<SkyAtmospherePassDataBlock>();
     auto dirLightBlock = this->previousDirLightPass->getInternalDataBlock<DirectionalLightPassDataBlock>();
     auto areaLightBlock = this->previousAreaLightPass->getInternalDataBlock<AreaLightPassDataBlock>();
     auto cullLightBlock = this->previousCullPass->getInternalDataBlock<LightCullingPassDataBlock>();
@@ -229,26 +231,44 @@ namespace Strontium
     // Bind directional light shadow maps and parameters.
     if (dirLightBlock->castShadows)
     {
-      for (uint i = 0; i < NUM_CASCADES; i++)
-        shadowBlock->shadowBuffers[i].bindTextureID(FBOTargetParam::Depth, 3 + i);
+      shadowBlock->shadowBuffer.bindTextureID(FBOTargetParam::Depth, 3);
       dirLightBlock->cascadedShadowBlock.bindToPoint(2);
     }
 
     // Light the froxels for directional, ambient and emissive light.
     this->passData.lightExtinction.bindAsImage(0, 0, true, 0, ImageAccessPolicy::ReadWrite);
+
+    if (dirLightBlock->hasPrimary && dirLightBlock->primaryLightAttachedAtmo > -1)
+    {
+      skyAtmBlock->atmosphereBuffer.bindToPoint(4);
+      skyAtmBlock->transmittanceLUTs.bind(4);
+
+      // Bind and upload the atmosphere indices.
+      dirLightBlock->atmosphereIndices.bindToPoint(5);
+      dirLightBlock->atmosphereIndices.setData(0, sizeof(int), &dirLightBlock->primaryLightAttachedAtmo);
+    }
+
     if (dirLightBlock->hasPrimary)
     {
       if (dirLightBlock->castShadows)
-        ShaderCache::getShader("light_froxels_shadowed")->launchCompute(iFWidth, iFHeight, this->passData.numZSlices);
+      {
+        if (dirLightBlock->primaryLightAttachedAtmo > -1)
+          ShaderCache::getShader("light_froxels_shadowed_a")->launchCompute(iFWidth, iFHeight, this->passData.numZSlices);
+        else
+          ShaderCache::getShader("light_froxels_shadowed")->launchCompute(iFWidth, iFHeight, this->passData.numZSlices);
+      }
       else
-        ShaderCache::getShader("light_froxels")->launchCompute(iFWidth, iFHeight, this->passData.numZSlices);
-      Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
+      {
+        if (dirLightBlock->primaryLightAttachedAtmo > -1)
+          ShaderCache::getShader("light_froxels_a")->launchCompute(iFWidth, iFHeight, this->passData.numZSlices);
+        else
+          ShaderCache::getShader("light_froxels")->launchCompute(iFWidth, iFHeight, this->passData.numZSlices); 
+      }
     }
     else
-    {
       ShaderCache::getShader("light_froxels_emission")->launchCompute(iFWidth, iFHeight, this->passData.numZSlices);
-      Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
-    }
+
+    Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
 
     // Light the froxels for point lights.
     if (cullLightBlock->pointLightCount > 0u)

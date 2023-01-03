@@ -161,14 +161,14 @@ SurfaceProperties decodeGBuffer(vec2 gBufferUVs, ivec2 gBufferTexel)
 }
 
 // Not completely correct but it removes tiling artifacts.
-// TODO: Figure out how UE4 does this?
-float computeCutoff(vec3 lPos, vec3 pos, float radius)
+float computeCutoff(vec3 lPos, vec3 pos, float outerRadius, float innerRadius)
 {
   vec3 diff = pos - lPos;
-  float distSq = dot(diff, diff);
-  float r2 = radius * radius;
+  float distSquared = dot(diff, diff);
+  float invLightRadius = 1.0 / outerRadius;
+  float factor = distSquared * invLightRadius * invLightRadius;
 
-  return float(distSq < r2);
+  return max(1.0 - factor * factor, 0.0);
 }
 
 // Compute the vector form factor.
@@ -255,7 +255,9 @@ vec3 evaluateRectAreaLight(RectAreaLight light, SurfaceProperties props)
   vec3 brdf = mix(dielectricSpecularBRDF, metallicSpecularBRDF, props.metalness) + diffuseBRDF;
 
   vec3 center = 0.25 * (light.points[0].xyz + light.points[1].xyz + light.points[2].xyz + light.points[3].xyz);
+  float attenuation = computeCutoff(center, props.position, light.points[1].w, light.points[2].w);
+  attenuation = mix(attenuation, 1.0, float(light.points[3].w < 1.0));
 
   return light.colourIntensity.rgb * light.colourIntensity.a * brdf 
-         * computeCutoff(center, props.position, light.points[1].w);
+         * attenuation;
 }

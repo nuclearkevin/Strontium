@@ -112,7 +112,8 @@ namespace Strontium
 
     // Update the framebuffer state.
     void clear();
-    void setViewport();
+    void setViewport(uint xMin = 0u, uint yMin = 0u);
+    void setViewport(uint oWidth, uint oHeight, uint xMin, uint yMin);
     void setDrawBuffers();
 
     bool isValid();

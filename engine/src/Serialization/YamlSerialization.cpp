@@ -447,6 +447,7 @@ namespace Strontium
         out << YAML::Key << "Intensity" << YAML::Value << component.intensity;
         out << YAML::Key << "Radius" << YAML::Value << component.radius;
         out << YAML::Key << "TwoSided" << YAML::Value << component.twoSided;
+        out << YAML::Key << "CullLight" << YAML::Value << component.cull;
 
         out << YAML::EndMap;
       }

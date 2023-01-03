@@ -465,24 +465,24 @@ Entities:
       Description: ""
     TransformComponent:
       Translation: [0, 0, 0]
-      Rotation: [-0.495731235, 0.444387168, -0.899124742]
-      Scale: [0.999992192, 0.999994278, 0.999996603]
+      Rotation: [-0.495737612, 0.444419473, 1.32359385]
+      Scale: [0.999951243, 0.999961913, 0.999960601]
     SkyAtmosphereComponent:
       RayleighScatteringFunction: [5.80200005, 13.5579996, 33.0999985, 8]
       RayleighAbsorptionFunction: [0, 0, 0, 8]
       MieScatteringFunction: [3.99600005, 3.99600005, 3.99600005, 1.20000005]
       MieAbsorptionFunction: [4.4000001, 4.4000001, 4.4000001, 1.20000005]
       OzoneAbsorptionFunction: [0.649999976, 1.88100004, 0.0850000009, 0.00200000009]
-      PlanetAlbedo: [0, 0, 0]
+      PlanetAlbedo: [0.064646028, 0.22279793, 0]
       PlanetAndAtmosphereRadius: [6.36000013, 6.46000004]
       UsePrimaryLight: false
     DynamicSkyboxComponent:
-      SunSize: 1
-      Intensity: 1
+      SunSize: 1.76999998
+      Intensity: 2.29999995
     DirectionalLightComponent:
       Direction: [0, -1, 0]
       Colour: [1, 1, 1]
-      Intensity: 5
+      Intensity: 10
       Size: 10
       CastShadows: true
       PrimaryLight: true

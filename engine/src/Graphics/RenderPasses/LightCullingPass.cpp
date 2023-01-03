@@ -150,7 +150,8 @@ namespace Strontium
   }
 
   void 
-  LightCullingPass::submit(const RectAreaLight &light, const glm::mat4 &model, float radius, bool twoSided)
+  LightCullingPass::submit(const RectAreaLight &light, const glm::mat4 &model, float radius, 
+                           bool twoSided, bool cull)
   {
     if (this->passData.rectAreaLightCount >= MAX_NUM_RECT_LIGHTS)
       return;
@@ -163,6 +164,7 @@ namespace Strontium
     }
     this->passData.rectLightQueue[this->passData.rectAreaLightCount].points[0].w = static_cast<float>(twoSided);
     this->passData.rectLightQueue[this->passData.rectAreaLightCount].points[1].w = radius;
+    this->passData.rectLightQueue[this->passData.rectAreaLightCount].points[3].w = static_cast<float>(cull);
 
     this->passData.rectAreaLightCount++;
   }

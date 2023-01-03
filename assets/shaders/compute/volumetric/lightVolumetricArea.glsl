@@ -172,10 +172,22 @@ vec3 evaluateLTC(RectAreaLight light, vec3 position, vec3 view, vec3 averageLigh
   return 1.0.xxx * (sphere * formFactor * float(!behind || twoSided));
 }
 
+// Not completely correct but it removes tiling artifacts.
+float computeCutoff(vec3 lPos, vec3 pos, float outerRadius, float innerRadius)
+{
+  vec3 diff = pos - lPos;
+  float distSquared = dot(diff, diff);
+  float invLightRadius = 1.0 / outerRadius;
+  float factor = distSquared * invLightRadius * invLightRadius;
+
+  return max(1.0 - factor * factor, 0.0);
+}
+
 // Evaluate a single rectangular area light.
 vec3 evaluateRectAreaLight(RectAreaLight light, vec3 position, vec3 view, float g)
 {
-  vec3 avgLightDir = normalize(0.25 * (light.points[0].xyz + light.points[1].xyz + light.points[2].xyz + light.points[3].xyz) - position);
+  vec3 center = 0.25 * (light.points[0].xyz + light.points[1].xyz + light.points[2].xyz + light.points[3].xyz);
+  vec3 avgLightDir = normalize(center - position);
 
   // Need to multiply by \pi to account for all incident light as evaluateLTC divides by \pi implicitly.
   vec3 radiance = PI * evaluateLTC(light, position, view, avgLightDir, mat3(1.0));
@@ -183,5 +195,8 @@ vec3 evaluateRectAreaLight(RectAreaLight light, vec3 position, vec3 view, float 
   // Phase function.
   float phaseFunction = getMiePhase(dot(normalize(view), avgLightDir), g);
 
-  return light.colourIntensity.rgb * light.colourIntensity.a * radiance * phaseFunction;
+  float attenuation = computeCutoff(center, position, light.points[1].w, light.points[2].w);
+  attenuation = mix(attenuation, 1.0, float(light.points[3].w < 1.0));
+
+  return light.colourIntensity.rgb * light.colourIntensity.a * radiance * phaseFunction * attenuation;
 }

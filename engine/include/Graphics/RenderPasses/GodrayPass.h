@@ -7,6 +7,7 @@
 #include "Graphics/RenderPasses/GeometryPass.h"
 #include "Graphics/RenderPasses/LightCullingPass.h"
 #include "Graphics/RenderPasses/ShadowPass.h"
+#include "Graphics/RenderPasses/SkyAtmospherePass.h"
 #include "Graphics/RenderPasses/HiZPass.h"
 #include "Graphics/RenderPasses/DirectionalLightPass.h"
 #include "Graphics/RenderPasses/AreaLightPass.h"
@@ -100,8 +101,8 @@ namespace Strontium
   public:
     GodrayPass(Renderer3D::GlobalRendererData* globalRendererData,
                GeometryPass* previousGeoPass, LightCullingPass* previousCullPass, 
-               ShadowPass* previousShadowPass, HiZPass* previousHiZPass, 
-               DirectionalLightPass* previousDirLightPass, 
+               ShadowPass* previousShadowPass, SkyAtmospherePass* previousSkyAtmoPass, 
+               HiZPass* previousHiZPass, DirectionalLightPass* previousDirLightPass, 
                AreaLightPass* previousAreaLightPass);
     ~GodrayPass() override;
 
@@ -124,6 +125,7 @@ namespace Strontium
     GeometryPass* previousGeoPass;
     LightCullingPass* previousCullPass;
     ShadowPass* previousShadowPass;
+    SkyAtmospherePass* previousSkyAtmoPass;
     HiZPass* previousHiZPass;
     DirectionalLightPass* previousDirLightPass;
     AreaLightPass* previousAreaLightPass;
