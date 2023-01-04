@@ -22,6 +22,7 @@ namespace Strontium
   struct CulledLightingPassDataBlock
   {
     Shader* evaluatePointLight;
+    Shader* evaluateSpotLight;
 
     // Some statistics.
     float frameTime;

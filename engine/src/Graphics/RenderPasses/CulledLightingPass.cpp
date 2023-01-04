@@ -21,6 +21,7 @@ namespace Strontium
   CulledLightingPass::onInit()
   {
     this->passData.evaluatePointLight = ShaderCache::getShader("point_evaluation");
+    this->passData.evaluateSpotLight = ShaderCache::getShader("spot_evaluation");
   }
 
   void 
@@ -51,6 +52,7 @@ namespace Strontium
 
     uint numLights = 0u;
     numLights += cullingBlock->pointLightCount;
+    numLights += cullingBlock->spotLightCount;
 
     if (numLights == 0u)
       return;
@@ -82,6 +84,21 @@ namespace Strontium
       uint iHeight = static_cast<uint>(glm::ceil(static_cast<float>(rendererData->lightingBuffer.getHeight())
                                                  / 16.0f));
       this->passData.evaluatePointLight->launchCompute(iWidth, iHeight, 1u);
+      Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
+    }
+
+    if (cullingBlock->spotLightCount > 0u)
+    {
+      // Point lights and culling data.
+      cullingBlock->spotLights.bindToPoint(1u);
+      cullingBlock->spotLightListBuffer.bindToPoint(2);
+
+      // Launching in the lighting tile size as opposed to 8x8 groups.
+      uint iWidth = static_cast<uint>(glm::ceil(static_cast<float>(rendererData->lightingBuffer.getWidth())
+                                                / 16.0f));
+      uint iHeight = static_cast<uint>(glm::ceil(static_cast<float>(rendererData->lightingBuffer.getHeight())
+                                                 / 16.0f));
+      this->passData.evaluateSpotLight->launchCompute(iWidth, iHeight, 1u);
       Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
     }
   }

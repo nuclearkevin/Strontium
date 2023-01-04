@@ -278,6 +278,14 @@ namespace Strontium
       Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
     }
 
+    // Light the froxels for point lights.
+    if (cullLightBlock->spotLightCount > 0u)
+    {
+      cullLightBlock->spotLights.bindToPoint(0);
+      ShaderCache::getShader("light_froxels_spot")->launchCompute(iFWidth, iFHeight, this->passData.numZSlices);
+      Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
+    }
+
     // Light the froxels for area lights.
     if (cullLightBlock->rectAreaLightCount > 0u)
     {

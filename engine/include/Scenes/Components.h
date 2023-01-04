@@ -410,7 +410,7 @@ namespace Strontium
     {
       return SpotLight({ 0.0f, 0.0f, 0.0f, this->range }, { 1.0f, 0.0f, 0.0f, 0.0f }, 
                        { this->colour, this->intensity }, 
-                       { std::cos(this->innerCutoff), std::cos(this->outerCutoff), 0.0f, 0.0f });
+                       { glm::cos(0.5f * this->innerCutoff), glm::cos(0.5f * this->outerCutoff), 0.0f, 0.0f });
     }
   };
 

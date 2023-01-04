@@ -107,12 +107,12 @@ namespace Strontium::Renderer3D
     auto culledApp = passManager->insertRenderPass<CulledLightingPass>(rendererData, geomet, lightCull);
     auto areaApp = passManager->insertRenderPass<AreaLightPass>(rendererData, geomet, lightCull);
 
+    // Skybox pass. This should be applied right before the volumetrics but after everything else.
+    auto skyboxApp = passManager->insertRenderPass<SkyboxPass>(rendererData, geomet, skyatmo);
+
     // Unified volumetric passes.
     auto ssgr = passManager->insertRenderPass<GodrayPass>(rendererData, geomet, lightCull, shadow, skyatmo, hiZ, dirApp, areaApp);
     auto volApp = passManager->insertRenderPass<VolumetricLightPass>(rendererData, geomet, hiZ, ssgr);
-
-    // Skybox pass. This should be applied last.
-    auto skyboxApp = passManager->insertRenderPass<SkyboxPass>(rendererData, geomet, skyatmo);
 
     // Post processing passes
     auto bloom = passManager->insertRenderPass<BloomPass>(rendererData);

@@ -1,17 +1,20 @@
 #type compute
 #version 460 core
 
-#define MAX_NUM_LIGHTS 1024
+#define MAX_NUM_LIGHTS 512
 #define TILE_SIZE 16
 #define PI 3.141592654
 
 // We use 16 x 16 warps here to match the tile size for the tiled deferred implementation.
 layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 
-struct PointLight
+struct SpotLight
 {
-  vec4 positionRadius; // Position (x, y, z), radius (w).
+  vec4 positionRange; // Position (x, y, z), range (w).
+  vec4 direction; // Spot light direction (x, y, z). w is empty.
+  vec4 cullingSphere; // Sphere center (x, y, z) and radius (w).
   vec4 colourIntensity; // Colour (x, y, z) and intensity (w).
+  vec4 cutOffs; // Cos(inner angle) (x), Cos(outer angle) (y). z and w are empty.
 };
 
 layout(rgba16f, binding = 0) restrict uniform image3D inScatExt;
@@ -40,10 +43,10 @@ layout(std140, binding = 3) uniform TemporalBlock
   vec4 u_prevPosTime;
 };
 
-layout(std140, binding = 0) restrict readonly buffer PointLights
+layout(std140, binding = 0) readonly buffer SpotLights
 {
-  PointLight pLights[MAX_NUM_LIGHTS];
-  uint lightingSettings; // Maximum number of point lights.
+  SpotLight sLights[MAX_NUM_LIGHTS];
+  uint lightingSettings; // Maximum number of spot lights.
 };
 
 layout(std430, binding = 1) restrict readonly buffer LightIndices
@@ -76,7 +79,14 @@ float computeAttenuation(vec3 posToLight, float invLightRadius)
   float distSquared = dot(posToLight, posToLight);
   float factor = distSquared * invLightRadius * invLightRadius;
   float smoothFactor = max(1.0 - factor * factor, 0.0);
-  return (smoothFactor * smoothFactor) / max(distSquared, 1E-2);
+  return (smoothFactor * smoothFactor) / max(distSquared, 1E-1);
+}
+
+// Compute the spot light attenuation factor.
+float computeAngularAttenuation(vec3 lightDir, vec3 posToLight, 
+                                float cosInner, float cosOuter)
+{
+  return clamp((dot(posToLight, lightDir) - cosOuter) / (cosInner - cosOuter), 0.0, 1.0);  
 }
 
 void main()
@@ -113,22 +123,23 @@ void main()
   vec3 voxelAlbedo = max(mieScattering / extinction, 0.0.xxx);
 
   vec3 totalRadiance = totalInScatExt.rgb;
-  PointLight light;
+  SpotLight light;
   float phaseFunction, attenuation;
   vec3 lightVector;
   for (int i = 0; i < lightingSettings; i++)
   {
-    int lightIndex = indices[tileOffset + i];
+    //int lightIndex = indices[tileOffset + i];
 
     // If the buffer terminates in -1, quit. No more lights to add to this
     // froxel.
     //if (lightIndex < 0)
     //  break;
 
-    light = pLights[i];
-    lightVector = worldSpacePostion - light.positionRadius.xyz;
+    light = sLights[i];
+    lightVector = worldSpacePostion - light.positionRange.xyz;
     phaseFunction = getMiePhase(dot(nDirection, normalize(lightVector)), ep.w);
-    attenuation = computeAttenuation(lightVector, 1.0 / light.positionRadius.w);
+    attenuation = computeAttenuation(lightVector, 1.0 / light.positionRange.w);
+    attenuation *= computeAngularAttenuation(normalize(light.direction.xyz), normalize(lightVector), light.cutOffs.x, light.cutOffs.y);
 
     totalRadiance += voxelAlbedo * phaseFunction * attenuation * light.colourIntensity.rgb * light.colourIntensity.a;
   }

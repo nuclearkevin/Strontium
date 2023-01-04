@@ -5,15 +5,15 @@ Entities:
       Name: Test Spot Light
       Description: ""
     TransformComponent:
-      Translation: [0, 2.14263725, 0]
-      Rotation: [0, -0, 0]
-      Scale: [1, 1, 1]
+      Translation: [0.809901476, 4.05612564, -4.49696827]
+      Rotation: [-0.400346547, 0.242806226, -1.06198776]
+      Scale: [0.999850214, 0.999850035, 0.999962032]
     SpotLightComponent:
       Colour: [1, 1, 1]
-      Intensity: 1
-      Range: 1
-      InnerCutoff: 0
-      OuterCutoff: 1.57079637
+      Intensity: 100
+      Range: 26.2000008
+      InnerCutoff: 0.52359879
+      OuterCutoff: 0.785398185
       CastShadows: false
   - EntityID: 28
     NameComponent:

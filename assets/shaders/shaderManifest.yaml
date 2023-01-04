@@ -80,6 +80,8 @@ ShaderCache:
     Filepath: ./assets/shaders/compute/volumetric/lightVolumetricArea.glsl
   - Handle: light_froxels_point
     Filepath: ./assets/shaders/compute/volumetric/lightVolumetricPoint.glsl
+  - Handle: light_froxels_spot
+    Filepath: ./assets/shaders/compute/volumetric/lightVolumetricSpot.glsl
   - Handle: taa_froxels
     Filepath: ./assets/shaders/compute/volumetric/volumeTAA.glsl
   - Handle: gather_froxels
@@ -91,6 +93,8 @@ ShaderCache:
     Filepath: ./assets/shaders/compute/lighting/emissionEval.glsl
   - Handle: point_evaluation
     Filepath: ./assets/shaders/compute/lighting/pointLightEval.glsl
+  - Handle: spot_evaluation
+    Filepath: ./assets/shaders/compute/lighting/spotLightEval.glsl
   - Handle: rect_area_evaluation
     Filepath: ./assets/shaders/compute/lighting/rectAreaLightEval.glsl
   - Handle: directional_evaluation
