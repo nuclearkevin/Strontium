@@ -291,6 +291,21 @@ namespace Strontium
     this->filled = true;
   }
 
+  // Copy data between buffers.
+  void 
+  ShaderStorageBuffer::copyDataFromSource(ShaderStorageBuffer& source, uint readStart, 
+                                          uint writeStart, uint dataSize)
+  {
+    glCopyNamedBufferSubData(source.getID(), this->bufferID, readStart, writeStart, dataSize);
+  }
+
+  void 
+  ShaderStorageBuffer::copyDataToTarget(ShaderStorageBuffer& target, uint readStart, 
+                                        uint writeStart, uint dataSize)
+  {
+    glCopyNamedBufferSubData(this->bufferID, target.getID(), readStart, writeStart, dataSize);
+  }
+
   void* 
   ShaderStorageBuffer::mapBuffer(uint offset, uint length, MapBufferAccess access, 
                                  MapBufferSynch sych)

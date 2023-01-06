@@ -77,12 +77,17 @@ namespace Strontium
     // Get the filepath and registry.
     entt::registry& getRegistry() { return this->sceneECS; }
     std::string& getSaveFilepath() { return this->saveFilepath; }
+
+    // For profiling.
+    float getRenderSubmitTime() const { return this->renderSubmitTime; }
   protected:
     entt::entity primaryCameraID;
     entt::entity primaryDirLightID;
 
     entt::registry sceneECS;
     std::string saveFilepath;
+
+    float renderSubmitTime;
 
     friend class Entity;
     friend class SceneGraphWindow;

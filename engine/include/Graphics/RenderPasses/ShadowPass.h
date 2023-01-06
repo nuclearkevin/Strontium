@@ -19,29 +19,24 @@ namespace Strontium
 
   struct ShadowStaticDrawData
   {
-	ShaderStorageBuffer* indexBuffer;
-	ShaderStorageBuffer* vertexBuffer;
-
 	uint numToRender;
+	uint globalBufferOffset;
 
-	ShadowStaticDrawData(ShaderStorageBuffer* indexBuffer, ShaderStorageBuffer* vertexBuffer, uint numToRender)
-	  : indexBuffer(indexBuffer)
-	  , vertexBuffer(vertexBuffer)
+	ShadowStaticDrawData(uint globalBufferOffset, uint numToRender)
+	  : globalBufferOffset(globalBufferOffset)
 	  , numToRender(numToRender)
 	{ }
 
 	bool operator==(const ShadowStaticDrawData& other) const
 	{
-	  return this->indexBuffer == other.indexBuffer && this->vertexBuffer == other.vertexBuffer;
+	  return this->globalBufferOffset == other.globalBufferOffset;
 	}
   };
 
   struct ShadowDynamicDrawData
   {
-	ShaderStorageBuffer* indexBuffer;
-	ShaderStorageBuffer* vertexBuffer;
-
 	uint numToRender;
+	uint globalBufferOffset;
 
 	Animator* animations;
 
@@ -49,11 +44,10 @@ namespace Strontium
 
 	uint instanceCount;
 
-	ShadowDynamicDrawData(ShaderStorageBuffer* indexBuffer, ShaderStorageBuffer* vertexBuffer, uint numToRender,
+	ShadowDynamicDrawData(uint globalBufferOffset, uint numToRender,
 		                  Animator* animations,
-					      const glm::mat4 & transform)
-	  : indexBuffer(indexBuffer)
-	  , vertexBuffer(vertexBuffer)
+					      const glm::mat4 &transform)
+	  : globalBufferOffset(globalBufferOffset)
 	  , numToRender(numToRender)
 	  , animations(animations)
 	  , transform(transform)
@@ -67,9 +61,7 @@ struct std::hash<Strontium::ShadowStaticDrawData>
 {
   std::size_t operator()(Strontium::ShadowStaticDrawData const &data) const noexcept
   {
-    std::size_t h1 = std::hash<Strontium::ShaderStorageBuffer*>{}(data.indexBuffer);
-	std::size_t h2 = std::hash<Strontium::ShaderStorageBuffer*>{}(data.vertexBuffer);
-	return h1 ^ (h2 << 1);
+	return std::hash<uint>{}(data.globalBufferOffset);
   }
 };
 

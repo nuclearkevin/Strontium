@@ -523,8 +523,8 @@ namespace Strontium
       this->physicsTimer.msRecordTime(this->timerStorage[1]);
       this->renderTimer.msRecordTime(this->timerStorage[2]);
 
-      ImGui::Text("- Update frametime: %.3f ms\n- Physics frametime: %.3f ms\n- Render frametime: %.3f ms\n", 
-                  timerStorage[0], timerStorage[1], timerStorage[2]);
+      ImGui::Text("- Update frametime: %.3f ms\n- Physics frametime: %.3f ms\n- Render frametime: %.3f ms\n\t- Render submission frametime: %.3f ms\n", 
+                  timerStorage[0], timerStorage[1], timerStorage[2], this->currentScene->getRenderSubmitTime());
       ImGui::PopTextWrapPos();
       ImGui::End();
     }

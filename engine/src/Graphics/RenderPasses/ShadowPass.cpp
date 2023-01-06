@@ -82,7 +82,7 @@ namespace Strontium
       return;
 
     // Upload the cached data for both static and dynamic geometry.
-    if (this->passData.transformBuffer.size() != (sizeof(glm::mat4) * this->passData.numUniqueEntities))
+    if (this->passData.transformBuffer.size() < (sizeof(glm::mat4) * this->passData.numUniqueEntities))
       this->passData.transformBuffer.resize(sizeof(glm::mat4) * this->passData.numUniqueEntities, BufferType::Dynamic);
     
     uint bufferPointer = 0;
@@ -105,7 +105,10 @@ namespace Strontium
 
     // Run the Strontium render pipeline for each shadow cascade.
     static_cast<Renderer3D::GlobalRendererData*>(this->globalBlock)->blankVAO.bind();
+    static_cast<Renderer3D::GlobalRendererData*>(this->globalBlock)->vertexCache.bindToPoint(0);
+    static_cast<Renderer3D::GlobalRendererData*>(this->globalBlock)->indexCache.bindToPoint(1);
     //RendererCommands::cullType(FaceType::Front);
+    RendererCommands::disable(RendererFunction::CullFaces);
     this->passData.shadowBuffer.bind();
     for (uint i = 0; i < NUM_CASCADES; i++)
     {
@@ -125,9 +128,8 @@ namespace Strontium
         // Set the index offset. 
         this->passData.perDrawUniforms.setData(0, sizeof(int), &bufferPointer);
       
-        drawable.vertexBuffer->bindToPoint(0);
-        drawable.indexBuffer->bindToPoint(1);
-        RendererCommands::drawArraysInstanced(PrimativeType::Triangle, 0, drawable.numToRender, 
+        RendererCommands::drawArraysInstanced(PrimativeType::Triangle, drawable.globalBufferOffset, 
+                                              drawable.numToRender,
                                               instancedTransforms.size());
         
         bufferPointer += instancedTransforms.size();
@@ -152,9 +154,8 @@ namespace Strontium
         // Set the index offset. 
         this->passData.perDrawUniforms.setData(0, sizeof(int), &bufferPointer);
 
-        drawable.vertexBuffer->bindToPoint(0);
-        drawable.indexBuffer->bindToPoint(1);
-        RendererCommands::drawArraysInstanced(PrimativeType::Triangle, 0, drawable.numToRender, 
+        RendererCommands::drawArraysInstanced(PrimativeType::Triangle, drawable.globalBufferOffset, 
+                                              drawable.numToRender,
                                               drawable.instanceCount);
       
         bufferPointer += drawable.instanceCount;
@@ -168,6 +169,7 @@ namespace Strontium
     //RendererCommands::cullType(FaceType::Back);
     this->passData.dynamicShadow->unbind();
     this->passData.shadowBuffer.unbind();
+    RendererCommands::enable(RendererFunction::CullFaces);
   }
   
   void 
@@ -190,8 +192,6 @@ namespace Strontium
         if (!submesh.init())
           continue;
       }
-      auto indexBuffer = submesh.getIndexBuffer();
-      auto vertexBuffer = submesh.getVertexBuffer();
       
       // Compute the scene AABB.
       auto localTransform = model * submesh.getTransform();
@@ -199,7 +199,8 @@ namespace Strontium
       this->passData.maxPos = glm::max(this->passData.maxPos, glm::vec3(localTransform * glm::vec4(submesh.getMaxPos(), 1.0f)));
     
       // Populate the draw list.
-      auto drawData = this->passData.staticInstanceMap.find(ShadowStaticDrawData(indexBuffer, vertexBuffer, submesh.numToRender()));
+      auto drawData = this->passData.staticInstanceMap.find(ShadowStaticDrawData(submesh.getGlobalLocation(),
+                                                                                 submesh.numToRender()));
     
       this->passData.numUniqueEntities++;
       if (drawData != this->passData.staticInstanceMap.end())
@@ -209,7 +210,8 @@ namespace Strontium
       }
       else 
       {
-        auto& item = this->passData.staticInstanceMap.emplace(ShadowStaticDrawData(indexBuffer, vertexBuffer, submesh.numToRender()), std::vector<glm::mat4>());
+        auto& item = this->passData.staticInstanceMap.emplace(ShadowStaticDrawData(submesh.getGlobalLocation(),
+                                                                                   submesh.numToRender()), std::vector<glm::mat4>());
         item.first->second.emplace_back(localTransform);
       }
 	}
@@ -228,15 +230,13 @@ namespace Strontium
           if (!submesh.init())
             continue;
         }
-        auto indexBuffer = submesh.getIndexBuffer();
-        auto vertexBuffer = submesh.getVertexBuffer();
         
         this->passData.minPos = glm::min(this->passData.minPos, glm::vec3(model * glm::vec4(submesh.getMinPos(), 1.0f)));
         this->passData.maxPos = glm::max(this->passData.maxPos, glm::vec3(model * glm::vec4(submesh.getMaxPos(), 1.0f)));
     
         // Populate the dynamic draw list.
         this->passData.numUniqueEntities++;
-        this->passData.dynamicDrawList.emplace_back(indexBuffer, vertexBuffer, submesh.numToRender(), animation, model);
+        this->passData.dynamicDrawList.emplace_back(submesh.getGlobalLocation(), submesh.numToRender(), animation, model);
 	  }
     }
     else
@@ -250,15 +250,14 @@ namespace Strontium
           if (!submesh.init())
             continue;
         }
-        auto indexBuffer = submesh.getIndexBuffer();
-        auto vertexBuffer = submesh.getVertexBuffer();
     
         auto localTransform = model * bones[submesh.getName()];
         this->passData.minPos = glm::min(this->passData.minPos, glm::vec3(localTransform * glm::vec4(submesh.getMinPos(), 1.0f)));
         this->passData.maxPos = glm::max(this->passData.maxPos, glm::vec3(localTransform * glm::vec4(submesh.getMaxPos(), 1.0f)));
     
         // Populate the draw list.
-        auto drawData = this->passData.staticInstanceMap.find(ShadowStaticDrawData(indexBuffer, vertexBuffer, submesh.numToRender()));
+        auto drawData = this->passData.staticInstanceMap.find(ShadowStaticDrawData(submesh.getGlobalLocation(),
+                                                                                   submesh.numToRender()));
         
         this->passData.numUniqueEntities++;
         if (drawData != this->passData.staticInstanceMap.end())
@@ -268,7 +267,8 @@ namespace Strontium
         }
         else 
         {
-          auto& item = this->passData.staticInstanceMap.emplace(ShadowStaticDrawData(indexBuffer, vertexBuffer, submesh.numToRender()), std::vector<glm::mat4>());
+          auto& item = this->passData.staticInstanceMap.emplace(ShadowStaticDrawData(submesh.getGlobalLocation(),
+                                                                                     submesh.numToRender()), std::vector<glm::mat4>());
           item.first->second.emplace_back(localTransform);
         }
 	  }
@@ -304,7 +304,6 @@ namespace Strontium
 
     glm::mat4 camInvVP = rendererData->sceneCam.invViewProj;
 
-    Frustum lightCullingFrustums[NUM_CASCADES];
     float cascadeSplits[NUM_CASCADES];
 
     const float clipRange = far - near;
@@ -428,7 +427,7 @@ namespace Strontium
         cascadeProjMatrix[i] = texelSpaceOrtho;
 
         this->passData.cascades[i] = cascadeProjMatrix[i] * cascadeViewMatrix[i];
-        lightCullingFrustums[i] = buildCameraFrustum(this->passData.cascades[i], -lightDir);
+        this->passData.lightCullingFrustums[i] = buildCameraFrustum(this->passData.cascades[i], -lightDir);
 
         previousCascadeDistance = cascadeSplits[i];
 

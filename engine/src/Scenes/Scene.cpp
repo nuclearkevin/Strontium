@@ -36,6 +36,7 @@ namespace Strontium
     : saveFilepath(filepath)
     , primaryCameraID(entt::null)
     , primaryDirLightID(entt::null)
+    , renderSubmitTime(0.0f)
   { }
 
   Scene::~Scene()
@@ -290,6 +291,8 @@ namespace Strontium
   void
   Scene::onRenderEditor(float viewportAspect, Entity selectedEntity)
   {
+    auto start = std::chrono::high_resolution_clock::now();
+
     // Grab the asset cache.
     auto& assetCache = Application::getInstance()->getAssetCache();
 
@@ -475,11 +478,16 @@ namespace Strontium
     }
 
     postProc->getInternalDataBlock<PostProcessingPassDataBlock>()->drawOutline = drawOutline;
+
+    auto end = std::chrono::high_resolution_clock::now();
+    this->renderSubmitTime = 0.001f * static_cast<float>(std::chrono::duration_cast<std::chrono::microseconds>(end - start).count());
   }
 
   void
   Scene::onRenderRuntime(float viewportAspect)
   {
+    auto start = std::chrono::high_resolution_clock::now();
+
     // Grab the asset cache.
     auto& assetCache = Application::getInstance()->getAssetCache();
 
@@ -660,6 +668,9 @@ namespace Strontium
     }
 
     postProc->getInternalDataBlock<PostProcessingPassDataBlock>()->drawOutline = false;
+
+    auto end = std::chrono::high_resolution_clock::now();
+    this->renderSubmitTime = 0.001f * static_cast<float>(std::chrono::duration_cast<std::chrono::microseconds>(end - start).count());
   }
 
   void 

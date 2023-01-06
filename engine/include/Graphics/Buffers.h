@@ -184,6 +184,10 @@ namespace Strontium
     // Set the data in a region of the buffer.
     void setData(uint start, uint newDataSize, const void* newData);
 
+    // Copy data between buffers.
+    void copyDataFromSource(ShaderStorageBuffer &source, uint readStart, uint writeStart, uint dataSize);
+    void copyDataToTarget(ShaderStorageBuffer &target, uint readStart, uint writeStart, uint dataSize);
+
     // Map and unmap the buffer to client memory.
     void* mapBuffer(uint offset, uint length, MapBufferAccess access, MapBufferSynch sych);
     void unmapBuffer();

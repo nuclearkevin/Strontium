@@ -80,9 +80,8 @@ namespace Strontium
 
     // For rendering.
     bool init();
-    ShaderStorageBuffer* getIndexBuffer() { return this->indexBuffer.get(); }
-    ShaderStorageBuffer* getVertexBuffer() { return this->vertexBuffer.get(); }
     uint numToRender() const { return this->indices.size(); }
+    uint getGlobalLocation() const { return this->globalBufferLocation; }
 
     // Set the loaded state.
     void setLoaded(bool isLoaded) { this->loaded = isLoaded; }
@@ -109,6 +108,7 @@ namespace Strontium
     bool drawable;
     std::vector<PackedVertex> data;
     std::vector<uint> indices;
+    uint globalBufferLocation;
 
     glm::vec3 minPos;
     glm::vec3 maxPos;
@@ -120,9 +120,6 @@ namespace Strontium
     UnloadedMaterialInfo materialInfo;
 
     Model* parent;
-
-    Unique<ShaderStorageBuffer> vertexBuffer;
-    Unique<ShaderStorageBuffer> indexBuffer;
 
     friend class Model;
   };
