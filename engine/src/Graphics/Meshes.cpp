@@ -3,6 +3,8 @@
 // Project includes.
 #include "Core/Logs.h"
 
+#include "Graphics/Renderer.h"
+
 namespace Strontium
 {
   Mesh::Mesh(const std::string &name, Model* parent)
@@ -14,8 +16,7 @@ namespace Strontium
     , maxPos(std::numeric_limits<float>::min())
     , minPos(std::numeric_limits<float>::max())
     , localTransform(1.0f)
-    , vertexBuffer(nullptr)
-    , indexBuffer(nullptr)
+    , globalBufferLocation(0u)
   { }
 
   Mesh::Mesh(const std::string &name, const std::vector<PackedVertex> &vertices,
@@ -25,13 +26,12 @@ namespace Strontium
     , drawable(false)
     , data(vertices)
     , indices(indices)
+    , globalBufferLocation(0u)
     , name(name)
     , parent(parent)
     , maxPos(std::numeric_limits<float>::min())
     , minPos(std::numeric_limits<float>::max())
     , localTransform(1.0f)
-    , vertexBuffer(nullptr)
-    , indexBuffer(nullptr)
   { }
 
   Mesh::~Mesh()
@@ -43,8 +43,7 @@ namespace Strontium
     bool success = false;
     if (this->isLoaded() && !this->drawable)
     {
-      this->vertexBuffer = createUnique<ShaderStorageBuffer>(this->data.data(), this->data.size() * sizeof(PackedVertex), BufferType::Static);
-      this->indexBuffer = createUnique<ShaderStorageBuffer>(this->indices.data(), this->indices.size() * sizeof(uint), BufferType::Static);
+      this->globalBufferLocation = Renderer3D::addMeshToCache(*this);
       this->drawable = true;
 
       success = true;

@@ -136,6 +136,61 @@ namespace Strontium::Renderer3D
     delete rendererData;
   }
 
+  // Add a mesh to the vertex and index cache. It's just a stretchy buffer at the moment.
+  // TODO: smarter allocation scheme?
+  uint
+  addMeshToCache(Mesh &mesh)
+  {
+    auto& vertices = mesh.getData();
+    uint newVertData = vertices.size() * sizeof(PackedVertex);
+    auto& indices = mesh.getIndices();
+    uint newIndexData = indices.size() * sizeof(uint);
+
+    // First grow and populate the vertex cache.
+    uint prevVertSize = rendererData->vertexCache.size();
+    uint prevNumVertices = prevVertSize / sizeof(PackedVertex);
+    if (prevVertSize > 0u)
+    {
+      rendererData->transferBuffer.resize(prevVertSize, BufferType::Static);
+      rendererData->transferBuffer.copyDataFromSource(rendererData->vertexCache, 0u, 0u, prevVertSize);
+
+      rendererData->vertexCache.resize(prevVertSize + newVertData, BufferType::Static);
+      rendererData->vertexCache.copyDataFromSource(rendererData->transferBuffer, 0u, 0u, prevVertSize);
+      rendererData->vertexCache.setData(prevVertSize, newVertData, vertices.data());
+    }
+    else
+    {
+      rendererData->vertexCache.resize(newVertData, BufferType::Static);
+      rendererData->vertexCache.setData(0u, newVertData, vertices.data());
+    }
+
+    // Modify the indices for the base mesh to account for mashing all indices together into a single buffer.
+    uint prevIndexSize = rendererData->indexCache.size();
+    uint prevNumIndices = prevIndexSize / sizeof(uint);
+    for (uint i = 0u; i < indices.size(); ++i)
+      indices[i] += prevNumVertices;
+
+    // Second: grow and populate the index cache.
+    if (prevIndexSize > 0u)
+    {
+      rendererData->transferBuffer.resize(prevIndexSize, BufferType::Static);
+      rendererData->transferBuffer.copyDataFromSource(rendererData->indexCache, 0u, 0u, prevIndexSize);
+
+      rendererData->indexCache.resize(prevIndexSize + newIndexData, BufferType::Static);
+      rendererData->indexCache.copyDataFromSource(rendererData->transferBuffer, 0u, 0u, prevIndexSize);
+      rendererData->indexCache.setData(prevIndexSize, newIndexData, indices.data());
+    }
+    else
+    {
+      rendererData->indexCache.resize(newIndexData, BufferType::Static);
+      rendererData->indexCache.setData(0u, newIndexData, indices.data());
+    }
+
+    rendererData->transferBuffer.resize(0u, BufferType::Static);
+
+    return prevNumIndices;
+  }
+
   // Generic begin and end for the renderer.
   void
   begin(uint width, uint height, const Camera &sceneCamera, float dt)

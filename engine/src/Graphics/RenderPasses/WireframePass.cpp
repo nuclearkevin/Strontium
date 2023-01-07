@@ -93,6 +93,8 @@ namespace Strontium
   void
   WireframePass::onRender()
   {
+    // TODO: Fix this.
+    /*
     // Submit the line data.
     this->passData.lineBuffer->resize(sizeof(LineVertex) * this->passData.lines.size(), 
                                       BufferType::Dynamic);
@@ -121,6 +123,8 @@ namespace Strontium
     this->passData.instancedData.bindToPoint(2);
 
     static_cast<DebugRenderer::GlobalRendererData*>(this->globalBlock)->blankVAO.bind();
+    static_cast<DebugRenderer::GlobalRendererData*>(this->globalBlock)->vertexCache.bindToPoint(0);
+    static_cast<DebugRenderer::GlobalRendererData*>(this->globalBlock)->indexCache.bindToPoint(1);
 
     // Render spheres.
     if (this->passData.sphereQueue.size() > 0u)
@@ -135,10 +139,7 @@ namespace Strontium
         if (!submesh.isDrawable())
           continue;
 
-        submesh.getVertexBuffer()->bindToPoint(0);
-        submesh.getIndexBuffer()->bindToPoint(1);
-
-        RendererCommands::drawArraysInstanced(PrimativeType::Triangle, 0, submesh.numToRender(),
+        RendererCommands::drawArraysInstanced(PrimativeType::Triangle, submesh.getGlobalLocation(), submesh.numToRender(),
                                               this->passData.sphereQueue.size());
       }
     }
@@ -156,10 +157,7 @@ namespace Strontium
         if (!submesh.isDrawable())
           continue;
 
-        submesh.getVertexBuffer()->bindToPoint(0);
-        submesh.getIndexBuffer()->bindToPoint(1);
-
-        RendererCommands::drawArraysInstanced(PrimativeType::Triangle, 0, submesh.numToRender(),
+        RendererCommands::drawArraysInstanced(PrimativeType::Triangle, submesh.getGlobalLocation(), submesh.numToRender(),
                                               this->passData.halfSphereQueue.size());
       }
     }
@@ -177,10 +175,7 @@ namespace Strontium
         if (!submesh.isDrawable())
           continue;
 
-        submesh.getVertexBuffer()->bindToPoint(0);
-        submesh.getIndexBuffer()->bindToPoint(1);
-
-        RendererCommands::drawArraysInstanced(PrimativeType::Triangle, 0, submesh.numToRender(),
+        RendererCommands::drawArraysInstanced(PrimativeType::Triangle, submesh.getGlobalLocation(), submesh.numToRender(),
                                               this->passData.obbQueue.size());
       }
     }
@@ -197,10 +192,7 @@ namespace Strontium
         if (!submesh.isDrawable())
           continue;
 
-        submesh.getVertexBuffer()->bindToPoint(0);
-        submesh.getIndexBuffer()->bindToPoint(1);
-
-        RendererCommands::drawArraysInstanced(PrimativeType::Triangle, 0, submesh.numToRender(),
+        RendererCommands::drawArraysInstanced(PrimativeType::Triangle, submesh.getGlobalLocation(), submesh.numToRender(),
                                               this->passData.cylinderQueue.size());
       }
     }
@@ -209,11 +201,13 @@ namespace Strontium
     this->passData.wireframeShader->unbind();
 
     this->passData.wireframeView.unbind();
+    */
   }
   
   void
   WireframePass::onRendererEnd(FrameBuffer& frontBuffer)
   {
+      /*
     auto rendererData = static_cast<DebugRenderer::GlobalRendererData*>(this->globalBlock);
 
     // Bind the scene depth.
@@ -237,6 +231,7 @@ namespace Strontium
     frontBuffer.unbind();
     RendererCommands::enable(RendererFunction::DepthTest);
     RendererCommands::disable(RendererFunction::Blending);
+    */
   }
   
   void

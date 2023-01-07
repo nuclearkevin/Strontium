@@ -20,24 +20,21 @@ namespace Strontium
 
   struct GeomStaticDrawData
   {
-	ShaderStorageBuffer* indexBuffer;
-	ShaderStorageBuffer* vertexBuffer;
 	Material* technique;
 
 	uint numToRender;
+	uint globalBufferOffset;
 
-	GeomStaticDrawData(ShaderStorageBuffer* indexBuffer, ShaderStorageBuffer* vertexBuffer, Material* technique, 
+	GeomStaticDrawData(uint globalBufferOffset, Material* technique,
 					   uint numToRender)
-	  : indexBuffer(indexBuffer)
-	  , vertexBuffer(vertexBuffer)
+	  : globalBufferOffset(globalBufferOffset)
       , technique(technique)
 	  , numToRender(numToRender)
 	{ }
 
 	bool operator==(const GeomStaticDrawData& other) const
 	{ 
-	  return this->indexBuffer == other.indexBuffer && this->vertexBuffer == other.vertexBuffer 
-		     && this->technique == other.technique;
+	  return this->globalBufferOffset == other.globalBufferOffset;
 	}
   };
 
@@ -57,21 +54,19 @@ namespace Strontium
 
   struct GeomDynamicDrawData
   {
-	ShaderStorageBuffer* indexBuffer;
-	ShaderStorageBuffer* vertexBuffer;
 	Material* technique;
 	Animator* animations;
 
 	uint numToRender;
+	uint globalBufferOffset;
 
 	PerEntityData data;
 
 	uint instanceCount;
 
-	GeomDynamicDrawData(ShaderStorageBuffer* indexBuffer, ShaderStorageBuffer* vertexBuffer, Material* technique, 
+	GeomDynamicDrawData(uint globalBufferOffset, Material* technique,
 						uint numToRender, Animator* animations, const PerEntityData &data)
-	  : indexBuffer(indexBuffer)
-	  , vertexBuffer(vertexBuffer)
+	  : globalBufferOffset(globalBufferOffset)
       , technique(technique)
 	  , numToRender(numToRender)
 	  , animations(animations)
@@ -86,10 +81,9 @@ struct std::hash<Strontium::GeomStaticDrawData>
 {
   std::size_t operator()(Strontium::GeomStaticDrawData const &data) const noexcept
   {
-    std::size_t h1 = std::hash<Strontium::ShaderStorageBuffer*>{}(data.indexBuffer);
-	std::size_t h2 = std::hash<Strontium::ShaderStorageBuffer*>{}(data.vertexBuffer);
-    std::size_t h3 = std::hash<Strontium::Material*>{}(data.technique);
-    return h3 ^ (h2 << 1) ^ (h3 << 2);
+	std::size_t h1 = std::hash<uint>{}(data.globalBufferOffset);
+    std::size_t h2 = std::hash<Strontium::Material*>{}(data.technique);
+    return h1 ^ (h2 << 1);
   }
 };
 

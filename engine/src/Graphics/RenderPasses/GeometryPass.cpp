@@ -95,7 +95,7 @@ namespace Strontium
     auto rendererData = static_cast<Renderer3D::GlobalRendererData*>(this->globalBlock);
     
     // Upload the cached data for both static and dynamic geometry.
-    if (this->passData.entityDataBuffer.size() != (sizeof(PerEntityData) * this->passData.numUniqueEntities))
+    if (this->passData.entityDataBuffer.size() < (sizeof(PerEntityData) * this->passData.numUniqueEntities))
       this->passData.entityDataBuffer.resize(sizeof(PerEntityData) * this->passData.numUniqueEntities, BufferType::Dynamic);
 
     uint bufferOffset = 0;
@@ -122,6 +122,8 @@ namespace Strontium
 
     bufferOffset = 0;
     rendererData->blankVAO.bind();
+    rendererData->vertexCache.bindToPoint(0);
+    rendererData->indexCache.bindToPoint(1);
     // Static geometry pass.
     this->passData.staticGeometry->bind();
     for (auto& [drawable, instancedData] : this->passData.staticInstanceMap)
@@ -131,9 +133,7 @@ namespace Strontium
 
       drawable.technique->configureTextures();
 
-      drawable.vertexBuffer->bindToPoint(0);
-      drawable.indexBuffer->bindToPoint(1);
-      RendererCommands::drawArraysInstanced(PrimativeType::Triangle, 0, drawable.numToRender, 
+      RendererCommands::drawArraysInstanced(PrimativeType::Triangle, drawable.globalBufferOffset, drawable.numToRender,
                                             instancedData.size());
       
       bufferOffset += instancedData.size();
@@ -160,9 +160,7 @@ namespace Strontium
 
       drawable.technique->configureTextures();
       
-      drawable.vertexBuffer->bindToPoint(0);
-      drawable.indexBuffer->bindToPoint(1);
-      RendererCommands::drawArraysInstanced(PrimativeType::Triangle, 0, drawable.numToRender, 
+      RendererCommands::drawArraysInstanced(PrimativeType::Triangle, drawable.globalBufferOffset, drawable.numToRender,
                                             drawable.instanceCount);
 
       bufferOffset += drawable.instanceCount;
@@ -198,9 +196,7 @@ namespace Strontium
       
         drawable.technique->configureTextures();
       
-        drawable.vertexBuffer->bindToPoint(0);
-        drawable.indexBuffer->bindToPoint(1);
-        RendererCommands::drawArraysInstanced(PrimativeType::Triangle, 0, drawable.numToRender, 
+        RendererCommands::drawArraysInstanced(PrimativeType::Triangle, drawable.globalBufferOffset, drawable.numToRender,
                                               instancedData.size());
         
         bufferOffset += instancedData.size();
@@ -227,9 +223,7 @@ namespace Strontium
       
         drawable.technique->configureTextures();
         
-        drawable.vertexBuffer->bindToPoint(0);
-        drawable.indexBuffer->bindToPoint(1);
-        RendererCommands::drawArraysInstanced(PrimativeType::Triangle, 0, drawable.numToRender, 
+        RendererCommands::drawArraysInstanced(PrimativeType::Triangle, drawable.globalBufferOffset, drawable.numToRender,
                                               drawable.instanceCount);
       
         bufferOffset += drawable.instanceCount;
@@ -275,8 +269,6 @@ namespace Strontium
         if (!submesh.init())
           continue;
       }
-      auto indexBuffer = submesh.getIndexBuffer();
-      auto vertexBuffer = submesh.getVertexBuffer();
 
       // Record some statistics.
       this->passData.numTrianglesSubmitted += submesh.numToRender() / 3;
@@ -287,7 +279,8 @@ namespace Strontium
         continue;
 
       // Populate the draw list.
-      auto drawData = this->passData.staticInstanceMap.find(GeomStaticDrawData(indexBuffer, vertexBuffer, material, submesh.numToRender()));
+      auto drawData = this->passData.staticInstanceMap.find(GeomStaticDrawData(submesh.getGlobalLocation(), material, 
+                                                                               submesh.numToRender()));
 
       this->passData.numUniqueEntities++;
       if (drawData != this->passData.staticInstanceMap.end())
@@ -298,7 +291,9 @@ namespace Strontium
       }
       else 
       {
-        auto& item = this->passData.staticInstanceMap.emplace(GeomStaticDrawData(indexBuffer, vertexBuffer, material, submesh.numToRender()), std::vector<PerEntityData>());
+        auto& item = this->passData.staticInstanceMap.emplace(GeomStaticDrawData(submesh.getGlobalLocation(), material, 
+                                                                                 submesh.numToRender()), 
+                                                                                 std::vector<PerEntityData>());
         item.first->second.emplace_back(localTransform, glm::vec4(drawSelectionMask ? 1.0f : 0.0f, id + 1.0f, 0.0f, 0.0f), 
                                         material->getPackedUniformData());
       }
@@ -328,8 +323,6 @@ namespace Strontium
           if (!submesh.init())
             continue;
         }
-        auto indexBuffer = submesh.getIndexBuffer();
-        auto vertexBuffer = submesh.getVertexBuffer();
 
         // Record some statistics.
         this->passData.numTrianglesSubmitted += submesh.numToRender() / 3;
@@ -340,7 +333,7 @@ namespace Strontium
 
         // Populate the dynamic draw list.
         this->passData.numUniqueEntities++;
-        this->passData.dynamicDrawList.emplace_back(indexBuffer, vertexBuffer, material, submesh.numToRender(), animation,
+        this->passData.dynamicDrawList.emplace_back(submesh.getGlobalLocation(), material, submesh.numToRender(), animation,
                                                     PerEntityData(model,
                                                     glm::vec4(drawSelectionMask ? 1.0f : 0.0f, 
                                                               id + 1.0f, 0.0f, 0.0f), 
@@ -362,8 +355,6 @@ namespace Strontium
           if (!submesh.init())
             continue;
         }
-        auto indexBuffer = submesh.getIndexBuffer();
-        auto vertexBuffer = submesh.getVertexBuffer();
 
         // Record some statistics.
         this->passData.numTrianglesSubmitted += submesh.numToRender() / 3;
@@ -374,7 +365,8 @@ namespace Strontium
           continue;
 
         // Populate the draw list.
-        auto drawData = this->passData.staticInstanceMap.find(GeomStaticDrawData(indexBuffer, vertexBuffer, material, submesh.numToRender()));
+        auto drawData = this->passData.staticInstanceMap.find(GeomStaticDrawData(submesh.getGlobalLocation(), material, 
+                                                                                 submesh.numToRender()));
         
         this->passData.numUniqueEntities++;
         if (drawData != this->passData.staticInstanceMap.end())
@@ -385,9 +377,10 @@ namespace Strontium
         }
         else 
         {
-          this->passData.staticInstanceMap.emplace(GeomStaticDrawData(indexBuffer, vertexBuffer, material, submesh.numToRender()), 
+          this->passData.staticInstanceMap.emplace(GeomStaticDrawData(submesh.getGlobalLocation(), material, 
+                                                                      submesh.numToRender()),
                                                    std::vector<PerEntityData>());
-          this->passData.staticInstanceMap.at(GeomStaticDrawData(indexBuffer, vertexBuffer, material, submesh.numToRender()))
+          this->passData.staticInstanceMap.at(GeomStaticDrawData(submesh.getGlobalLocation(), material, submesh.numToRender()))
                                           .emplace_back(localTransform, glm::vec4(drawSelectionMask ? 1.0f : 0.0f, 
                                                         id + 1.0f, 0.0f, 0.0f), material->getPackedUniformData());
         }

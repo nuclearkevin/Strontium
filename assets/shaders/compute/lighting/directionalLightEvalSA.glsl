@@ -556,7 +556,7 @@ float calcShadow(uint cascadeIndex, vec3 position, vec3 normal, DirectionalLight
 
   float minX = float(cascadeIndex) / float(NUM_CASCADES);
   float maxX = minX + 1.0 / float(NUM_CASCADES);
-  projCoords.x = mix(minX, maxX, projCoords.x);
+  projCoords.x = minX + projCoords.x * (maxX - minX);
 
   // PCSS (contact hardening shadows), ultra quality.
   float shadowFactor = 1.0;

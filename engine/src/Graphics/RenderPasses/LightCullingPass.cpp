@@ -188,24 +188,6 @@ namespace Strontium
     this->passData.spotLightQueue[this->passData.spotLightCount].direction 
         = glm::vec4(glm::vec3(invTrans * glm::vec4(0.0f, -1.0f, 0.0f, 0.0f)), 0.0f);
 
-    /*
-    float4 boundingSphere(in float3 origin, in float3 forward, in float size, in float angle)
-{
-    float4 boundingSphere;
-    if(angle > PI/4.0f)
-    {
-        boundingSphere.xyz = origin + cos(angle) * size * forward;
-        boundingSphere.w   = sin(angle) * size;
-    }
-    else
-    {
-        boundingSphere.xyz = origin + size / (2.0f * cos(angle)) * forward;
-        boundingSphere.w   = size / (2.0f * cos(angle));
-    }
- 
-    return boundingSphere;
-}
-    */
     float angle = glm::acos(light.cutOffs.y);
     if (angle > 0.25f * M_PI)
     {
