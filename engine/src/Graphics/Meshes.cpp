@@ -41,9 +41,9 @@ namespace Strontium
   Mesh::init()
   {
     bool success = false;
-    if (this->isLoaded() && !this->drawable)
+    if (this->loaded && !this->drawable)
     {
-      this->globalBufferLocation = Renderer3D::addMeshToCache(*this);
+      Renderer3D::addMeshToCache(*this);
       this->drawable = true;
 
       success = true;

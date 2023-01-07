@@ -5,6 +5,7 @@
 #include "Core/Events.h"
 #include "Core/Math.h"
 #include "Utils/AssimpUtilities.h"
+#include "Graphics/Renderer.h"
 
 // GLM stuff.
 #include "glm/gtx/string_cast.hpp"
@@ -18,6 +19,9 @@ namespace Strontium
 {
   Model::Model()
     : loaded(false)
+    , drawable(false)
+    , totalNumVerts(0u)
+    , totalNumIndices(0u)
     , globalInverseTransform(1.0f)
     , globalTransform(1.0f)
     , minPos(std::numeric_limits<float>::max())
@@ -27,6 +31,9 @@ namespace Strontium
 
   Model::Model(const std::string &path)
     : loaded(false)
+    , drawable(false)
+    , totalNumVerts(0u)
+    , totalNumIndices(0u)
     , globalInverseTransform(1.0f)
     , globalTransform(1.0f)
     , minPos(std::numeric_limits<float>::max())
@@ -359,5 +366,27 @@ namespace Strontium
         return;
       }
     }
+  }
+
+  // Init the model (roughly equivalent to calling init() for each submesh).
+  bool
+  Model::init()
+  {
+    if (this->loaded && !this->drawable)
+    {
+      for (auto& mesh : this->subMeshes)
+      {
+        this->totalNumIndices += mesh.numToRender();
+        this->totalNumVerts += mesh.numVertices();
+      }
+      Renderer3D::addModelToCache(*this);
+
+      this->drawable = true;
+
+      for (auto& mesh : this->subMeshes)
+        mesh.drawable = true;
+    }
+
+    return this->drawable;
   }
 }

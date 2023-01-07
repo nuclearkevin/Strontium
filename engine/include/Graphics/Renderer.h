@@ -66,8 +66,9 @@ namespace Strontium::Renderer3D
   void init(const uint width, const uint height);
   void shutdown();
 
-  // Add a mesh to the vertex and index cache. Returns the position of the first vertex in the global buffer.
-  uint addMeshToCache(Mesh& mesh);
+  // Add a mesh/model to the vertex and index cache.
+  void addModelToCache(Model &model);
+  void addMeshToCache(Mesh& mesh);
 
   // Generic begin and end for the renderer.
   void begin(uint width, uint height, const Camera &sceneCamera, float dt);

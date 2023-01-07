@@ -81,6 +81,8 @@ namespace Strontium
     // For rendering.
     bool init();
     uint numToRender() const { return this->indices.size(); }
+    uint numVertices() const { return this->data.size(); }
+    void setGlobalLocation(uint globalLocation) { this->globalBufferLocation = globalLocation; }
     uint getGlobalLocation() const { return this->globalBufferLocation; }
 
     // Set the loaded state.

@@ -253,6 +253,12 @@ namespace Strontium
   GeometryPass::submit(Model* data, ModelMaterial &materials, const glm::mat4 &model,
                        float id, bool drawSelectionMask)
   {
+    if (!data->isDrawable())
+    {
+      if (!data->init())
+        return;
+    }
+
     auto rendererData = static_cast<Renderer3D::GlobalRendererData*>(this->globalBlock);
 
     this->passData.drawingMask = this->passData.drawingMask || drawSelectionMask;
@@ -265,10 +271,7 @@ namespace Strontium
         continue;
 
       if (!submesh.isDrawable())
-      {
-        if (!submesh.init())
-          continue;
-      }
+        continue;
 
       // Record some statistics.
       this->passData.numTrianglesSubmitted += submesh.numToRender() / 3;
@@ -304,6 +307,12 @@ namespace Strontium
   GeometryPass::submit(Model* data, Animator* animation, ModelMaterial &materials,
                        const glm::mat4 &model, float id, bool drawSelectionMask)
   {
+    if (!data->isDrawable())
+    {
+      if (!data->init())
+        return;
+    }
+
     auto rendererData = static_cast<Renderer3D::GlobalRendererData*>(this->globalBlock);
 
     this->passData.drawingMask = this->passData.drawingMask || drawSelectionMask;
@@ -319,10 +328,7 @@ namespace Strontium
           continue;
 
         if (!submesh.isDrawable())
-        {
-          if (!submesh.init())
-            continue;
-        }
+          continue;
 
         // Record some statistics.
         this->passData.numTrianglesSubmitted += submesh.numToRender() / 3;
@@ -351,10 +357,7 @@ namespace Strontium
           continue;
 
         if (!submesh.isDrawable())
-        {
-          if (!submesh.init())
-            continue;
-        }
+          continue;
 
         // Record some statistics.
         this->passData.numTrianglesSubmitted += submesh.numToRender() / 3;

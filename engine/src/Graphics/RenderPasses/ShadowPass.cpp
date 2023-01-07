@@ -65,6 +65,9 @@ namespace Strontium
     this->passData.numDrawCalls = 0u;
     this->passData.numInstances = 0u;
     this->passData.numTrianglesDrawn = 0u;
+
+    // Clear to mitigate a pipeline stall.
+    this->passData.shadowBuffer.clear();
   }
   
   void 
@@ -104,7 +107,6 @@ namespace Strontium
     static_cast<Renderer3D::GlobalRendererData*>(this->globalBlock)->blankVAO.bind();
     static_cast<Renderer3D::GlobalRendererData*>(this->globalBlock)->vertexCache.bindToPoint(0);
     static_cast<Renderer3D::GlobalRendererData*>(this->globalBlock)->indexCache.bindToPoint(1);
-    //RendererCommands::cullType(FaceType::Front);
     RendererCommands::disable(RendererFunction::CullFaces);
     this->passData.shadowBuffer.bind();
     for (uint i = 0; i < NUM_CASCADES; i++)
@@ -182,13 +184,16 @@ namespace Strontium
   void 
   ShadowPass::submit(Model* data, const glm::mat4& model)
   { 
+    if (!data->isDrawable())
+    {
+      if (!data->init())
+        return;
+    }
+
 	for (auto& submesh : data->getSubmeshes())
 	{
       if (!submesh.isDrawable())
-      {
-        if (!submesh.init())
-          continue;
-      }
+        continue;
       
       // Compute the scene AABB.
       auto localTransform = model * submesh.getTransform();
@@ -217,16 +222,19 @@ namespace Strontium
   void 
   ShadowPass::submit(Model* data, Animator* animation, const glm::mat4 &model)
   {
+    if (!data->isDrawable())
+    {
+      if (!data->init())
+        return;
+    }
+
     if (data->hasSkins())
     {
       // Skinned animated mesh, store the static transform.
       for (auto& submesh : data->getSubmeshes())
 	  {    
         if (!submesh.isDrawable())
-        {
-          if (!submesh.init())
-            continue;
-        }
+          continue;
         
         this->passData.minPos = glm::min(this->passData.minPos, glm::vec3(model * glm::vec4(submesh.getMinPos(), 1.0f)));
         this->passData.maxPos = glm::max(this->passData.maxPos, glm::vec3(model * glm::vec4(submesh.getMaxPos(), 1.0f)));
@@ -243,10 +251,7 @@ namespace Strontium
 	  for (auto& submesh : data->getSubmeshes())
 	  {
         if (!submesh.isDrawable())
-        {
-          if (!submesh.init())
-            continue;
-        }
+          continue;
     
         auto localTransform = model * bones[submesh.getName()];
         this->passData.minPos = glm::min(this->passData.minPos, glm::vec3(localTransform * glm::vec4(submesh.getMinPos(), 1.0f)));

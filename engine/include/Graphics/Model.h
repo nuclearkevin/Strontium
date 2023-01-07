@@ -31,7 +31,13 @@ namespace Strontium
     void load(const std::filesystem::path& filepath);
 
     // Is the model loaded or not.
-    bool isLoaded() { return this->loaded; }
+    bool isLoaded() const { return this->loaded; }
+
+    // Init the model (roughly equivalent to calling init() for each submesh).
+    bool isDrawable() const { return this->drawable; }
+    bool init();
+    uint getNumVerts() const { return this->totalNumVerts; }
+    uint getNumIndices() const { return this->totalNumIndices; }
 
     // Get the submeshes for the model.
     glm::vec3& getMinPos() { return this->minPos; }
@@ -54,6 +60,13 @@ namespace Strontium
 
     void addBoneData(unsigned int boneIndex, float boneWeight, PackedVertex &toMod);
 
+    // Is the model loaded or not?
+    bool loaded;
+    bool drawable;
+
+    uint totalNumVerts;
+    uint totalNumIndices;
+
     // Scene information for this model.
     glm::mat4 globalInverseTransform;
     glm::mat4 globalTransform;
@@ -67,9 +80,6 @@ namespace Strontium
     std::vector<Animation> storedAnimations;
     std::vector<VertexBone> storedBones;
     robin_hood::unordered_flat_map<std::string, uint> boneMap;
-
-    // Is the model loaded or not?
-    bool loaded;
     bool isSkinned;
 
     glm::vec3 minPos;

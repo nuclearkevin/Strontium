@@ -136,9 +136,81 @@ namespace Strontium::Renderer3D
     delete rendererData;
   }
 
+  // Add all meshes associated with a model to the vertex and index cache. It's just a stretchy buffer at the moment.
+  // TODO: smarter allocation scheme?
+  void
+  addModelToCache(Model &model)
+  {
+    uint newVertData = model.getNumVerts() * sizeof(PackedVertex);
+    uint newIndexData = model.getNumIndices() * sizeof(uint);
+
+    // First grow the caches.
+    uint prevVertSize = rendererData->vertexCache.size();
+    uint prevIndexSize = rendererData->indexCache.size();
+    if (prevVertSize > 0u)
+    {
+      // Vertex cache.
+      rendererData->transferBuffer.resize(prevVertSize, BufferType::Static);
+      rendererData->transferBuffer.copyDataFromSource(rendererData->vertexCache, 0u, 0u, prevVertSize);
+
+      rendererData->vertexCache.resize(prevVertSize + newVertData, BufferType::Static);
+      rendererData->vertexCache.copyDataFromSource(rendererData->transferBuffer, 0u, 0u, prevVertSize);
+
+      // Index cache.
+      rendererData->transferBuffer.resize(prevIndexSize, BufferType::Static);
+      rendererData->transferBuffer.copyDataFromSource(rendererData->indexCache, 0u, 0u, prevIndexSize);
+
+      rendererData->indexCache.resize(prevIndexSize + newIndexData, BufferType::Static);
+      rendererData->indexCache.copyDataFromSource(rendererData->transferBuffer, 0u, 0u, prevIndexSize);
+    }
+    else
+    {
+      // Vertex cache.
+      rendererData->vertexCache.resize(newVertData, BufferType::Static);
+      // Index cache.
+      rendererData->indexCache.resize(newIndexData, BufferType::Static);
+    }
+
+    // Clear the transfer buffer.
+    rendererData->transferBuffer.resize(0u, BufferType::Static);
+
+    // Populate the vertex cache with data from each submesh.
+    uint vertBufferPointer = prevVertSize;
+    uint newMeshDataSize = 0u;
+    for (auto& mesh : model.getSubmeshes())
+    {
+      auto& meshData = mesh.getData();
+      newMeshDataSize = meshData.size() * sizeof(PackedVertex);
+      rendererData->vertexCache.setData(vertBufferPointer, newMeshDataSize, meshData.data());
+
+      vertBufferPointer += newMeshDataSize;
+    }
+
+    // Populate the index cache with data from each submesh.
+    uint indexBufferPointer = prevIndexSize;
+    uint startIndex = prevIndexSize / sizeof(uint);
+    uint numVertices = prevVertSize / sizeof(PackedVertex);
+    uint newMeshIndicesSize = 0u;
+    for (auto& mesh : model.getSubmeshes())
+    {
+      auto& meshIndices = mesh.getIndices();
+      // Adjust to include the beginning vertex offset.
+      for (uint i = 0u; i < meshIndices.size(); ++i)
+        meshIndices[i] += numVertices;
+
+      newMeshIndicesSize = meshIndices.size() * sizeof(uint);
+      rendererData->indexCache.setData(indexBufferPointer, newMeshIndicesSize, meshIndices.data());
+      mesh.setGlobalLocation(startIndex);
+
+      startIndex += meshIndices.size();
+      indexBufferPointer += newMeshIndicesSize;
+      numVertices += mesh.getData().size();
+    }
+  }
+
   // Add a mesh to the vertex and index cache. It's just a stretchy buffer at the moment.
   // TODO: smarter allocation scheme?
-  uint
+  void
   addMeshToCache(Mesh &mesh)
   {
     auto& vertices = mesh.getData();
@@ -188,7 +260,7 @@ namespace Strontium::Renderer3D
 
     rendererData->transferBuffer.resize(0u, BufferType::Static);
 
-    return prevNumIndices;
+    mesh.setGlobalLocation(prevNumIndices);
   }
 
   // Generic begin and end for the renderer.
