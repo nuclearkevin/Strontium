@@ -956,6 +956,7 @@ namespace Strontium
     copyComponent<DynamicSkyboxComponent>(source, destination);
     copyComponent<DirectionalLightComponent>(source, destination);
     copyComponent<PointLightComponent>(source, destination);
+    copyComponent<SpotLightComponent>(source, destination);
     copyComponent<RectAreaLightComponent>(source, destination);
     copyComponent<DynamicSkylightComponent>(source, destination);
     copyComponent<SphereColliderComponent>(source, destination);
@@ -1088,6 +1089,7 @@ namespace Strontium
     deleteComponent<DynamicSkyboxComponent>(source);
     deleteComponent<DirectionalLightComponent>(source);
     deleteComponent<PointLightComponent>(source);
+    deleteComponent<SpotLightComponent>(source);
     deleteComponent<RectAreaLightComponent>(source);
     deleteComponent<DynamicSkylightComponent>(source);
     deleteComponent<SphereColliderComponent>(source);

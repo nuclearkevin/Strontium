@@ -72,21 +72,21 @@ float getMiePhase(float cosTheta, float g)
   return scale * num / denom;
 }
 
-// Compute the light attenuation factor. 
+// Compute the light attenuation factor.
 // TODO: Shrink the max factor based on froxel world-space size?
-float computeAttenuation(vec3 posToLight, float invLightRadius)
+float computeAttenuation(vec3 posToLight, float invLightRadius, float minDistSq)
 {
   float distSquared = dot(posToLight, posToLight);
   float factor = distSquared * invLightRadius * invLightRadius;
   float smoothFactor = max(1.0 - factor * factor, 0.0);
-  return (smoothFactor * smoothFactor) / max(distSquared, 1E-1);
+  return (smoothFactor * smoothFactor) / max(distSquared, minDistSq);
 }
 
 // Compute the spot light attenuation factor.
-float computeAngularAttenuation(vec3 lightDir, vec3 posToLight, 
+float computeAngularAttenuation(vec3 lightDir, vec3 posToLight,
                                 float cosInner, float cosOuter)
 {
-  return clamp((dot(posToLight, lightDir) - cosOuter) / (cosInner - cosOuter), 0.0, 1.0);  
+  return clamp((dot(posToLight, lightDir) - cosOuter) / (cosInner - cosOuter), 0.0, 1.0);
 }
 
 void main()
@@ -111,13 +111,15 @@ void main()
   float w = (float(invoke.z) + 0.5) / float(numFroxels.z) + dither.z;
   vec3 worldSpacePostion = u_camPosition + direction * w * w;
 
+  float minDistSq = 1.0;
+
   vec3 uvw = vec3(uv, w);
 
   vec4 se = texture(scatExtinction, uvw);
   vec4 ep = texture(emissionPhase, uvw);
   vec3 totalInScatExt = imageLoad(inScatExt, invoke).rgb;
 
-  // Light the froxel. 
+  // Light the froxel.
   vec3 mieScattering = se.xyz;
   vec3 extinction = se.www;
   vec3 voxelAlbedo = max(mieScattering / extinction, 0.0.xxx);
@@ -138,7 +140,7 @@ void main()
     light = sLights[i];
     lightVector = worldSpacePostion - light.positionRange.xyz;
     phaseFunction = getMiePhase(dot(nDirection, normalize(lightVector)), ep.w);
-    attenuation = computeAttenuation(lightVector, 1.0 / light.positionRange.w);
+    attenuation = computeAttenuation(lightVector, 1.0 / light.positionRange.w, minDistSq);
     attenuation *= computeAngularAttenuation(normalize(light.direction.xyz), normalize(lightVector), light.cutOffs.x, light.cutOffs.y);
 
     totalRadiance += voxelAlbedo * phaseFunction * attenuation * light.colourIntensity.rgb * light.colourIntensity.a;

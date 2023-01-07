@@ -92,33 +92,62 @@ vec4 neighbourhoodClamp(vec4 history, vec3 uvw, vec3 texel)
   return clamp(history, cMin, cMax);
 }
 
+vec4 sampleGaussian(sampler3D tex, vec3 coord, vec3 offset, inout float totalWeight)
+{
+  float weight = exp(-2.29 * dot(coord - offset, coord - offset));
+  totalWeight += weight;
+  return weight * texture(tex, coord + offset);
+}
+
 vec4 spatialFilter(sampler3D tex, vec3 coord)
 {
   vec3 texel = 1.0.xxx / vec3(textureSize(tex, 0).xyz);
 
-  float weight;
-  vec3 offset;
   vec4 accum = 0.0.xxxx;
   float totalWeight = 0.0;
-  for (int i = -1; i <= 1; i++)
-  {
-    for (int j = -1; j <= 1; j++)
-    {
-      for (int k = -1; k <= 1; k++)
-      {
-        offset = texel * vec3(i, j, k);
-        weight = exp(-2.29 * dot(coord - offset, coord - offset));
-        totalWeight += weight;
-        accum += weight * texture(tex, coord + offset);
-      }
-    }
-  }
+
+  accum += sampleGaussian(tex, coord, texel * vec3(-1, -1, -1), totalWeight);
+  accum += sampleGaussian(tex, coord, texel * vec3(-1, -1, 0), totalWeight);
+  accum += sampleGaussian(tex, coord, texel * vec3(-1, -1, 1), totalWeight);
+
+  accum += sampleGaussian(tex, coord, texel * vec3(-1, 0, -1), totalWeight);
+  accum += sampleGaussian(tex, coord, texel * vec3(-1, 0, 0), totalWeight);
+  accum += sampleGaussian(tex, coord, texel * vec3(-1, 0, 1), totalWeight);
+
+  accum += sampleGaussian(tex, coord, texel * vec3(-1, 1, -1), totalWeight);
+  accum += sampleGaussian(tex, coord, texel * vec3(-1, 1, 0), totalWeight);
+  accum += sampleGaussian(tex, coord, texel * vec3(-1, 1, 1), totalWeight);
+
+  accum += sampleGaussian(tex, coord, texel * vec3(0, -1, -1), totalWeight);
+  accum += sampleGaussian(tex, coord, texel * vec3(0, -1, 0), totalWeight);
+  accum += sampleGaussian(tex, coord, texel * vec3(0, -1, 1), totalWeight);
+
+  accum += sampleGaussian(tex, coord, texel * vec3(0, 0, -1), totalWeight);
+  accum += sampleGaussian(tex, coord, texel * vec3(0, 0, 0), totalWeight);
+  accum += sampleGaussian(tex, coord, texel * vec3(0, 0, 1), totalWeight);
+
+  accum += sampleGaussian(tex, coord, texel * vec3(0, 1, -1), totalWeight);
+  accum += sampleGaussian(tex, coord, texel * vec3(0, 1, 0), totalWeight);
+  accum += sampleGaussian(tex, coord, texel * vec3(0, 1, 1), totalWeight);
+
+  accum += sampleGaussian(tex, coord, texel * vec3(1, -1, -1), totalWeight);
+  accum += sampleGaussian(tex, coord, texel * vec3(1, -1, 0), totalWeight);
+  accum += sampleGaussian(tex, coord, texel * vec3(1, -1, 1), totalWeight);
+
+  accum += sampleGaussian(tex, coord, texel * vec3(1, 0, -1), totalWeight);
+  accum += sampleGaussian(tex, coord, texel * vec3(1, 0, 0), totalWeight);
+  accum += sampleGaussian(tex, coord, texel * vec3(1, 0, 1), totalWeight);
+
+  accum += sampleGaussian(tex, coord, texel * vec3(1, 1, -1), totalWeight);
+  accum += sampleGaussian(tex, coord, texel * vec3(1, 1, 0), totalWeight);
+  accum += sampleGaussian(tex, coord, texel * vec3(1, 1, 1), totalWeight);
 
   return max(accum / totalWeight, 0.0.xxxx);
 }
 
 void main()
 {
+  const uint lInvoke = uint(gl_LocalInvocationIndex);
   ivec3 invoke = ivec3(gl_GlobalInvocationID.xyz);
   ivec3 numFroxels = ivec3(imageSize(resolveInScatExt).xyz);
 

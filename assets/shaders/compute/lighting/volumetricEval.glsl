@@ -70,31 +70,6 @@ void main()
   imageStore(lightingBuffer, invoke, vec4(totalRadiance, 1.0));
 }
 
-vec4 spatialFilter(sampler3D tex, vec3 coord)
-{
-  vec3 texel = 1.0.xxx / vec3(textureSize(tex, 0).xyz);
-
-  float weight;
-  vec3 offset;
-  vec4 accum = 0.0.xxxx;
-  float totalWeight = 0.0;
-  for (int i = -1; i <= 1; i++)
-  {
-    for (int j = -1; j <= 1; j++)
-    {
-      for (int k = -1; k <= 1; k++)
-      {
-        offset = texel * vec3(i, j, k);
-        weight = exp(-2.29 * dot(coord - offset, coord - offset));
-        totalWeight += weight;
-        accum += weight * texture(tex, coord + offset);
-      }
-    }
-  }
-
-  return max(accum / totalWeight, 0.0.xxxx);
-}
-
 // The code below follows this license.
 /*--------------------------------------------------------------------------*\
 Copyright (c) 2008-2009, Danny Ruijters. All rights reserved.
@@ -134,8 +109,8 @@ following papers:
    Efficient GPU-Based Texture Interpolation using Uniform B-Splines,
    Journal of Graphics Tools, vol. 13, no. 4, pp. 61-69, 2008.
 \*--------------------------------------------------------------------------*/
-/*
-vec4 filter(sampler3D tex, vec3 coord)
+///*
+vec4 spatialFilter(sampler3D tex, vec3 coord)
 {
   // shift the coordinate from [0,1] to [-0.5, nrOfVoxels-0.5]
   vec3 nrOfVoxels = vec3(textureSize(tex, 0));
@@ -174,4 +149,4 @@ vec4 filter(sampler3D tex, vec3 coord)
 
   return mix(tex001, tex000, g0.z);  //weigh along the z-direction
 }
-*/
+//*/

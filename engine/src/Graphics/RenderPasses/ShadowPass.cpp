@@ -52,9 +52,6 @@ namespace Strontium
   void 
   ShadowPass::onRendererBegin(uint width, uint height)
   {
-    // Clear the shadow buffers to prevent a stall.
-    this->passData.shadowBuffer.clear();
-
     this->passData.castShadows = false;
     this->passData.hasCascades = false;
 
@@ -105,7 +102,8 @@ namespace Strontium
 
     // Run the Strontium render pipeline for each shadow cascade.
     static_cast<Renderer3D::GlobalRendererData*>(this->globalBlock)->blankVAO.bind();
-    //RendererCommands::cullType(FaceType::Front);
+    // Clear the shadow buffers to prevent a stall.
+    this->passData.shadowBuffer.clear();
     this->passData.shadowBuffer.bind();
     for (uint i = 0; i < NUM_CASCADES; i++)
     {
