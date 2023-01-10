@@ -108,7 +108,7 @@ namespace Strontium
                                         const glm::mat4 parentTransform,
                                         robin_hood::unordered_flat_map<std::string, glm::mat4>& outBones)
   {
-    auto nodeName = node.name;
+    auto& nodeName = node.name;
     auto nodeTransform = node.localTransform;
 
     if (this->animationNodes.find(nodeName) != this->animationNodes.end())
@@ -135,7 +135,7 @@ namespace Strontium
                                       const glm::mat4 parentTransform,
                                       std::vector<glm::mat4> &outBones)
   {
-    auto nodeName = node.name;
+    auto& nodeName = node.name;
     auto nodeTransform = node.localTransform;
 
     if (this->animationNodes.find(nodeName) != this->animationNodes.end())

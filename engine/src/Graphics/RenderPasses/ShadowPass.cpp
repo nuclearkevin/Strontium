@@ -114,6 +114,7 @@ namespace Strontium
       icBufferPointer += sizeof(DrawArraysIndirectCommand);
     }
 
+    const uint staticOffset = bufferPointer / sizeof(glm::mat4);
     for (auto& drawCommand : this->passData.dynamicDrawList)
     {
       this->passData.transformBuffer.setData(bufferPointer, sizeof(glm::mat4),
@@ -156,7 +157,7 @@ namespace Strontium
       if (this->passData.dynamicDrawList.size() > 0u)
       {
         this->passData.dynamicShadow->bind();
-        bufferPointer = 0;
+        bufferPointer = staticOffset;
         for (auto& drawable : this->passData.dynamicDrawList)
         {
           auto& bones = drawable.animations->getFinalBoneTransforms();
