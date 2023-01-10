@@ -62,7 +62,9 @@ namespace Strontium
   GeometryPass::onRendererBegin(uint width, uint height)
   {
     // Clear the lists and staging for the next frame.
-    this->passData.staticInstanceMap.clear();
+    for (auto& [drawable, instancedData] : this->passData.staticInstanceMap)
+      instancedData.clear();
+
     this->passData.dynamicDrawList.clear();
 
     // Resize the geometry buffer.
@@ -128,6 +130,9 @@ namespace Strontium
     this->passData.staticGeometry->bind();
     for (auto& [drawable, instancedData] : this->passData.staticInstanceMap)
     {
+      if (instancedData.size() == 0u)
+        continue;
+        
       // Set the index offset. 
       this->passData.perDrawUniforms.setData(0, sizeof(int), &bufferOffset);
 

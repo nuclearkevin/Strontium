@@ -57,8 +57,9 @@ namespace Strontium
 
     this->passData.numUniqueEntities = 0u;
     this->passData.numUniqueStaticMeshes = 0u;
-    this->passData.staticInstanceMap.clear();
     this->passData.dynamicDrawList.clear();
+    this->passData.staticInstanceMap.clear();
+
     this->passData.minPos = glm::vec3(std::numeric_limits<float>::max());
     this->passData.maxPos = glm::vec3(std::numeric_limits<float>::min());
 
@@ -99,6 +100,9 @@ namespace Strontium
     uint icBufferPointer = 0u;
     for (auto& [drawable, instancedTransforms] : this->passData.staticInstanceMap)
     {
+      if (instancedTransforms.size() == 0u)
+        continue;
+
       this->passData.transformBuffer.setData(bufferPointer, sizeof(glm::mat4) * instancedTransforms.size(),
                                              instancedTransforms.data());
       bufferPointer += sizeof(glm::mat4) * instancedTransforms.size();

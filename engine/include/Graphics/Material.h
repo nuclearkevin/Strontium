@@ -11,6 +11,8 @@
 #include "Graphics/Meshes.h"
 #include "Utils/Utilities.h"
 
+#include "ShadingPrimatives.h"
+
 namespace Strontium
 {
   // Individual material class to hold shaders and shader data.
@@ -22,12 +24,6 @@ namespace Strontium
     {
       PBR = 0u, 
       Unknown = 1u
-    };
-    
-    struct BlockData
-    {
-      glm::vec4 mRAE; // Metallic (r), roughness (g), AO (b) and emission (a);
-      glm::vec4 albedoReflectance; // Albedo (r, g, b) and reflectance (a);  
     };
 
     Material(Type type = Type::PBR);
@@ -50,7 +46,7 @@ namespace Strontium
     Texture2D* getSampler2D(const std::string &samplerName);
     Asset::Handle& getSampler2DHandle(const std::string &samplerName);
 
-    BlockData getPackedUniformData();
+    MaterialBlockData getPackedUniformData();
 
     // Get the shader and pipeline type.
     void setType(Type type) { this->type = type; }

@@ -27,6 +27,13 @@ namespace Strontium
     { }
   };
 
+  // Material block data.
+  struct MaterialBlockData
+  {
+    glm::vec4 mRAE; // Metallic (r), roughness (g), AO (b) and emission (a);
+    glm::vec4 albedoReflectance; // Albedo (r, g, b) and reflectance (a);  
+  };
+
   struct Camera
   {
     glm::mat4 view;

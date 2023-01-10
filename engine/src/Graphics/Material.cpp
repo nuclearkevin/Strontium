@@ -53,7 +53,7 @@ namespace Strontium
   Material::~Material()
   { }
 
-  Material::BlockData
+  MaterialBlockData
   Material::getPackedUniformData()
   {
     return { { this->getfloat("uMetallic"), this->getfloat("uRoughness"), 

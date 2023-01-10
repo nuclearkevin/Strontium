@@ -34,7 +34,7 @@ namespace Strontium
 
 	bool operator==(const GeomStaticDrawData& other) const
 	{ 
-	  return this->globalBufferOffset == other.globalBufferOffset;
+	  return this->globalBufferOffset == other.globalBufferOffset && this->technique == other.technique;
 	}
   };
 
@@ -42,10 +42,10 @@ namespace Strontium
   {
 	glm::mat4 transform;
 	glm::vec4 idMask;
-	Material::BlockData materialData;
+	MaterialBlockData materialData;
 
 	PerEntityData(const glm::mat4 &transform, const glm::vec4 &idMask,
-				  const Material::BlockData& materialData)
+				  const MaterialBlockData& materialData)
 	  : transform(transform)
 	  , idMask(idMask)
 	  , materialData(materialData)

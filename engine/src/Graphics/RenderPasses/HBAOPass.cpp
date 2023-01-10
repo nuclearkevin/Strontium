@@ -49,10 +49,13 @@ namespace Strontium
 
   void HBAOPass::onRendererBegin(uint width, uint height)
   {
-    if (static_cast<uint>(this->passData.ao.getWidth()) != width ||
-        static_cast<uint>(this->passData.ao.getHeight()) != height)
+    uint halfWidth = static_cast<uint>(glm::ceil(static_cast<float>(width) / 2.0f));
+    uint halfHeight = static_cast<uint>(glm::ceil(static_cast<float>(height) / 2.0f));
+
+    if (static_cast<uint>(this->passData.ao.getWidth()) != halfWidth ||
+        static_cast<uint>(this->passData.ao.getHeight()) != halfHeight)
 	{
-	  this->passData.ao.setSize(width, height);
+	  this->passData.ao.setSize(halfWidth, halfHeight);
 	  this->passData.ao.initNullTexture();
 	}
 
@@ -96,7 +99,7 @@ namespace Strontium
       rendererData->spatialBlueNoise->bind(1);
 
       // Compute the SSHBAO.
-      rendererData->halfResBuffer1.bindAsImage(0, 0, ImageAccessPolicy::Write);
+      this->passData.ao.bindAsImage(0, 0, ImageAccessPolicy::Write);
       uint iWidth = static_cast<uint>(glm::ceil(static_cast<float>(hzBlock->hierarchicalDepth.getWidth())
                                                 / 16.0f));
       uint iHeight = static_cast<uint>(glm::ceil(static_cast<float>(hzBlock->hierarchicalDepth.getHeight())
@@ -105,16 +108,16 @@ namespace Strontium
       Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
 
       // Blur the SSHBAO texture to get rid of noise from the jittering.
-      rendererData->halfResBuffer1.bind(1);
-      rendererData->fullResBuffer1.bindAsImage(0, 0, ImageAccessPolicy::Write);
-      this->passData.aoBlur->launchCompute(2 * iWidth, 2 * iHeight, 1);
+      this->passData.ao.bind(1);
+      rendererData->halfResBuffer1.bindAsImage(0, 0, ImageAccessPolicy::Write);
+      this->passData.aoBlur->launchCompute(iWidth, iHeight, 1);
       Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
 
       hbaoData.aoParams2 = glm::vec4(0.0f, 1.0f, 0.0f, 0.0f);
       this->passData.aoParamsBuffer.setData(sizeof(glm::vec4), sizeof(glm::vec4), &(hbaoData.aoParams2.x));
-      rendererData->fullResBuffer1.bind(1);
+      rendererData->halfResBuffer1.bind(1);
       this->passData.ao.bindAsImage(0, 0, ImageAccessPolicy::Write);
-      this->passData.aoBlur->launchCompute(2 * iWidth, 2 * iHeight, 1);
+      this->passData.aoBlur->launchCompute(iWidth, iHeight, 1);
       Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
     }
   }

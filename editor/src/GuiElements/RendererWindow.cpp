@@ -133,9 +133,14 @@ namespace Strontium
 
       if (showMaps)
       {
+        static int atlasIndex = 0;
+        ImGui::SliderInt("Cascade Atlas Index", &atlasIndex, 0, 3);
+        float minX = static_cast<float>(atlasIndex) / static_cast<float>(NUM_CASCADES);
+        float maxX = minX + 1.0f / static_cast<float>(NUM_CASCADES);
+
         ImGui::Text("Depth");
         ImGui::Image(reinterpret_cast<ImTextureID>(shadowBlock->shadowBuffer.getAttachID(FBOTargetParam::Depth)),
-                     ImVec2(static_cast<float>(NUM_CASCADES) * 128.0f, 128.0f), ImVec2(0, 1), ImVec2(1, 0));
+                     ImVec2(128.0f, 128.0f), ImVec2(minX, 1), ImVec2(maxX, 0));
       }
     }
 

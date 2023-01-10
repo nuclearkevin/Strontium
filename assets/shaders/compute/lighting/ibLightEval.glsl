@@ -195,7 +195,7 @@ float getHBAO(sampler2D gDepth, sampler2D hbaoTexture, vec2 gBufferCoords)
   halfResDepth[2] = textureLodOffset(gDepth, pixel, 1.0, ivec2(1, 0)).r;
   halfResDepth[3] = textureLodOffset(gDepth, pixel, 1.0, ivec2(1, 1)).r;
 
-  float sigmaV = 0.002;
+  float sigmaV = 0.006;
   float weights[4];
   weights[0] = gaussian(sigmaV, abs(fullResDepth - halfResDepth[0])) * (1.0 - f.x) * (1.0 - f.y);
   weights[1] = gaussian(sigmaV, abs(fullResDepth - halfResDepth[1])) * (1.0 - f.x) * f.y;
