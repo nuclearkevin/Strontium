@@ -100,6 +100,12 @@ namespace Strontium
   }
 
   void 
+  RendererCommands::multiDrawArraysInstancedIndirect(PrimativeType primative, uint drawCount, uint stride, const void* indirect)
+  {
+    glMultiDrawArraysIndirect(static_cast<GLenum>(primative), indirect, drawCount, stride);
+  }
+
+  void 
   RendererCommands::cullType(FaceType face)
   {
     glCullFace(static_cast<GLenum>(face));

@@ -70,6 +70,7 @@ namespace Strontium
   struct ShadowPassDataBlock
   {
 	FrameBuffer shadowBuffer;
+	DrawIndirectBuffer indirectBuffer;
 
 	Shader* staticShadow;
 	Shader* dynamicShadow;
@@ -92,9 +93,11 @@ namespace Strontium
 	UniformBuffer perDrawUniforms;
 
 	ShaderStorageBuffer transformBuffer;
+	ShaderStorageBuffer drawIDToTransformMap;
 	ShaderStorageBuffer boneBuffer;
 
 	uint numUniqueEntities;
+	uint numUniqueStaticMeshes;
 	glm::vec3 minPos;
 	glm::vec3 maxPos;
 	robin_hood::unordered_flat_map<ShadowStaticDrawData, std::vector<glm::mat4>> staticInstanceMap;
@@ -128,9 +131,12 @@ namespace Strontium
 	  , castShadows(false)
 	  , lightSpaceBuffer(sizeof(glm::mat4), BufferType::Dynamic)
 	  , perDrawUniforms(sizeof(int), BufferType::Dynamic)
-	  , transformBuffer(0, BufferType::Dynamic)
+	  , transformBuffer(0u, BufferType::Dynamic)
+	  , drawIDToTransformMap(0u, BufferType::Dynamic)
 	  , boneBuffer(MAX_BONES_PER_MODEL * sizeof(glm::mat4), BufferType::Dynamic)
+	  , indirectBuffer(0u, BufferType::Dynamic)
 	  , numUniqueEntities(0u)
+	  , numUniqueStaticMeshes(0u)
 	  , minPos(std::numeric_limits<float>::max())
 	  , maxPos(std::numeric_limits<float>::min())
 	  , shadowQuality(0)

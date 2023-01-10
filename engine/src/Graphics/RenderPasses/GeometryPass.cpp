@@ -96,7 +96,7 @@ namespace Strontium
     
     // Upload the cached data for both static and dynamic geometry.
     if (this->passData.entityDataBuffer.size() < (sizeof(PerEntityData) * this->passData.numUniqueEntities))
-      this->passData.entityDataBuffer.resize(sizeof(PerEntityData) * this->passData.numUniqueEntities, BufferType::Dynamic);
+      this->passData.entityDataBuffer.resize(sizeof(PerEntityData) * this->passData.numUniqueEntities, BufferType::Static);
 
     uint bufferOffset = 0;
     for (auto& [vaoMat, instancedData] : this->passData.staticInstanceMap)

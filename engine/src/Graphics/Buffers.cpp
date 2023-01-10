@@ -318,4 +318,103 @@ namespace Strontium
   {
     glUnmapNamedBuffer(this->bufferID);
   }
+
+  //----------------------------------------------------------------------------
+  // Draw indirect buffer here.
+  //----------------------------------------------------------------------------
+  DrawIndirectBuffer::DrawIndirectBuffer(const void* bufferData, uint dataSize,
+                                         BufferType bufferType)
+    : filled(true)
+    , type(bufferType)
+    , dataSize(dataSize)
+  {
+    glGenBuffers(1, &this->bufferID);
+    glBindBuffer(GL_DRAW_INDIRECT_BUFFER, this->bufferID);
+    glBufferData(GL_DRAW_INDIRECT_BUFFER, dataSize, bufferData, static_cast<GLenum>(bufferType));
+    glBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);
+  }
+
+  DrawIndirectBuffer::DrawIndirectBuffer(uint bufferSize, BufferType bufferType)
+    : filled(false)
+    , type(bufferType)
+    , dataSize(bufferSize)
+  {
+    glGenBuffers(1, &this->bufferID);
+    glBindBuffer(GL_DRAW_INDIRECT_BUFFER, this->bufferID);
+    glBufferData(GL_DRAW_INDIRECT_BUFFER, bufferSize, nullptr, static_cast<GLenum>(bufferType));
+    glBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);
+  }
+
+  DrawIndirectBuffer::~DrawIndirectBuffer()
+  {
+    glDeleteBuffers(1, &this->bufferID);
+  }
+
+  void
+  DrawIndirectBuffer::bind()
+  {
+    glBindBuffer(GL_DRAW_INDIRECT_BUFFER, this->bufferID);
+  }
+
+  void
+  DrawIndirectBuffer::bindToPoint(const uint bindPoint)
+  {
+    glBindBufferBase(GL_DRAW_INDIRECT_BUFFER, bindPoint, this->bufferID);
+  }
+
+  void
+  DrawIndirectBuffer::unbind()
+  {
+    glBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);
+  }
+
+  // Resize the buffer.
+  void 
+  DrawIndirectBuffer::resize(uint bufferSize, BufferType bufferType)
+  {
+    glBindBuffer(GL_DRAW_INDIRECT_BUFFER, this->bufferID);
+    glBufferData(GL_DRAW_INDIRECT_BUFFER, bufferSize, nullptr, static_cast<GLenum>(bufferType));
+    glBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);
+    this->dataSize = bufferSize;
+  }
+
+  void
+  DrawIndirectBuffer::setData(uint start, uint newDataSize,
+                               const void* newData)
+  {
+    assert(("New data exceeds buffer size.", !(start + newDataSize > this->dataSize)));
+
+    glBindBuffer(GL_DRAW_INDIRECT_BUFFER, this->bufferID);
+    glBufferSubData(GL_DRAW_INDIRECT_BUFFER, start, newDataSize, newData);
+    glBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);
+    this->filled = true;
+  }
+
+  // Copy data between buffers.
+  void 
+  DrawIndirectBuffer::copyDataFromSource(DrawIndirectBuffer& source, uint readStart, 
+                                         uint writeStart, uint dataSize)
+  {
+    glCopyNamedBufferSubData(source.getID(), this->bufferID, readStart, writeStart, dataSize);
+  }
+
+  void 
+  DrawIndirectBuffer::copyDataToTarget(DrawIndirectBuffer& target, uint readStart, 
+                                       uint writeStart, uint dataSize)
+  {
+    glCopyNamedBufferSubData(this->bufferID, target.getID(), readStart, writeStart, dataSize);
+  }
+
+  void* 
+  DrawIndirectBuffer::mapBuffer(uint offset, uint length, MapBufferAccess access, 
+                                MapBufferSynch sych)
+  {
+    return glMapNamedBufferRange(this->bufferID, offset, length, static_cast<GLbitfield>(access) | static_cast<GLbitfield>(sych));
+  }
+
+  void 
+  DrawIndirectBuffer::unmapBuffer()
+  {
+    glUnmapNamedBuffer(this->bufferID);
+  }
 }

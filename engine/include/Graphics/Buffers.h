@@ -208,4 +208,57 @@ namespace Strontium
     // The size of the data currently in the buffer.
     uint dataSize;
   };
+
+  //----------------------------------------------------------------------------
+  // Draw indirect buffer here.
+  //----------------------------------------------------------------------------
+  class DrawIndirectBuffer
+  {
+  public:
+    DrawIndirectBuffer(const void* bufferData, uint bufferSize, BufferType bufferType);
+    DrawIndirectBuffer(uint bufferSize, BufferType bufferType);
+    ~DrawIndirectBuffer();
+
+    // Delete the copy constructor and the assignment operator. Prevents
+    // issues related to the underlying API.
+    DrawIndirectBuffer(const DrawIndirectBuffer&) = delete;
+    DrawIndirectBuffer(DrawIndirectBuffer&&) = delete;
+    DrawIndirectBuffer& operator=(const DrawIndirectBuffer&) = delete;
+    DrawIndirectBuffer& operator=(DrawIndirectBuffer&&) = delete;
+
+    // Bind/unbind the buffer.
+    void bind();
+    void bindToPoint(const uint bindPoint);
+    void unbind();
+
+    // Resize the buffer.
+    void resize(uint bufferSize, BufferType bufferType);
+
+    // Set the data in a region of the buffer.
+    void setData(uint start, uint newDataSize, const void* newData);
+
+    // Copy data between buffers.
+    void copyDataFromSource(DrawIndirectBuffer &source, uint readStart, uint writeStart, uint dataSize);
+    void copyDataToTarget(DrawIndirectBuffer &target, uint readStart, uint writeStart, uint dataSize);
+
+    // Map and unmap the buffer to client memory.
+    void* mapBuffer(uint offset, uint length, MapBufferAccess access, MapBufferSynch sych);
+    void unmapBuffer();
+
+    uint getID() { return this->bufferID; }
+    bool hasData() { return this->filled; }
+    uint size() const { return this->dataSize; }
+  private:
+    // OpenGL buffer ID.
+    uint bufferID;
+
+    // If the buffer has data or not.
+    bool filled;
+
+    // Type of the buffer to prevent mismatching.
+    BufferType type;
+
+    // The size of the data currently in the buffer.
+    uint dataSize;
+  };
 }

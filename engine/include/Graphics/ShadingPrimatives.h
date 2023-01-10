@@ -5,6 +5,28 @@ namespace Strontium
 {
   using RendererDataHandle = int;
 
+  struct DrawArraysIndirectCommand
+  {
+    uint count;
+    uint instanceCount;
+    uint first;
+    uint baseInstance;
+
+    DrawArraysIndirectCommand()
+      : count(0u)
+      , instanceCount(0u)
+      , first(0u)
+      , baseInstance(0u)
+    { }
+
+    DrawArraysIndirectCommand(uint count, uint instanceCount, uint first, uint baseInstance)
+      : count(count)
+      , instanceCount(instanceCount)
+      , first(first)
+      , baseInstance(baseInstance)
+    { }
+  };
+
   struct Camera
   {
     glm::mat4 view;

@@ -21,12 +21,6 @@ layout(std140, binding = 0) uniform LightSpaceBlock
   mat4 u_lightViewProj;
 };
 
-// An index for fetching data from the transform and editor SSBOs.
-layout(std140, binding = 1) uniform PerDrawBlock
-{
-  ivec4 u_drawData; // Transform ID (x). Y, z and w are unused.
-};
-
 layout(std140, binding = 0) readonly buffer VertexBuffer
 {
   VertexData v_vertices[];
@@ -43,13 +37,19 @@ layout(std140, binding = 2) readonly buffer TransformBlock
   mat4 u_transforms[];
 };
 
+// The draw to transform matrix mapping.
+layout(std430, binding = 4) readonly buffer DrawTransformMapping
+{
+  uint u_mapping[];
+};
+
 void main()
 {
   const uint vIndex = v_indices[gl_VertexID];
   const VertexData vertex = v_vertices[vIndex];
 
   // Compute the index of this draw into the global buffer.
-  const int instance = gl_InstanceID + u_drawData.x;
+  const uint instance = uint(gl_InstanceID) + u_mapping[uint(gl_DrawID)];
 
   gl_Position = u_lightViewProj * u_transforms[instance] * vec4(vertex.position.xyz, 1.0);
 }

@@ -56,6 +56,7 @@ namespace Strontium
     this->passData.hasCascades = false;
 
     this->passData.numUniqueEntities = 0u;
+    this->passData.numUniqueStaticMeshes = 0u;
     this->passData.staticInstanceMap.clear();
     this->passData.dynamicDrawList.clear();
     this->passData.minPos = glm::vec3(std::numeric_limits<float>::max());
@@ -83,15 +84,36 @@ namespace Strontium
 
     // Upload the cached data for both static and dynamic geometry.
     if (this->passData.transformBuffer.size() < (sizeof(glm::mat4) * this->passData.numUniqueEntities))
-      this->passData.transformBuffer.resize(sizeof(glm::mat4) * this->passData.numUniqueEntities, BufferType::Dynamic);
+      this->passData.transformBuffer.resize(sizeof(glm::mat4) * this->passData.numUniqueEntities, BufferType::Static);
+
+    if (this->passData.drawIDToTransformMap.size() < (sizeof(uint) * this->passData.numUniqueStaticMeshes))
+      this->passData.drawIDToTransformMap.resize(sizeof(uint) * this->passData.numUniqueStaticMeshes, BufferType::Static);
+
+    if (this->passData.indirectBuffer.size() < (sizeof(DrawArraysIndirectCommand) * this->passData.numUniqueStaticMeshes))
+      this->passData.indirectBuffer.resize(sizeof(DrawArraysIndirectCommand) * this->passData.numUniqueStaticMeshes, BufferType::Static);
     
-    uint bufferPointer = 0;
+    uint bufferPointer = 0u;
+    uint runningTransformID = 0u;
+    uint trBufferPointer = 0u;
+    DrawArraysIndirectCommand cmd;
+    uint icBufferPointer = 0u;
     for (auto& [drawable, instancedTransforms] : this->passData.staticInstanceMap)
     {
       this->passData.transformBuffer.setData(bufferPointer, sizeof(glm::mat4) * instancedTransforms.size(),
                                              instancedTransforms.data());
       bufferPointer += sizeof(glm::mat4) * instancedTransforms.size();
+
+      this->passData.drawIDToTransformMap.setData(trBufferPointer, sizeof(uint), &runningTransformID);
+      trBufferPointer += sizeof(uint);
+      runningTransformID += instancedTransforms.size();
+
+      cmd.count = drawable.numToRender;
+      cmd.first = drawable.globalBufferOffset;
+      cmd.instanceCount = instancedTransforms.size();
+      this->passData.indirectBuffer.setData(icBufferPointer, sizeof(DrawArraysIndirectCommand), &cmd);
+      icBufferPointer += sizeof(DrawArraysIndirectCommand);
     }
+
     for (auto& drawCommand : this->passData.dynamicDrawList)
     {
       this->passData.transformBuffer.setData(bufferPointer, sizeof(glm::mat4),
@@ -102,6 +124,9 @@ namespace Strontium
     this->passData.lightSpaceBuffer.bindToPoint(0);
     this->passData.perDrawUniforms.bindToPoint(1);
     this->passData.transformBuffer.bindToPoint(2);
+    this->passData.boneBuffer.bindToPoint(3);
+    this->passData.drawIDToTransformMap.bindToPoint(4);
+    this->passData.indirectBuffer.bind();
 
     // Run the Strontium render pipeline for each shadow cascade.
     static_cast<Renderer3D::GlobalRendererData*>(this->globalBlock)->blankVAO.bind();
@@ -119,55 +144,45 @@ namespace Strontium
                                               i * this->passData.shadowBuffer.getSize().y, 
                                               0u);
       
-      bufferPointer = 0;
       // Static shadow pass.
       this->passData.staticShadow->bind();
-      for (auto& [drawable, instancedTransforms] : this->passData.staticInstanceMap)
-      {
-        // Set the index offset. 
-        this->passData.perDrawUniforms.setData(0, sizeof(int), &bufferPointer);
       
-        RendererCommands::drawArraysInstanced(PrimativeType::Triangle, drawable.globalBufferOffset, 
-                                              drawable.numToRender,
-                                              instancedTransforms.size());
-        
-        bufferPointer += instancedTransforms.size();
-      
-        // Record some statistics.
-        this->passData.numDrawCalls++;
-        this->passData.numInstances += instancedTransforms.size();
-        this->passData.numTrianglesDrawn += (instancedTransforms.size() * drawable.numToRender) / 3;
-      }
+      // Draw all static shadows at once.
+      RendererCommands::multiDrawArraysInstancedIndirect(PrimativeType::Triangle, this->passData.numUniqueStaticMeshes);
       
       // Dynamic geometry pass for skinned objects.
       // TODO: Improve this with compute shader skinning. 
       // Could probably get rid of this pass all together.
-      this->passData.dynamicShadow->bind();
-      this->passData.boneBuffer.bindToPoint(3);
-      for (auto& drawable : this->passData.dynamicDrawList)
+      if (this->passData.dynamicDrawList.size() > 0u)
       {
-        auto& bones = drawable.animations->getFinalBoneTransforms();
-        this->passData.boneBuffer.setData(0, bones.size() * sizeof(glm::mat4),
-                                          bones.data());
+        this->passData.dynamicShadow->bind();
+        bufferPointer = 0;
+        for (auto& drawable : this->passData.dynamicDrawList)
+        {
+          auto& bones = drawable.animations->getFinalBoneTransforms();
+          this->passData.boneBuffer.setData(0, bones.size() * sizeof(glm::mat4),
+                                            bones.data());
+          
+          // Set the index offset. 
+          this->passData.perDrawUniforms.setData(0, sizeof(int), &bufferPointer);
         
-        // Set the index offset. 
-        this->passData.perDrawUniforms.setData(0, sizeof(int), &bufferPointer);
-
-        RendererCommands::drawArraysInstanced(PrimativeType::Triangle, drawable.globalBufferOffset, 
-                                              drawable.numToRender,
-                                              drawable.instanceCount);
-      
-        bufferPointer += drawable.instanceCount;
-      
-        // Record some statistics.
-        this->passData.numDrawCalls++;
-        this->passData.numInstances += drawable.instanceCount;
-        this->passData.numTrianglesDrawn += (drawable.instanceCount * drawable.numToRender) / 3;
+          RendererCommands::drawArraysInstanced(PrimativeType::Triangle, drawable.globalBufferOffset, 
+                                                drawable.numToRender,
+                                                drawable.instanceCount);
+        
+          bufferPointer += drawable.instanceCount;
+        
+          // Record some statistics.
+          this->passData.numDrawCalls++;
+          this->passData.numInstances += drawable.instanceCount;
+          this->passData.numTrianglesDrawn += (drawable.instanceCount * drawable.numToRender) / 3;
+        }
       }
     }
     //RendererCommands::cullType(FaceType::Back);
     this->passData.dynamicShadow->unbind();
     this->passData.shadowBuffer.unbind();
+    this->passData.indirectBuffer.unbind();
     RendererCommands::enable(RendererFunction::CullFaces);
   }
   
@@ -215,6 +230,7 @@ namespace Strontium
         auto& item = this->passData.staticInstanceMap.emplace(ShadowStaticDrawData(submesh.getGlobalLocation(),
                                                                                    submesh.numToRender()), std::vector<glm::mat4>());
         item.first->second.emplace_back(localTransform);
+        this->passData.numUniqueStaticMeshes++;
       }
 	}
   }
@@ -272,6 +288,7 @@ namespace Strontium
           auto& item = this->passData.staticInstanceMap.emplace(ShadowStaticDrawData(submesh.getGlobalLocation(),
                                                                                      submesh.numToRender()), std::vector<glm::mat4>());
           item.first->second.emplace_back(localTransform);
+          this->passData.numUniqueStaticMeshes++;
         }
 	  }
     }
