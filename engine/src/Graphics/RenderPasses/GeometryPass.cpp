@@ -17,10 +17,10 @@ namespace Strontium
   void 
   GeometryPass::onInit()
   {
-    this->passData.staticGeometry = ShaderCache::getShader("static_geometry_pass");
-    this->passData.dynamicGeometry = ShaderCache::getShader("dynamic_geometry_pass");
-    this->passData.staticEditor = ShaderCache::getShader("static_editor_pass");
-    this->passData.dynamicEditor = ShaderCache::getShader("dynamic_editor_pass");
+    this->passData.staticGeometryPass = ShaderCache::getShader("static_geometry_pass");
+    this->passData.dynamicGeometryPass = ShaderCache::getShader("dynamic_geometry_pass");
+    this->passData.staticEditorPass = ShaderCache::getShader("static_editor_pass");
+    this->passData.dynamicEditorPass = ShaderCache::getShader("dynamic_editor_pass");
 
     // Init the editor-specific drawable parameters.
     auto cSpec = Texture2D::getFloatColourParams();
@@ -62,9 +62,8 @@ namespace Strontium
   GeometryPass::onRendererBegin(uint width, uint height)
   {
     // Clear the lists and staging for the next frame.
-    for (auto& [drawable, instancedData] : this->passData.staticInstanceMap)
-      instancedData.clear();
-
+    this->passData.modelMap.clear();
+    this->passData.staticGeometry.clear();
     this->passData.dynamicDrawList.clear();
 
     // Resize the geometry buffer.
@@ -101,11 +100,11 @@ namespace Strontium
       this->passData.entityDataBuffer.resize(sizeof(PerEntityData) * this->passData.numUniqueEntities, BufferType::Static);
 
     uint bufferOffset = 0;
-    for (auto& [vaoMat, instancedData] : this->passData.staticInstanceMap)
+    for (auto& geometry : this->passData.staticGeometry)
     {
-      this->passData.entityDataBuffer.setData(bufferOffset, sizeof(PerEntityData) * instancedData.size(),
-                                              instancedData.data());
-      bufferOffset += sizeof(PerEntityData) * instancedData.size();
+      this->passData.entityDataBuffer.setData(bufferOffset, sizeof(PerEntityData) * geometry.drawData.instanceCount,
+                                              geometry.instanceData.data());
+      bufferOffset += sizeof(PerEntityData) * geometry.drawData.instanceCount;
     }
     for (auto& drawCommand : this->passData.dynamicDrawList)
     {
@@ -127,32 +126,29 @@ namespace Strontium
     rendererData->vertexCache.bindToPoint(0);
     rendererData->indexCache.bindToPoint(1);
     // Static geometry pass.
-    this->passData.staticGeometry->bind();
-    for (auto& [drawable, instancedData] : this->passData.staticInstanceMap)
+    this->passData.staticGeometryPass->bind();
+    for (auto& geometry : this->passData.staticGeometry)
     {
-      if (instancedData.size() == 0u)
-        continue;
-        
       // Set the index offset. 
       this->passData.perDrawUniforms.setData(0, sizeof(int), &bufferOffset);
 
-      drawable.technique->configureTextures();
+      geometry.technique->configureTextures();
 
-      RendererCommands::drawArraysInstanced(PrimativeType::Triangle, drawable.globalBufferOffset, drawable.numToRender,
-                                            instancedData.size());
+      RendererCommands::drawArraysInstanced(PrimativeType::Triangle, geometry.drawData.first, geometry.drawData.count,
+                                            geometry.drawData.instanceCount);
       
-      bufferOffset += instancedData.size();
+      bufferOffset += geometry.drawData.instanceCount;
 
       // Record some statistics.
       this->passData.numDrawCalls++;
-      this->passData.numInstances += instancedData.size();
-      this->passData.numTrianglesDrawn += (instancedData.size() * drawable.numToRender) / 3;
+      this->passData.numInstances += geometry.drawData.instanceCount;
+      this->passData.numTrianglesDrawn += (geometry.drawData.instanceCount * geometry.drawData.count) / 3;
     }
 
     // Dynamic geometry pass for skinned objects.
     // TODO: Improve this with compute shader skinning. 
     // Could probably get rid of this pass all together.
-    this->passData.dynamicGeometry->bind();
+    this->passData.dynamicGeometryPass->bind();
     this->passData.boneBuffer.bindToPoint(3);
     for (auto& drawable : this->passData.dynamicDrawList)
     {
@@ -175,7 +171,7 @@ namespace Strontium
       this->passData.numInstances += drawable.instanceCount;
       this->passData.numTrianglesDrawn += (drawable.instanceCount * drawable.numToRender) / 3;
     }
-    this->passData.dynamicGeometry->unbind();
+    this->passData.dynamicGeometryPass->unbind();
 
     this->passData.gBuffer.endGeoPass();
 
@@ -193,29 +189,31 @@ namespace Strontium
       bufferOffset = 0;
       rendererData->blankVAO.bind();
       // Static geometry pass.
-      this->passData.staticEditor->bind();
-      for (auto& [drawable, instancedData] : this->passData.staticInstanceMap)
+      this->passData.staticEditorPass->bind();
+      for (auto& geometry : this->passData.staticGeometry)
       {
         // Set the index offset. 
-        this->passData.perDrawUniforms.setData(0, sizeof(int), &bufferOffset);
+        if (geometry.draw)
+        {
+          this->passData.perDrawUniforms.setData(0, sizeof(int), &bufferOffset);
       
-        drawable.technique->configureTextures();
+          geometry.technique->configureTextures();
       
-        RendererCommands::drawArraysInstanced(PrimativeType::Triangle, drawable.globalBufferOffset, drawable.numToRender,
-                                              instancedData.size());
+          RendererCommands::drawArraysInstanced(PrimativeType::Triangle, geometry.drawData.first, geometry.drawData.count,
+                                                geometry.drawData.instanceCount);
+          // Record some statistics.
+          this->passData.numDrawCalls++;
+          this->passData.numInstances += geometry.drawData.instanceCount;
+          this->passData.numTrianglesDrawn += (geometry.drawData.instanceCount * geometry.drawData.count) / 3;
+        }
         
-        bufferOffset += instancedData.size();
-      
-        // Record some statistics.
-        this->passData.numDrawCalls++;
-        this->passData.numInstances += instancedData.size();
-        this->passData.numTrianglesDrawn += (instancedData.size() * drawable.numToRender) / 3;
+        bufferOffset += geometry.drawData.instanceCount;
       }
       
       // Dynamic geometry pass for skinned objects.
       // TODO: Improve this with compute shader skinning. 
       // Could probably get rid of this pass all together.
-      this->passData.dynamicEditor->bind();
+      this->passData.dynamicEditorPass->bind();
       this->passData.boneBuffer.bindToPoint(3);
       for (auto& drawable : this->passData.dynamicDrawList)
       {
@@ -238,7 +236,7 @@ namespace Strontium
         this->passData.numInstances += drawable.instanceCount;
         this->passData.numTrianglesDrawn += (drawable.instanceCount * drawable.numToRender) / 3;
       }
-      this->passData.dynamicGeometry->unbind();
+      this->passData.dynamicGeometryPass->unbind();
       
       this->passData.idMaskBuffer.unbind();
     }
@@ -254,6 +252,7 @@ namespace Strontium
   GeometryPass::onShutdown()
   { }
 
+  // TODO: Fix out of bounds error on submission.
   void 
   GeometryPass::submit(Model* data, ModelMaterial &materials, const glm::mat4 &model,
                        float id, bool drawSelectionMask)
@@ -264,50 +263,74 @@ namespace Strontium
         return;
     }
 
-    auto rendererData = static_cast<Renderer3D::GlobalRendererData*>(this->globalBlock);
+    auto& cameraFrustum = static_cast<Renderer3D::GlobalRendererData*>(this->globalBlock)->camFrustum;
+
+    uint numSubmeshes = data->getSubmeshes().size();
+    auto modelLoc = this->passData.modelMap.find(data);
+    if (modelLoc != this->passData.modelMap.end())
+    {
+      uint meshStart = modelLoc->second;
+      for (uint i = 0u; i < numSubmeshes; ++i)
+      {
+        auto& submesh = data->getSubmeshes()[i];
+        auto material = materials.getMaterial(submesh.getName());
+        if (!material)
+          continue;
+        /*
+        if (!submesh.isDrawable())
+          continue;
+        */
+        const auto localTransform = model * submesh.getTransform();
+        if (!boundingBoxInFrustum(cameraFrustum, submesh.getMinPos(), submesh.getMaxPos(), localTransform))
+          continue;
+
+        // Store the submesh draw data.
+        this->passData.staticGeometry[meshStart + i].instanceData.emplace_back(localTransform,
+                                                                               glm::vec4(drawSelectionMask ? 1.0f : 0.0f, id + 1.0f, 0.0f, 0.0f),
+                                                                               material->getPackedUniformData());
+        this->passData.staticGeometry[meshStart + i].drawData.instanceCount++;
+
+        this->passData.numUniqueEntities++;
+      }
+    }
+    else
+    {
+      uint meshStart = this->passData.staticGeometry.size();
+      
+      // Allocate space for the draw data.
+      this->passData.staticGeometry.reserve(this->passData.staticGeometry.size() + numSubmeshes);
+      this->passData.modelMap.emplace(data, meshStart);
+      for (uint i = 0u; i < numSubmeshes; ++i)
+      {
+        auto& submesh = data->getSubmeshes()[i];
+        auto material = materials.getMaterial(submesh.getName());
+        if (!material)
+          continue;
+        /*
+        if (!submesh.isDrawable())
+          continue;
+        */
+        // Compute the scene AABB.
+        const auto& localTransform = model * submesh.getTransform();
+
+        // Store the new submesh draw data.
+        this->passData.staticGeometry.emplace_back(submesh.numToRender(), 1u, submesh.getGlobalLocation(), 0u, material);
+        if (boundingBoxInFrustum(cameraFrustum, submesh.getMinPos(), submesh.getMaxPos(), localTransform))
+        {
+          this->passData.staticGeometry.back().draw = true;
+          this->passData.numUniqueEntities++;
+          this->passData.staticGeometry.back().instanceData.emplace_back(localTransform,
+                                                                         glm::vec4(drawSelectionMask ? 1.0f : 0.0f, id + 1.0f, 0.0f, 0.0f),
+                                                                         material->getPackedUniformData());
+        }
+      }
+    }
 
     this->passData.drawingMask = this->passData.drawingMask || drawSelectionMask;
     this->passData.drawingIDs = this->passData.drawingIDs || (id >= 0.0f);
-
-	for (auto& submesh : data->getSubmeshes())
-	{
-      auto material = materials.getMaterial(submesh.getName());
-      if (!material)
-        continue;
-
-      if (!submesh.isDrawable())
-        continue;
-
-      // Record some statistics.
-      this->passData.numTrianglesSubmitted += submesh.numToRender() / 3;
-
-      auto localTransform = model * submesh.getTransform();
-      if (!boundingBoxInFrustum(rendererData->camFrustum, submesh.getMinPos(),
-						  submesh.getMaxPos(), localTransform))
-        continue;
-
-      // Populate the draw list.
-      auto drawData = this->passData.staticInstanceMap.find(GeomStaticDrawData(submesh.getGlobalLocation(), material, 
-                                                                               submesh.numToRender()));
-
-      this->passData.numUniqueEntities++;
-      if (drawData != this->passData.staticInstanceMap.end())
-      {
-        drawData->second.emplace_back(localTransform, 
-                                      glm::vec4(drawSelectionMask ? 1.0f : 0.0f, id + 1.0f, 0.0f, 0.0f), 
-                                      material->getPackedUniformData());
-      }
-      else 
-      {
-        auto& item = this->passData.staticInstanceMap.emplace(GeomStaticDrawData(submesh.getGlobalLocation(), material, 
-                                                                                 submesh.numToRender()), 
-                                                                                 std::vector<PerEntityData>());
-        item.first->second.emplace_back(localTransform, glm::vec4(drawSelectionMask ? 1.0f : 0.0f, id + 1.0f, 0.0f, 0.0f), 
-                                        material->getPackedUniformData());
-      }
-	}
   }
 
+  // TODO: Fix out of bounds error on submission.
   void 
   GeometryPass::submit(Model* data, Animator* animation, ModelMaterial &materials,
                        const glm::mat4 &model, float id, bool drawSelectionMask)
@@ -318,7 +341,7 @@ namespace Strontium
         return;
     }
 
-    auto rendererData = static_cast<Renderer3D::GlobalRendererData*>(this->globalBlock);
+    auto& cameraFrustum = static_cast<Renderer3D::GlobalRendererData*>(this->globalBlock)->camFrustum;
 
     this->passData.drawingMask = this->passData.drawingMask || drawSelectionMask;
     this->passData.drawingIDs = this->passData.drawingIDs || (id >= 0.0f);
@@ -338,8 +361,8 @@ namespace Strontium
         // Record some statistics.
         this->passData.numTrianglesSubmitted += submesh.numToRender() / 3;
 
-        if (!boundingBoxInFrustum(rendererData->camFrustum, data->getMinPos(),
-	 						    data->getMaxPos(), model))
+        if (!boundingBoxInFrustum(cameraFrustum, data->getMinPos(),
+	 						      data->getMaxPos(), model))
           continue;
 
         // Populate the dynamic draw list.
@@ -355,42 +378,64 @@ namespace Strontium
     {
       // Unskinned animated mesh, store the rigged transform.
 	  auto& bones = animation->getFinalUnSkinnedTransforms();
-	  for (auto& submesh : data->getSubmeshes())
-	  {
-        auto material = materials.getMaterial(submesh.getName());
-        if (!material)
-          continue;
-
-        if (!submesh.isDrawable())
-          continue;
-
-        // Record some statistics.
-        this->passData.numTrianglesSubmitted += submesh.numToRender() / 3;
-
-        auto localTransform = model * bones[submesh.getName()];
-	    if (!boundingBoxInFrustum(rendererData->camFrustum, submesh.getMinPos(),
-	 						      submesh.getMaxPos(), localTransform))
-          continue;
-
-        // Populate the draw list.
-        auto drawData = this->passData.staticInstanceMap.find(GeomStaticDrawData(submesh.getGlobalLocation(), material, 
-                                                                                 submesh.numToRender()));
-        
-        this->passData.numUniqueEntities++;
-        if (drawData != this->passData.staticInstanceMap.end())
+	  uint numSubmeshes = data->getSubmeshes().size();
+      auto modelLoc = this->passData.modelMap.find(data);
+      if (modelLoc != this->passData.modelMap.end())
+      {
+        uint meshStart = modelLoc->second;
+        for (uint i = 0u; i < numSubmeshes; ++i)
         {
-          this->passData.staticInstanceMap.at(drawData->first)
-                                          .emplace_back(localTransform, glm::vec4(drawSelectionMask ? 1.0f : 0.0f, 
-                                                        id + 1.0f, 0.0f, 0.0f), material->getPackedUniformData());
+          auto& submesh = data->getSubmeshes()[i];
+          auto material = materials.getMaterial(submesh.getName());
+          if (!material)
+            continue;
+          /*
+          if (!submesh.isDrawable())
+            continue;
+          */
+          const auto localTransform = model * submesh.getTransform();
+          if (!boundingBoxInFrustum(cameraFrustum, submesh.getMinPos(), submesh.getMaxPos(), localTransform))
+            continue;
+      
+          // Store the submesh draw data.
+          this->passData.staticGeometry[meshStart + i].instanceData.emplace_back(localTransform,
+                                                                                 glm::vec4(drawSelectionMask ? 1.0f : 0.0f, id + 1.0f, 0.0f, 0.0f),
+                                                                                 material->getPackedUniformData());
+          this->passData.staticGeometry[meshStart + i].drawData.instanceCount++;
+      
+          this->passData.numUniqueEntities++;
         }
-        else 
+      }
+      else
+      {
+        uint meshStart = this->passData.staticGeometry.size();
+        
+        // Allocate space for the draw data.
+        this->passData.staticGeometry.reserve(this->passData.staticGeometry.size() + numSubmeshes);
+        this->passData.modelMap.emplace(data, meshStart);
+        for (uint i = 0u; i < numSubmeshes; ++i)
         {
-          this->passData.staticInstanceMap.emplace(GeomStaticDrawData(submesh.getGlobalLocation(), material, 
-                                                                      submesh.numToRender()),
-                                                   std::vector<PerEntityData>());
-          this->passData.staticInstanceMap.at(GeomStaticDrawData(submesh.getGlobalLocation(), material, submesh.numToRender()))
-                                          .emplace_back(localTransform, glm::vec4(drawSelectionMask ? 1.0f : 0.0f, 
-                                                        id + 1.0f, 0.0f, 0.0f), material->getPackedUniformData());
+          auto& submesh = data->getSubmeshes()[i];
+          auto material = materials.getMaterial(submesh.getName());
+          if (!material)
+            continue;
+          /*
+          if (!submesh.isDrawable())
+            continue;
+          */
+          // Compute the scene AABB.
+          const auto localTransform = model * bones[submesh.getName()];
+      
+          // Store the new submesh draw data.
+          this->passData.staticGeometry.emplace_back(submesh.numToRender(), 1u, submesh.getGlobalLocation(), 0u, material);
+          if (boundingBoxInFrustum(cameraFrustum, submesh.getMinPos(), submesh.getMaxPos(), localTransform))
+          {
+            this->passData.staticGeometry.back().draw = true;
+            this->passData.numUniqueEntities++;
+            this->passData.staticGeometry.back().instanceData.emplace_back(localTransform,
+                                                                           glm::vec4(drawSelectionMask ? 1.0f : 0.0f, id + 1.0f, 0.0f, 0.0f),
+                                                                           material->getPackedUniformData());
+          }
         }
       }  
 	}

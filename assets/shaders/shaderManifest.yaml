@@ -55,6 +55,12 @@ ShaderCache:
     Filepath: ./assets/shaders/compute/ibl/diffuseConv.glsl
   - Handle: sky_lut_diffuse
     Filepath: ./assets/shaders/compute/ibl/diffSkyIBL.glsl
+  - Handle: sky_lut_diffuse_sh
+    Filepath: ./assets/shaders/compute/ibl/diffSHSkyIBL.glsl
+  - Handle: sh_reduction
+    Filepath: ./assets/shaders/compute/ibl/shReduction.glsl
+  - Handle: sh_compaction
+    Filepath: ./assets/shaders/compute/ibl/shCompaction.glsl
   - Handle: cube_specular
     Filepath: ./assets/shaders/compute/ibl/specPrefilter.glsl
   - Handle: sky_lut_specular

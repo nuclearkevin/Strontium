@@ -53,6 +53,7 @@ namespace Strontium
                        GeometryPass* previousGeoPass,
                        HiZPass* previousHiZPass,
                        HBAOPass* previousHBAOPass,
+                       SkyAtmospherePass* previousSkyAtmoPass,
 					   DynamicSkyIBLPass* previousDynSkyIBLPass);
 	~IBLApplicationPass() override;
 
@@ -71,6 +72,7 @@ namespace Strontium
 
     GeometryPass* previousGeoPass;
     HiZPass* previousHiZPass;
+    SkyAtmospherePass* previousSkyAtmoPass;
     DynamicSkyIBLPass* previousDynSkyIBLPass;
     HBAOPass* previousHBAOPass;
 

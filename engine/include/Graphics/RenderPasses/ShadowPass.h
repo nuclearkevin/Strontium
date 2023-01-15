@@ -17,20 +17,15 @@ namespace Strontium
     struct GlobalRendererData;
   }
 
-  struct ShadowStaticDrawData
+  struct ShadowMeshData
   {
-	uint numToRender;
-	uint globalBufferOffset;
+	DrawArraysIndirectCommand drawData;
 
-	ShadowStaticDrawData(uint globalBufferOffset, uint numToRender)
-	  : globalBufferOffset(globalBufferOffset)
-	  , numToRender(numToRender)
+	std::vector<glm::mat4> instanceTransforms;
+
+	ShadowMeshData(uint count, uint instanceCount, uint first, uint baseInstance)
+	  : drawData(count, instanceCount, first, baseInstance)
 	{ }
-
-	bool operator==(const ShadowStaticDrawData& other) const
-	{
-	  return this->globalBufferOffset == other.globalBufferOffset;
-	}
   };
 
   struct ShadowDynamicDrawData
@@ -55,15 +50,6 @@ namespace Strontium
 	{ }
   };
 }
-
-template<>
-struct std::hash<Strontium::ShadowStaticDrawData>
-{
-  std::size_t operator()(Strontium::ShadowStaticDrawData const &data) const noexcept
-  {
-	return std::hash<uint>{}(data.globalBufferOffset);
-  }
-};
 
 namespace Strontium
 {
@@ -100,7 +86,8 @@ namespace Strontium
 	uint numUniqueStaticMeshes;
 	glm::vec3 minPos;
 	glm::vec3 maxPos;
-	robin_hood::unordered_flat_map<ShadowStaticDrawData, std::vector<glm::mat4>> staticInstanceMap;
+	robin_hood::unordered_flat_map<Model*, uint> modelMap;
+	std::vector<ShadowMeshData> staticGeometry;
 	std::vector<ShadowDynamicDrawData> dynamicDrawList;
 
 	// Shadow settings.

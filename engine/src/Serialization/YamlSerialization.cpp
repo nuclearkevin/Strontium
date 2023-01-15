@@ -673,7 +673,6 @@ namespace Strontium
 
           out << YAML::Key << "DynamicSkyIBLSettings" << YAML::BeginMap;
 
-          out << YAML::Key << "IrradianceSamples" << YAML::Value << dynSkyIBLPassData->numIrradSamples;
           out << YAML::Key << "RadianceSamples" << YAML::Value << dynSkyIBLPassData->numRadSamples;
 
           out << YAML::EndMap;
@@ -1252,7 +1251,6 @@ namespace Strontium
             auto dynSkyIBLPass = passManager.getRenderPass<DynamicSkyIBLPass>();
             auto dynSkyIBLPassData = dynSkyIBLPass->getInternalDataBlock<DynamicSkyIBLPassDataBlock>();
 
-            dynSkyIBLPassData->numIrradSamples = dynSkyIBLSettings["IrradianceSamples"].as<uint>();
             dynSkyIBLPassData->numRadSamples = dynSkyIBLSettings["RadianceSamples"].as<uint>();
           }
         }

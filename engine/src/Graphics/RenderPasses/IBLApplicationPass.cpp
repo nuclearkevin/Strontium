@@ -9,11 +9,13 @@ namespace Strontium
 										 GeometryPass* previousGeoPass,
                                          HiZPass* previousHiZPass,
                                          HBAOPass* previousHBAOPass,
+                                         SkyAtmospherePass* previousSkyAtmoPass,
 										 DynamicSkyIBLPass* previousDynSkyIBLPass)
     : RenderPass(&this->passData, globalRendererData, { previousGeoPass, previousDynSkyIBLPass })
 	, previousGeoPass(previousGeoPass)
     , previousHiZPass(previousHiZPass)
     , previousHBAOPass(previousHBAOPass)
+    , previousSkyAtmoPass(previousSkyAtmoPass)
 	, previousDynSkyIBLPass(previousDynSkyIBLPass)
 	, timer(5)
   { }
@@ -82,6 +84,9 @@ namespace Strontium
     // Bind the camera block.
     rendererData->cameraBuffer.bindToPoint(0);
 
+    // Bind the atmosphere data.
+    this->previousSkyAtmoPass->getInternalDataBlock<SkyAtmospherePassDataBlock>()->atmosphereBuffer.bindToPoint(2);
+
     // Bind the BRDF LUT.
     this->passData.brdfLUT.bind(7);
 
@@ -101,8 +106,8 @@ namespace Strontium
     //----------------------------------------------------------------------------
     // Bind the required cubemaps.
     auto dynIBLBlock = this->previousDynSkyIBLPass->getInternalDataBlock<DynamicSkyIBLPassDataBlock>();
-    dynIBLBlock->irradianceCubemaps.bind(5);
     dynIBLBlock->radianceCubemaps.bind(6);
+    dynIBLBlock->compactedDiffuseSH.bindToPoint(0u);
 
     // Bind the IBL parameters buffer.
     this->passData.iblBuffer.bindToPoint(1);
@@ -116,7 +121,8 @@ namespace Strontium
     {
       iblParams.x = static_cast<float>(dynamicIBLParam.handle);
       iblParams.y = dynamicIBLParam.intensity;
-      this->passData.iblBuffer.setData(0, 3 * sizeof(float), &(iblParams.x));
+      iblParams.w = static_cast<float>(dynamicIBLParam.attachedSkyAtmoHandle);
+      this->passData.iblBuffer.setData(0, sizeof(glm::vec4), &(iblParams.x));
 
       this->passData.iblEvaluation->launchCompute(iWidth, iHeight, 1);
       Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
@@ -145,7 +151,7 @@ namespace Strontium
   { }
 
   void 
-  IBLApplicationPass::submitDynamicSkyIBL(const DynamicIBL& params)
+  IBLApplicationPass::submitDynamicSkyIBL(const DynamicIBL &params)
   {
     this->passData.dynamicIBLParams.push_back(params);
   }

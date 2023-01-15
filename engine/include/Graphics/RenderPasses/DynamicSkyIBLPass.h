@@ -22,32 +22,40 @@ namespace Strontium
 
   struct DynamicSkyIBLPassDataBlock
   {
-    Shader* dynamicSkyIrradiance;
+    Shader* shDynamicSkyIrradiance;
+    Shader* shReduce;
+    Shader* shCompact;
     Shader* dynamicSkyRadiance;
 
-    CubeMapArrayTexture irradianceCubemaps;
     CubeMapArrayTexture radianceCubemaps;
 
     UniformBuffer iblParamsBuffer;
     ShaderStorageBuffer iblIndices;
+
+    UniformBuffer diffuseSHParams;
+    ShaderStorageBuffer diffuseSHStorage;
+    ShaderStorageBuffer compactedDiffuseSH;
 
     // The IBL map parameters.
     std::bitset<MAX_NUM_DYNAMIC_IBL> updateIBL;
     std::array<DynamicIBL, MAX_NUM_DYNAMIC_IBL> iblQueue;
 
     // Global IBL parameters.
-    uint numIrradSamples;
     uint numRadSamples;
 
     // Some statistics.
     float frameTime;
 
     DynamicSkyIBLPassDataBlock()
-      : dynamicSkyIrradiance(nullptr)
+      : shDynamicSkyIrradiance(nullptr)
+      , shReduce(nullptr)
+      , shCompact(nullptr)
       , dynamicSkyRadiance(nullptr)
       , iblParamsBuffer(sizeof(glm::ivec4), BufferType::Dynamic)
       , iblIndices((MAX_NUM_ATMOSPHERES + MAX_NUM_DYNAMIC_IBL) * sizeof(int), BufferType::Dynamic)
-      , numIrradSamples(512)
+      , diffuseSHParams(sizeof(glm::ivec4), BufferType::Dynamic)
+      , diffuseSHStorage(10 * sizeof(glm::vec4) * 512 * MAX_NUM_DYNAMIC_IBL, BufferType::Dynamic)
+      , compactedDiffuseSH(10 * sizeof(glm::vec4) * MAX_NUM_DYNAMIC_IBL, BufferType::Dynamic)
       , numRadSamples(64)
       , frameTime(0.0f)
     { }

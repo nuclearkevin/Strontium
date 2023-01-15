@@ -60,10 +60,10 @@ vec4 sampleDither(ivec2 coords)
 
 float getMiePhase(float cosTheta, float g)
 {
-  const float scale = 3.0 / (8.0 * PI);
+  const float scale = 1.0 / (4.0 * PI);
 
-  float num = (1.0 - g * g) * (1.0 + cosTheta * cosTheta);
-  float denom = (2.0 + g * g) * pow((1.0 + g * g - 2.0 * g * cosTheta), 1.5);
+  float num = (1.0 - g * g);
+  float denom = pow((1.0 + g * g - 2.0 * g * cosTheta), 1.5);
 
   return scale * num / denom;
 }

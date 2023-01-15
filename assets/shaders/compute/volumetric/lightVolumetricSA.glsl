@@ -4,6 +4,7 @@
 #define PI 3.141592654
 #define NUM_CASCADES 4
 #define MAX_NUM_ATMOSPHERES 8
+#define MAX_NUM_DYN_SKY_IBL 8
 
 layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 
@@ -43,7 +44,7 @@ struct AtmosphereParams
   vec4 viewPos; // View position (x, y, z). w is unused.
 };
 
-layout(rgba16f, binding = 0) restrict writeonly uniform image3D inScatExt;
+layout(rgba16f, binding = 0) restrict uniform image3D inScatExt;
 
 layout(binding = 0) uniform sampler3D scatExtinction;
 layout(binding = 1) uniform sampler3D emissionPhase;
@@ -69,6 +70,7 @@ layout(std140, binding = 1) uniform VolumetricBlock
   vec4 u_lightDir; // Light direction (x, y, z). w is unused.
   vec4 u_lightColourIntensity; // Light colour (x, y, z) and intensity (w).
   vec4 u_ambientColourIntensity; // Ambient colour (x, y, z) and intensity (w).
+  vec4 u_frustumCenter; // Frustum center (x, y, z). w is unused.
   ivec4 u_fogParams; // Number of OBB fog volumes (x), fog parameter bitmask (y). z and w are unused.
 };
 
@@ -96,7 +98,8 @@ layout(std140, binding = 4) uniform HillaireParams
 
 layout(std430, binding = 5) readonly buffer HillaireIndices
 {
-  int u_atmosphereIndices[MAX_NUM_ATMOSPHERES];
+  int atmosphereIndices[MAX_NUM_ATMOSPHERES];
+  int iblIndices[MAX_NUM_DYN_SKY_IBL];
 };
 
 // Sample a dithering function.
@@ -109,10 +112,10 @@ vec4 sampleDither(ivec2 coords)
 
 float getMiePhase(float cosTheta, float g)
 {
-  const float scale = 3.0 / (8.0 * PI);
+  const float scale = 1.0 / (4.0 * PI);
 
-  float num = (1.0 - g * g) * (1.0 + cosTheta * cosTheta);
-  float denom = (2.0 + g * g) * pow((1.0 + g * g - 2.0 * g * cosTheta), 1.5);
+  float num = (1.0 - g * g);
+  float denom = pow((1.0 + g * g - 2.0 * g * cosTheta), 1.5);
 
   return scale * num / denom;
 }
@@ -177,6 +180,7 @@ void main()
 
   vec4 se = texture(scatExtinction, uvw);
   vec4 ep = texture(emissionPhase, uvw);
+  vec3 totalInScatExt = imageLoad(inScatExt, invoke).rgb;
 
   // Light the voxel. Just cascaded shadow maps and voxel emission for now.
   float phaseFunction = getMiePhase(dot(normalize(direction), u_lightDir.xyz), ep.w);
@@ -187,7 +191,7 @@ void main()
   float visibility = (u_fogParams.y & (1 << 0)) != 0 ? 1.0 : cascadedShadow(worldSpacePostion);
 
   // Fetch the atmosphere.
-  const int atmosphereIndex = u_atmosphereIndices[0];
+  const int atmosphereIndex = atmosphereIndices[0];
   const AtmosphereParams params = u_params[atmosphereIndex];
 
   // Fetch the transmittance.
@@ -201,10 +205,7 @@ void main()
 
   // Multiply by the transmittance from the sun -> object.
   light *= sunTransmittance;
+  totalInScatExt += light;
 
-  // Add ambient and emission contributions.
-  light += ep.xyz;
-  light += u_ambientColourIntensity.xyz * u_ambientColourIntensity.w * voxelAlbedo;
-
-  imageStore(inScatExt, invoke, vec4(light, se.w));
+  imageStore(inScatExt, invoke, vec4(totalInScatExt, se.w));
 }

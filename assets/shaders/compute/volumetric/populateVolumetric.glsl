@@ -57,6 +57,7 @@ layout(std140, binding = 1) uniform VolumetricBlock
   vec4 u_lightDir; // Light direction (x, y, z). w is unused.
   vec4 u_lightColourIntensity; // Light colour (x, y, z) and intensity (w).
   vec4 u_ambientColourIntensity; // Ambient colour (x, y, z) and intensity (w).
+  vec4 u_frustumCenter; // Frustum center (x, y, z). w is unused.
   ivec4 u_fogParams; // Number of OBB fog volumes (x), fog parameter bitmask (y). z and w are unused.
 };
 

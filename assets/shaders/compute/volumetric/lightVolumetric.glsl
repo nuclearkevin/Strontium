@@ -22,7 +22,7 @@ struct HeightFogParams
   vec4 falloff; // Falloff (x). y, z and w are unused.
 };
 
-layout(rgba16f, binding = 0) restrict writeonly uniform image3D inScatExt;
+layout(rgba16f, binding = 0) restrict uniform image3D inScatExt;
 
 layout(binding = 0) uniform sampler3D scatExtinction;
 layout(binding = 1) uniform sampler3D emissionPhase;
@@ -45,6 +45,7 @@ layout(std140, binding = 1) uniform VolumetricBlock
   vec4 u_lightDir; // Light direction (x, y, z). w is unused.
   vec4 u_lightColourIntensity; // Light colour (x, y, z) and intensity (w).
   vec4 u_ambientColourIntensity; // Ambient colour (x, y, z) and intensity (w).
+  vec4 u_frustumCenter; // Frustum center (x, y, z). w is unused.
   ivec4 u_fogParams; // Number of OBB fog volumes (x), fog parameter bitmask (y). z and w are unused.
 };
 
@@ -68,10 +69,10 @@ vec4 sampleDither(ivec2 coords)
 
 float getMiePhase(float cosTheta, float g)
 {
-  const float scale = 3.0 / (8.0 * PI);
+  const float scale = 1.0 / (4.0 * PI);
 
-  float num = (1.0 - g * g) * (1.0 + cosTheta * cosTheta);
-  float denom = (2.0 + g * g) * pow((1.0 + g * g - 2.0 * g * cosTheta), 1.5);
+  float num = (1.0 - g * g);
+  float denom = pow((1.0 + g * g - 2.0 * g * cosTheta), 1.5);
 
   return scale * num / denom;
 }
@@ -97,6 +98,7 @@ void main()
 
   vec4 se = texture(scatExtinction, uvw);
   vec4 ep = texture(emissionPhase, uvw);
+  vec3 totalInScatExt = imageLoad(inScatExt, invoke).rgb;
 
   // Light the voxel. Just cascaded shadow maps and voxel emission for now.
   // TODO: Single sample along the shadowed light's direction to account for out scattering.
@@ -106,8 +108,7 @@ void main()
   vec3 voxelAlbedo = max(mieScattering / extinction, 0.0.xxx);
 
   vec3 light = voxelAlbedo * phaseFunction * u_lightColourIntensity.xyz * u_lightColourIntensity.w;
-  light += ep.xyz;
-  light += u_ambientColourIntensity.xyz * u_ambientColourIntensity.w * voxelAlbedo;
+  totalInScatExt += light;
 
-  imageStore(inScatExt, invoke, vec4(light, se.w));
+  imageStore(inScatExt, invoke, vec4(totalInScatExt, se.w));
 }

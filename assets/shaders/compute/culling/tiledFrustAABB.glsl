@@ -43,7 +43,7 @@ void main()
 {
   const uint lInvoke = uint(gl_LocalInvocationIndex);
 
-  if (gl_LocalInvocationIndex == 0)
+  if (lInvoke == 0)
   {
     minDepthUint = 0xFFFFFFFF;
     maxDepthUint = 0;

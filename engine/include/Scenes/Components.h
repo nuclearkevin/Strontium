@@ -304,7 +304,7 @@ namespace Strontium
     BoxFogVolumeComponent(const BoxFogVolumeComponent&) = default;
 
     BoxFogVolumeComponent()
-      : phase(0.8f)
+      : phase(0.0f)
       , density(0.01f)
       , absorption(1.0f)
       , mieScattering(0.1f)
@@ -324,7 +324,7 @@ namespace Strontium
     SphereFogVolumeComponent(const SphereFogVolumeComponent&) = default;
 
     SphereFogVolumeComponent()
-        : phase(0.8f)
+        : phase(0.0f)
         , density(0.01f)
         , absorption(1.0f)
         , radius(1.0f)

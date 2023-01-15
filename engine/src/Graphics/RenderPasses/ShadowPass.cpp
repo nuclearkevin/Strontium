@@ -57,8 +57,9 @@ namespace Strontium
 
     this->passData.numUniqueEntities = 0u;
     this->passData.numUniqueStaticMeshes = 0u;
+    this->passData.modelMap.clear();
+    this->passData.staticGeometry.clear();
     this->passData.dynamicDrawList.clear();
-    this->passData.staticInstanceMap.clear();
 
     this->passData.minPos = glm::vec3(std::numeric_limits<float>::max());
     this->passData.maxPos = glm::vec3(std::numeric_limits<float>::min());
@@ -96,25 +97,18 @@ namespace Strontium
     uint bufferPointer = 0u;
     uint runningTransformID = 0u;
     uint trBufferPointer = 0u;
-    DrawArraysIndirectCommand cmd;
     uint icBufferPointer = 0u;
-    for (auto& [drawable, instancedTransforms] : this->passData.staticInstanceMap)
+    for (auto& geometry : this->passData.staticGeometry)
     {
-      if (instancedTransforms.size() == 0u)
-        continue;
-
-      this->passData.transformBuffer.setData(bufferPointer, sizeof(glm::mat4) * instancedTransforms.size(),
-                                             instancedTransforms.data());
-      bufferPointer += sizeof(glm::mat4) * instancedTransforms.size();
+      this->passData.transformBuffer.setData(bufferPointer, sizeof(glm::mat4) * geometry.instanceTransforms.size(),
+                                             geometry.instanceTransforms.data());
+      bufferPointer += sizeof(glm::mat4) * geometry.instanceTransforms.size();
 
       this->passData.drawIDToTransformMap.setData(trBufferPointer, sizeof(uint), &runningTransformID);
       trBufferPointer += sizeof(uint);
-      runningTransformID += instancedTransforms.size();
+      runningTransformID += geometry.instanceTransforms.size();
 
-      cmd.count = drawable.numToRender;
-      cmd.first = drawable.globalBufferOffset;
-      cmd.instanceCount = instancedTransforms.size();
-      this->passData.indirectBuffer.setData(icBufferPointer, sizeof(DrawArraysIndirectCommand), &cmd);
+      this->passData.indirectBuffer.setData(icBufferPointer, sizeof(DrawArraysIndirectCommand), &geometry.drawData);
       icBufferPointer += sizeof(DrawArraysIndirectCommand);
     }
 
@@ -210,34 +204,57 @@ namespace Strontium
         return;
     }
 
-	for (auto& submesh : data->getSubmeshes())
-	{
-      if (!submesh.isDrawable())
-        continue;
-      
-      // Compute the scene AABB.
-      auto localTransform = model * submesh.getTransform();
-      this->passData.minPos = glm::min(this->passData.minPos, glm::vec3(localTransform * glm::vec4(submesh.getMinPos(), 1.0f)));
-      this->passData.maxPos = glm::max(this->passData.maxPos, glm::vec3(localTransform * glm::vec4(submesh.getMaxPos(), 1.0f)));
-    
-      // Populate the draw list.
-      auto drawData = this->passData.staticInstanceMap.find(ShadowStaticDrawData(submesh.getGlobalLocation(),
-                                                                                 submesh.numToRender()));
-    
-      this->passData.numUniqueEntities++;
-      if (drawData != this->passData.staticInstanceMap.end())
-      {   
-        // Cache the per-entity data.
-        drawData->second.emplace_back(localTransform);
-      }
-      else 
+    uint numSubmeshes = data->getSubmeshes().size();
+    auto modelLoc = this->passData.modelMap.find(data);
+    if (modelLoc != this->passData.modelMap.end())
+    {
+      uint meshStart = modelLoc->second;
+      for (uint i = 0u; i < numSubmeshes; ++i)
       {
-        auto& item = this->passData.staticInstanceMap.emplace(ShadowStaticDrawData(submesh.getGlobalLocation(),
-                                                                                   submesh.numToRender()), std::vector<glm::mat4>());
-        item.first->second.emplace_back(localTransform);
-        this->passData.numUniqueStaticMeshes++;
+        auto& submesh = data->getSubmeshes()[i];
+        /*
+        if (!submesh.isDrawable())
+          continue;
+        */
+        // Compute the scene AABB.
+        const auto localTransform = model * submesh.getTransform();
+        this->passData.minPos = glm::min(this->passData.minPos, glm::vec3(localTransform * glm::vec4(submesh.getMinPos(), 1.0f)));
+        this->passData.maxPos = glm::max(this->passData.maxPos, glm::vec3(localTransform * glm::vec4(submesh.getMaxPos(), 1.0f)));
+
+        // Store the submesh draw data.
+        this->passData.staticGeometry[meshStart + i].instanceTransforms.emplace_back(localTransform);
+        this->passData.staticGeometry[meshStart + i].drawData.instanceCount++;
+
+        this->passData.numUniqueEntities++;
       }
-	}
+    }
+    else
+    {
+      uint meshStart = this->passData.staticGeometry.size();
+      
+      // Allocate space for the draw data.
+      this->passData.staticGeometry.reserve(this->passData.staticGeometry.size() + numSubmeshes);
+      this->passData.modelMap.emplace(data, meshStart);
+      for (uint i = 0u; i < numSubmeshes; ++i)
+      {
+        auto& submesh = data->getSubmeshes()[i];
+        /*
+        if (!submesh.isDrawable())
+          continue;
+        */
+        // Compute the scene AABB.
+        const auto& localTransform = model * submesh.getTransform();
+        this->passData.minPos = glm::min(this->passData.minPos, glm::vec3(localTransform * glm::vec4(submesh.getMinPos(), 1.0f)));
+        this->passData.maxPos = glm::max(this->passData.maxPos, glm::vec3(localTransform * glm::vec4(submesh.getMaxPos(), 1.0f)));
+
+        // Store the new submesh draw data.
+        this->passData.staticGeometry.emplace_back(submesh.numToRender(), 1u, submesh.getGlobalLocation(), 0u);
+        this->passData.staticGeometry.back().instanceTransforms.emplace_back(localTransform);
+
+        this->passData.numUniqueStaticMeshes++;
+        this->passData.numUniqueEntities++;
+      }
+    }
   }
 
   void 
@@ -269,33 +286,58 @@ namespace Strontium
     {
       // Unskinned animated mesh, store the rigged transform.
 	  auto& bones = animation->getFinalUnSkinnedTransforms();
-	  for (auto& submesh : data->getSubmeshes())
-	  {
-        if (!submesh.isDrawable())
-          continue;
-    
-        auto localTransform = model * bones[submesh.getName()];
-        this->passData.minPos = glm::min(this->passData.minPos, glm::vec3(localTransform * glm::vec4(submesh.getMinPos(), 1.0f)));
-        this->passData.maxPos = glm::max(this->passData.maxPos, glm::vec3(localTransform * glm::vec4(submesh.getMaxPos(), 1.0f)));
-    
-        // Populate the draw list.
-        auto drawData = this->passData.staticInstanceMap.find(ShadowStaticDrawData(submesh.getGlobalLocation(),
-                                                                                   submesh.numToRender()));
-        
-        this->passData.numUniqueEntities++;
-        if (drawData != this->passData.staticInstanceMap.end())
-        {   
-          // Cache the per-entity data.
-          drawData->second.emplace_back(localTransform);
-        }
-        else 
+
+      uint numSubmeshes = data->getSubmeshes().size();
+      auto modelLoc = this->passData.modelMap.find(data);
+      if (modelLoc != this->passData.modelMap.end())
+      {
+        uint meshStart = modelLoc->second;
+        for (uint i = 0u; i < numSubmeshes; ++i)
         {
-          auto& item = this->passData.staticInstanceMap.emplace(ShadowStaticDrawData(submesh.getGlobalLocation(),
-                                                                                     submesh.numToRender()), std::vector<glm::mat4>());
-          item.first->second.emplace_back(localTransform);
-          this->passData.numUniqueStaticMeshes++;
+          auto& submesh = data->getSubmeshes()[i];
+          /*
+          if (!submesh.isDrawable())
+            continue;
+          */
+          // Compute the scene AABB.
+          const auto& localTransform = model * bones[submesh.getName()];
+          this->passData.minPos = glm::min(this->passData.minPos, glm::vec3(localTransform * glm::vec4(submesh.getMinPos(), 1.0f)));
+          this->passData.maxPos = glm::max(this->passData.maxPos, glm::vec3(localTransform * glm::vec4(submesh.getMaxPos(), 1.0f)));
+      
+          // Store the submesh draw data.
+          this->passData.staticGeometry[meshStart + i].instanceTransforms.emplace_back(localTransform);
+          this->passData.staticGeometry[meshStart + i].drawData.instanceCount++;
+      
+          this->passData.numUniqueEntities++;
         }
-	  }
+      }
+      else
+      {
+        uint meshStart = this->passData.staticGeometry.size();
+        
+        // Allocate space for the draw data.
+        this->passData.staticGeometry.reserve(this->passData.staticGeometry.size() + numSubmeshes);
+        this->passData.modelMap.emplace(data, meshStart);
+        for (uint i = 0u; i < numSubmeshes; ++i)
+        {
+          auto& submesh = data->getSubmeshes()[i];
+          /*
+          if (!submesh.isDrawable())
+            continue;
+          */
+          // Compute the scene AABB.
+          const auto localTransform = model * bones[submesh.getName()];
+          this->passData.minPos = glm::min(this->passData.minPos, glm::vec3(localTransform * glm::vec4(submesh.getMinPos(), 1.0f)));
+          this->passData.maxPos = glm::max(this->passData.maxPos, glm::vec3(localTransform * glm::vec4(submesh.getMaxPos(), 1.0f)));
+      
+          // Store the new submesh draw data.
+          this->passData.staticGeometry.emplace_back(submesh.numToRender(), 1u, submesh.getGlobalLocation(), 0u);
+          this->passData.staticGeometry.back().instanceTransforms.emplace_back(localTransform);
+      
+          this->passData.numUniqueStaticMeshes++;
+          this->passData.numUniqueEntities++;
+        }
+      }
     }
   }
 

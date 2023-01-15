@@ -18,26 +18,6 @@ namespace Strontium
   	struct GlobalRendererData;
   }
 
-  struct GeomStaticDrawData
-  {
-	Material* technique;
-
-	uint numToRender;
-	uint globalBufferOffset;
-
-	GeomStaticDrawData(uint globalBufferOffset, Material* technique,
-					   uint numToRender)
-	  : globalBufferOffset(globalBufferOffset)
-      , technique(technique)
-	  , numToRender(numToRender)
-	{ }
-
-	bool operator==(const GeomStaticDrawData& other) const
-	{ 
-	  return this->globalBufferOffset == other.globalBufferOffset && this->technique == other.technique;
-	}
-  };
-
   struct PerEntityData
   {
 	glm::mat4 transform;
@@ -49,6 +29,21 @@ namespace Strontium
 	  : transform(transform)
 	  , idMask(idMask)
 	  , materialData(materialData)
+	{ }
+  };
+
+  struct GeomMeshData
+  {
+	DrawArraysIndirectCommand drawData;
+	Material* technique;
+	bool draw;
+
+	std::vector<PerEntityData> instanceData;
+
+	GeomMeshData(uint count, uint instanceCount, uint first, uint baseInstance, Material* technique)
+	  : drawData(count, instanceCount, first, baseInstance)
+	  , technique(technique)
+	  , draw(false)
 	{ }
   };
 
@@ -76,17 +71,6 @@ namespace Strontium
   };
 }
 
-template<>
-struct std::hash<Strontium::GeomStaticDrawData>
-{
-  std::size_t operator()(Strontium::GeomStaticDrawData const &data) const noexcept
-  {
-	std::size_t h1 = std::hash<uint>{}(data.globalBufferOffset);
-    std::size_t h2 = std::hash<Strontium::Material*>{}(data.technique);
-    return h1 ^ (h2 << 1);
-  }
-};
-
 namespace Strontium
 {
   struct GeometryPassDataBlock
@@ -95,10 +79,10 @@ namespace Strontium
 	GeometryBuffer gBuffer;
 	FrameBuffer idMaskBuffer;
 
-	Shader* staticGeometry;
-	Shader* dynamicGeometry;
-	Shader* staticEditor;
-	Shader* dynamicEditor;
+	Shader* staticGeometryPass;
+	Shader* dynamicGeometryPass;
+	Shader* staticEditorPass;
+	Shader* dynamicEditorPass;
 
 	UniformBuffer perDrawUniforms;
 
@@ -106,7 +90,8 @@ namespace Strontium
 	ShaderStorageBuffer boneBuffer;
 
 	uint numUniqueEntities;
-	robin_hood::unordered_flat_map<GeomStaticDrawData, std::vector<PerEntityData>> staticInstanceMap;
+	robin_hood::unordered_flat_map<Model*, uint> modelMap;
+	std::vector<GeomMeshData> staticGeometry;
 	std::vector<GeomDynamicDrawData> dynamicDrawList;
 	bool drawingIDs;
 	bool drawingMask;
@@ -121,10 +106,10 @@ namespace Strontium
 	GeometryPassDataBlock()
 	  : gBuffer(1600u, 900u)
 	  , idMaskBuffer(1600u, 900u)
-	  , staticGeometry(nullptr)
-	  , dynamicGeometry(nullptr)
-	  , staticEditor(nullptr)
-	  , dynamicEditor(nullptr)
+	  , staticGeometryPass(nullptr)
+	  , dynamicGeometryPass(nullptr)
+	  , staticEditorPass(nullptr)
+	  , dynamicEditorPass(nullptr)
 	  , perDrawUniforms(sizeof(int), BufferType::Dynamic)
 	  , entityDataBuffer(0, BufferType::Dynamic)
 	  , boneBuffer(MAX_BONES_PER_MODEL * sizeof(glm::mat4), BufferType::Dynamic)

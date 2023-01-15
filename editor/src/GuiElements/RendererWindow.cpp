@@ -346,10 +346,6 @@ namespace Strontium
 
       ImGui::Text("Frametime: %f ms", dynIBLBlock->frameTime);
 
-      int irradSamples = static_cast<int>(dynIBLBlock->numIrradSamples);
-      ImGui::SliderInt("Irradiance Samples", &irradSamples, 32, 1024, "%d", ImGuiSliderFlags_AlwaysClamp);
-      dynIBLBlock->numIrradSamples = static_cast<uint>(irradSamples);
-
       int radSamples = static_cast<int>(dynIBLBlock->numRadSamples);
       ImGui::SliderInt("Radiance Samples", &radSamples, 32, 1024, "%d", ImGuiSliderFlags_AlwaysClamp);
       dynIBLBlock->numRadSamples = static_cast<uint>(radSamples);
@@ -357,10 +353,7 @@ namespace Strontium
       static bool showIBLMaps = false;
       ImGui::Checkbox("Show Irradiance and Radiance Maps", &showIBLMaps);
       if (showIBLMaps)
-      {
-        this->irradianceView.cubemapArrayImage(dynIBLBlock->irradianceCubemaps, ImVec2(192.0f, 128.0f));
         this->radianceView.cubemapArrayImage(dynIBLBlock->radianceCubemaps, ImVec2(192.0f, 128.0f), true);
-      }
     }
 
     if (ImGui::CollapsingHeader("Lighting Pass"))

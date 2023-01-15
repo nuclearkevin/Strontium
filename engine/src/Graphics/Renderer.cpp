@@ -102,7 +102,7 @@ namespace Strontium::Renderer3D
     auto lightCull = passManager->insertRenderPass<LightCullingPass>(rendererData, geomet);
 
     // Lighting passes.
-    auto iblApp = passManager->insertRenderPass<IBLApplicationPass>(rendererData, geomet, hiZ, hbao, dynIBL);
+    auto iblApp = passManager->insertRenderPass<IBLApplicationPass>(rendererData, geomet, hiZ, hbao, skyatmo, dynIBL);
     auto dirApp = passManager->insertRenderPass<DirectionalLightPass>(rendererData, geomet, shadow, skyatmo);
     auto culledApp = passManager->insertRenderPass<CulledLightingPass>(rendererData, geomet, lightCull);
     auto areaApp = passManager->insertRenderPass<AreaLightPass>(rendererData, geomet, lightCull);
@@ -111,7 +111,7 @@ namespace Strontium::Renderer3D
     auto skyboxApp = passManager->insertRenderPass<SkyboxPass>(rendererData, geomet, skyatmo);
 
     // Unified volumetric passes.
-    auto ssgr = passManager->insertRenderPass<GodrayPass>(rendererData, geomet, lightCull, shadow, skyatmo, hiZ, dirApp, areaApp);
+    auto ssgr = passManager->insertRenderPass<GodrayPass>(rendererData, geomet, lightCull, shadow, skyatmo, hiZ, dirApp, areaApp, dynIBL);
     auto volApp = passManager->insertRenderPass<VolumetricLightPass>(rendererData, geomet, hiZ, ssgr);
 
     // Post processing passes

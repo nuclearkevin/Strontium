@@ -194,7 +194,8 @@ namespace Strontium
 
   void 
   DirectionalLightPass::submitPrimary(const DirectionalLight& light, bool castShadows, 
-                                      const glm::mat4& model, RendererDataHandle attachedSkyAtmosphere)
+                                      const glm::mat4& model, RendererDataHandle attachedSkyAtmosphere, 
+                                      RendererDataHandle attachedIBL)
   {
     auto invTrans = glm::transpose(glm::inverse(model));
     DirectionalLight temp = light;
@@ -204,6 +205,7 @@ namespace Strontium
     this->passData.castShadows = castShadows;
     this->passData.hasPrimary = true;
     this->passData.primaryLightAttachedAtmo = attachedSkyAtmosphere;
+    this->passData.primaryAttachedIBL = attachedIBL;
 
     if (!castShadows)
       this->submit(light, model, attachedSkyAtmosphere);

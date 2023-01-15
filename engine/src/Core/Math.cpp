@@ -267,7 +267,7 @@ namespace Strontium
     unsigned int planeTest = 0;
     bool inFrustum = true;
     for (uint i = 0; i < 6; i++)
-        inFrustum = inFrustum && boundingBoxOnPlane(frustum.sides[i], bb);
+      inFrustum = inFrustum && boundingBoxOnPlane(frustum.sides[i], bb);
 
     return inFrustum;
   }

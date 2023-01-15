@@ -11,6 +11,7 @@
 #include "Graphics/RenderPasses/HiZPass.h"
 #include "Graphics/RenderPasses/DirectionalLightPass.h"
 #include "Graphics/RenderPasses/AreaLightPass.h"
+#include "Graphics/RenderPasses/DynamicSkyIBLPass.h"
 
 #include "Graphics/Shaders.h"
 #include "Graphics/Textures.h"
@@ -73,7 +74,7 @@ namespace Strontium
     GodrayPassDataBlock()
       : obbFogBuffer(0, BufferType::Dynamic)
       , sphereFogBuffer(0, BufferType::Dynamic)
-      , godrayParamsBuffer(10 * sizeof(glm::vec4), BufferType::Dynamic)
+      , godrayParamsBuffer(11 * sizeof(glm::vec4), BufferType::Dynamic)
       , resolveFlag(false)
       , taaVolume(true)
       , enableGodrays(false)
@@ -90,7 +91,7 @@ namespace Strontium
       , heightDensity(0.1f)
       , mieScatteringPhaseHeight(0.1f, 0.1f, 0.1f, 0.8f)
       , emissionAbsorptionHeight(0.0f, 0.0f, 0.0f, 1.0f)
-      , ambientColour(0.5294f, 0.8078f, 0.9216f)
+      , ambientColour(0.0f, 0.0f, 0.0f)
       , ambientIntensity(1.0f)
       , frameTime(0.0f)
     { }
@@ -103,7 +104,7 @@ namespace Strontium
                GeometryPass* previousGeoPass, LightCullingPass* previousCullPass, 
                ShadowPass* previousShadowPass, SkyAtmospherePass* previousSkyAtmoPass, 
                HiZPass* previousHiZPass, DirectionalLightPass* previousDirLightPass, 
-               AreaLightPass* previousAreaLightPass);
+               AreaLightPass* previousAreaLightPass, DynamicSkyIBLPass* previousIBLPass);
     ~GodrayPass() override;
 
     void onInit() override;
@@ -117,7 +118,7 @@ namespace Strontium
 
     // Submit fog volumes.
     void submit(const OBBFogVolume &fogVolume);
-    void submit(const SphereFogVolume& fogVolume);
+    void submit(const SphereFogVolume &fogVolume);
 
   private:
     GodrayPassDataBlock passData;
@@ -129,6 +130,7 @@ namespace Strontium
     HiZPass* previousHiZPass;
     DirectionalLightPass* previousDirLightPass;
     AreaLightPass* previousAreaLightPass;
+    DynamicSkyIBLPass* previousIBLPass;
 
     AsynchTimer timer;
   };

@@ -47,6 +47,7 @@ namespace Strontium
     bool hasPrimary;
     bool castShadows;
     RendererDataHandle primaryLightAttachedAtmo;
+    RendererDataHandle primaryAttachedIBL;
     DirectionalLight primaryLight;
 
     // Some statistics.
@@ -67,6 +68,7 @@ namespace Strontium
       , hasPrimary(false)
       , castShadows(false)
       , primaryLightAttachedAtmo(-1)
+      , primaryAttachedIBL(-1)
       , primaryLight()
       , frameTime(0.0f)
     { }
@@ -92,7 +94,7 @@ namespace Strontium
     void submit(const DirectionalLight &light, const glm::mat4 &model, 
                 RendererDataHandle attachedSkyAtmosphere = -1);
     void submitPrimary(const DirectionalLight &light, bool castShadows, 
-                       const glm::mat4 &model, RendererDataHandle attachedSkyAtmosphere = -1);
+                       const glm::mat4 &model, RendererDataHandle attachedSkyAtmosphere = -1, RendererDataHandle attachedIBL = -1);
   private:
     DirectionalLightPassDataBlock passData;
 

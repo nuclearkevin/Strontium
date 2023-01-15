@@ -9,9 +9,10 @@ namespace Strontium
                          GeometryPass* previousGeoPass, LightCullingPass* previousCullPass, 
                          ShadowPass* previousShadowPass, SkyAtmospherePass* previousSkyAtmoPass, 
                          HiZPass* previousHiZPass, DirectionalLightPass* previousDirLightPass, 
-                         AreaLightPass* previousAreaLightPass)
+                         AreaLightPass* previousAreaLightPass, DynamicSkyIBLPass* previousIBLPass)
     : RenderPass(&this->passData, globalRendererData, { previousGeoPass, previousShadowPass, previousSkyAtmoPass, 
-                                                        previousHiZPass, previousDirLightPass, previousAreaLightPass })
+                                                        previousHiZPass, previousDirLightPass, previousAreaLightPass,
+                                                        previousIBLPass })
     , previousGeoPass(previousGeoPass)
     , previousCullPass(previousCullPass)
     , previousShadowPass(previousShadowPass)
@@ -19,6 +20,7 @@ namespace Strontium
     , previousHiZPass(previousHiZPass)
     , previousDirLightPass(previousDirLightPass)
     , previousAreaLightPass(previousAreaLightPass)
+    , previousIBLPass(previousIBLPass)
     , timer(5)
   { }
 
@@ -142,6 +144,7 @@ namespace Strontium
     auto dirLightBlock = this->previousDirLightPass->getInternalDataBlock<DirectionalLightPassDataBlock>();
     auto areaLightBlock = this->previousAreaLightPass->getInternalDataBlock<AreaLightPassDataBlock>();
     auto cullLightBlock = this->previousCullPass->getInternalDataBlock<LightCullingPassDataBlock>();
+    auto iblBlock = this->previousIBLPass->getInternalDataBlock<DynamicSkyIBLPassDataBlock>();
 
     if (!(this->passData.enableGodrays && numFogVolumes > 0u))
       return;
@@ -174,6 +177,7 @@ namespace Strontium
       glm::vec4 lightDir; // Light direction (x, y, z). w is unused.
       glm::vec4 lightColourIntensity; // Light colour (x, y, z) and intensity (w).
       glm::vec4 ambientColourIntensity; // Ambient colour (x, y, z) and intensity (w).
+      glm::vec4 frustumCenter;
       glm::ivec4 intData;
     }
       godrayData
@@ -188,6 +192,7 @@ namespace Strontium
       { glm::vec3(dirLightBlock->primaryLight.directionSize), 0.0f },
       { dirLightBlock->primaryLight.colourIntensity },
       { this->passData.ambientColour, this->passData.ambientIntensity },
+      { rendererData->camFrustum.center, 0.0f },
       { this->passData.obbVolumes.size(), 0, this->passData.sphereVolumes.size(), 0 }
     };
 
@@ -243,10 +248,16 @@ namespace Strontium
       skyAtmBlock->atmosphereBuffer.bindToPoint(4);
       skyAtmBlock->transmittanceLUTs.bind(4);
 
+      iblBlock->compactedDiffuseSH.bindToPoint(0);
+
       // Bind and upload the atmosphere indices.
-      dirLightBlock->atmosphereIndices.bindToPoint(5);
-      dirLightBlock->atmosphereIndices.setData(0, sizeof(int), &dirLightBlock->primaryLightAttachedAtmo);
+      iblBlock->iblIndices.bindToPoint(5);
+      iblBlock->iblIndices.setData(0, sizeof(int), &dirLightBlock->primaryLightAttachedAtmo);
+      //iblBlock->iblIndices.setData(MAX_NUM_ATMOSPHERES * sizeof(int), sizeof(int), &dirLightBlock->primaryAttachedIBL);
     }
+
+    ShaderCache::getShader("light_froxels_emission")->launchCompute(iFWidth, iFHeight, this->passData.numZSlices);
+    Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
 
     if (dirLightBlock->hasPrimary)
     {
@@ -265,11 +276,8 @@ namespace Strontium
           ShaderCache::getShader("light_froxels")->launchCompute(iFWidth, iFHeight, this->passData.numZSlices); 
       }
     }
-    else
-      ShaderCache::getShader("light_froxels_emission")->launchCompute(iFWidth, iFHeight, this->passData.numZSlices);
-
     Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
-
+      
     // Light the froxels for point lights.
     if (cullLightBlock->pointLightCount > 0u)
     {

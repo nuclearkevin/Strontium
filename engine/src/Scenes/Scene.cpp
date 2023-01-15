@@ -322,18 +322,24 @@ namespace Strontium
       if (primaryLight.entityID == entity)
       {
         RendererDataHandle attachedSky = -1;
+        RendererDataHandle attachedIBL = -1;
         if (this->sceneECS.has<SkyAtmosphereComponent>(entity))
           attachedSky = this->sceneECS.get<SkyAtmosphereComponent>(entity).handle;
+        if (this->sceneECS.has<DynamicSkylightComponent>(entity))
+          attachedIBL = this->sceneECS.get<DynamicSkylightComponent>(entity).handle;
 
-        dirApp->submitPrimary(directional, directional.castShadows, transform, attachedSky);
+        dirApp->submitPrimary(directional, directional.castShadows, transform, attachedSky, attachedIBL);
         skyAtm->submitPrimary(directional, directional.castShadows, transform);
         shadow->submitPrimary(directional, directional.castShadows, transform);
       }
       else
       {
         RendererDataHandle attachedSky = -1;
+        RendererDataHandle attachedIBL = -1;
         if (this->sceneECS.has<SkyAtmosphereComponent>(entity))
           attachedSky = this->sceneECS.get<SkyAtmosphereComponent>(entity).handle;
+        if (this->sceneECS.has<DynamicSkylightComponent>(entity))
+          attachedIBL = this->sceneECS.get<DynamicSkylightComponent>(entity).handle;
 
         dirApp->submit(directional, transform, attachedSky);
       }
@@ -434,7 +440,7 @@ namespace Strontium
       {
         canComputeIBL = true;
         skyUpdated = skyAtm->submit(atmosphere, atmosphere, this->sceneECS.get<DirectionalLightComponent>(entity),
-                                       transform);
+                                    transform);
       }
       else if (atmosphere.usePrimaryLight)
       {
@@ -464,7 +470,7 @@ namespace Strontium
     for (auto entity : obbFog)
     {
       auto [transform, boxFog] = obbFog.get<TransformComponent, BoxFogVolumeComponent>(entity);
-      godray->submit(OBBFogVolume(boxFog.phase, boxFog.density, boxFog.absorption, 
+      godray->submit(OBBFogVolume(glm::clamp(boxFog.phase, -0.8f, 0.8f), boxFog.density, boxFog.absorption, 
                                   boxFog.mieScattering, boxFog.emission, static_cast<glm::mat4>(transform)));
     }
     // Sphere.
@@ -472,7 +478,7 @@ namespace Strontium
     for (auto entity : sFog)
     {
       auto [transform, sphereFog] = sFog.get<TransformComponent, SphereFogVolumeComponent>(entity);
-      godray->submit(SphereFogVolume(sphereFog.phase, sphereFog.density, sphereFog.absorption,
+      godray->submit(SphereFogVolume(glm::clamp(sphereFog.phase, -0.8f, 0.8f), sphereFog.density, sphereFog.absorption,
                                      sphereFog.mieScattering, sphereFog.emission, transform.translation, 
                                      sphereFog.radius));
     }
@@ -517,18 +523,24 @@ namespace Strontium
       if (primaryLight.entityID == entity)
       {
         RendererDataHandle attachedSky = -1;
+        RendererDataHandle attachedIBL = -1;
         if (this->sceneECS.has<SkyAtmosphereComponent>(entity))
           attachedSky = this->sceneECS.get<SkyAtmosphereComponent>(entity).handle;
+        if (this->sceneECS.has<DynamicSkylightComponent>(entity))
+          attachedIBL = this->sceneECS.get<DynamicSkylightComponent>(entity).handle;
 
-        dirApp->submitPrimary(directional, directional.castShadows, transform, attachedSky);
+        dirApp->submitPrimary(directional, directional.castShadows, transform, attachedSky, attachedIBL);
         skyAtm->submitPrimary(directional, directional.castShadows, transform);
         shadow->submitPrimary(directional, directional.castShadows, transform);
       }
       else
       {
         RendererDataHandle attachedSky = -1;
+        RendererDataHandle attachedIBL = -1;
         if (this->sceneECS.has<SkyAtmosphereComponent>(entity))
           attachedSky = this->sceneECS.get<SkyAtmosphereComponent>(entity).handle;
+        if (this->sceneECS.has<DynamicSkylightComponent>(entity))
+          attachedIBL = this->sceneECS.get<DynamicSkylightComponent>(entity).handle;
 
         dirApp->submit(directional, transform, attachedSky);
       }
@@ -654,7 +666,7 @@ namespace Strontium
     for (auto entity : obbFog)
     {
       auto [transform, boxFog] = obbFog.get<TransformComponent, BoxFogVolumeComponent>(entity);
-      godray->submit(OBBFogVolume(boxFog.phase, boxFog.density, boxFog.absorption, 
+      godray->submit(OBBFogVolume(glm::clamp(boxFog.phase, -0.8f, 0.8f), boxFog.density, boxFog.absorption,
                                   boxFog.mieScattering, boxFog.emission, static_cast<glm::mat4>(transform)));
     }
     // Sphere.
@@ -662,7 +674,7 @@ namespace Strontium
     for (auto entity : sFog)
     {
       auto [transform, sphereFog] = sFog.get<TransformComponent, SphereFogVolumeComponent>(entity);
-      godray->submit(SphereFogVolume(sphereFog.phase, sphereFog.density, sphereFog.absorption,
+      godray->submit(SphereFogVolume(glm::clamp(sphereFog.phase, -0.8f, 0.8f), sphereFog.density, sphereFog.absorption,
                                      sphereFog.mieScattering, sphereFog.emission, transform.translation, 
                                      sphereFog.radius));
     }

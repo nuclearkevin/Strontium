@@ -131,7 +131,7 @@ namespace Strontium
 
     // Update the mandatory LUTs.
     this->passData.transmittanceLUTs.bindAsImage(0, 0, true, 0, ImageAccessPolicy::Write);
-    this->passData.transmittanceCompute->launchCompute(256 / 8, 64 / 8, this->updatableHandles.size());
+    this->passData.transmittanceCompute->launchCompute(32, 8, this->updatableHandles.size());
     Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
 
     this->passData.multiscatterLUTS.bindAsImage(0, 0, true, 0, ImageAccessPolicy::Write);
@@ -144,7 +144,7 @@ namespace Strontium
     {
       this->passData.skyviewLUTs.bindAsImage(0, 0, true, 0, ImageAccessPolicy::Write);
       this->passData.multiscatterLUTS.bind(1);
-      this->passData.skyviewCompute->launchCompute(256 / 8, 128 / 8, this->updatableHandles.size());
+      this->passData.skyviewCompute->launchCompute(32, 16, this->updatableHandles.size());
       Shader::memoryBarrier(MemoryBarrierType::ShaderImageAccess);
     }
   }

@@ -19,18 +19,15 @@ namespace Strontium
   void 
   DynamicSkyIBLPass::onInit()
   {
-    this->passData.dynamicSkyIrradiance = ShaderCache::getShader("sky_lut_diffuse");
+    this->passData.shDynamicSkyIrradiance = ShaderCache::getShader("sky_lut_diffuse_sh");
+    this->passData.shReduce = ShaderCache::getShader("sh_reduction");
+    this->passData.shCompact = ShaderCache::getShader("sh_compaction");
     this->passData.dynamicSkyRadiance = ShaderCache::getShader("sky_lut_specular");
 
     // Common texture params.
     TextureCubeMapParams params = TextureCubeMapParams();
     params.internal = TextureInternalFormats::RGBA16f;
     params.dataType = TextureDataType::Floats;
-
-    // Initialize the irradiance (diffuse) cubemap texture array for bulk computation.
-    this->passData.irradianceCubemaps.setSize(32, 32, 8);
-    this->passData.irradianceCubemaps.setParams(params);
-    this->passData.irradianceCubemaps.initNullTexture();
 
     // Initialize the radiance (specular) cubemap texture array for bulk computation.
     params.minFilter = TextureMinFilterParams::LinearMipMapLinear;
@@ -118,19 +115,6 @@ namespace Strontium
     // Bind the atmosphere data.
     skyData->atmosphereBuffer.bindToPoint(0);
 
-    // Send over IBL parameters.
-    this->passData.iblParamsBuffer.bindToPoint(1);
-    struct IBLParamData
-    {
-      glm::vec4 params;
-    } 
-      iblParamBlock
-    {
-      { 0.0f, static_cast<float>(this->passData.numIrradSamples), 
-        static_cast<float>(this->passData.numRadSamples), 0.0f }
-    };
-    this->passData.iblParamsBuffer.setData(0, sizeof(IBLParamData), &iblParamBlock);
-
     // Send over the updatable atmosphere and IBL handles.
     // TODO: Better batching scheme?
     this->passData.iblIndices.bindToPoint(0);
@@ -140,9 +124,39 @@ namespace Strontium
     // Sky-view LUTs.
     skyData->skyviewLUTs.bind(0);
 
-    // Irradiance pass first.
-    this->passData.irradianceCubemaps.bindAsImage(0, 0, true, 0, ImageAccessPolicy::Write);
-    this->passData.dynamicSkyIrradiance->launchCompute(4, 4, 6 * this->updatableHandles.size());
+    // Irradiance SH pass. 
+    // SH params.
+    this->passData.diffuseSHParams.bindToPoint(1);
+    glm::ivec4 data(512, 512, this->updatableHandles.size(), 0);
+    this->passData.diffuseSHParams.setData(0u, sizeof(glm::ivec4), &(data.x));
+    
+    // Storage for all the coefficients.
+    this->passData.diffuseSHStorage.bindToPoint(1);
+
+    // First pass to generate spherical harmonics components.
+    this->passData.shDynamicSkyIrradiance->launchCompute(32, 16, this->updatableHandles.size());
+    Shader::memoryBarrier(MemoryBarrierType::ShaderStorageBufferWrites);
+
+    // Second pass to perform a somewhat parallel reduction.
+    this->passData.shReduce->launchCompute(1, 1, this->updatableHandles.size());
+    Shader::memoryBarrier(MemoryBarrierType::ShaderStorageBufferWrites);
+
+    // Final pass to normalize and compact the SH coefficients.
+    this->passData.compactedDiffuseSH.bindToPoint(2);
+    this->passData.shCompact->launchCompute(static_cast<uint>(glm::ceil(static_cast<float>(this->updatableHandles.size()) / 64.0f)), 1, 1);
+    Shader::memoryBarrier(MemoryBarrierType::ShaderStorageBufferWrites);
+    
+    // Send over IBL parameters.
+    this->passData.iblParamsBuffer.bindToPoint(1);
+    struct IBLParamData
+    {
+      glm::vec4 params;
+    }
+    iblParamBlock
+    {
+      { 0.0f, 0.0f, static_cast<float>(this->passData.numRadSamples), 0.0f }
+    };
+    this->passData.iblParamsBuffer.setData(0, sizeof(IBLParamData), &iblParamBlock);
 
     // Radiance pass. This is more complicated...
     for (uint i = 0; i < 7; i++)

@@ -91,11 +91,13 @@ namespace Strontium
     // Check the device information to ensure that shaders will compile properly.
 
     // Check to make sure all required extensions are supported.
+    /*
     if (!GLAD_GL_ARB_bindless_texture || !GLAD_GL_ARB_indirect_parameters)
     {
       std::cout << "Missing one of the required OpenGL extensions." << "\n";
       exit(EXIT_FAILURE);
     }
+    */
 
     std::cout.flush();
   }
