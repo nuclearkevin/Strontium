@@ -16,9 +16,11 @@ This project started while I was taking a class on intermediate computer graphic
   - A dynamic skybox system for fast, fully integrated atmospheric lighting.
   - Dynamic image-based lighting for the skyboxes mentioned above.
   - Directional lights with support for a single light with cascaded shadows.
-  - A variety of shadow quality options which include percentage-closer soft shadows.
+    - A variety of shadow quality options which include percentage-closer soft shadows.
+  - Many point and spot lights through deferred tiled light culling.
+  - Rectangular analytical area lights (LTCs).
   - Unified volumetrics for fog and haze.
-    - Supports bounding box fog volumes, depth-based fog, and exponential height fog.
+    - Supports bounding box fog volumes, spherical fog volumes, depth-based fog, and exponential height fog.
   - Horizon-based ambient occlusion.
   - Physically-based materials using a metallic workflow.
   - HDR rendering.
@@ -41,8 +43,6 @@ This project started while I was taking a class on intermediate computer graphic
 ### <h1 align="center">Planned Features</h1>
 - Graphics:
   - 2D rendering for particles, sprites and billboards.
-  - Many point and spot lights through tiled light culling.
-  - Analytical area lights.
   - Transparent object support.
   - Screen-space glossy reflections.
   - Screen-space voxel global illumination.
